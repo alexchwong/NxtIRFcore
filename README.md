@@ -19,5 +19,11 @@ install_github("alexchwong/NxtIRF", dependencies=TRUE)
 browseVignettes("NxtIRF")
 ```
 
+
+## Development History
+
+https://github.com/alexchwong/NxtIRF_210401
+
+
 ## Saving interactive plots from within the NxtIRF shinydashboard app
 Please note that plotly/orca needs to be installed to use this functionality. See https://github.com/plotly/orca#installation for detailed instructions on how to install plotly/orca on your system.
