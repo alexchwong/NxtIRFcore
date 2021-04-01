@@ -1,3 +1,5 @@
+bam_samples = c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046")
+
 df_bams <- data.frame(
     Title = sprintf("RNA-seq reads aligned to the NxtIRF mock genome from %s of the Leucegene dataset (GSE67039)", 
         c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046")), 
@@ -8,13 +10,12 @@ df_bams <- data.frame(
     BiocVersion="3.13", 
     Genome="NxtIRF_chrZ", 
     SourceType="BAM",
-    SourceUrl=paste0(
-        "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF/",
+    SourceUrl=
         sprintf(
             paste("%s.bam", "%s.bam.bai", sep = ", "),
-            c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046"),
-            c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046"))
-    ),
+            paste0("https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF/", bam_samples),
+            paste0("https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF/", bam_samples)
+        ),
     SourceVersion="0.99.0",
     Species="Homo sapiens",
     TaxonomyId="9606",
@@ -25,9 +26,10 @@ df_bams <- data.frame(
     DispatchClass="BamFile",
     Location_Prefix = "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/",
     RDataPath = sprintf(
-        paste("NxtIRF/%s.bam", "NxtIRF/%s.bam.bai", collapse = ", "),
-        c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046"),
-        c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046")),
+            paste("%s.bam", "%s.bam.bai", sep = ", "),
+            paste0("NxtIRF/", bam_samples),
+            paste0("NxtIRF/", bam_samples)
+        ),
     Tags = "MockGenome:Leucegene:NxtIRF",
     stringsAsFactors = FALSE
 )

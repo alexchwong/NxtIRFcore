@@ -71,6 +71,7 @@ Collate: AllImports.R
 	AllClasses.R
 	AllGenerics.R
 	NxtSE-methods.R
+	zzz.R
 	wrappers.R
 	BuildRef.R
 	DE_IR.R
