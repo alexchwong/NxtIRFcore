@@ -1,0 +1,100 @@
+Package: NxtIRF
+Title: User-friendly Intron Retention and Alternative Splicing analysis using the IRFinder engine
+Version: 0.98.0
+Date: 2020-11-07
+Authors@R: c(person("Alex Chit Hei", "Wong", email="a.wong@centenary.org.au", 
+		role=c("aut", "cre", "cph")),
+	person("William", "Ritchie", role=c("aut", "cph")),
+	person("Dadi", "Gao", role=c("ctb")),
+	person("Ulf", "Schmitz", role=c("ctb")))    
+Description: NxtIRF is the next evolution for Intron Retention detection for RNA-seq 
+    data. NxtIRF is now fully compatible with Windows and Mac as well as Linux. In addition
+    to analysis of bam files aligned to the genome using a splice-aware aligner (e.g. STAR),
+    NxtIRF provides convenient pipelines for downstream analysis and publication-ready
+    visualisation.
+License: MIT + file LICENSE
+Depends:
+  R (>= 4.0.0),
+	NxtIRFdata
+Imports:
+	methods, stats, utils, boot, graphics, R.utils,
+	Rcpp (>= 1.0.5),
+	data.table,
+	fst,
+  DBI,
+  RSQLite,
+	shiny,
+	shinyFiles,
+	shinyWidgets,
+	shinydashboard,
+	rhandsontable,
+	ggplot2,
+	AnnotationHub,
+	BiocFileCache,
+	BiocGenerics,
+	Biostrings,
+	BiocParallel,
+	DT,
+	genefilter,
+	grDevices,
+	GenomeInfoDb,
+	GenomicRanges,
+	heatmaply,
+	IRanges,
+	matrixStats,
+	openssl,
+	parallel,
+	plotly,
+	rappdirs,
+	rtracklayer,
+	RColorBrewer,
+	stringr,
+	SummarizedExperiment,
+	S4Vectors,
+	XML
+LinkingTo: Rcpp, RcppArmadillo, zlibbioc, RcppProgress
+Suggests: 
+    knitr,
+    rmarkdown,
+    DESeq2,
+    limma,
+    Rsubread,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Remotes:  
+    github::alexchwong/NxtIRFdata
+biocViews: Software, Transcriptomics, RNASeq, AlternativeSplicing, Coverage, DifferentialSplicing
+SystemRequirements: C++11
+Collate: AllImports.R
+	RcppExports.R
+	globals.R
+	AllClasses.R
+	AllGenerics.R
+	NxtSE-methods.R
+	wrappers.R
+	BuildRef.R
+	DE_IR.R
+	CollateData.R
+	filterModules_shiny.R
+	dash_settings.R
+	dash_utils.R
+	dash_ref_new_ui.R
+	dash_ref_new_server.R
+	dash_expr_ui.R
+	dash_expr_server.R
+	dash_QC.R
+	dash_filters.R
+	dash_DE_ui.R
+	dash_DE_server.R
+	dash_vis_ui.R
+	dash_vis_server.R
+	dash_cov_ui.R
+	dash_cov_server.R
+	dash_ui.R
+	dash_server.R
+	dash.R
+Encoding: UTF-8
+RoxygenNote: 7.1.1
+URL: https://github.com/alexchwong/NxtIRF
+BugReports: https://support.bioconductor.org/
+Config/testthat/edition: 3
