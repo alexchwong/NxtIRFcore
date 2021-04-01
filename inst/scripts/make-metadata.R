@@ -1,17 +1,61 @@
-df <- data.frame(
+df_bams <- data.frame(
+    Title = sprintf("RNA-seq reads aligned to the NxtIRF mock genome from %s of the Leucegene dataset (GSE67039)", 
+        c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046")), 
+    Description = paste(c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046"),
+        "- aligned reads (from this sample in GSE67039) were filtered by those mapping to genes in the NxtIRF mock genome.",
+        "These were re-aligned to the mock genome using STAR."
+    ),
+    BiocVersion="3.13", 
+    Genome="NxtIRF_chrZ", 
+    SourceType="BAM",
+    SourceUrl=paste0(
+        "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF/",
+        sprintf(
+            paste("%s.bam", "%s.bam.bai", sep = ", "),
+            c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046"),
+            c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046"))
+    ),
+    SourceVersion="0.99.0",
+    Species="Homo sapiens",
+    TaxonomyId="9606",
+    Coordinate_1_based=1,
+    DataProvider="NxtIRF",
+    Maintainer="Alex Wong <a.wong@centenary.org.au>",
+    RDataClass="BamFile",
+    DispatchClass="BamFile",
+    Location_Prefix = "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/",
+    RDataPath = sprintf(
+        paste("NxtIRF/%s.bam", "NxtIRF/%s.bam.bai", collapse = ", "),
+        c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046"),
+        c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046")),
+    Tags = "MockGenome:Leucegene:NxtIRF",
+    stringsAsFactors = FALSE
+)
+
+df_mappa <- data.frame(
     Title = sprintf("Mappability Exclusion Regions for %s", 
-        c("hg38 Ens v94", "hg19 Ens v75", "mm10 Ens v94", "mm9 Ens v67")), 
-    Description = paste(c("hg38 Ens v94", "hg19 Ens v75", "mm10 Ens v94", "mm9 Ens v67"),
+        c(
+            "Ensembl GRCh38 (hg38) release-94", 
+            "Ensembl GRCh37 (hg19) release-75",
+            "Ensembl GRCm38 (mm10) release-94",
+            "Ensembl NCBIM37 (mm9) release-67"
+        )
+    ),
+    Description = paste(
+        c(
+            "Ensembl GRCh38 (hg38) release-94", 
+            "Ensembl GRCh37 (hg19) release-75",
+            "Ensembl GRCm38 (mm10) release-94",
+            "Ensembl NCBIM37 (mm9) release-67"
+        ),
         "mappability exclusion regions were generated using a modified script of the method ",
         "as described in https://github.com/williamritchie/IRFinder/blob/master/bin/util/Mapability"
     ),
-    RDataPath = file.path("NxtIRF", "mappability", 
-        c("hg38_v94.rds", "hg19_v75.rds", "mm10_v94.rds", "mm9_v67.rds")),
-    BiocVersion="3.12", 
-    Genome=c("hg38", "hg19", "mm10", "mm9"), 
-    SourceType="BED", 
+    BiocVersion="3.13", 
+    Genome=c("hg38", "hg19", "mm10", "mm9"),
+    SourceType="BED",
     SourceUrl=paste(
-        "https://raw.github.com/alexw-gsct/NxtIRF_resources/main/data",
+        "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF/",
         c(
             "Mappability_Regions_hg38_v94.txt.gz",
             "Mappability_Regions_hg19_v75.txt.gz",
@@ -19,23 +63,25 @@ df <- data.frame(
             "Mappability_Regions_mm9_v67.txt.gz"
         )
     ),
-    SourceVersion="0.98.0",
+    SourceVersion="0.99.0",
     Species=c(rep("Homo sapiens", 2),rep("Mus musculus", 2)),
     TaxonomyId=c(rep("9606", 2),rep("10090", 2)),
-    Coordinate_1_based=FALSE,
-    DataProvider="Alex Wong",
+    Coordinate_1_based=0,
+    DataProvider="NxtIRF",
     Maintainer="Alex Wong <a.wong@centenary.org.au>",
     RDataClass="GRanges",
     DispatchClass="BEDFile",
-    Location_Prefix = "https://raw.github.com/alexw-gsct/NxtIRF_resources/main/data",
+    Location_Prefix = "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/",
     RDataPath = c(
-        "Mappability_Regions_hg38_v94.txt.gz",
-        "Mappability_Regions_hg19_v75.txt.gz",
-        "Mappability_Regions_mm10_v94.txt.gz",
-        "Mappability_Regions_mm9_v67.txt.gz"
+        "NxtIRF/Mappability_Regions_hg38_v94.txt.gz",
+        "NxtIRF/Mappability_Regions_hg19_v75.txt.gz",
+        "NxtIRF/Mappability_Regions_mm10_v94.txt.gz",
+        "NxtIRF/Mappability_Regions_mm9_v67.txt.gz"
     ),
     Tags = "MappabilityExclusion:Mappability:NxtIRF", 
     stringsAsFactors = FALSE
 )
 
-write.csv(file="../extdata/metadata.csv", df, row.names=FALSE)
+df = rbind(df_bams, df_mappa)
+
+# write.csv(file="../extdata/metadata.csv", df, row.names=FALSE)
