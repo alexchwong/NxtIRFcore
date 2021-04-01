@@ -1,5 +1,4 @@
 #' @useDynLib NxtIRF, .registration = TRUE 
-#' @import NxtIRFdata
 #' @import data.table
 #' @importFrom fst read.fst write.fst
 #' @importFrom DBI dbConnect dbDisconnect
@@ -18,7 +17,7 @@
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom Rcpp evalCpp
 #' @importFrom AnnotationHub AnnotationHub cache
-#' @importFrom BiocFileCache BiocFileCache bfcrpath
+#' @importFrom BiocFileCache BiocFileCache bfcrpath bfcquery
 #' @importFrom BiocGenerics start end width strand
 #' @importFrom Biostrings getSeq readDNAStringSet DNAStringSet translate replaceAmbiguities type
 #' @importFrom BiocParallel bpparam bplapply SnowParam MulticoreParam SerialParam
@@ -32,6 +31,7 @@
 #' @importFrom GenomicRanges flank setdiff seqnames psetdiff disjoin mcols<- 
 #' @importFrom GenomicRanges strand<- seqnames<-
 #' @importFrom heatmaply heatmaply
+#' @importFrom httr HEAD GET status_code
 #' @importFrom IRanges IRanges Views RleList
 #' @importFrom matrixStats rowSds
 #' @importFrom openssl md5

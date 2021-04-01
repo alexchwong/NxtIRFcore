@@ -561,31 +561,7 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     if (!(genome_type %in% c("hg38", "hg19", "mm9", "mm10"))) {
         MappabilityFile <- ""
     } else {
-        if (genome_type == "hg38") {
-            MappabilityFile <- .parse_valid_file(
-                system.file("extdata", 
-                    "Mappability_Regions_hg38_v94.txt.gz", 
-                    package = "NxtIRFdata")
-            )
-        } else if (genome_type == "hg19") {
-            MappabilityFile <- .parse_valid_file(
-                system.file("extdata", 
-                    "Mappability_Regions_hg19_v75.txt.gz", 
-                    package = "NxtIRFdata")
-            )
-        } else if (genome_type == "mm10") {
-            MappabilityFile <- .parse_valid_file(
-                system.file("extdata", 
-                    "Mappability_Regions_mm10_v94.txt.gz", 
-                    package = "NxtIRFdata")
-            )
-        } else if (genome_type == "mm9") {
-            MappabilityFile <- .parse_valid_file(
-                system.file("extdata", 
-                    "Mappability_Regions_mm9_v67.txt.gz", 
-                    package = "NxtIRFdata")
-            )
-        }
+        MappabilityFile <- get_mappability_exclusion(genome_type)
     }
     return(MappabilityFile)
 }
