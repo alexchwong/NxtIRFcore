@@ -69,7 +69,8 @@ IRFinder) will exclude transcripts other than \code{protein_coding} and
 \code{processed_transcript} transcripts from IR analysis.}
 }
 \value{
-Nothing. The created reference will be written to the given directory.
+Nothing. The created reference will be written to the given
+directory.
 This includes:
 \itemize{
 \item \code{reference_path}/IRFinder.ref.gz: A gzipped text file containing collated

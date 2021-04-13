@@ -6,7 +6,8 @@ server_ref_new <- function(id, refresh_tab, volumes) {
             shinyDirChoose(input, "dir_reference_path", 
                 roots = volumes(), session = session)
             output$txt_reference_path <- renderText({
-                validate(need(input$dir_reference_path, "Please select reference path"))
+                validate(need(input$dir_reference_path, 
+                    "Please select reference path"))
                 settings_newref$newref_path = 
                     parseDirPath(volumes(), input$dir_reference_path)
             })
@@ -16,18 +17,22 @@ server_ref_new <- function(id, refresh_tab, volumes) {
                 roots = volumes(), 
                 session = session, filetypes = c("fa", "fasta", "gz"))
             if(!is.null(input$file_genome)){
-             file_selected<-parseFilePaths(volumes(), input$file_genome)
-             settings_newref$newref_fasta = as.character(file_selected$datapath)
-             output$txt_genome <- renderText(as.character(file_selected$datapath))
+                file_selected<-parseFilePaths(volumes(), input$file_genome)
+                settings_newref$newref_fasta = 
+                    as.character(file_selected$datapath)
+                output$txt_genome <- renderText(
+                    as.character(file_selected$datapath))
             }
         })
         observe({  
             shinyFileChoose(input, "file_gtf", roots = volumes(), 
                 session = session, filetypes = c("gtf", "gz"))
             if(!is.null(input$file_gtf)){
-             file_selected<-parseFilePaths(volumes(), input$file_gtf)
-             settings_newref$newref_gtf = as.character(file_selected$datapath)
-             output$txt_gtf <- renderText(as.character(file_selected$datapath))
+                file_selected<-parseFilePaths(volumes(), input$file_gtf)
+                settings_newref$newref_gtf = 
+                    as.character(file_selected$datapath)
+                output$txt_gtf <- renderText(
+                    as.character(file_selected$datapath))
             }
         })
         observe({  
@@ -40,7 +45,8 @@ server_ref_new <- function(id, refresh_tab, volumes) {
                         selected = "(custom)"
                     )
                 file_selected<-parseFilePaths(volumes(), input$file_mappa)
-                settings_newref$newref_mappa = as.character(file_selected$datapath)
+                settings_newref$newref_mappa = 
+                    as.character(file_selected$datapath)
             }
         })
         observeEvent(settings_newref$newref_mappa, {
@@ -60,14 +66,15 @@ server_ref_new <- function(id, refresh_tab, volumes) {
                     selected = "(custom)"
                 )
                 file_selected<-parseFilePaths(volumes(), input$file_NPA)
-                settings_newref$newref_NPA = as.character(file_selected$datapath)
+                settings_newref$newref_NPA = 
+                    as.character(file_selected$datapath)
             }
         })
         observeEvent(settings_newref$newref_NPA, {
             output$txt_NPA <- renderText(settings_newref$newref_NPA)    
         })
         observeEvent(input$clear_NPA, {
-          req(input$clear_NPA)
+            req(input$clear_NPA)
             settings_newref$newref_NPA = ""
         })    
         observe({  
@@ -87,7 +94,7 @@ server_ref_new <- function(id, refresh_tab, volumes) {
         })
         observeEvent(input$newref_genome_type, {
             req(input$newref_genome_type)
-           
+
             if(input$newref_genome_type == "hg38") {
                 settings_newref$newref_NPA = system.file(
                     "extra-input-files/Human_hg38_nonPolyA_ROI.bed", 
@@ -117,7 +124,8 @@ server_ref_new <- function(id, refresh_tab, volumes) {
                     .fetch_mappability_file("mm9")
             
             } else if(input$newref_genome_type == "(custom)") {
-        # do nothing. This allows user to first select the default and then change to user-defined files
+        # do nothing. This allows user to first select the default 
+        #   and then change to user-defined files
             } else {
                 settings_newref$newref_NPA = ""
                 settings_newref$newref_mappa = ""
@@ -199,7 +207,7 @@ server_ref_new <- function(id, refresh_tab, volumes) {
             } else if(!any(c("fasta", "ah_genome_tmp") %in% names(args))) {
                 output$refStatus = renderText({ "Genome not provided" })        
             } else if(!any(c("gtf", "ah_gtf_tmp") %in% names(args))) {
-                output$refStatus = renderText({ "Gene annotations not provided" })
+                output$refStatus = renderText("Gene annotations not provided")
             } else {        
                 args.df = as.data.frame(t(as.data.frame(args)))
                 colnames(args.df) = "value"

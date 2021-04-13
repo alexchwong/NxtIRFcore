@@ -109,8 +109,8 @@ downstream exon-intron spanning reads (IR)
 \item \code{covfile,NxtSE-method}: Gets a named vector with
 the paths to the corresponding COV files
 
-\item \code{ref,NxtSE-method}: Retrieves a list of annotation data associated with this
-NxtSE object; primarily used in Plot_Coverage()
+\item \code{ref,NxtSE-method}: Retrieves a list of annotation data associated 
+with this NxtSE object; primarily used in Plot_Coverage()
 
 \item \code{up_inc<-,NxtSE-method}: Sets upstream included events (SE/MXE), or
 upstream exon-intron spanning reads (IR)

@@ -236,7 +236,7 @@ IRFinder <- function(
 CollateData <- function(Experiment, reference_path, output_path,
         IRMode = c("SpliceOverMax", "SpliceMax"), 
         low_memory_mode = FALSE, samples_per_block = 16, n_threads = 1) {
-           
+
     IRMode = match.arg(IRMode)
     if(IRMode == "") {
         stop(paste("In CollateData(),",
@@ -291,7 +291,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     
     item.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth", 
         "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc", "junc_PSI", "junc_counts")
-      
+
     agg.list <- suppressWarnings(BiocParallel::bplapply(seq_len(n_jobs),
         .collateData_compile_agglist, 
         jobs = jobs, df.internal = df.internal, 
@@ -306,7 +306,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     .collateData_compile_assays(agg.list, df.internal,
         norm_output_path, low_memory_mode,
         item.todo, jobs, n_jobs)
-      .collateData_fix_juncnames(norm_output_path)
+    .collateData_fix_juncnames(norm_output_path)
     .collateData_write_stats(df.internal, norm_output_path)
     .collateData_write_colData(df.internal, coverage_files, norm_output_path)
     cov_data <- prepare_covplot_data(reference_path)
@@ -636,7 +636,7 @@ CollateData <- function(Experiment, reference_path, output_path,
         stop(paste(
             "MD5 check of IRFinder introns are not the same.",
             "Perhaps some samples were processed by a different reference.",
-            "NxtIRF needs all samples to be processed by the same reference"            
+            "NxtIRF needs all samples to be processed by the same reference"
         ), call. = FALSE)
     }
     irf = fst::read.fst(file.path(temp_output_path, 
@@ -901,7 +901,7 @@ CollateData <- function(Experiment, reference_path, output_path,
         c("EventName", "EventType", "EventRegion")]
     
     rowEvent = rbind(irf.anno.brief, splice.anno.brief)    
-    write.fst(rowEvent, file.path(norm_output_path, "rowEvent.brief.fst"))        
+    write.fst(rowEvent, file.path(norm_output_path, "rowEvent.brief.fst"))
 }
 .collateData_rowEvent_splice_option <- function(reference_path,
         Splice.Anno) {
@@ -1656,7 +1656,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         rowData$EventType %in% c("MXE")]
     rownames(Down_Exc) = rowData$EventName[
         rowData$EventType %in% c("MXE")]
-  
+    
     # Annotate NMD direction
     rowData = as.data.table(rowData)
     rowData[, c("NMD_direction") := 0]
@@ -2095,7 +2095,8 @@ runFilter <- function(filterClass, filterType, filterVars, filterObject) {
             sum_res = sum_res + 
                 ifelse(sum * 100 / ncol(Up_Inc.subset) >= usePC, 1, 0)
         }
-        n_TRUE = ifelse(!is.na(suppressWarnings(as.numeric(filterVars$minCond))), 
+        n_TRUE = ifelse(
+            !is.na(suppressWarnings(as.numeric(filterVars$minCond))), 
             as.numeric(filterVars$minCond), -1)
         if(n_TRUE == -1) n_TRUE = length(cond_vars)
         res = (sum_res >= n_TRUE)

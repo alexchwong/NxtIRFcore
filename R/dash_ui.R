@@ -6,16 +6,17 @@ ui_sidebar <- function() {
             menuItem("Reference", tabName = "navRef_New"),
             menuItem("Experiment", tabName = "navExpr"),
             menuItem("Analysis",
-                 menuSubItem("Load Experiment", tabName = "navExprLoad"),
-                 menuSubItem("Experiment QC", tabName = "navQC"),
-                 menuSubItem("Filters", tabName = "navFilter"),
-                 menuSubItem("Differential Expression Analysis", tabName = "navAnalyse")
+                menuSubItem("Load Experiment", tabName = "navExprLoad"),
+                menuSubItem("Experiment QC", tabName = "navQC"),
+                menuSubItem("Filters", tabName = "navFilter"),
+                menuSubItem("Differential Expression Analysis", 
+                    tabName = "navAnalyse")
             ),
             menuItem("Display",
-                 menuSubItem("Diagonal", tabName = "navDiag"),
-                 menuSubItem("Volcano", tabName = "navVolcano"),
-                 menuSubItem("Heatmap", tabName = "navHeatmap"),
-                 menuSubItem("Coverage", tabName = "navCoverage")
+                menuSubItem("Diagonal", tabName = "navDiag"),
+                menuSubItem("Volcano", tabName = "navVolcano"),
+                menuSubItem("Heatmap", tabName = "navHeatmap"),
+                menuSubItem("Coverage", tabName = "navCoverage")
             )
         )
     )
@@ -90,11 +91,11 @@ ui_toggle_wellPanel <- function(inputId,
         title, color = "danger", icon = icon("bars"), ...) {
     tagList(
         actionBttn(
-           inputId = inputId,
-           label = title,
-           style = "gradient", 
-           color = color,
-           icon = icon
+            inputId = inputId,
+            label = title,
+            style = "gradient", 
+            color = color,
+            icon = icon
         ),
         br(),
         conditionalPanel(condition = 
@@ -109,11 +110,11 @@ ui_toggle_wellPanel_modular <- function(inputId, id,
     ns = NS(id)
     tagList(
         actionBttn(
-           inputId = ns(inputId),
-           label = title,
-           style = "gradient", 
-           color = color,
-           icon = icon
+            inputId = ns(inputId),
+            label = title,
+            style = "gradient", 
+            color = color,
+            icon = icon
         ),
         br(),
         conditionalPanel(

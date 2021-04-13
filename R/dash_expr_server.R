@@ -1,4 +1,5 @@
-server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited = FALSE) {
+server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, 
+        limited = FALSE) {
     moduleServer(id, function(input, output, session) {
     ns = NS(id)
     settings_expr <- setreactive_expr()
@@ -505,7 +506,7 @@ Expr_BAM_update_status <- function(df.files, bam_path, collate_path) {
         } else if(is_valid(collate_path) && 
                 file.exists(file.path(collate_path, "colData.Rds"))
         ){
-            return(renderUI(ui_infobox_bam(bam_path, escape = TRUE)))             
+            return(renderUI(ui_infobox_bam(bam_path, escape = TRUE)))
         } else if("bam_file" %in% colnames(df.files)) {
             return(renderUI(ui_infobox_bam(bam_path, df.files$bam_file)))
         }
@@ -602,7 +603,7 @@ Expr_IRF_initiate_run <- function(input, session, n_threads, settings_expr) {
     } else if(!(bam_col %in% selected_cols)) {
         sendSweetAlert(session = session, type = "error",
             title = "No BAM files selected",
-            text = "Please highlight cells of bam files to run IRFinder")           
+            text = "Please highlight cells of bam files to run IRFinder")
     } else if(!all(file.exists(bam_files))) {
         sendSweetAlert(session = session,
             title = "Missing BAMs", type = "error",
@@ -817,7 +818,8 @@ Expr_CollateData_Validate_Vars <- function(session,
         sendSweetAlert(
             session = session,
             title = "Missing NxtIRF Path",
-            text = "Please select NxtIRF path before running NxtIRF::CollateData",
+            text = paste("Please select NxtIRF path before",
+                "running NxtIRF::CollateData"),
             type = "error"
         )
         return(FALSE)

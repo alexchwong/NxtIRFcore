@@ -108,8 +108,8 @@ dash_server = function(input, output, session) {
         }
     })
 # End of server function
- }
- 
+}
+
 .dash_get_threads <- function(thread_option, cores_numeric) {
     if(thread_option == "Single-Thread"){
         n_threads = 1

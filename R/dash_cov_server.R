@@ -9,7 +9,7 @@ server_cov <- function(id, refresh_tab, volumes, get_se, get_de,
         observeEvent(refresh_tab(), {
             req(refresh_tab())
             output$warning_cov <- renderText({
-                validate(need(get_se(), "Please build experiment first"))            
+                validate(need(get_se(), "Please build experiment first"))
             })
             req(get_se())
             .server_cov_refresh(session, get_ref()$gene_list,

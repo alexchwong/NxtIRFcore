@@ -30,11 +30,12 @@ run_IRFinder_multithreaded = function(
 
         BPPARAM = BiocParallel::bpparam()
         if(Sys.info()["sysname"] == "Windows") {
-          BPPARAM_mod = BiocParallel::SnowParam(n_threads)
-          message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
+            BPPARAM_mod = BiocParallel::SnowParam(n_threads)
+            message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
         } else {
-          BPPARAM_mod = BiocParallel::MulticoreParam(n_threads)
-          message(paste("Using MulticoreParam", BPPARAM_mod$workers, "threads"))
+            BPPARAM_mod = BiocParallel::MulticoreParam(n_threads)
+            message(paste("Using MulticoreParam", BPPARAM_mod$workers, 
+                "threads"))
         }
 
         row_starts = seq(1, by = n_threads,
@@ -123,7 +124,8 @@ run_IRFinder_multithreaded = function(
         # Append to existing main.FC.Rds if exists:
         
         if(file.exists(file.path(dirname(output_files[1]), "main.FC.Rds"))) {
-            res.old = readRDS(file.path(dirname(output_files[1]), "main.FC.Rds"))
+            res.old = readRDS(
+                file.path(dirname(output_files[1]), "main.FC.Rds"))
 
             # Check md5 of annotation to show same reference was used
             md5.old = openssl::md5(paste(
@@ -182,7 +184,8 @@ run_IRFinder_multithreaded = function(
     if(!all(dir.exists(dirname(output_files)))) {
         stop(paste("In run_IRFinder_multithreaded(), ",
             paste(
-                unique(dirname(output_files[!dir.exists(dirname(output_files))])),
+                unique(dirname(
+                    output_files[!dir.exists(dirname(output_files))])),
                 collapse = ""
             ),
             " - directories not found"
@@ -199,16 +202,17 @@ run_IRFinder_multithreaded = function(
 
 run_IRFinder_GenerateMapReads = function(genome.fa = "", out.fa, 
     read_len = 70, read_stride = 10, error_pos = 35) {
-  return(
-    IRF_GenerateMappabilityReads(normalizePath(genome.fa), 
-        file.path(normalizePath(dirname(out.fa)), out.fa),
-        read_len = read_len, 
-        read_stride = read_stride, 
-        error_pos = error_pos)
-  )
+    return(
+        IRF_GenerateMappabilityReads(normalizePath(genome.fa), 
+            file.path(normalizePath(dirname(out.fa)), out.fa),
+            read_len = read_len, 
+            read_stride = read_stride, 
+            error_pos = error_pos)
+    )
 }
 
-run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file, threshold = 4, includeCov = FALSE) {
+run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file, 
+        threshold = 4, includeCov = FALSE) {
     s_bam = normalizePath(bamfile)
     if(!file.exists(s_bam)) {
         stop(paste("In run_IRFinder_MapExclusionRegions(),",
@@ -238,7 +242,8 @@ run_Gunzip = function(infile = "", outfile) {
     IRF_gunzip(file_to_read, outfile)
 }
 
-get_multi_DT_from_gz = function(infile = "", block_headers = c("Header1", "Header2")) {
+get_multi_DT_from_gz = function(infile = "", 
+        block_headers = c("Header1", "Header2")) {
     file_to_read = normalizePath(infile)
     if(!file.exists(file_to_read)) {
         stop(paste("In get_multi_DT_from_gz(),",
@@ -297,7 +302,6 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0, strand = 2) {
         ), call. = FALSE)
     }
 
-    # message(paste("Fetching file=",file,"coords", seqname, start, end, strand))                       
     if(seqname == "") {
         raw_list = IRF_RLEList_From_Cov(normalizePath(file), strand)
         final_list = list()

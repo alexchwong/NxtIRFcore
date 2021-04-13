@@ -107,7 +107,7 @@ setreactive_Cov <- function() {
 
         plotly_relayout = NULL,
         plot_ini = FALSE,
-       
+        
         final_plot = NULL,
         
         trigger = NULL,
