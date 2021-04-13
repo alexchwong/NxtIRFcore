@@ -52,9 +52,7 @@ server_cov <- function(id, refresh_tab, volumes, get_se, get_de,
     observeEvent(list(chr_rd(), start_rd(), end_rd()), {
         .server_cov_update_norm_event(input, session, settings_Cov$event.ranges)
     })
-    observeEvent(list(
-        input$refresh_coverage, trigger_rd(), tracks_rd()
-        ), {
+    observeEvent(list(input$refresh_coverage, trigger_rd(), tracks_rd()), {
         tracks <- tracks_r()
         obj <- .server_cov_refresh_plot(get_se(), get_ref(), 
             input$event_norm_cov, 
@@ -155,7 +153,6 @@ server_cov <- function(id, refresh_tab, volumes, get_se, get_de,
         req(settings_Cov$final_plot)
         selectedfile <- parseSavePath(volumes(), input$saveplot_cov)
         req(selectedfile$datapath)
-        obj = isolate(settings_Cov$final_plot)
         plotly::orca(settings_Cov$final_plot, 
             make.path.relative(getwd(), selectedfile$datapath),
             width = 1920, height = 1080)
@@ -184,7 +181,7 @@ server_cov_get_all_tracks <- function(input) {
             length(unique(gene_list$gene_display_name)), "genes"))
         updateSelectInput(session = session, inputId = "chr_cov", 
             choices = c("(none)", 
-            as.character(sort(unique(gene_list$seqnames)))),
+                as.character(sort(unique(gene_list$seqnames)))),
             selected = "(none)")								          
         updateSelectizeInput(session = session, inputId = "genes_cov",
             server = TRUE, choices = c("(none)", gene_list$gene_display_name), 

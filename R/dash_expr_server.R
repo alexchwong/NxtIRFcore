@@ -35,6 +35,11 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
         settings_expr$irf_path = parseDirPath(volumes(), 
             input$dir_irf_path_load)
     })
+    observeEvent(input$file_expr_anno_load, {
+        req(input$file_expr_anno_load)
+        file_selected<-parseFilePaths(volumes(), input$file_expr_anno_load)
+        settings_expr$anno_file = as.character(file_selected$datapath)
+    })
     observeEvent(input$dir_collate_path_load, {
         req(input$dir_collate_path_load)
         settings_expr$collate_path = parseDirPath(volumes(), 
@@ -45,6 +50,7 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
         output <- .server_expr_clear_ref(output)   
     })
     observeEvent(settings_expr$ref_path, {
+        req(settings_expr$ref_path)
         settings_expr$ref_path <- .server_expr_check_ref_path(
             settings_expr$ref_path)
         output <- .server_expr_parse_ref_path(settings_expr$ref_path, output)
@@ -53,6 +59,11 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
                 settings_expr$ref_path, "settings.Rds"))
         } else {
             settings_expr$ref_settings <- NULL
+            sendSweetAlert(session = session,
+                title = "Invalid Reference Path",
+                text = paste("settings.Rds was not found.",
+                    "Please check the path contains a valid NxtIRF reference"
+                ), type = "error")           
         }
     })
     observeEvent(settings_expr$df.files, {
@@ -115,11 +126,6 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
         output <- .server_expr_check_irf_path(settings_expr$df.files, 
             settings_expr$irf_path, output)
     })
-    observeEvent(input$file_expr_anno_load, {
-        req(input$file_expr_anno_load)
-        file_selected<-parseFilePaths(volumes(), input$file_expr_anno_load)
-        settings_expr$anno_file = as.character(file_selected$datapath)
-    })
 	observeEvent(settings_expr$anno_file,{
         req(settings_expr$anno_file)
         settings_expr$df.anno <- Expr_Load_Anno(settings_expr$df.anno,
@@ -142,7 +148,7 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
             }
         }
         output <- .server_expr_parse_collate_path(
-            reactiveValuesToList(settings_expr), output)        
+            reactiveValuesToList(settings_expr), output)
     })
     observeEvent(input$save_expr,{
         req(input$save_expr)
@@ -165,17 +171,15 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
                     settings_expr$irf_path = colData.Rds$irf_path
                 }
                 output$se_expr_infobox <- renderUI({
-                    ui_infobox_expr(ifelse(is_valid(settings_expr$se),2,1),
+                    ui_infobox_expr(ifelse(is_valid(settings_expr$se), 2, 1),
                         "Ready to Build Experiment")
                 })                
             }
-        } else {
-        
         }
     })
     output$newcol_expr <- renderUI({
         textInput(ns("newcolumnname_expr"), "New Column Name", 
-            sprintf("newcol%s", 1+ncol(settings_expr$df.anno))
+            sprintf("newcol%s", 1 + ncol(settings_expr$df.anno))
         )
     })
     observeEvent(input$addcolumn_expr, {
@@ -230,10 +234,8 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
         if(is_valid(settings_expr$collate_path) &&
                 file.exists(file.path(
                     settings_expr$collate_path, "colData.Rds"))) {
-                    
             colData = as.data.table(settings_expr$df.anno)
             settings_expr$se = MakeSE(settings_expr$collate_path, colData)
-            
         }
     })
 # End of Server function
@@ -242,11 +244,11 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
 }
 
 .server_expr_clear_ref <- function(output) {
-    output$fasta_source_infobox <- renderInfoBox(NULL)
-    output$gtf_source_infobox <- renderInfoBox(NULL)
-    output$mappa_source_infobox <- renderInfoBox(NULL)
-    output$NPA_source_infobox <- renderInfoBox(NULL)
-    output$BL_source_infobox <- renderInfoBox(NULL)
+    output$fasta_source_infobox <- renderInfoBox(infoBox(""))
+    output$gtf_source_infobox <- renderInfoBox(infoBox(""))
+    output$mappa_source_infobox <- renderInfoBox(infoBox(""))
+    output$NPA_source_infobox <- renderInfoBox(infoBox(""))
+    output$BL_source_infobox <- renderInfoBox(infoBox(""))
     output$txt_reference_path_load <- renderText("")
     output$ref_expr_infobox <- renderUI(ui_infobox_ref(""))
     return(output)
@@ -306,6 +308,7 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
 
 .server_expr_load_ref = function(ref_settings, output) {
     ah <- ah_genome_record <- ah_gtf_record <- NULL
+    fasta <- gtf <- mappa <- nonPA <- Black <- NULL
     if("ah_genome" %in% names(ref_settings) &&
             is_valid(ref_settings[["ah_genome"]])) {
         ah = AnnotationHub()
@@ -322,69 +325,123 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
                 which(names(ah) == ref_settings[["ah_transcriptome"]])])
         }, error = function(e) NULL)
     }
-    if(!is.null(ah_genome_record)) {
+    if(is.null(ah_genome_record) && "fasta_file" %in% names(ref_settings)) {
+        fasta = basename(ref_settings[["fasta_file"]])
+    }
+    if(is.null(ah_gtf_record) && "gtf_file" %in% names(ref_settings)) {
+        gtf = basename(ref_settings[["gtf_file"]])
+    }
+    if("MappabilityRef" %in% names(ref_settings)) {
+        mappa = basename(ref_settings[["MappabilityRef"]])
+    }
+    if("nonPolyARef" %in% names(ref_settings)) {
+        nonPA = basename(ref_settings[["nonPolyARef"]])
+    }
+    if("BlacklistRef" %in% names(ref_settings)) {
+        Black = basename(ref_settings[["BlacklistRef"]])
+    }   
+    output <- .server_expr_load_ref_genome(output, ah_genome_record, fasta)
+    output <- .server_expr_load_ref_gtf(output, ah_gtf_record, gtf)
+    output <- .server_expr_load_ref_misc(output, mappa, nonPA, Black)
+    return(output)
+}
+
+.server_expr_load_ref_genome <- function(output, ah_genome_record, fasta) {
+    if(is_valid(ah_genome_record)) {
         output$fasta_source_infobox <- renderInfoBox({
             infoBox("Genome - AnnotationHub", "", ah_genome_record,
                 icon = icon("dna", lib = "font-awesome"),
                 color = "green")
         })      
-    } else if("fasta_file" %in% names(ref_settings)) {
+    } else if(is_valid(fasta)) {
         output$fasta_source_infobox <- renderInfoBox({
             infoBox("Genome - User FASTA", "",
-                basename(ref_settings[["fasta_file"]]), 
+                fasta, 
                 icon = icon("dna", lib = "font-awesome"),
                 color = "green")
         })
     } else {
-        output$fasta_source_infobox <- renderInfoBox(NULL)
+        output$fasta_source_infobox <- renderInfoBox({
+            infoBox("Genome - INVALID", "",
+                "", 
+                icon = icon("dna", lib = "font-awesome"),
+                color = "red")
+        })
     }
-    if(!is.null(ah_gtf_record)) {
+    return(output)
+}
+
+.server_expr_load_ref_gtf <- function(output, ah_gtf_record, gtf) {
+    if(is_valid(ah_gtf_record)) {
         output$gtf_source_infobox <- renderInfoBox({
             infoBox("Gene Annotation - AnnotationHub",  "", ah_gtf_record,
                 icon = icon("book-medical", lib = "font-awesome"),
                 color = "orange")
         })               
-    } else if("gtf_file" %in% names(ref_settings)) {
+    } else if(is_valid(gtf)) {
         output$gtf_source_infobox <- renderInfoBox({
             infoBox("Gene Annotation - User GTF",  "",
-                basename(ref_settings[["gtf_file"]]), 
+                gtf, 
                 icon = icon("book-medical", lib = "font-awesome"),
                 color = "orange")
         })
     } else {
-        output$gtf_source_infobox <- renderInfoBox(NULL)
+        output$gtf_source_infobox <- renderInfoBox({
+            infoBox("Gene Annotation - INVALID", "",
+                "", 
+                icon = icon("book-medical", lib = "font-awesome"),
+                color = "red")
+        })
     }
-    if("MappabilityRef" %in% names(ref_settings)) {
+    return(output)
+}
+
+.server_expr_load_ref_misc <- function(output, mappa, nonPA, Black) {
+    if(is_valid(mappa)) {
         output$mappa_source_infobox <- renderInfoBox({
             infoBox("Mappability", "",
-                basename(ref_settings[["MappabilityRef"]]), 
+                mappa, 
                 icon = icon("map", lib = "font-awesome"),
                 color = "blue")
         })  			
     } else {
-        output$mappa_source_infobox <- renderInfoBox(NULL)
+        output$mappa_source_infobox <- renderInfoBox({
+            infoBox("Mappability", "",
+                "NOT USED", 
+                icon = icon("map", lib = "font-awesome"),
+                color = "blue")
+        })  
     }
-    if("nonPolyARef" %in% names(ref_settings)) {
+    if(is_valid(nonPA)) {
         output$NPA_source_infobox <- renderInfoBox({
             infoBox("Non-PolyA", "",
-                basename(ref_settings[["nonPolyARef"]]), 
+                nonPA, 
                 icon = icon("font", lib = "font-awesome"),
                 color = "purple")
         })  			
     } else {
-        output$NPA_source_infobox <- renderInfoBox(NULL)
+        output$NPA_source_infobox <- renderInfoBox({
+            infoBox("Non-PolyA", "",
+                "NOT USED", 
+                icon = icon("font", lib = "font-awesome"),
+                color = "purple")
+        })  			
     }
-    if("BlacklistRef" %in% names(ref_settings)) {
+    if(is_valid(Black)) {
         output$BL_source_infobox <- renderInfoBox({
             infoBox("BlackList", "",
-                basename(ref_settings[["BlacklistRef"]]), 
+                Black, 
                 icon = icon("list-alt", lib = "font-awesome"),
                 color = "red")
         })  			
     } else {
-        output$BL_source_infobox <- renderInfoBox(NULL)
+        output$BL_source_infobox <- renderInfoBox({
+            infoBox("BlackList", "",
+                "NOT USED", 
+                icon = icon("list-alt", lib = "font-awesome"),
+                color = "red")
+        })  	
     }
-    
     return(output)
 }
 
@@ -580,7 +637,6 @@ Expr_IRF_initiate_run <- function(input, session, n_threads, settings_expr) {
 }
 
 Expr_IRF_actually_run <- function(input, session, n_threads, settings_expr) {
-        # df.files, ref_path, irf_path) {
     n_threads = min(n_threads, length(settings_expr$selected_rows))
     n_rounds = ceiling(length(settings_expr$selected_rows) / n_threads)
     n_threads = ceiling(length(settings_expr$selected_rows) / n_rounds)
@@ -811,9 +867,7 @@ Expr_Update_colData <- function(collate_path, df.anno, df.files,
                 )
             }
         }
-    } else {
-
-    }    
+    } 
 }
 
 .infobox_update_se <- function(se, path) {

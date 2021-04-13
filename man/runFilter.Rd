@@ -10,7 +10,8 @@ runFilter(filterClass, filterType, filterVars, filterObject)
 \item{filterClass}{One of either \code{Annotation} or \code{Data}}
 
 \item{filterType}{For filterClass \code{Annotation}, either one of
-\code{Protein_Coding}, \code{NMD_Switching}, \code{Transcript_Support_Level}.
+\code{Protein_Coding}, \code{NMD_Switching},
+\code{Transcript_Support_Level}.
 For filterClass \code{Data}, either one of
 \code{Depth}, \code{Coverage}, \code{Consistency}.}
 
@@ -19,48 +20,61 @@ For filterClass \code{Data}, either one of
 \item{filterObject}{the SummarizedExperiment to filter}
 }
 \value{
-A vector of type \code{logical} designating which events to retain \code{TRUE} and which
-to remove \code{FALSE}.
+A vector of type \code{logical} designating which events to retain
+\code{TRUE} and which to remove \code{FALSE}.
 }
 \description{
-This function implements filtering of IR or AS events based on customisable criteria
+This function implements filtering of IR or AS events based on customisable
+criteria
 }
 \details{
 \strong{Annotation Filters}\cr\cr
-\strong{Protein_Coding}: Filters for alternative splicing or IR events within protein reading
-frames. No additional parameters required.\cr \cr
-\strong{NMD_Switching}: Filters for events in which one isoform is a predicted NMD substrate.\cr \cr
-\strong{Transcript_Support_Level}: filters for events in which both isoforms have a TSL level
-below or equal to filterVars$minimum\cr \cr
+\strong{Protein_Coding}: Filters for alternative splicing or IR events
+within protein reading frames. No additional parameters required.\cr\cr
+\strong{NMD_Switching}: Filters for events in which one isoform is a
+predicted NMD substrate.\cr\cr
+\strong{Transcript_Support_Level}: filters for events in which both
+isoforms have a TSL level below or equal to filterVars$minimum\cr\cr
 \strong{Data Filters}\cr\cr
-\strong{Depth}: Filters IR or alternative splicing events of transcripts that are "expressed"
-with adequate \code{Depth} as calculated by the sum of all splicing and IR reads spanning the event.
-Events with \code{Depth} below filterVars$minimum are excluded\cr\cr
-\strong{Coverage}: Coverage means different things to IR and alternative splicing.\cr\cr
-For \emph{IR}, Coverage refers to the percentage of the measured intron covered with
-reads. Introns of samples with an IntronDepth above \code{filterVars$minDepth} are
-assessed, with introns with coverage below \code{filterVars$minimum} are excluded.\cr\cr
-For \emph{Alternative Splicing}, Coverage refers to the percentage of all splicing events
-observed across the genomic region that is compatible with either the included
-or excluded event. This prevents NxtIRF from doing differential analysis
-between two minor isoforms. Instead of IntronDepth, in AS events NxtIRF considers
-events where the spliced reads from both exonic regions exceed \code{filterVars$minDepth}.
-Then, events with a splicing coverage below \code{filterVars$minimum} are excluded.
-We recommend testing IR events for > 90\% coverage and AS events for > 60\% coverage
-as given in the default filters which can be accessed using \code{get_default_filters()}\cr\cr
-\strong{Consistency}: Skipped exons (SE) and mutually exclusive exons (MXE) comprise reads of
-two contiguous splice junctions (for the included casette exon). Summating counts
-from both junctions is misleading as there may be overlapping events (e.g. alternate
-first / last exons) that only rely on one splice event. To ensure the SE / MXE is the
-dominant event, we require both splice junctions to have comparable counts.\cr\cr
+\strong{Depth}: Filters IR or alternative splicing events of transcripts
+that are "expressed" with adequate \code{Depth} as calculated by the
+sum of all splicing and IR reads spanning the event. Events with
+\code{Depth} below filterVars$minimum are excluded\cr\cr
+\strong{Coverage}: Coverage means different things to IR and alternative
+splicing.\cr\cr
+For \emph{IR}, Coverage refers to the percentage of the measured intron
+covered with reads. Introns of samples with an IntronDepth above
+\code{filterVars$minDepth} are assessed, with introns with coverage
+below \code{filterVars$minimum} are excluded.\cr\cr
+For \emph{Alternative Splicing}, Coverage refers to the percentage of all
+splicing events observed across the genomic region that is compatible
+with either the included or excluded event. This prevents NxtIRF from
+doing differential analysis between two minor isoforms. Instead of
+IntronDepth, in AS events NxtIRF considers events where the spliced
+reads from both exonic regions exceed \code{filterVars$minDepth}.
+Then, events with a splicing coverage below \code{filterVars$minimum}
+are excluded. We recommend testing IR events for > 90\% coverage and AS
+events for > 60\% coverage as given in the default filters which can be
+accessed using \code{get_default_filters()}\cr\cr
+\strong{Consistency}: Skipped exons (SE) and mutually exclusive exons
+(MXE) comprise reads of two contiguous splice junctions (for the
+included casette exon). Summating counts from both junctions is
+misleading as there may be overlapping events (e.g. alternate first
+/ last exons) that only rely on one splice event. To ensure the SE /
+MXE is the dominant event, we require both splice junctions to have
+comparable counts.\cr\cr
 Events are excluded if either of the upstream or downstream
-event is lower than total splicing events by a log-2 magnitude above filterVars$maximum.
-For example, if \code{filterVars$maximum = 2}, we require both upstream and downstream events
-to represent at least 1/(2^2) = 1/4 of the sum of upstream and downstream event.
-This is considered for each isoform of each event, as long as the total counts belonging
-to the considered isoform is above \code{filterVars$minDepth}.
+event is lower than total splicing events by a log-2 magnitude
+above filterVars$maximum. For example, if
+\code{filterVars$maximum = 2}, we require both upstream and downstream
+events to represent at least 1/(2^2) = 1/4 of the sum of upstream
+and downstream event.
+This is considered for each isoform of each event, as long as the
+total counts belonging to the considered isoform is above
+\code{filterVars$minDepth}.
 
-We highly recommend using the default filters, which can be acquired using \code{get_default_filters()}
+We highly recommend using the default filters, which can be acquired
+using \code{get_default_filters()}
 }
 \examples{
 # see ?MakeSE on example code of generating this NxtSE object

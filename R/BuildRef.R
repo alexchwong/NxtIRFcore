@@ -172,7 +172,8 @@ Get_Genome <- function(reference_path) {
 
 Get_GTF_file <- function(reference_path) {
     .validate_reference(reference_path)
-    if(file.exists(file.path(reference_path, "resource", "transcripts.gtf.gz"))) {
+    if(file.exists(file.path(reference_path, 
+            "resource", "transcripts.gtf.gz"))) {
         return(file.path(reference_path, "resource", "transcripts.gtf.gz"))
     } else {
         stop(paste("In Get_GTF_file,",
@@ -1162,7 +1163,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
 
 .overlaps_exon_island <- function(intron.DT, groups.DT, upstream = TRUE) {
     if(all(c("intron_start", "intron_end") %in% colnames(intron.DT))) {
-        int.DT = intron.DT[, c("seqnames", "start", "end", "strand", "intron_start", "intron_end")]
+        int.DT = intron.DT[, c("seqnames", "start", "end", "strand", 
+            "intron_start", "intron_end")]
     } else {
         int.DT = intron.DT[, c("seqnames", "start", "end", "strand")]
         int.DT[, c("intron_start", "intron_end") := 
@@ -1227,7 +1229,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
         convert_chromosome_names, genome, 
         data[["Genes"]], data[["Transcripts"]])
     message("done\n")
-    message("Generating IRFinder reference: ref-read-continues.ref ...", appendLF = FALSE)
+    message("Generating IRFinder reference: ref-read-continues.ref ...", 
+        appendLF = FALSE)
     readcons = .gen_irf_readcons(reference_path,
         tmpdir.IntronCover.summa, tmpnd.IntronCover.summa
     )
@@ -1737,7 +1740,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     # Exclude introns preceding any ORF exons:
     # protein.introns = protein.introns[get("intron_type") != "UTR5"]
     NMD.Table <- .gen_nmd_determine(Exons.tr, protein.introns, genome, 50)
-    protein.introns.red = unique(protein.introns[, c("intron_id", "intron_type")])
+    protein.introns.red = unique(
+        protein.introns[, c("intron_id", "intron_type")])
     NMD.Table[protein.introns.red,
         on = "intron_id",
         c("intron_type") := get("i.intron_type")
@@ -1846,7 +1850,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
 
     intron.DT.use = intron.DT[get("intron_type") != "UTR5"]
     exon.DT.skinny <- exon.DT[, -("seq")]
-    i_partition <- c(seq(1, nrow(intron.DT.use), by = 10000), nrow(intron.DT.use) + 1)    
+    i_partition <- c(seq(1, nrow(intron.DT.use), by = 10000), 
+        nrow(intron.DT.use) + 1)
     message("Computing for Intron Sequences...")
     pb <- txtProgressBar(max = length(i_partition) - 1, style = 3)
     l_seq = 1000
@@ -2091,7 +2096,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     candidate.introns <- as.data.table(
         read.fst(file.path(reference_path, "fst", "junctions.fst"))
     )
-    introns.skipcoord <- .gen_splice_skipcoord(reference_path, candidate.introns)
+    introns.skipcoord <- .gen_splice_skipcoord(
+        reference_path, candidate.introns)
 
     # chrOrder <- names(seqinfo(genome))
     message("Annotating Mutually-Exclusive-Exon Splice Events...",
