@@ -58,29 +58,39 @@
 
 #' Use Limma to test for differential ASE (Alternative Splice Event)
 #'
-#' @param se The SummarizedExperiment object created by `MakeSE()`. To reduce runtime and false negatives
-#'   due to multiple testing issues, please filter the object using `apply_filter()`
-#' @param test_factor A string for the column name which contains the contrasting variable
-#' @param test_nom The condition in which to test for differential ASE. Usually the "treatment" condition
-#' @param test_denom The condition in which to test against for differential ASE. Usually the "control" condition
-#' @param batch1,batch2 One or two columns containing batch information to normalise against (can be omitted)
-#' @param filter_antiover Whether to filter out IR events that overlap antisense genes (for unstranded RNAseq protocols)
-#' @param filter_antinear Whether to filter out IR events near but not overlapping antisense genes 
-#'   (for unstranded RNAseq protocols)
-#' @param filter_annotated_IR Whether to filter out IR events that are already annotated exons
-#'   (after doing so, all IR events will be unannotated - i.e. constitutionally spliced introns))
+#' @param se The SummarizedExperiment object created by `MakeSE()`. To reduce
+#'   runtime and false negatives due to multiple testing issues, please filter
+#'   the object using `apply_filter()`
+#' @param test_factor A string for the column name which contains the 
+#'   contrasting variable
+#' @param test_nom The condition in which to test for differential ASE. Usually
+#'   the "treatment" condition
+#' @param test_denom The condition in which to test against for differential 
+#'   ASE. Usually the "control" condition
+#' @param batch1,batch2 One or two columns containing batch information to 
+#'   normalise against (can be omitted)
+#' @param filter_antiover Whether to filter out IR events that overlap 
+#'   antisense genes (for unstranded RNAseq protocols)
+#' @param filter_antinear Whether to filter out IR events near but not 
+#'   overlapping antisense genes (for unstranded RNAseq protocols)
+#' @param filter_annotated_IR Whether to filter out IR events that are already 
+#'   annotated exons (after doing so, all IR events will be unannotated - 
+#'   i.e. constitutionally spliced introns))
 #' @return A data table containing the following:
 #'   EventName: The name of the ASE event\cr\cr
-#'   EventType: The type of event. IR = intron retention, MXE = mutually exclusive event, SE = skipped exon,
-#'     AFE = alternate first exon, ALE = alternate last exon, A5SS / A3SS = alternate 5' / 3' splice site\cr\cr
+#'   EventType: The type of event. IR = intron retention, MXE = mutually 
+#'     exclusive event, SE = skipped exon, AFE = alternate first exon, ALE = 
+#'     alternate last exon, A5SS / A3SS = alternate 5' / 3' splice site\cr\cr
 #'   EventRegion: The genomic coordinates the event occupies.\cr\cr  
-#'   NMD_direction: Indicates whether one isoform is a NMD substrate. +1 means included isoform is NMD, 
-#'     -1 means the excluded isoform is NMD, and 0 means neither (or both) are NMD substrates\cr\cr
-#'   AvgPSI_nom, Avg_PSI_denom: the average percent spliced in / percent intron retention levels for the
-#'   two conditions being contrasted\cr\cr
-#'   logFC, AveExpr, t, P.Value, adj.P.Val, B: limma topTable columns of limma results. See `?limma::topTable`\cr\cr
-#'   inc/exc_(logFC, AveExpr, t, P.Value, adj.P.Val, B): limma results for differential testing for
-#'     raw included / excluded counts only\cr\cr
+#'   NMD_direction: Indicates whether one isoform is a NMD substrate. +1 means 
+#'     included isoform is NMD, -1 means the excluded isoform is NMD, and 0 
+#'     means neither (or both) are NMD substrates\cr\cr
+#'   AvgPSI_nom, Avg_PSI_denom: the average percent spliced in / percent intron
+#'     retention levels for the two conditions being contrasted\cr\cr
+#'   logFC, AveExpr, t, P.Value, adj.P.Val, B: limma topTable columns of 
+#'     limma results. See `?limma::topTable`\cr\cr
+#'   inc/exc_(logFC, AveExpr, t, P.Value, adj.P.Val, B): limma results 
+#'     for differential testing for raw included / excluded counts only\cr\cr
 #' @examples
 #' # see ?MakeSE on example code of generating this NxtSE object
 #' se = NxtIRF_example_NxtSE()
@@ -120,11 +130,11 @@ limma_ASE <- function(se, test_factor, test_nom, test_denom,
         test_factor, test_nom, test_denom,
         batch1, batch2)
     res.ASE[res.inc, on = "EventName",
-      paste("Inc", colnames(res.inc)[seq_len(6)], sep=".") := 
+        paste("Inc", colnames(res.inc)[seq_len(6)], sep=".") := 
         list(get("i.logFC"), get("i.AveExpr"), get("i.t"), 
             get("i.P.Value"), get("i.adj.P.Val"), get("i.B"))]
     res.ASE[res.exc, on = "EventName",
-      paste("Exc", colnames(res.exc)[seq_len(6)], sep=".") := 
+        paste("Exc", colnames(res.exc)[seq_len(6)], sep=".") := 
         list(get("i.logFC"), get("i.AveExpr"), get("i.t"), 
             get("i.P.Value"), get("i.adj.P.Val"), get("i.B"))]
     setorderv(res.ASE, "B", order = -1)
@@ -134,27 +144,35 @@ limma_ASE <- function(se, test_factor, test_nom, test_denom,
 
 #' Use DESeq2 to test for differential ASE (Alternative Splice Event)
 #'
-#' @param se The SummarizedExperiment object created by `MakeSE()`. To reduce runtime and false negatives
-#'   due to multiple testing issues, please filter the object using `apply_filter()`
-#' @param test_factor A string for the column name which contains the contrasting variable
-#' @param test_nom The condition in which to test for differential ASE. Usually the "treatment" condition
-#' @param test_denom The condition in which to test against for differential ASE. Usually the "control" condition
-#' @param batch1,batch2 One or two columns containing batch information to normalise against (can be omitted)
-#' @param n_threads The number of threads to use for DESeq2
-#' @param filter_antiover Whether to filter out IR events that overlap antisense genes (for unstranded RNAseq protocols)
-#' @param filter_antinear Whether to filter out IR events near but not overlapping antisense genes 
-#'   (for unstranded RNAseq protocols)
-#' @param filter_annotated_IR Whether to filter out IR events that are already annotated exons
-#'   (after doing so, all IR events will be unannotated - i.e. constitutionally spliced introns))
+#' @param se The SummarizedExperiment object created by `MakeSE()`. To reduce
+#'   runtime and false negatives due to multiple testing issues, please filter
+#'   the object using `apply_filter()`
+#' @param test_factor A string for the column name which contains the 
+#'   contrasting variable
+#' @param test_nom The condition in which to test for differential ASE. Usually
+#'   the "treatment" condition
+#' @param test_denom The condition in which to test against for differential 
+#'   ASE. Usually the "control" condition
+#' @param batch1,batch2 One or two columns containing batch information to 
+#'   normalise against (can be omitted)
+#' @param filter_antiover Whether to filter out IR events that overlap 
+#'   antisense genes (for unstranded RNAseq protocols)
+#' @param filter_antinear Whether to filter out IR events near but not 
+#'   overlapping antisense genes (for unstranded RNAseq protocols)
+#' @param filter_annotated_IR Whether to filter out IR events that are already 
+#'   annotated exons (after doing so, all IR events will be unannotated - 
+#'   i.e. constitutionally spliced introns))
 #' @return A data table containing the following:
 #'   EventName: The name of the ASE event\cr\cr
-#'   EventType: The type of event. IR = intron retention, MXE = mutually exclusive event, SE = skipped exon,
-#'     AFE = alternate first exon, ALE = alternate last exon, A5SS / A3SS = alternate 5' / 3' splice site\cr\cr
+#'   EventType: The type of event. IR = intron retention, MXE = mutually 
+#'     exclusive event, SE = skipped exon, AFE = alternate first exon, ALE = 
+#'     alternate last exon, A5SS / A3SS = alternate 5' / 3' splice site\cr\cr
 #'   EventRegion: The genomic coordinates the event occupies.\cr\cr  
-#'   NMD_direction: Indicates whether one isoform is a NMD substrate. +1 means included isoform is NMD, 
-#'     -1 means the excluded isoform is NMD, and 0 means neither (or both) are NMD substrates\cr\cr
-#'   AvgPSI_nom, Avg_PSI_denom: the average percent spliced in / percent intron retention levels for the
-#'   two conditions being contrasted\cr\cr
+#'   NMD_direction: Indicates whether one isoform is a NMD substrate. +1 means 
+#'     included isoform is NMD, -1 means the excluded isoform is NMD, and 0 
+#'     means neither (or both) are NMD substrates\cr\cr
+#'   AvgPSI_nom, Avg_PSI_denom: the average percent spliced in / percent intron
+#'     retention levels for the two conditions being contrasted\cr\cr
 #'   baseMean, log2FoldChange, lfcSE, stat, pvalue, padj: 
 #'   DESeq2 results columns See `?DESeq2::results`\cr\cr
 #'   inc/exc_(baseMean, log2FoldChange, lfcSE, stat, pvalue, padj): 
@@ -200,11 +218,11 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
         test_factor, test_nom, test_denom,
         batch1, batch2, BPPARAM_mod)
     res.ASE[res.inc, on = "EventName",
-      paste("Inc", colnames(res.inc)[seq_len(6)], sep=".") := 
+        paste("Inc", colnames(res.inc)[seq_len(6)], sep=".") := 
         list(get("i.baseMean"), get("i.log2FoldChange"), get("i.lfcSE"), 
             get("i.stat"), get("i.pvalue"), get("i.padj"))]
     res.ASE[res.exc, on = "EventName",
-      paste("Exc", colnames(res.exc)[seq_len(6)], sep=".") := 
+        paste("Exc", colnames(res.exc)[seq_len(6)], sep=".") := 
         list(get("i.baseMean"), get("i.log2FoldChange"), get("i.lfcSE"), 
             get("i.stat"), get("i.pvalue"), get("i.padj"))]
     res.ASE = res.ASE[!is.na(get("pvalue"))]
@@ -216,19 +234,20 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
 ################################################################################
 # helper functions:
 
-.ASE_filter <- function(se, filter_antiover, filter_antinear, filter_annotated_IR) {
+.ASE_filter <- function(se, filter_antiover, filter_antinear,
+        filter_annotated_IR) {
     se_use = se
     if(filter_antiover) {
         se_use = se_use[
-            !grepl("anti-over", SummarizedExperiment::rowData(se_use)$EventName),]
+            !grepl("anti-over", rowData(se_use)$EventName),]
     }
     if(filter_antinear) {
         se_use = se_use[
-            !grepl("anti-near", SummarizedExperiment::rowData(se_use)$EventName),]
+            !grepl("anti-near", rowData(se_use)$EventName),]
     }
     if(filter_annotated_IR) {
         se_use = se_use[
-            !grepl("known-exon", SummarizedExperiment::rowData(se_use)$EventName),]
+            !grepl("known-exon", rowData(se_use)$EventName),]
     }
     return(se_use)
 }
@@ -248,14 +267,15 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     
     condition_factor = factor(colData[, test_factor])
     if(batch2 != "") {    
-      batch2_factor = colData[, batch2]
-      batch1_factor = colData[, batch1]
-      design1 = model.matrix(~0 + batch1_factor + batch2_factor + condition_factor)
+        batch2_factor = colData[, batch2]
+        batch1_factor = colData[, batch1]
+        design1 = model.matrix(~0 + batch1_factor + batch2_factor + 
+            condition_factor)
     } else if(batch1 != "") {
-      batch1_factor = colData[, batch1]    
-      design1 = model.matrix(~0 + batch1_factor + condition_factor)
+        batch1_factor = colData[, batch1]    
+        design1 = model.matrix(~0 + batch1_factor + condition_factor)
     } else {
-      design1 = model.matrix(~0 + condition_factor)    
+        design1 = model.matrix(~0 + condition_factor)    
     }
     contrast = rep(0, ncol(design1))
     contrast_a = paste0("condition_factor", test_nom)
@@ -295,14 +315,16 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     condition_factor = factor(colData[, test_factor])
     ASE = colData[, "ASE"]
     if(batch2 != "") {    
-      batch2_factor = colData[, batch2]
-      batch1_factor = colData[, batch1]
-      design1 = model.matrix(~0 + batch1_factor + batch2_factor + condition_factor + condition_factor:ASE)
+        batch2_factor = colData[, batch2]
+        batch1_factor = colData[, batch1]
+        design1 = model.matrix(~0 + batch1_factor + batch2_factor + 
+            condition_factor + condition_factor:ASE)
     } else if(batch1 != "") {
-      batch1_factor = colData[, batch1]    
-      design1 = model.matrix(~0 + batch1_factor + condition_factor + condition_factor:ASE)
+        batch1_factor = colData[, batch1]    
+        design1 = model.matrix(~0 + batch1_factor + condition_factor + 
+            condition_factor:ASE)
     } else {
-      design1 = model.matrix(~0 + condition_factor + condition_factor:ASE)    
+        design1 = model.matrix(~0 + condition_factor + condition_factor:ASE)    
     }
     colnames(design1) = sub(":",".",colnames(design1))
     contrast = rep(0, ncol(design1))

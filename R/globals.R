@@ -4,7 +4,8 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 
 #' Converts an IGV-style coordinate to a GenomicRanges object
 #'
-#' IGV-style coordinates typically have the syntax `seqnames:start-end/strand`\cr\cr
+#' IGV-style coordinates typically have the syntax 
+#'   `seqnames:start-end/strand`\cr\cr
 #' For example: "chr3:10550-10730/+" or "X:51231-51330/-"
 #' @param coordinates A vector of strings containing the coordinates
 #'   to be converted
@@ -30,13 +31,15 @@ NxtIRF.CoordToGR = function(coordinates) {
         strand = strand))
 }
 
-NxtIRF.CheckPackageInstalled <- function(package = "DESeq2", version = "1.0.0") {
+NxtIRF.CheckPackageInstalled <- function(
+        package = "DESeq2", version = "1.0.0") {
     res = tryCatch(
         ifelse(packageVersion(package)>=version, TRUE, FALSE),
         error = function(e) FALSE)
     if(!res) {
         stop(paste(
-            package, "package is not installed; and is required for this function"
+            package, "package is not installed;",
+            "and is required for this function"
         ), call. = FALSE)
     }
 }
@@ -78,9 +81,10 @@ NxtIRF.SplitVector <- function(vector = "", n_workers = 1) {
             "vector to split must be of length at least 1"
         ), call. = FALSE)
     }
-  
-  if(n_workers_use > length(vector)) n_workers_use = length(vector)
-    vector_starts = round(seq(1, length(vector) + 1, length.out = n_workers_use + 1))
+    
+    if(n_workers_use > length(vector)) n_workers_use = length(vector)
+    vector_starts = round(seq(1, length(vector) + 1, 
+        length.out = n_workers_use + 1))
     vector_starts = unique(vector_starts)
     
     return_val = list()
@@ -100,7 +104,7 @@ semi_join.DT = function(A, B, by, nomatch = 0) {
 }
 
 .grlGaps <- function(grl) {
-  psetdiff(unlist(range(grl), use.names = TRUE), grl)
+    psetdiff(unlist(range(grl), use.names = TRUE), grl)
 }
 
 is_valid <- function(x) {
@@ -113,10 +117,11 @@ make.path.relative = function(base, target) {
     if(Sys.info()["sysname"] == "Windows") {
         base = normalizePath(base, winslash = "/")
     }
-    common = sub('^([^|]*)[^|]*(?:\\|\\1[^|]*)$', '^\\1/?', paste0(base, '|', target))
+    common = sub('^([^|]*)[^|]*(?:\\|\\1[^|]*)$', '^\\1/?', 
+        paste0(base, '|', target))
     
     paste0(gsub('[^/]+/?', '../', sub(common, '', base)),
-           sub(common, '', target))
+        sub(common, '', target))
 }
 
 # SQLITE operations
@@ -240,7 +245,8 @@ NxtIRF_example_bams <- function() {
 #' @seealso [BuildReference()], [IRFinder()], [CollateData()], [MakeSE()]
 #' @export
 NxtIRF_example_NxtSE <- function() {
-    se = readRDS(system.file("extdata", "example_NxtSE.Rds", package = "NxtIRF"))
+    se = readRDS(system.file("extdata", 
+        "example_NxtSE.Rds", package = "NxtIRF"))
     covs = FindSamples(system.file("extdata", package = "NxtIRF"), ".cov")
     covfile(se) <- covs$path
     se

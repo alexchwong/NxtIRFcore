@@ -93,7 +93,7 @@ filterModule_server <- function(id, filterdata, conditionList) {
             if(is_valid(final$filterClass)) {
                 if(final$filterClass == "Annotation") {
                     type_choices = c("Protein_Coding", 
-                        "NMD_Switching", "Transcript_Support_Level")              
+                        "NMD_Switching", "Transcript_Support_Level")
                 } else if(final$filterClass == "Data") {
                     type_choices = c("Depth", "Coverage", "Consistency")
                 } else {
@@ -120,7 +120,7 @@ filterModule_server <- function(id, filterdata, conditionList) {
 
                 return()
             }
-         
+            
             if(is_valid((final$filterVars$minimum))) {
                 if(final$filterType == "Depth") {
                     shinyWidgets::updateSliderTextInput(
@@ -194,7 +194,7 @@ filterModule_server <- function(id, filterdata, conditionList) {
             if(is_valid(cur_choice) && cur_choice %in% type_choices) {
                 updateSelectInput(session = session, 
                     inputId = "filterType", 
-                    choices = type_choices, selected = cur_choice)                    
+                    choices = type_choices, selected = cur_choice)
             } else {
                 updateSelectInput(session = session, 
                     inputId = "filterType", 

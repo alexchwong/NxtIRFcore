@@ -127,7 +127,7 @@ server_vis_diag <- function(id, refresh_tab, volumes, get_se, get_de,
             event_data("plotly_click", source = "plotly_diagonal")
         }
     })
-  
+    
     observeEvent(settings_Diag$plotly_click(), {
         req(settings_Diag$plotly_click())
         click = settings_Diag$plotly_click()
@@ -152,7 +152,7 @@ server_vis_diag <- function(id, refresh_tab, volumes, get_se, get_de,
             event_data("plotly_selected", source = "plotly_diagonal")
         }
     })
-  
+    
     observeEvent(settings_Diag$plotly_brush(), {
         req(settings_Diag$plotly_brush())
         brush = settings_Diag$plotly_brush()
@@ -173,20 +173,24 @@ server_vis_diag <- function(id, refresh_tab, volumes, get_se, get_de,
         req(input$variable_diag %in% colnames(colData))
 
         if(!is(colData[,input$variable_diag], "factor")) {
-            output$warning_diag = renderText("Contrast must be performed on discrete categories")
+            output$warning_diag = renderText(
+                "Contrast must be performed on discrete categories")
             updateSelectInput(session = session, inputId = "variable_diag", 
                 choices = c("(none)", colnames(colData)), selected = "(none)")
         } else {
             updateSelectInput(session = session, inputId = "nom_diag", 
-                choices = c("(none)", levels(colData[,input$variable_diag])), selected = "(none)")
+                choices = c("(none)", levels(colData[,input$variable_diag])), 
+                selected = "(none)")
             updateSelectInput(session = session, inputId = "denom_diag", 
-                choices = c("(none)", levels(colData[,input$variable_diag])), selected = "(none)")
+                choices = c("(none)", levels(colData[,input$variable_diag])), 
+                selected = "(none)")
         }
     })
 
     observeEvent(input$clear_diag, {
         updateSelectInput(session = session, "EventType_diag", selected = NULL)
-        shinyWidgets::updateSliderTextInput(session = session, "number_events_diag", selected = 10000)
+        shinyWidgets::updateSliderTextInput(session = session, 
+            "number_events_diag", selected = 10000)
         
         if(is_valid(get_se())) {
             colData = SummarizedExperiment::colData(get_se())
@@ -225,7 +229,7 @@ server_vis_volcano <- function(id, refresh_tab, volumes, get_se, get_de,
             event_data("plotly_click", source = "plotly_volcano")
         }
     })
-  
+    
     observeEvent(settings_Volc$plotly_click(), {
         req(settings_Volc$plotly_click())
         click = settings_Volc$plotly_click()
@@ -356,7 +360,8 @@ server_vis_volcano <- function(id, refresh_tab, volumes, get_se, get_de,
     
     observeEvent(input$clear_volc, {
         updateSelectInput(session = session, "EventType_volc", selected = NULL)
-        shinyWidgets::updateSliderTextInput(session = session, "number_events_volc", selected = 10000)
+        shinyWidgets::updateSliderTextInput(session = session, 
+            "number_events_volc", selected = 10000)
     })
     
     return(settings_Volc)
@@ -388,7 +393,8 @@ server_vis_heatmap <- function(id, refresh_tab, volumes, get_se, get_de,
                 selected = selected[seq_len(input$slider_num_events_heat)]
             }
         } else {
-            selected = seq_len(min(input$slider_num_events_heat, nrow(get_de())))
+            selected = seq_len(min(input$slider_num_events_heat, 
+                nrow(get_de())))
         }
 
         validate(need(length(selected) > 0, "Select some Events first"))
@@ -406,7 +412,8 @@ server_vis_heatmap <- function(id, refresh_tab, volumes, get_se, get_de,
             rownames(colData), "Z-score")
         }
 
-        validate(need(nrow(mat) > 0 & ncol(mat) > 0, "No data after filtering results"))
+        validate(need(nrow(mat) > 0 & ncol(mat) > 0, 
+            "No data after filtering results"))
 
         colors.df = RColorBrewer::brewer.pal.info
         color.index = which(rownames(colors.df) == input$color_heat)
@@ -415,7 +422,8 @@ server_vis_heatmap <- function(id, refresh_tab, volumes, get_se, get_de,
             name = rownames(colors.df)[color.index]))
         )
 
-        # Hopefully the fixed filtering in limma pipeline will also fix the NA issues here:
+        # Hopefully the fixed filtering in limma pipeline will also fix the 
+        #   NA issues here:
         na.exclude = (rowSums(!is.na(mat)) == 0)
         if(any(na.exclude == TRUE)) {
         output$warning_heat <- renderText({
@@ -425,13 +433,14 @@ server_vis_heatmap <- function(id, refresh_tab, volumes, get_se, get_de,
         mat = mat[-which(na.exclude),]
         }
 
-        if(is_valid(input$anno_col_heat) && all(input$anno_col_heat %in% colnames(colData))) {
+        if(is_valid(input$anno_col_heat) && 
+                all(input$anno_col_heat %in% colnames(colData))) {
             settings_Heat$final_plot = heatmaply::heatmaply(
                 mat, color = color, 
                 col_side_colors = colData[, input$anno_col_heat, drop=FALSE]
             )
         } else {
-            settings_Heat$final_plot = heatmaply::heatmaply(mat, color = color)            
+            settings_Heat$final_plot = heatmaply::heatmaply(mat, color = color)
         }      
         print(
             settings_Heat$final_plot

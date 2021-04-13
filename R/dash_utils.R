@@ -1,18 +1,17 @@
 GetCoverage_DF <- function(samples, files, seqname, start, end, strand) {
-
-  covData = list()
-  for(i in seq_len(length(files))) {
-    cov = GetCoverage(files[i], seqname, start - 1, end, 
-        ifelse(strand == "+", 0, ifelse(strand == "-", 1, 2)))
-    view = IRanges::Views(cov, start, end)
-    view.df = as.data.frame(view[[1]])
-    covData[[i]] = view.df
-  }
-  df = do.call(cbind, covData)
-  colnames(df) = samples
-  x = seq(start,end)
-  df = cbind(x, df)
-  return(df)
+    covData = list()
+    for(i in seq_len(length(files))) {
+        cov = GetCoverage(files[i], seqname, start - 1, end, 
+            ifelse(strand == "+", 0, ifelse(strand == "-", 1, 2)))
+        view = IRanges::Views(cov, start, end)
+        view.df = as.data.frame(view[[1]])
+        covData[[i]] = view.df
+    }
+    df = do.call(cbind, covData)
+    colnames(df) = samples
+    x = seq(start,end)
+    df = cbind(x, df)
+    return(df)
 }
 
 bin_df <- function(df, binwidth = 3) {
@@ -223,7 +222,7 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
         }
         cur_level = cur_level + 1
     }
-      
+    
     if(condense_this == TRUE) {
         group.DT[transcripts.DT, on = "group_id", 
             c("group_name", "group_biotype") :=
@@ -301,7 +300,7 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
             text = group.DT$display_name,
             xref = "x", yref = "y", showarrow = FALSE)      
     }
-      
+    
     if(nrow(group.DT) == 0) {
         max_plot_level = 1
     } else {
@@ -348,7 +347,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     }
     gp_track = list()
     pl_track = list()
-  
+    
     cur_zoom = floor(log((view_end - view_start)/50) / log(3))
 
     data.list = list()
@@ -525,7 +524,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     if(t_test == TRUE && !is.null(fac) && length(unique(fac)) == 2) {
         fac = factor(fac)
         t_test = genefilter::rowttests(data.t_test[, -1], fac)
-         message(paste("rowttests performed for", condition))
+        message(paste("rowttests performed for", condition))
 
         DT = data.table(x = data.t_test[, 1])
         DT[, c("t_stat") := -log10(t_test$p.value)]
@@ -575,12 +574,13 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     
     final_plot = subplot(plot_tracks, nrows = length(plot_tracks), 
         shareX = TRUE, titleY = TRUE) %>%
-      layout(
-        xaxis = list(
-          dtick = tick_size, 
-          tick0 = first_tick, 
-          tickmode = "linear"
-      ))
+        layout(
+            xaxis = list(
+                dtick = tick_size, 
+                tick0 = first_tick, 
+                tickmode = "linear"
+            )
+        )
 
     if(graph_mode == "Pan") {
         final_plot = final_plot %>% 
@@ -1157,33 +1157,35 @@ update_data_frame <- function(existing_df, new_df) {
     DT1 = as.data.table(existing_df)
     DT2 = as.data.table(new_df)
 
-  common_cols = intersect(names(DT1)[-1], names(DT2)[-1])
-  new_cols = names(DT2)[!(names(DT2) %in% names(DT1))]
+    common_cols = intersect(names(DT1)[-1], names(DT2)[-1])
+    new_cols = names(DT2)[!(names(DT2) %in% names(DT1))]
 
-  if(!all(DT2$sample %in% DT1$sample)) {
-    DT_add = DT2[!(sample %in% DT1$sample)]
-    if(length(new_cols) > 0) DT_add = DT_add[, c(new_cols) := NULL]
-    newDT = rbind(DT1, DT_add, fill = TRUE)
-  } else {
-    newDT = copy(DT1)
-  }
-
-  if(length(new_cols) > 0) {
-    DT_tomerge = copy(DT2)
-    if(length(common_cols) > 0) {
-      DT_tomerge[, c(common_cols) := NULL]
+    if(!all(DT2$sample %in% DT1$sample)) {
+        DT_add = DT2[!(sample %in% DT1$sample)]
+        if(length(new_cols) > 0) DT_add = DT_add[, c(new_cols) := NULL]
+        newDT = rbind(DT1, DT_add, fill = TRUE)
+    } else {
+        newDT = copy(DT1)
     }
-    newDT = merge(newDT, DT_tomerge, all = TRUE, by = "sample")
-  }
 
-  # now update conflicting values
-  if(length(common_cols) > 0 & any(DT2$sample %in% DT1$sample)) {
-    DT_toupdate = DT2[(sample %in% DT1$sample)]
-    if(length(new_cols) > 0) DT_toupdate = DT_toupdate[, c(new_cols) := NULL]
+    if(length(new_cols) > 0) {
+        DT_tomerge = copy(DT2)
+        if(length(common_cols) > 0) {
+            DT_tomerge[, c(common_cols) := NULL]
+        }
+        newDT = merge(newDT, DT_tomerge, all = TRUE, by = "sample")
+    }
 
-    newDT[DT_toupdate, on=.(sample), (common_cols) := mget(paste0("i.", common_cols))]
-  }
-  return(as.data.frame(newDT))
+    # now update conflicting values
+    if(length(common_cols) > 0 & any(DT2$sample %in% DT1$sample)) {
+        DT_toupdate = DT2[(sample %in% DT1$sample)]
+        if(length(new_cols) > 0) {
+            DT_toupdate = DT_toupdate[, c(new_cols) := NULL]
+        }
+        newDT[DT_toupdate, on = .(sample), 
+            (common_cols) := mget(paste0("i.", common_cols))]
+    }
+    return(as.data.frame(newDT))
 }
 
 NxtIRF.SpliceCurve = function(xstart,xend,ystart,yend,y_height,info) {

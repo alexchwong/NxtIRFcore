@@ -56,10 +56,10 @@ ui_expr <- function(id) {
             ),
             column(8,
                 shinyWidgets::radioGroupButtons(
-                     inputId = ns("hot_switch_expr"),
-                     label = "Experiment Display",
-                     choices = c("Files", "Annotations"),
-                     selected = "Files"
+                    inputId = ns("hot_switch_expr"),
+                    label = "Experiment Display",
+                    choices = c("Files", "Annotations"),
+                    selected = "Files"
                 ),
                 conditionalPanel(
                     ns = ns,
@@ -121,10 +121,10 @@ ui_expr_limited <- function(id) {
             ),
             column(8,
                 shinyWidgets::radioGroupButtons(
-                     inputId = ns("hot_switch_expr"),
-                     label = "Experiment Display",
-                     choices = c("Files", "Annotations"),
-                     selected = "Files"
+                    inputId = ns("hot_switch_expr"),
+                    label = "Experiment Display",
+                    choices = c("Files", "Annotations"),
+                    selected = "Files"
                 ),
                 conditionalPanel(
                     ns = ns,

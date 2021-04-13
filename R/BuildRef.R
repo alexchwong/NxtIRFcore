@@ -48,7 +48,8 @@
 #'   transcripts such as anti-sense and lincRNAs? Setting `FALSE` (default 
 #'   IRFinder) will exclude transcripts other than `protein_coding` and 
 #'   `processed_transcript` transcripts from IR analysis.
-#' @return Nothing. The created reference will be written to the given directory. 
+#' @return Nothing. The created reference will be written to the given 
+#'   directory. 
 #'   This includes:
 #' * `reference_path`/IRFinder.ref.gz: A gzipped text file containing collated 
 #'   IRFinder references to be used as input for the IRFinder analysis
