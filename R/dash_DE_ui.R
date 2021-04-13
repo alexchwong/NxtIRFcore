@@ -1,7 +1,7 @@
 ui_DE <- function(id) {
     ns = NS(id)
     fluidRow(
-        column(4,	
+        column(4,
             textOutput(ns("warning_DE")),
             selectInput(ns('method_DE'), 'Method', 
                 c("limma", "DESeq2")),

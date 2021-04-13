@@ -15,7 +15,7 @@ server_DE <- function(id, refresh_tab, volumes, get_threads,
             updateSelectInput(session = session, inputId = "variable_DE", 
                 choices = c("(none)", colnames(colData)), selected = "(none)")
             updateSelectInput(session = session, inputId = "batch1_DE", 
-                choices = c("(none)", colnames(colData)), selected = "(none)")						
+                choices = c("(none)", colnames(colData)), selected = "(none)")
             updateSelectInput(session = session, inputId = "batch2_DE", 
                 choices = c("(none)", colnames(colData)), selected = "(none)")
         })
@@ -46,7 +46,7 @@ server_DE <- function(id, refresh_tab, volumes, get_threads,
         } else {
             updateSelectInput(session = session, inputId = "nom_DE", 
                 choices = c("(none)", levels(colData[,input$variable_DE])), 
-                selected = "(none)")					
+                selected = "(none)")
             updateSelectInput(session = session, inputId = "denom_DE", 
                 choices = c("(none)", levels(colData[,input$variable_DE])), 
                 selected = "(none)")
@@ -68,34 +68,34 @@ server_DE <- function(id, refresh_tab, volumes, get_threads,
     observeEvent(settings_DE$method, {
         req(settings_DE$method)
         updateSelectInput(session = session, inputId = "method_DE", 
-            selected = settings_DE$method)		
+            selected = settings_DE$method)
     })
     observeEvent(settings_DE$DE_Var, {
         req(settings_DE$DE_Var)
         updateSelectInput(session = session, inputId = "variable_DE", 
-            selected = settings_DE$DE_Var)		
+            selected = settings_DE$DE_Var)
     })
     observeEvent(settings_DE$nom_DE, {
         req(settings_DE$nom_DE)
         updateSelectInput(session = session, inputId = "nom_DE_DE", 
-            selected = settings_DE$nom_DE)		
+            selected = settings_DE$nom_DE)
     })
     observeEvent(settings_DE$denom_DE, {
         req(settings_DE$denom_DE)
         updateSelectInput(session = session, inputId = "denom_DE", 
-            selected = settings_DE$denom_DE)		
+            selected = settings_DE$denom_DE)
     })
     observeEvent(settings_DE$batchVar1, {
         req(settings_DE$batchVar1)
         updateSelectInput(session = session, inputId = "batch1_DE", 
-            selected = settings_DE$batchVar1)		
+            selected = settings_DE$batchVar1)
     })
     observeEvent(settings_DE$batchVar2, {
         req(settings_DE$batchVar2)
         updateSelectInput(session = session, inputId = "batch2_DE", 
-            selected = settings_DE$batchVar2)	
+            selected = settings_DE$batchVar2)
     })
-		
+
     observeEvent(input$perform_DE, {
         req(get_se())
         output$warning_DE = renderText({
@@ -179,7 +179,7 @@ server_DE <- function(id, refresh_tab, volumes, get_threads,
         settings_DE$res_settings$batchVar1 = settings_DE$batchVar1
         settings_DE$res_settings$batchVar2 = settings_DE$batchVar2
     })
-		
+
     observeEvent(settings_DE$res, {
         req(settings_DE$res)
         output$DT_DE <- DT::renderDataTable(
@@ -189,14 +189,14 @@ server_DE <- function(id, refresh_tab, volumes, get_threads,
                 rownames = FALSE,
                 filter = 'top'
             )
-        )		
+        )
     })
     
     observe({
         shinyFileSave(input, "save_DE", roots = volumes(), 
             session = session, filetypes = c("Rds"))
     })
-    observeEvent(input$save_DE, {	
+    observeEvent(input$save_DE, {
         req(settings_DE$res)
         req(length(settings_DE$res_settings) > 0)
 
@@ -253,7 +253,7 @@ server_DE <- function(id, refresh_tab, volumes, get_threads,
             settings_DE$filters = load_DE$filters
         }
     })
-		
+
     observeEvent(input$clear_selected_DE, {
         req(settings_DE$res)
         req(input$DT_DE_rows_selected)

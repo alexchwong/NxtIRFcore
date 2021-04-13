@@ -112,7 +112,7 @@ server_vis_diag <- function(id, refresh_tab, volumes, get_se, get_de,
             roots = volumes(), session = session,
             filetypes = c("pdf"))
     })
-    observeEvent(input$saveplot_diag, {	
+    observeEvent(input$saveplot_diag, {
         req(settings_Diag$final_plot)
         selectedfile <- parseSavePath(volumes(), input$saveplot_diag)
         req(selectedfile$datapath)
@@ -194,13 +194,13 @@ server_vis_diag <- function(id, refresh_tab, volumes, get_se, get_de,
                 choices = c("(none)", colnames(colData)), selected = "(none)")
         } else {
             updateSelectInput(session = session, inputId = "variable_diag", 
-                choices = c("(none)"), selected = "(none)")			
+                choices = c("(none)"), selected = "(none)")
         }
         
         updateSelectInput(session = session, inputId = "nom_diag", 
-            choices = c("(none)"), selected = "(none)")			
+            choices = c("(none)"), selected = "(none)")
         updateSelectInput(session = session, inputId = "denom_diag", 
-            choices = c("(none)"), selected = "(none)")			
+            choices = c("(none)"), selected = "(none)")
     })
     
     return(settings_Diag)        
@@ -264,7 +264,7 @@ server_vis_volcano <- function(id, refresh_tab, volumes, get_se, get_de,
         # DT::dataTableProxy("DT_DE") %>% DT::selectRows(selected)
     })
 
-		
+
     output$plot_volc <- renderPlotly({
         # settings_Diag$plot_ini = FALSE
         validate(need(get_se(), "Load Experiment first"))
@@ -289,7 +289,7 @@ server_vis_volcano <- function(id, refresh_tab, volumes, get_se, get_de,
             df.volc = data.frame(EventName = res$EventName, 
                 EventType = res$EventType, NMD_direction = res$NMD_direction,
                 log2FoldChange = res$logFC, pvalue = res$P.Value, 
-                padj = res$adj.P.Val)	
+                padj = res$adj.P.Val)
         }
 
         if(is_valid(selected)) {
@@ -345,7 +345,7 @@ server_vis_volcano <- function(id, refresh_tab, volumes, get_se, get_de,
             roots = volumes(), session = session,
             filetypes = c("pdf"))
     })
-    observeEvent(input$saveplot_volc, {	
+    observeEvent(input$saveplot_volc, {
         req(settings_Volc$final_plot)
         selectedfile <- parseSavePath(volumes(), input$saveplot_volc)
         req(selectedfile$datapath)
@@ -400,7 +400,7 @@ server_vis_heatmap <- function(id, refresh_tab, volumes, get_se, get_de,
             rownames(colData), "PSI")
         } else if(input$mode_heat == "Logit") {
             mat = make_matrix(get_se(), get_de()$EventName[selected],
-            rownames(colData), "logit")			
+            rownames(colData), "logit")
         } else {
             mat = make_matrix(get_se(), get_de()$EventName[selected],
             rownames(colData), "Z-score")
@@ -442,7 +442,7 @@ server_vis_heatmap <- function(id, refresh_tab, volumes, get_se, get_de,
             roots = volumes(), session = session,
             filetypes = c("pdf"))
     })
-    observeEvent(input$saveplot_heat, {	
+    observeEvent(input$saveplot_heat, {
         req(settings_Heat$final_plot)
         selectedfile <- parseSavePath(volumes(), input$saveplot_heat)
         req(selectedfile$datapath)

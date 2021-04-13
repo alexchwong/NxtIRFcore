@@ -134,7 +134,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 plot_view_ref_fn <- function(view_chr, view_start, view_end, 
     transcripts, elems, highlight_events, condensed = FALSE,
     selected_transcripts) {
-			
+
     data_start = view_start - (view_end - view_start)
     data_end = view_end + (view_end - view_start)
 
@@ -246,7 +246,7 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
         c("disp_x") := 0.5 * (get("start") + view_end)]
     group.DT[get("start") < view_start & get("end") > view_end, 
         c("disp_x") := 0.5 * (view_start + view_end)]
-		
+
     reduced.DT$group_id = factor(reduced.DT$group_id, unique(group.DT$group_id), ordered = TRUE)
     reduced.DT[group.DT, on = "group_id", 
         c("plot_level") := get("i.plot_level")]
@@ -323,7 +323,7 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
             fixedrange = TRUE)
     )
     
-    return(list(gp = gp, pl = pl))		
+    return(list(gp = gp, pl = pl))
 }
 
 plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
@@ -396,7 +396,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                     df$mean = rowMeans(as.matrix(df[,samples]))
                     df$sd = matrixStats::rowSds(as.matrix(df[,samples]))
                     n = length(samples)
-                    df$ci = qt((1 + conf.int)/2,df=	n-1) * df$sd / sqrt(n)
+                    df$ci = qt((1 + conf.int)/2,df = n-1) * df$sd / sqrt(n)
 
                     if(length(track_names) == length(tracks)) {
                         df$track = track_names[i]
@@ -463,7 +463,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                         theme_white_legend
                     pl_track[[i]] = ggplotly(gp_track[[i]],
                         tooltip = c("x", "y", "ymin", "ymax")
-                    )						
+                    )
                     pl_track[[i]] = pl_track[[i]] %>% layout(
                         # yaxis = list(range = c(0, 1 + max(df$mean + df$ci)), 
                             # fixedrange = TRUE)
@@ -1073,25 +1073,25 @@ make_matrix <- function(se, event_list, sample_list = colnames(se),
     depth_threshold = 10, logit_max = 5, na.percent.max = 0.1) {
 
     method = match.arg(method)
-	inc = SummarizedExperiment::assay(se, "Included")[event_list, sample_list, drop = FALSE]
-	exc = SummarizedExperiment::assay(se, "Excluded")[event_list, sample_list, drop = FALSE]
+    inc = SummarizedExperiment::assay(se, "Included")[event_list, sample_list, drop = FALSE]
+    exc = SummarizedExperiment::assay(se, "Excluded")[event_list, sample_list, drop = FALSE]
     mat = inc/(inc + exc)
     mat[inc + exc < depth_threshold] = NA
-    mat = mat[rowSums(is.na(mat)) < na.percent.max * ncol(mat),, drop = FALSE]	
-	if(method == "PSI") {
-		# essentially M/Cov
-		return(mat)
-	} else if(method == "logit") {
-		mat = boot::logit(mat)
-		mat[mat > logit_max] = logit_max
-		mat[mat < -logit_max] = -logit_max
-		return(mat)
-	} else if(method == "Z-score") {
+    mat = mat[rowSums(is.na(mat)) < na.percent.max * ncol(mat),, drop = FALSE]
+    if(method == "PSI") {
+        # essentially M/Cov
+        return(mat)
+    } else if(method == "logit") {
+        mat = boot::logit(mat)
+        mat[mat > logit_max] = logit_max
+        mat[mat < -logit_max] = -logit_max
+        return(mat)
+    } else if(method == "Z-score") {
         mat = mat - rowMeans(mat)
         mat = mat / matrixStats::rowSds(mat)
-		return(mat)
-	}
-	
+        return(mat)
+    }
+    
 }
 
 #' Constructs a data frame containing average PSI values of the two contrasted conditions
@@ -1131,31 +1131,31 @@ make_matrix <- function(se, event_list, sample_list = colnames(se),
 #' @export
 make_diagonal <- function(se, event_list, condition, nom_DE, denom_DE, depth_threshold = 10, logit_max = 5) {
 
-	inc = SummarizedExperiment::assay(se, "Included")[event_list, ]
-	exc = SummarizedExperiment::assay(se, "Excluded")[event_list, ]
-	mat = inc/(inc + exc)
-	mat[inc + exc < depth_threshold] = NA
+    inc = SummarizedExperiment::assay(se, "Included")[event_list, ]
+    exc = SummarizedExperiment::assay(se, "Excluded")[event_list, ]
+    mat = inc/(inc + exc)
+    mat[inc + exc < depth_threshold] = NA
 
-	# use logit method to calculate geometric mean
+    # use logit method to calculate geometric mean
 
-	mat.nom = boot::logit(mat[, SummarizedExperiment::colData(se)[,condition] == nom_DE])
-	mat.denom = boot::logit(mat[, SummarizedExperiment::colData(se)[,condition] == denom_DE])
-	
-	mat.nom[mat.nom > logit_max] = logit_max
-	mat.denom[mat.denom > logit_max] = logit_max
-	mat.nom[mat.nom < -logit_max] = -logit_max
-	mat.denom[mat.denom < -logit_max] = -logit_max
-			
-	df = data.frame(EventName = event_list, nom = boot::inv.logit(rowMeans(mat.nom, na.rm = TRUE)),
-		denom = boot::inv.logit(rowMeans(mat.denom, na.rm = TRUE)))
-	
-	return(df)
+    mat.nom = boot::logit(mat[, SummarizedExperiment::colData(se)[,condition] == nom_DE])
+    mat.denom = boot::logit(mat[, SummarizedExperiment::colData(se)[,condition] == denom_DE])
+    
+    mat.nom[mat.nom > logit_max] = logit_max
+    mat.denom[mat.denom > logit_max] = logit_max
+    mat.nom[mat.nom < -logit_max] = -logit_max
+    mat.denom[mat.denom < -logit_max] = -logit_max
+
+    df = data.frame(EventName = event_list, nom = boot::inv.logit(rowMeans(mat.nom, na.rm = TRUE)),
+        denom = boot::inv.logit(rowMeans(mat.denom, na.rm = TRUE)))
+    
+    return(df)
 }
 
 update_data_frame <- function(existing_df, new_df) {
-	# add extra samples to existing df
-	DT1 = as.data.table(existing_df)
-	DT2 = as.data.table(new_df)
+    # add extra samples to existing df
+    DT1 = as.data.table(existing_df)
+    DT2 = as.data.table(new_df)
 
   common_cols = intersect(names(DT1)[-1], names(DT2)[-1])
   new_cols = names(DT2)[!(names(DT2) %in% names(DT1))]
@@ -1206,7 +1206,7 @@ NxtIRF.SpliceCurve = function(xstart,xend,ystart,yend,y_height,info) {
             )
         final = rbind(final, temp)
     }
-	return(final)
+    return(final)
 }
 
 #' Draws an arc plot representing the spliced reads of a given sample

@@ -2,16 +2,27 @@
 % Please edit documentation in R/NxtSE-methods.R
 \name{NxtSE-methods}
 \alias{NxtSE-methods}
+\alias{up_inc}
 \alias{up_inc,NxtSE-method}
+\alias{up_inc<-}
 \alias{up_inc<-,NxtSE-method}
+\alias{down_inc}
 \alias{down_inc,NxtSE-method}
+\alias{down_inc<-}
 \alias{down_inc<-,NxtSE-method}
+\alias{up_exc}
 \alias{up_exc,NxtSE-method}
+\alias{up_exc<-}
 \alias{up_exc<-,NxtSE-method}
+\alias{down_exc}
 \alias{down_exc,NxtSE-method}
+\alias{down_exc<-}
 \alias{down_exc<-,NxtSE-method}
+\alias{covfile}
 \alias{covfile,NxtSE-method}
+\alias{covfile<-}
 \alias{covfile<-,NxtSE-method}
+\alias{ref}
 \alias{ref,NxtSE-method}
 \alias{coerce,SummarizedExperiment,NxtSE-method}
 \alias{NxtSE}

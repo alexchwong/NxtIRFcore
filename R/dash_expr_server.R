@@ -14,7 +14,7 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
         shinyDirChoose(input, "dir_bam_path_load", 
             roots = volumes(), session = session)
         shinyDirChoose(input, "dir_irf_path_load", 
-            roots = volumes(), session = session)		   
+            roots = volumes(), session = session)
         shinyDirChoose(input, "dir_collate_path_load", 
             roots = volumes(), session = session)
         shinyFileChoose(input, "file_expr_anno_load", 
@@ -79,7 +79,7 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
         settings_expr$df.files <- .server_expr_sync_df(
             settings_expr$df.anno, settings_expr$df.files)
     })
-	## Handsontable auto-updates settings_expr$df on user edit
+    ## Handsontable auto-updates settings_expr$df on user edit
     observeEvent(input$hot_files_expr,{
         req(input$hot_files_expr)
         settings_expr$df.files = hot_to_r(input$hot_files_expr) 
@@ -126,7 +126,7 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
         output <- .server_expr_check_irf_path(settings_expr$df.files, 
             settings_expr$irf_path, output)
     })
-	observeEvent(settings_expr$anno_file,{
+    observeEvent(settings_expr$anno_file,{
         req(settings_expr$anno_file)
         settings_expr$df.anno <- Expr_Load_Anno(settings_expr$df.anno,
             settings_expr$df.files, settings_expr$anno_files)
@@ -403,7 +403,7 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
                 mappa, 
                 icon = icon("map", lib = "font-awesome"),
                 color = "blue")
-        })  			
+        })
     } else {
         output$mappa_source_infobox <- renderInfoBox({
             infoBox("Mappability", "",
@@ -418,14 +418,14 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
                 nonPA, 
                 icon = icon("font", lib = "font-awesome"),
                 color = "purple")
-        })  			
+        })
     } else {
         output$NPA_source_infobox <- renderInfoBox({
             infoBox("Non-PolyA", "",
                 "NOT USED", 
                 icon = icon("font", lib = "font-awesome"),
                 color = "purple")
-        })  			
+        })
     }
     if(is_valid(Black)) {
         output$BL_source_infobox <- renderInfoBox({
@@ -433,14 +433,14 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive, limited 
                 Black, 
                 icon = icon("list-alt", lib = "font-awesome"),
                 color = "red")
-        })  			
+        })
     } else {
         output$BL_source_infobox <- renderInfoBox({
             infoBox("BlackList", "",
                 "NOT USED", 
                 icon = icon("list-alt", lib = "font-awesome"),
                 color = "red")
-        })  	
+        })
     }
     return(output)
 }
@@ -457,7 +457,7 @@ Expr_Load_BAMs = function(df.files, bam_path, session) {
             temp.DT = as.data.table(FindSamples(
                 bam_path, suffix = ".bam", use_subdir = FALSE))
             if(length(unique(temp.DT$sample)) == nrow(temp.DT)) {
-            # Else assume bam names designate sample names					
+            # Else assume bam names designate sample names
             } else {
                 sendSweetAlert(session = session,
                     title = "Incompatible BAM file names",
@@ -526,7 +526,7 @@ Expr_Load_IRFs = function(df.files, irf_path) {
             temp.DT = as.data.table(FindSamples(
                 irf_path, suffix = ".txt.gz", use_subdir = TRUE))
             if(length(unique(temp.DT$sample)) == nrow(temp.DT)) {
-            # Else assume subdirectory names designate sample names					
+            # Else assume subdirectory names designate sample names
             } else {
                 temp.DT = NULL
             }
@@ -554,7 +554,7 @@ Expr_Load_IRFs = function(df.files, irf_path) {
             temp.DT2 = as.data.table(FindSamples(
                 irf_path, suffix = ".cov", use_subdir = TRUE))
             if(length(unique(temp.DT2$sample)) == nrow(temp.DT2)) {
-        # Else assume subdirectory names designate sample names					
+        # Else assume subdirectory names designate sample names
             } else {
                 temp.DT2 = NULL
             }
@@ -566,7 +566,7 @@ Expr_Load_IRFs = function(df.files, irf_path) {
     if(!is.null(temp.DT2) && nrow(temp.DT2) > 0) {
         colnames(temp.DT2)[2] = "cov_file"
         df.files = update_data_frame(df.files, temp.DT2)
-    }			
+    }
     return(df.files)
 }
 

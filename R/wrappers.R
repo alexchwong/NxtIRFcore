@@ -325,7 +325,7 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0, strand = 2) {
             round(as.numeric(start)), round(as.numeric(end)), 
             as.numeric(strand)
         )
-        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$length)													 
+        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$length)
     }
 }
 

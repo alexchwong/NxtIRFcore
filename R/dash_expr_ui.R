@@ -169,7 +169,7 @@ ui_ddb_irf_path <- function(id) {
         icon = icon("align-center", lib = "font-awesome"),
         shinyDirButton(ns("dir_irf_path_load"), 
             label = "Choose IRFinder output path", 
-            title = "Choose IRFinder output path"), # done					
+            title = "Choose IRFinder output path"), # done
         textOutput(ns("txt_irf_path_expr")), br(),
         tags$h4("Run IRFinder on Selected BAMs"),
         actionButton(ns("run_irf_expr"), 

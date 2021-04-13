@@ -38,7 +38,7 @@ server_qc <- function(id, refresh_tab, get_se_path, get_df) {
         
         observeEvent(refresh_tab(), {
             updateSelectInput(session = session, inputId = "QC_xaxis",
-                choices = "(none)")	        
+                choices = "(none)")
             updateSelectInput(session = session, inputId = "QC_yaxis",
                 choices = "(none)")
             output$DT_QC <- DT::renderDataTable(NULL)
@@ -70,9 +70,9 @@ server_qc <- function(id, refresh_tab, get_se_path, get_df) {
                 )]
                 choices = c("(none)", choices)
                 updateSelectInput(session = session, inputId = "QC_xaxis",
-                    choices = choices)	        
+                    choices = choices)
                 updateSelectInput(session = session, inputId = "QC_yaxis",
-                    choices = choices)	        
+                    choices = choices)
             }      
         })
         

@@ -55,17 +55,17 @@
 #' identical(se_IRSE, subset(se, EventType %in% c("IR", "SE"))) # TRUE
 #' @name NxtSE-methods
 #' @aliases
-#' up_inc,NxtSE-method
-#' up_inc<-,NxtSE-method
-#' down_inc,NxtSE-method
-#' down_inc<-,NxtSE-method
-#' up_exc,NxtSE-method
-#' up_exc<-,NxtSE-method
-#' down_exc,NxtSE-method
-#' down_exc<-,NxtSE-method
-#' covfile,NxtSE-method
-#' covfile<-,NxtSE-method
-#' ref,NxtSE-method
+#' up_inc up_inc,NxtSE-method
+#' up_inc<- up_inc<-,NxtSE-method
+#' down_inc down_inc,NxtSE-method
+#' down_inc<- down_inc<-,NxtSE-method
+#' up_exc up_exc,NxtSE-method
+#' up_exc<- up_exc<-,NxtSE-method
+#' down_exc down_exc,NxtSE-method
+#' down_exc<- down_exc<-,NxtSE-method
+#' covfile covfile,NxtSE-method
+#' covfile<- covfile<-,NxtSE-method
+#' ref ref,NxtSE-method
 #' coerce,SummarizedExperiment,NxtSE-method
 #' @md
 NULL

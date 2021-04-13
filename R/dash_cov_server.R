@@ -122,7 +122,7 @@ server_cov <- function(id, refresh_tab, volumes, get_se, get_de,
         gene_id_view = get_ref()$gene_list[
             get("gene_display_name") == input$genes_cov]
         .server_cov_locate_genes(input, session, gene_id_view)
-    })		
+    })        
     observeEvent(chr_rd(), {
         seqInfo = get_ref()$seqInfo[chr_rd()]
         seqmax = as.numeric(GenomeInfoDb::seqlengths(seqInfo))
@@ -149,7 +149,7 @@ server_cov <- function(id, refresh_tab, volumes, get_se, get_de,
         shinyFileSave(input, "saveplot_cov", roots = volumes(), 
             session = session, filetypes = c("pdf"))    
     })
-    observeEvent(input$saveplot_cov, {	
+    observeEvent(input$saveplot_cov, {    
         req(settings_Cov$final_plot)
         selectedfile <- parseSavePath(volumes(), input$saveplot_cov)
         req(selectedfile$datapath)
@@ -182,13 +182,13 @@ server_cov_get_all_tracks <- function(input) {
         updateSelectInput(session = session, inputId = "chr_cov", 
             choices = c("(none)", 
                 as.character(sort(unique(gene_list$seqnames)))),
-            selected = "(none)")								          
+            selected = "(none)")
         updateSelectizeInput(session = session, inputId = "genes_cov",
             server = TRUE, choices = c("(none)", gene_list$gene_display_name), 
             selected = "(none)")
     } else {
         updateSelectInput(session = session, inputId = "chr_cov", 
-            choices = c("(none)"), selected = "(none)")    								
+            choices = c("(none)"), selected = "(none)")
         updateSelectizeInput(session = session, inputId = "genes_cov", 
             server = TRUE, choices = c("(none)"), selected = "(none)") 
     }
@@ -215,11 +215,11 @@ server_cov_get_all_tracks <- function(input) {
                 inputId = "events_cov", server = TRUE,
                 choices = c("(none)", 
                     DE$EventName[selected]), 
-                    selected = selected_event)    								
+                    selected = selected_event)
         } else {
             updateSelectizeInput(session = session, 
                 inputId = "events_cov", server = TRUE,
-                choices = c("(none)"), selected = "(none)")    								    
+                choices = c("(none)"), selected = "(none)")
         }
     }
 }
@@ -505,14 +505,14 @@ server_cov_get_all_tracks <- function(input) {
     if(length(selected) > 0 & is_valid(DE)) {
         updateSelectizeInput(session = session, inputId = "events_view", 
             server = TRUE, choices = c("(none)", 
-                DE$EventName[selected]), selected = "(none)")    								
+                DE$EventName[selected]), selected = "(none)")
         updateSelectizeInput(session = session, inputId = "events_cov", 
             server = TRUE, choices = c("(none)", 
-                DE$EventName[selected]), selected = "(none)")    								
+                DE$EventName[selected]), selected = "(none)")
     } else {
         updateSelectizeInput(session = session, inputId = "events_view", 
-            server = TRUE, choices = c("(none)"), selected = "(none)")    								
+            server = TRUE, choices = c("(none)"), selected = "(none)")
         updateSelectizeInput(session = session, inputId = "events_cov", 
-            server = TRUE, choices = c("(none)"), selected = "(none)")    								    
+            server = TRUE, choices = c("(none)"), selected = "(none)")
     }
 }

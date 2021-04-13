@@ -12,19 +12,19 @@ nxtIRF <- function() {
         ), call. = FALSE)
     }
 
-	ui_dash <- dashboardPage(
-		dashboardHeader(title = "NxtIRF"),
-		ui_sidebar(),
-		dashboardBody(
-			tabItems(
+    ui_dash <- dashboardPage(
+        dashboardHeader(title = "NxtIRF"),
+        ui_sidebar(),
+        dashboardBody(
+            tabItems(
                 ui_tab_title(),
                 
                 ui_tab_system(),
                 
-                ui_tab_ref_new(),		
+                ui_tab_ref_new(),        
 
                 ui_tab_expr(),
-				
+                
                 ui_tab_expr_load(),
                 ui_tab_qc(),
                 ui_tab_filter(),
@@ -34,8 +34,8 @@ nxtIRF <- function() {
                 ui_tab_volcano(),
                 ui_tab_heatmap(),
                 ui_tab_coverage()
-			)
-		)
-	)
-	runApp(shinyApp(ui_dash, dash_server))
+            )
+        )
+    )
+    runApp(shinyApp(ui_dash, dash_server))
 }

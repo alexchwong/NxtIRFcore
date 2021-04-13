@@ -309,7 +309,7 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     contrast_a = paste0("condition_factor", test_nom, ".ASEIncluded")
     contrast_b = paste0("condition_factor", test_denom, ".ASEIncluded")
     contrast[which(colnames(design1) == contrast_b)] = -1
-    contrast[which(colnames(design1) == contrast_a)] = 1		
+    contrast[which(colnames(design1) == contrast_a)] = 1
 
     countData_use = limma::voom(countData, design1, lib.size = 1)
 

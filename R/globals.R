@@ -18,22 +18,22 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 #' @md
 #' @export
 NxtIRF.CoordToGR = function(coordinates) {
-	temp = tstrsplit(coordinates,split="/")
-	strand = as.character(temp[[2]])
-	temp2 = tstrsplit(temp[[1]],split=":")
-	seqnames = temp2[[1]]
-	temp3 = tstrsplit(temp2[[2]],split="-")
-	start = temp3[[1]]
-	end = temp3[[2]]
-	return(GRanges(seqnames = seqnames, ranges = IRanges(
-		start = as.numeric(start), end = as.numeric(end)),
-		strand = strand))
+    temp = tstrsplit(coordinates,split="/")
+    strand = as.character(temp[[2]])
+    temp2 = tstrsplit(temp[[1]],split=":")
+    seqnames = temp2[[1]]
+    temp3 = tstrsplit(temp2[[2]],split="-")
+    start = temp3[[1]]
+    end = temp3[[2]]
+    return(GRanges(seqnames = seqnames, ranges = IRanges(
+        start = as.numeric(start), end = as.numeric(end)),
+        strand = strand))
 }
 
 NxtIRF.CheckPackageInstalled <- function(package = "DESeq2", version = "1.0.0") {
     res = tryCatch(
         ifelse(packageVersion(package)>=version, TRUE, FALSE),
-		error = function(e) FALSE)
+        error = function(e) FALSE)
     if(!res) {
         stop(paste(
             package, "package is not installed; and is required for this function"
@@ -67,31 +67,31 @@ NxtIRF.CheckPackageInstalled <- function(package = "DESeq2", version = "1.0.0") 
 }
 
 NxtIRF.SplitVector <- function(vector = "", n_workers = 1) {
-	if(!is.numeric(n_workers) || n_workers < 1) {
+    if(!is.numeric(n_workers) || n_workers < 1) {
         stop(paste(
             "n_workers must be at least 1"
         ), call. = FALSE)
     }
-	n_workers_use = as.integer(n_workers)
-	if(length(vector) < 1) {
+    n_workers_use = as.integer(n_workers)
+    if(length(vector) < 1) {
         stop(paste(
             "vector to split must be of length at least 1"
         ), call. = FALSE)
     }
   
   if(n_workers_use > length(vector)) n_workers_use = length(vector)
-	vector_starts = round(seq(1, length(vector) + 1, length.out = n_workers_use + 1))
-	vector_starts = unique(vector_starts)
-	
-	return_val = list()
-	for(i in seq_len(length(vector_starts) - 1)) {
-		return_val[[i]] = vector[seq(vector_starts[i], vector_starts[i+1] - 1)]
-	}
-	return(return_val)
+    vector_starts = round(seq(1, length(vector) + 1, length.out = n_workers_use + 1))
+    vector_starts = unique(vector_starts)
+    
+    return_val = list()
+    for(i in seq_len(length(vector_starts) - 1)) {
+        return_val[[i]] = vector[seq(vector_starts[i], vector_starts[i+1] - 1)]
+    }
+    return(return_val)
 }
 
 semi_join.DT = function(A, B, by, nomatch = 0) {
-	A[A[B, on = by, which = TRUE, nomatch = nomatch]]
+    A[A[B, on = by, which = TRUE, nomatch = nomatch]]
 }
 
 .grDT <- function(DT, ...) {
@@ -170,37 +170,37 @@ make.path.relative = function(base, target) {
 #'   theme_white
 #' @export
 theme_white = theme(axis.line.x = element_line(colour = "black"),
-			panel.grid.major = element_line(size = rel(0.5), colour="grey"),
-			panel.grid.minor = element_blank(),
-			panel.border = element_blank(),
-			panel.background = element_blank(),
-			legend.position = "none",
-			axis.title.x.top = element_blank(),
-			# axis.text.x.bottom = element_blank(),
-			# axis.text.y = element_blank(),
-			axis.line.x.bottom = element_blank(),
-			axis.text=element_text(size=rel(1.0)),
+            panel.grid.major = element_line(size = rel(0.5), colour="grey"),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            legend.position = "none",
+            axis.title.x.top = element_blank(),
+            # axis.text.x.bottom = element_blank(),
+            # axis.text.y = element_blank(),
+            axis.line.x.bottom = element_blank(),
+            axis.text=element_text(size=rel(1.0)),
             plot.title = element_text(hjust = 0.5),
-			# axis.title.x=element_blank(),
-			# axis.title.y=element_blank()
+            # axis.title.x=element_blank(),
+            # axis.title.y=element_blank()
             )
 
 #' @describeIn theme_white White theme but with a figure legend (if applicable)
 #' @export
 theme_white_legend = theme(axis.line.x = element_line(colour = "black"),
-			panel.grid.major = element_line(size = rel(0.5), colour="grey"),
-			panel.grid.minor = element_blank(),
-			panel.border = element_blank(),
-			panel.background = element_blank(),
-			# legend.position = "none",
-			axis.title.x.top = element_blank(),
-			# axis.text.x.bottom = element_blank(),
-			# axis.text.y = element_blank(),
-			axis.line.x.bottom = element_blank(),
-			axis.text=element_text(size=rel(1.0)),
+            panel.grid.major = element_line(size = rel(0.5), colour="grey"),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            # legend.position = "none",
+            axis.title.x.top = element_blank(),
+            # axis.text.x.bottom = element_blank(),
+            # axis.text.y = element_blank(),
+            axis.line.x.bottom = element_blank(),
+            axis.text=element_text(size=rel(1.0)),
             plot.title = element_text(hjust = 0.5),
-			# axis.title.x=element_blank(),
-			# axis.title.y=element_blank()
+            # axis.title.x=element_blank(),
+            # axis.title.y=element_blank()
             )
 
 dash_progress <- function(message = "", total_items = 1, add_msg = FALSE) {

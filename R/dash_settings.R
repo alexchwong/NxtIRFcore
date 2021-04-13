@@ -81,7 +81,7 @@ setreactive_Diag <- function() {
     # NB same code as Volcano
     reactiveValues(
         plot_ini = FALSE,
-		plotly_click = NULL,
+        plotly_click = NULL,
         final_plot = NULL,
         selected = NULL
     )
@@ -100,7 +100,7 @@ setreactive_Cov <- function() {
         view_end = "",
         data_start = 0,
         data_end = 0,
-			
+
         view_strand = "*",
 
         event.ranges = NULL,

@@ -65,13 +65,13 @@ ui_cov <- function(id) {
             column(3, 
                 actionButton(ns("refresh_coverage"), "Refresh Plot"),
                 selectInput(ns('mode_cov'), 'View', width = '100%',
-                    choices = c("Individual", "By Condition")),					
+                    choices = c("Individual", "By Condition")),
                 selectInput(ns('event_norm_cov'), 'Normalize Event', 
                     width = '100%', choices = c("(none)")),
                 conditionalPanel(ns = ns,
                     condition = "['By Condition'].indexOf(input.mode_cov) >= 0",
                     selectInput(ns('condition_cov'), 'Condition', 
-                        width = '100%', choices = c("(none)"))					
+                        width = '100%', choices = c("(none)"))
                 ),
                 selectInput(ns('track1_cov'), 'Track 1', width = '100%',
                     choices = c("(none)")),
