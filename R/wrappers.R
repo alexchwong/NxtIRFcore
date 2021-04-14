@@ -204,7 +204,7 @@ run_IRFinder_GenerateMapReads = function(genome.fa = "", out.fa,
     read_len = 70, read_stride = 10, error_pos = 35) {
     return(
         IRF_GenerateMappabilityReads(normalizePath(genome.fa), 
-            file.path(normalizePath(dirname(out.fa)), out.fa),
+            file.path(normalizePath(dirname(out.fa)), basename(out.fa)),
             read_len = read_len, 
             read_stride = read_stride, 
             error_pos = error_pos)
@@ -221,7 +221,7 @@ run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file,
     }
     return(
         IRF_GenerateMappabilityRegions(s_bam, 
-            normalizePath(output_file),
+            output_file,
             threshold = threshold,
             includeCov = includeCov)
     )
