@@ -2,36 +2,66 @@
 % Please edit documentation in R/BuildRef.R
 \name{BuildReference}
 \alias{BuildReference}
+\alias{GetReferenceResource}
+\alias{GetNonPolyARef}
+\alias{GetMappabilityRef}
 \title{Builds reference files used by IRFinder / NxtIRF.}
 \usage{
-BuildReference(
-  fasta = "genome.fa",
-  gtf = "transcripts.gtf",
-  ah_genome = "",
-  ah_transcriptome = "",
+GetReferenceResource(
+  fasta_file,
+  gtf_file,
+  ah_genome,
+  ah_transcriptome,
   reference_path = "./Reference",
-  genome_type = "",
+  convert_chromosome_names = NULL,
+  overwrite_resource = FALSE
+)
+
+BuildReference(
+  fasta_file,
+  gtf_file,
+  ah_genome,
+  ah_transcriptome,
+  reference_path = "./Reference",
+  convert_chromosome_names = NULL,
+  overwrite_resource = FALSE,
+  genome_type,
   nonPolyARef = "",
   MappabilityRef = "",
   BlacklistRef = "",
-  convert_chromosome_names = NULL,
   UseExtendedTranscripts = TRUE
 )
+
+GetNonPolyARef(genome_type)
+
+GetMappabilityRef(genome_type)
 }
 \arguments{
-\item{fasta}{The path to the user-supplied genome fasta file}
+\item{fasta_file}{The file path or web link to the user-supplied genome
+fasta file.}
 
-\item{gtf}{The path to the user-supplied transcript gtf file}
+\item{gtf_file}{The file path or web link  to the user-supplied transcript
+gtf file.}
 
 \item{ah_genome}{The name of the AnnotationHub record containing the genome
-2bit file. Leave blank to use user-supplied \code{fasta} file.}
+2bit file.}
 
 \item{ah_transcriptome}{The name of the AnnotationHub record containing the
-transcript gtf file. Leave blank to use user-supplied \code{gtf} file.}
+transcript gtf file.}
 
 \item{reference_path}{(required) The directory to store the reference files}
 
-\item{genome_type}{(required) Allows \code{BuildReference()} to select default
+\item{convert_chromosome_names}{An optional 2-column data frame containing
+conversion (first column being the chromosome names of the source
+reference, and the second being the desired chromosome names).
+See \url{https://github.com/dpryan79/ChromosomeMappings} for a list of
+chromosome conversion resources}
+
+\item{overwrite_resource}{(default FALSE) If the genome TwoBit and gene
+annotation GTF files are found in the "resource" subdirectory, these
+will be used unless \code{overwrite_resource} is set to TRUE}
+
+\item{genome_type}{Allows \code{BuildReference()} to select default
 \code{nonPolyARef} and \code{MappabilityRef} for selected genomes. Allowed options
 include: 'hg38', 'hg19', 'mm9', 'mm10'.
 Setting to any other value to use custom
@@ -57,12 +87,6 @@ used here.}
 start and end coordinates) of regions to be otherwise excluded from IR
 analysis. Leave blank to not use a \code{BlacklistRef} file.}
 
-\item{convert_chromosome_names}{An optional 2-column data frame containing
-conversion (first column being the chromosome names of the source
-reference, and the second being the desired chromosome names).
-See \url{https://github.com/dpryan79/ChromosomeMappings} for a list of
-chromosome conversion resources}
-
 \item{UseExtendedTranscripts}{Should IRFinder include non-protein-coding
 transcripts such as anti-sense and lincRNAs? Setting \code{FALSE} (default
 IRFinder) will exclude transcripts other than \code{protein_coding} and
@@ -87,23 +111,143 @@ file used by this reference. This is used by featureCounts option in
 }
 }
 \description{
-This function builds the reference required by the IRFinder engine, as well
-as access-ready refined splice annotation data for NxtIRF. This reference
-can be created using either:
+These function builds the reference required by the IRFinder engine, as well
+as access-ready refined splice annotation data for NxtIRF. See details below.
+}
+\details{
+\code{GetReferenceResource()} processes the files, downloads resources from
+web links or from \code{AnnotationHub()}, and saves a local copy in the "resource"
+subdirectory within the given \code{reference_path}\cr\cr
+\code{BuildReference()} runs \code{GetReferenceResource()} if resources are not
+saved locally (i.e. \code{GetReferenceResource()} is not already run). Then,
+it creates the NxtIRF / IRFinder references.\cr\cr
+NB: the parameters \code{fasta_file}, \code{gtf_file}, \code{ah_genome} and
+\code{ah_transcriptome} can be omitted in \code{BuildReference()} if
+\code{GetReferenceResource()} is already run. See examples below.\cr\cr
+The NxtIRF reference can be created using either:\cr\cr
 \enumerate{
-\item AnnotationHub genome and gene annotation (Ensembl): supply the names of
-the genome sequence \code{ah_genome} and gene annotations \code{ah_transcriptome}
-(see example below), or
 \item User-supplied FASTA and GTF file. This can be a file path, or a web link
-(e.g. 'http://', 'https://' or 'ftp://')
+(e.g. 'http://', 'https://' or 'ftp://'). Use \code{fasta_file} and \code{gtf_file}
+to specify the files or web paths to use.\cr\cr
+\item AnnotationHub genome and gene annotation (Ensembl): supply the names of
+the genome sequence \code{ah_genome} and gene annotations
+\code{ah_transcriptome} \cr\cr
 }
 }
+\section{Functions}{
+\itemize{
+\item \code{GetReferenceResource}: Processes / downloads a copy of the genome
+and gene annotations and stores this in the "resource" subdirectory
+of the given reference path
+
+\item \code{BuildReference}: Calls \code{GetReferenceResource()}
+(if required), and then creates the NxtIRF reference in the
+given reference path
+
+\item \code{GetNonPolyARef}: Returns the path to the BED file containing
+coordinates of known non-polyadenylated transcripts for genomes 
+\code{hg38}, \code{hg19}, \code{mm10} and \code{mm9},
+
+\item \code{GetMappabilityRef}: Returns the path to the NxtIRF-provided
+Mappability Exclusion coordinates of lowly-mappable regions for genomes 
+\code{hg38}, \code{hg19}, \code{mm10} and \code{mm9},
+}}
+
 \examples{
-BuildReference(
-  fasta = mock_genome(), gtf = mock_gtf(),
-  reference_path = file.path(tempdir(), "Reference"),
-  genome_type = "other"
+# Reference generation from NxtIRF's example mock genome
+
+GetReferenceResource(
+    fasta = mock_genome(), gtf = mock_gtf(),
+    reference_path = file.path(tempdir(), "Reference")
 )
+BuildReference(
+    reference_path = file.path(tempdir(), "Reference")
+)
+
+# Gets path to the Non-PolyA BED file for hg19
+
+GetNonPolyARef("hg19")
+
+# Gets path to the Mappability Exclusion BED file for mm10 (from a tempdir())
+
+GetMappabilityRef("mm10")
+
+# Reference generation from user supplied FASTA and GTF files (NOT RUN)
+
+# GetReferenceResource(
+#     fasta = "genome.fa", gtf = "transcripts.gtf",
+#     reference_path = "./Reference_user"
+# )
+# BuildReference(reference_path = "./Reference_user",
+#     genome_type = "hg38" 
+# )
+
+# Reference generation from Ensembl's FTP links:
+
+# FTP = "ftp://ftp.ensembl.org/pub/release-94/"
+# GetReferenceResource(
+#     fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
+#         "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
+#     gtf = paste0(FTP, "gtf/homo_sapiens/",
+#         "Homo_sapiens.GRCh38.94.chr.gtf.gz"), 
+#     reference_path = "./Reference_FTP"
+# )
+# BuildReference(reference_path = "./Reference_FTP",
+#     genome_type = "hg38" 
+# )
+
+# Get AnnotationHub record names for Ensembl release-94 (NOT RUN)
+
+# ah = AnnotationHub::AnnotationHub()
+# ah_r94 = AnnotationHub::query(ah, c("Homo Sapiens", "release-94"))
+# ah_r94
+# AnnotationHub with 9 records
+# # snapshotDate(): 2021-04-12
+# # $dataprovider: Ensembl
+# # $species: Homo sapiens
+# # $rdataclass: TwoBitFile, GRanges
+# # additional mcols(): taxonomyid, genome, description, coordinate_1_based, 
+# # maintainer, rdatadateadded,
+# #   preparerclass, tags, rdatapath, sourceurl, sourcetype
+# # retrieve records with, e.g., 'object[["AH64628"]]'
+# 
+#             title                                           
+#   AH64628 | Homo_sapiens.GRCh38.94.abinitio.gtf
+#   AH64629 | Homo_sapiens.GRCh38.94.chr.gtf
+#   AH64630 | Homo_sapiens.GRCh38.94.chr_patch_hapl_scaff.gtf
+#   AH64631 | Homo_sapiens.GRCh38.94.gtf
+#   AH65744 | Homo_sapiens.GRCh38.cdna.all.2bit
+#   AH65745 | Homo_sapiens.GRCh38.dna.primary_assembly.2bit
+#   AH65746 | Homo_sapiens.GRCh38.dna_rm.primary_assembly.2bit
+#   AH65747 | Homo_sapiens.GRCh38.dna_sm.primary_assembly.2bit
+#   AH65748 | Homo_sapiens.GRCh38.ncrna.2bit
+
+# Reference generation from AnnotationHub's Ensembl release-94 (NOT RUN)
+
+# GetReferenceResource(
+#     ah_genome =  = "AH65745", 
+#     ah_transcriptome = "AH64631",
+#     reference_path = "./Reference_AH"
+# )
+# BuildReference(reference_path = "./Reference_AH",
+#     genome_type = "hg38" 
+# )
+
+# AnnotationHub's Ensembl release-94, converting Ensembl chromosomes
+# to UCSC style (NOT RUN)
+
+# chrom.df = GenomeInfoDb::genomeStyles()$Homo_sapiens
+#
+# GetReferenceResource(
+#     ah_genome = "AH65745", 
+#     ah_transcriptome = "AH64631",
+#     reference_path = "./Reference_UCSC",
+#     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
+# )
+# BuildReference(reference_path = "./Reference_UCSC",
+#     genome_type = "hg38", 
+#     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
+# )
 }
 \seealso{
 \code{\link[=GenerateMappabilityReads]{GenerateMappabilityReads()}}, \code{\link[=GenerateMappabilityBED]{GenerateMappabilityBED()}},
