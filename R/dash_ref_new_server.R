@@ -100,28 +100,28 @@ server_ref_new <- function(id, refresh_tab, volumes) {
                     "extra-input-files/Human_hg38_nonPolyA_ROI.bed", 
                     package = "NxtIRF")
                 settings_newref$newref_mappa = 
-                    .fetch_mappability_file("hg38")
+                    GetMappabilityRef("hg38")
             
             } else if(input$newref_genome_type == "hg19")  {
                 settings_newref$newref_NPA = system.file(
                     "extra-input-files/Human_hg19_nonPolyA_ROI.bed", 
                     package = "NxtIRF")
                 settings_newref$newref_mappa = 
-                    .fetch_mappability_file("hg19")
+                    GetMappabilityRef("hg19")
             
             } else if(input$newref_genome_type == "mm10")  {
                 settings_newref$newref_NPA = system.file(
                     "extra-input-files/Mouse_mm10_nonPolyA_ROI.bed", 
                     package = "NxtIRF")
                 settings_newref$newref_mappa = 
-                    .fetch_mappability_file("mm10")
+                    GetMappabilityRef("mm10")
             
             } else if(input$newref_genome_type == "mm9")  {
                 settings_newref$newref_NPA = system.file(
                     "extra-input-files/Mouse_mm9_nonPolyA_ROI.bed", 
                     package = "NxtIRF")
                 settings_newref$newref_mappa = 
-                    .fetch_mappability_file("mm9")
+                    GetMappabilityRef("mm9")
             
             } else if(input$newref_genome_type == "(custom)") {
         # do nothing. This allows user to first select the default 
@@ -174,7 +174,8 @@ server_ref_new <- function(id, refresh_tab, volumes) {
         observeEvent(input$fasta, {
             req(input$fasta)
             settings_newref$newref_fasta = paste0(
-                "https://ftp.ensembl.org/pub/",
+                # "https://ftp.ensembl.org/pub/",
+                "ftp://ftp.ensembl.org/pub/",
                 "release-", as.character(isolate(input$release)),
                 "/fasta/", isolate(input$species), "/dna/",
                 input$fasta
@@ -184,7 +185,8 @@ server_ref_new <- function(id, refresh_tab, volumes) {
         observeEvent(input$gtf, {
             req(input$gtf)
             settings_newref$newref_gtf = paste0(
-                "https://ftp.ensembl.org/pub/",
+                # "https://ftp.ensembl.org/pub/",
+                "ftp://ftp.ensembl.org/pub/",
                 "release-", as.character(isolate(input$release)),
                 "/gtf/", isolate(input$species), "/",
                 input$gtf
@@ -193,8 +195,8 @@ server_ref_new <- function(id, refresh_tab, volumes) {
         })
         observeEvent(input$buildRef, {
             args <- list(reference_path = settings_newref$newref_path, 
-                fasta = settings_newref$newref_fasta, 
-                gtf = settings_newref$newref_gtf,
+                fasta_file = settings_newref$newref_fasta, 
+                gtf_file = settings_newref$newref_gtf,
                 genome_type = input$newref_genome_type, 
                 nonPolyARef = settings_newref$newref_NPA, 
                 MappabilityRef = settings_newref$newref_mappa,
