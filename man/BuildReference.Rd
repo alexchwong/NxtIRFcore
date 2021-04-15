@@ -195,7 +195,7 @@ GetMappabilityRef("mm10")
 #     genome_type = "hg38" 
 # )
 
-# Reference generation from Ensembl's FTP links:
+# Reference generation from Ensembl's FTP links (NOT RUN):
 
 # FTP = "ftp://ftp.ensembl.org/pub/release-94/"
 # GetReferenceResource(
@@ -264,4 +264,5 @@ GetMappabilityRef("mm10")
 }
 \seealso{
 \link{GenerateMappabilityReads}, \link{GenerateMappabilityBED},
+\link[AnnotationHub]{AnnotationHub}
 }

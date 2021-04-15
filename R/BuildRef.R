@@ -1,3 +1,64 @@
+#' NxtIRF package for IRFinder-based differential Alternative Splicing
+#' and Intron Retention analysis
+#' 
+#' The NxtIRF package analyses RNA-seq datasets (aligned as BAM files using 
+#' splice aware genome aligners such as STAR). It fully incorporates the
+#' IRFinder algorithm, porting its C++ code into the R platform using RCPP.
+#' @details
+#' Enhancements include:
+#'
+#' \itemize{
+#' \item One-step reference generation from user-supplied or AnnotationHub 
+#'   genome and gene annotations;
+#' \item Multi-threaded support for core IRFinder algorithm to simultaneously
+#'   analyse multiple BAM files;
+#' \item Streamlined integration of IRFinder results from large datasets;
+#' \item Easy generation of experimental designs and data handling using
+#'   NxtSE which is a SummarizedExperiment object extended for NxtIRF-based
+#'   analysis;
+#' \item Simplified workflow for filtering low-abundance splicing events and
+#'   limma- or DESeq2- based differential alternative splicing events analysis;
+#' \item Interactive workflow and visualisation tools using shinydashboard;
+#' \item Advanced RNA-seq coverage visualisation, including the ability to 
+#'   combine RNA-seq coverage of multiple samples using advanced normalisation 
+#'   methods across samples grouped by conditions;
+#' }
+#' 
+#' The main functions are:
+#'
+#' \itemize{
+#' \item \code{\link{BuildReference}} - Prepares genome and gene annotation
+#'   references (FASTA/TwoBit, GTF files), and synthesises the NxtIRF reference
+#'   for the IRFinder engine and NxtIRF-based analysis
+#' \item \code{\link{IRFinder}} - Runs the IRFinder C++ routine to analyse
+#'   single or multiple BAM files using the NxtIRF/IRFinder reference.
+#' \item \code{\link{CollateData}} - Combines multiple IRFinder outputs
+#'   into one unified data structure
+#' \item \code{\link{MakeSE}} - Constructs a \code{NxtSE} 
+#'   object (see \code{\link{NxtSE-methods}}) to contain IRFinder output 
+#'   produced by \code{\link{CollateData}}
+#' \item \code{\link{apply_filters}} - Easily specify and apply a list of
+#'   filters to exclude low-abundance splicing events from downstream analysis
+#' \item \code{\link{limma_ASE}}, \code{\link{DESeq_ASE}} - perform
+#'   differential alternate splice event (ASE) analysis on a filtered NxtSE 
+#    object using limma or DESeq2
+#' \item \code{\link{make_diagonal}}, \code{\link{make_matrix}}: Generate
+#'   data to produce scatter plots or heatmaps of ASE events
+#' \item \code{\link{Plot_Coverage}}: Generate RNA-seq coverage plots of
+#'   individual samples or across samples grouped by user-specified conditions
+#' }
+#' 
+#' See \code{vignette("NxtIRF")} for worked examples on how to use NxtIRF
+#' 
+#' @author Alex Wong, Ulf Schmitz, William Ritchie
+#' 
+#' @docType package
+#' @name NxtIRF-package
+#' @aliases NxtIRF-package
+#' @keywords package
+#' @md
+NULL
+
 #' Builds reference files used by IRFinder / NxtIRF.
 #'
 #' @description
@@ -120,7 +181,7 @@
 #' #     genome_type = "hg38" 
 #' # )
 #'
-#' # Reference generation from Ensembl's FTP links:
+#' # Reference generation from Ensembl's FTP links (NOT RUN):
 #' 
 #' # FTP = "ftp://ftp.ensembl.org/pub/release-94/"
 #' # GetReferenceResource(
@@ -187,6 +248,7 @@
 #' #     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
 #' # )
 #' @seealso [GenerateMappabilityReads], [GenerateMappabilityBED], 
+#' \link[AnnotationHub]{AnnotationHub}
 #' @name BuildReference
 #' @md
 NULL
@@ -3415,7 +3477,7 @@ GenerateMappabilityBED <- function(aligned_bam = "",
     }
     if(!dir.exists(dirname(output_file))) {
         stop(paste("In GenerateMappabilityBED(),",
-            dirname(out.bed), "directory does not exist"
+            dirname(output_file), "directory does not exist"
         ), call. = FALSE)
     }
     return(
