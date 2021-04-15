@@ -4,10 +4,18 @@
 \alias{nxtIRF}
 \title{Launches the NxtIRF Graphics User Interface using Shiny Dashboard}
 \usage{
-nxtIRF()
+nxtIRF(mode = c("dialog", "browser"), width = 1600, height = 900)
+}
+\arguments{
+\item{mode}{(default \code{"dialog"}) \code{"dialog"} displays NxtIRF in a dialog box
+with specified width and height. \code{"browser"} opens NxtIRF in a browser-
+like resizable window.}
+
+\item{width, height}{If \code{mode} is set to \code{"dialog"}, the specified width
+and height of the NxtIRF app.}
 }
 \value{
-None
+An interactive shinydashboard NxtIRF app runs.
 }
 \description{
 This function launches the NxtIRF interactive app using Shiny Dashboard
