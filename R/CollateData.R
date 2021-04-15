@@ -80,7 +80,7 @@ FindSamples <- function(sample_path, suffix = ".txt.gz",
 #' @param ... Additional parameters to pass into `FindSamples()`
 #' @return A 2-column data frame with the first column containing
 #'   the sample name, and the second column being the BAM file path.
-#' @seealso [FindSamples()]
+#' @seealso [FindSamples]
 #' @examples
 #' bam_path = dirname(example_bams())[1]
 #' bams = Find_Bams(bam_path)
@@ -100,7 +100,7 @@ Find_Bams <- function(sample_path, ...) {
 #' @return A 3-column data frame with the first column containing
 #'   the sample name, and the second column being the IRFinder main output path,
 #'   and the third column being the COV file path.
-#' @seealso [FindSamples()]
+#' @seealso [FindSamples]
 #' @examples
 #' expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
 #' @md
@@ -1807,7 +1807,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
 #'       Then, events with a splicing coverage below \code{filterVars$minimum}
 #'       are excluded. We recommend testing IR events for > 90% coverage and AS
 #'       events for > 60% coverage as given in the default filters which can be
-#'       accessed using \code{get_default_filters()}\cr\cr  
+#'       accessed using \code{\link{get_default_filters}}\cr\cr  
 #'     \strong{Consistency}: Skipped exons (SE) and mutually exclusive exons
 #'       (MXE) comprise reads of two contiguous splice junctions (for the
 #'       included casette exon). Summating counts from both junctions is
@@ -1826,7 +1826,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
 #'       \code{filterVars$minDepth}.
 #'
 #'   We highly recommend using the default filters, which can be acquired 
-#'     using \code{get_default_filters()}
+#'     using \code{\link{get_default_filters}}
 #' 
 #' @param filterClass One of either \code{Annotation} or \code{Data}
 #' @param filterType For filterClass \code{Annotation}, either one of 
@@ -1853,8 +1853,8 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
 #'         filterVars = filters[[1]]$filterVars,
 #'         filterObject = se
 #'     ), ]
-#' @seealso [get_default_filters()], [apply_filters()]
-#' @md
+#' @seealso \code{\link{get_default_filters}}, 
+#' \code{\link{apply_filters}}
 #' @export
 runFilter <- function(filterClass, filterType, filterVars, filterObject) {
     # filterClass: can be one of 'Annotation', 'Data', 'Runtime'

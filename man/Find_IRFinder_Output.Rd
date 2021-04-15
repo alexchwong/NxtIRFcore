@@ -24,5 +24,5 @@ Assumes file names are names of samples.
 expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
 }
 \seealso{
-\code{\link[=FindSamples]{FindSamples()}}
+\link{FindSamples}
 }

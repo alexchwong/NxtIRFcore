@@ -84,8 +84,6 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
 })
 
 .se_to_nxtse <- function(se) {
-    # Simple test to make sure se is a SummarizedExperiment made by 
-    #'  NxtIRF::MakeSE()
     old <- S4_disableValidity()
     if (!isTRUE(old)) {
         S4_disableValidity(TRUE)
