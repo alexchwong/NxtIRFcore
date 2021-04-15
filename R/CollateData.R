@@ -250,7 +250,9 @@ CollateData <- function(Experiment, reference_path, output_path,
     coverage_files = .collateData_COV(Experiment)
     
     df.internal <- .collateData_expr(Experiment)
-    jobs <- .collateData_jobs(nrow(df.internal), BPPARAM_mod, samples_per_block)
+    # jobs <- .collateData_jobs(nrow(df.internal), BPPARAM_mod, samples_per_block)
+    jobs = NxtIRF.SplitVector(seq_len(nrow(df.internal)),
+        ceiling(nrow(df.internal) / samples_per_block))
     n_jobs = length(jobs)
     N <- 7
     dash_progress("Compiling Sample Stats", N)
@@ -1026,7 +1028,8 @@ CollateData <- function(Experiment, reference_path, output_path,
     } # end FOR loop
     
     if(low_memory_mode == TRUE) {
-        .collateData_save_assays_lowmem(assays, norm_output_path, x)
+        # .collateData_save_assays_lowmem(assays, norm_output_path, x)
+        .collateData_save_assays_lowmem_fst(assays, norm_output_path, x)
         return(NULL)
     } else {
         final = list(
@@ -1416,6 +1419,31 @@ CollateData <- function(Experiment, reference_path, output_path,
         col.names = FALSE, row.names = FALSE)
 }
 
+.collateData_save_assays_lowmem_fst <- function(assays, norm_output_path, x) {
+    assaynames = c("Included", "Excluded", "Depth", "Coverage", "minDepth",
+        "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc", 
+        "junc_PSI", "junc_counts")
+    for(assayname in assaynames) {
+        if(grepl("junc", assayname)) {
+            .collateData_save_assays_lowmem_fst_indiv(
+                assays[[assayname]][, -seq_len(4), with = FALSE],
+                assayname, norm_output_path, x)
+        } else {
+            .collateData_save_assays_lowmem_fst_indiv(
+                assays[[assayname]][, -seq_len(3), with = FALSE],
+                assayname, norm_output_path, x)
+        }
+    }
+}
+
+.collateData_save_assays_lowmem_fst_indiv <- function(mat, assayname, 
+        norm_output_path, x) {
+    mat = as.data.frame(mat)
+    colnames(mat) = as.character(seq_len(ncol(mat)))
+    fst::write.fst(mat, file.path(norm_output_path, "temp", 
+        paste(assayname, as.character(x), "fst", sep=".")))
+}
+
 .collateData_compile_assays <- function(agg.list, df.internal,
         norm_output_path, low_memory_mode,
         item.todo, jobs, n_jobs) {
@@ -1428,13 +1456,18 @@ CollateData <- function(Experiment, reference_path, output_path,
             setorder(file.DT, "index")
             mat = NULL
             for(x in seq_len(n_jobs)) {
-                temp = t(fread(file.path(file.path(norm_output_path, "temp"), 
-                    file.DT$file[x]), data.table = FALSE))
+                # temp = t(fread(file.path(file.path(norm_output_path, "temp"), 
+                    # file.DT$file[x]), data.table = FALSE))
+                temp <- fst::read.fst(file.path(norm_output_path, "temp", 
+                    file.DT$file[x]))
                 colnames(temp) = df.internal$sample[jobs[[x]]]
-                mat = cbind(mat, temp)
+                if(!is.null(mat)) {
+                    mat <- cbind(mat, temp)
+                } else mat <- temp
                 file.remove(file.path(file.path(norm_output_path, "temp"), 
                     file.DT$file[x]))
             }
+            rownames(mat) <- seq_len(nrow(mat))
             outfile = file.path(norm_output_path, paste(item, "fst", sep="."))
             write.fst(as.data.frame(mat), outfile)
         }
