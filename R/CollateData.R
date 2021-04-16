@@ -321,7 +321,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     se <- .makeSE_initialise_HDF5(norm_output_path, colData)
     
     HDF5Array::saveHDF5SummarizedExperiment(se, 
-        dir = norm_output_path, prefix = "NxtSE")
+        dir = norm_output_path, prefix = "NxtSE_")
     
     dash_progress("NxtIRF Collation Finished", N)
     message("NxtIRF Collation Finished")
@@ -1636,15 +1636,19 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     colData <- .makeSE_validate_args(collate_path, colData)
     colData <- .makeSE_colData_clean(colData)
 
+    N <- 8
+    dash_progress("Loading NxtSE object from file...", N)
     message("Loading NxtSE object from file...", appendLF = FALSE)
     # se <- .makeSE_initialise_HDF5(collate_path, colData)
     se <- HDF5Array::loadHDF5SummarizedExperiment(
-        dir = collate_path, prefix = "NxtSE")
+        dir = collate_path, prefix = "NxtSE_")
     # Encapsulate as NxtSE object
     se = se[, colData$sample]
-    colData_use <- colData[, -1]
-    rownames(colData_use) <- colData$sample
-    colData(se) <- as(colData_use, "DataFrame")
+    if(ncol(colData) > 1) {
+        colData_use <- colData[, -1, drop = FALSE]
+        rownames(colData_use) <- colData$sample
+        colData(se) <- as(colData_use, "DataFrame")    
+    }
     se = as(se, "NxtSE")
     message("done\n")
     
@@ -1658,6 +1662,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
                 # "run into an error.",
                 # "Using RemoveOverlapping = FALSE"))
         # })
+        dash_progress("Removing overlapping introns...", N)
         se <- .makeSE_iterate_IR(se, collate_path)
     }
     return(se)
@@ -1876,6 +1881,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         while(length(include) > 0 & length(se.coords.final) > 0) {
             iteration = iteration + 1
             message(paste("Iteration", iteration))
+            dash_progress(paste("Iteration", iteration), 8)
             se.coords.excluded = se.coords.excluded[include]
 
             include <- .makeSE_iterate_IR_select_events(

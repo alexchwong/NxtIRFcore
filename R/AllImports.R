@@ -23,7 +23,8 @@
 #' @importFrom Biostrings replaceAmbiguities type
 #' @importFrom BiocParallel bpparam bplapply SnowParam MulticoreParam 
 #' @importFrom BiocParallel SerialParam
-#' @importFrom DelayedArray qlogis plogis rowMeans
+#' @importFrom DelayedArray qlogis plogis rowMeans DelayedArray
+#' @importFrom DelayedMatrixStats rowSds
 #' @importFrom DT datatable selectRows 
 #' @importFrom genefilter rowttests
 #' @importFrom grDevices colorRampPalette
@@ -39,7 +40,6 @@
 #' @importFrom heatmaply heatmaply
 #' @importFrom httr HEAD GET status_code
 #' @importFrom IRanges IRanges Views RleList
-#' @importFrom DelayedMatrixStats rowSds
 #' @importFrom openssl md5
 #' @importFrom parallel detectCores
 #' @importFrom plotly config layout plotlyOutput event_data ggplotly 

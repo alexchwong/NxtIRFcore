@@ -328,14 +328,18 @@ ui_infobox_irf <- function(irf_path, irf_files, escape = FALSE) {
     return(box1)
 }
 
-ui_infobox_expr <- function(status = 0, msg = "") {
+ui_infobox_expr <- function(status = 0, msg = "", submsg = "") {
     box1 =  infoBox(
         title = "SummarizedExperiment Object", 
         value = ifelse(status == 0,
-            "MISSING", ifelse(status == 2, "BUILT / LOADED", msg)),
+            "MISSING", msg),
+        subtitle  = submsg,
         icon = icon("flask", lib = "font-awesome"),
-        color = ifelse(status == 0,
-        "red", ifelse(status == 2, "green", "yellow"))
+        color = ifelse(status == 0, "red", 
+            ifelse(status == 3, "blue", 
+                ifelse(status == 2, "green", "yellow")
+            )
+        )
     )
     return(box1)
 }
