@@ -5,9 +5,9 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive,
     settings_expr <- setreactive_expr()
     
     observeEvent(list(refresh_tab(), settings_expr$se), {
-        output$se_expr_infobox <- renderUI({
-            .infobox_update_se(settings_expr$se, settings_expr$collate_path)
-        })
+        output <- .server_expr_parse_collate_path(limited = limited,
+            settings_expr = reactiveValuesToList(settings_expr), 
+            output = output)
     })
     observe({
         shinyDirChoose(input, "dir_reference_path_load", 
@@ -68,13 +68,15 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive,
         }
     })
     observeEvent(settings_expr$df.files, {
-        req(settings_expr$df.files && is(settings_expr$df.files, "data.frame"))
+        req(settings_expr$df.files)
+        req(is(settings_expr$df.files, "data.frame"))
         req("sample" %in% colnames(settings_expr$df.files))
         settings_expr$df.anno <- .server_expr_sync_df(
             settings_expr$df.files, settings_expr$df.anno)
     })
     observeEvent(settings_expr$df.anno, {
-        req(settings_expr$df.anno && is(settings_expr$df.anno, "data.frame"))
+        req(settings_expr$df.anno)
+        req(is(settings_expr$df.anno, "data.frame"))
         req("sample" %in% colnames(settings_expr$df.anno))
         req(settings_expr$df.files)
         settings_expr$df.files <- .server_expr_sync_df(
@@ -150,8 +152,9 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive,
                 }
             }
         }
-        output <- .server_expr_parse_collate_path(
-            reactiveValuesToList(settings_expr), output)
+        output <- .server_expr_parse_collate_path(limited = limited,
+            settings_expr = reactiveValuesToList(settings_expr), 
+            output = output)
     })
     observeEvent(input$save_expr,{
         req(input$save_expr)
@@ -173,10 +176,9 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive,
                 if("irf_path" %in% names(colData.Rds)) {
                     settings_expr$irf_path = colData.Rds$irf_path
                 }
-                output$se_expr_infobox <- renderUI({
-                    ui_infobox_expr(ifelse(is_valid(settings_expr$se), 2, 1),
-                        "Ready to Build Experiment")
-                })                
+                output <- .server_expr_parse_collate_path(limited = limited,
+                    settings_expr = reactiveValuesToList(settings_expr), 
+                    output = output)
             }
         }
     })
@@ -221,7 +223,10 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive,
             Expr_Update_colData(settings_expr$collate_path, 
                 settings_expr$df.anno, settings_expr$df.files, 
                 settings_expr$bam_path, settings_expr$irf_path, 
-                session, post_CollateData = TRUE)        
+                session, post_CollateData = TRUE)   
+            output <- .server_expr_parse_collate_path(limited = limited,
+                settings_expr = reactiveValuesToList(settings_expr), 
+                output = output)
         }
     })
     observeEvent(input$clear_expr, {
@@ -238,9 +243,18 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive,
                 file.exists(file.path(
                     settings_expr$collate_path, "colData.Rds"))) {
             colData = as.data.table(settings_expr$df.anno)
-            settings_expr$se = MakeSE(settings_expr$collate_path, colData)
+            withProgress(message = 'Loading NxtSE object', value = 0, {
+                tryCatch({
+                    settings_expr$se = MakeSE(
+                        settings_expr$collate_path, colData)
+                    .makeSE_sweetalert_finish(session)
+                }, error = function(e) {
+                    .makeSE_sweetalert_error(session)
+                })
+            })
         }
     })
+
 # End of Server function
     return(settings_expr)
     })
@@ -296,7 +310,7 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive,
         return(data.frame(sample = df1$sample, stringsAsFactors = FALSE))
     } else {
         df2 = df2[df2$sample %in% df1$sample,]
-        df2 = df2[match(df2$sample, df1$sample)]
+        df2 = df2[match(df2$sample, df1$sample),]
         return(df2)
     }
 }
@@ -756,25 +770,53 @@ Expr_Load_Anno = function(df.anno, df.files, anno_file, session) {
     return(df.anno)
 }
 
-.server_expr_parse_collate_path <- function(settings_expr, output) {
-    if(is_valid(settings_expr$collate_path) &&
-        file.exists(file.path(settings_expr$collate_path, "colData.Rds"))) {
-        colData.Rds = readRDS(
-            file.path(settings_expr$collate_path, "colData.Rds"))
-        output$se_expr_infobox <- renderUI({
-            ui_infobox_expr(ifelse(is_valid(settings_expr$se),2,1),
-                "Ready to Build Experiment")
-        })
+.server_expr_parse_collate_path <- function(limited, settings_expr, output) {
+    if(limited) {
+        if(is_valid(settings_expr$se)) {
+            output$se_expr_infobox <- renderUI(
+                ui_infobox_expr(3, "NxtSE Loaded")
+            )
+        } else if(is_valid(settings_expr$collate_path) &&
+                file.exists(file.path(
+                    settings_expr$collate_path, "NxtSE_se.rds"))) {
+            output$se_expr_infobox <- renderUI(
+                ui_infobox_expr(2, "NxtSE ready to load",
+                    "Click `Build SummarizedExperiment`")
+            )
+        } else if(is_valid(settings_expr$collate_path) &&
+                is_valid(settings_expr$df.files) &&
+                all(file.exists(settings_expr$df.files$irf_file))) {
+            output$se_expr_infobox <- renderUI(
+                ui_infobox_expr(1, "NxtSE not collated",
+                    "Run CollateData via Experiment tab")
+            )
+        } else if(is_valid(settings_expr$collate_path)) {
+            output$se_expr_infobox <- renderUI(
+                ui_infobox_expr(0,
+                submsg = "Run IRFinder and CollateData via the Experiment tab")
+            )
+        } else {
+            output$se_expr_infobox <- renderUI(
+                ui_infobox_expr(0,
+                submsg = "Select output directory of collated data")
+            )
+        }
+    } else if(is_valid(settings_expr$collate_path) &&
+        file.exists(file.path(settings_expr$collate_path, "NxtSE_se.rds"))) {
+        output$se_expr_infobox <- renderUI(
+            ui_infobox_expr(3, "NxtSE ready to load", 
+                "Load via Analysis -> Load Experiment")
+        )
     } else if(is_valid(settings_expr$collate_path) &&
             is_valid(settings_expr$df.files) &&
             all(file.exists(settings_expr$df.files$irf_file))) {
-        output$se_expr_infobox <- renderUI({
-            ui_infobox_expr(1, "Ready to run NxtIRF-Collate")
-        })
+        output$se_expr_infobox <- renderUI(
+            ui_infobox_expr(2, "Ready to run NxtIRF-Collate")
+        )
     } else if(is_valid(settings_expr$collate_path)) {
-        output$se_expr_infobox <- renderUI({
+        output$se_expr_infobox <- renderUI(
             ui_infobox_expr(1, "IRFinder files incomplete")
-        })
+        )
     } else {
         output$se_expr_infobox <- renderUI(ui_infobox_expr(0))
     }
@@ -879,4 +921,20 @@ Expr_Update_colData <- function(collate_path, df.anno, df.files,
         is(se, "NxtSE"), 2, ifelse(
             is_valid(path) && file.exists(file.path(path,"colData.Rds")),
             1,0)))
+}
+
+.makeSE_sweetalert_finish <- function(session) {
+    sendSweetAlert(
+        session = session,
+        title = "NxtSE object loaded successfully",
+        type = "success"
+    )
+}
+
+.makeSE_sweetalert_error <- function(session) {
+    sendSweetAlert(
+        session = session,
+        title = "Error encountered loading NxtSE object",
+        type = "error"
+    )
 }
