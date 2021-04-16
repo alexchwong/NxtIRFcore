@@ -24,6 +24,8 @@
 \alias{covfile<-,NxtSE-method}
 \alias{ref}
 \alias{ref,NxtSE-method}
+\alias{realize_NxtSE}
+\alias{realize_NxtSE,NxtSE-method}
 \alias{coerce,SummarizedExperiment,NxtSE-method}
 \alias{NxtSE}
 \alias{[,NxtSE,ANY,ANY,ANY-method}
@@ -45,6 +47,8 @@ NxtSE(...)
 \S4method{covfile}{NxtSE}(x, withDimnames = TRUE, ...)
 
 \S4method{ref}{NxtSE}(x, withDimnames = TRUE, ...)
+
+\S4method{realize_NxtSE}{NxtSE}(x, withDimnames = TRUE, ...)
 
 \S4method{up_inc}{NxtSE}(x, withDimnames = TRUE) <- value
 
@@ -111,6 +115,10 @@ the paths to the corresponding COV files
 
 \item \code{ref,NxtSE-method}: Retrieves a list of annotation data associated 
 with this NxtSE object; primarily used in Plot_Coverage()
+
+\item \code{realize_NxtSE,NxtSE-method}: Converts all DelayedMatrix assays as matrices
+(i.e. performs all delayed calculation and loads resulting object
+to RAM)
 
 \item \code{up_inc<-,NxtSE-method}: Sets upstream included events (SE/MXE), or
 upstream exon-intron spanning reads (IR)

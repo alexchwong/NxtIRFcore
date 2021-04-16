@@ -410,21 +410,24 @@ Get_Genome <- function(reference_path) {
             file.path(reference_path, "resource", "genome.2bit")))
     } else if(file.exists(file.path(reference_path, "settings.Rds"))){
         settings = readRDS(file.path(reference_path, "settings.Rds"))
-        tryCatch(
-            genome = .fetch_AH(settings$ah_genome, 
-                rdataclass = "TwoBitFile"),
-            error = function(e) {
-                stop(paste("In Get_Genome()",
-                    settings$ah_genome,
-                    "is an invalid AnnotationHub resource"
-                ), call. = FALSE)
-            }
-        )
+        # tryCatch(
+            # genome = .fetch_AH(settings$ah_genome, 
+                # rdataclass = "TwoBitFile"),
+            # error = function(e) {
+                # stop(paste("In Get_Genome()",
+                    # settings$ah_genome,
+                    # "is an invalid AnnotationHub resource"
+                # ), call. = FALSE)
+            # }
+        # )
+        genome = .fetch_AH(settings$ah_genome, 
+            rdataclass = "TwoBitFile")
     } else {
         stop(paste("In Get_Genome,",
             "invalid reference_path supplied"
         ), call. = FALSE)
     }
+    return(genome)
 }
 
 Get_GTF_file <- function(reference_path) {

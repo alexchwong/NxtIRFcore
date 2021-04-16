@@ -122,11 +122,11 @@ limma_ASE <- function(se, test_factor, test_nom, test_denom,
         filter_annotated_IR = FALSE) {
     
     NxtIRF.CheckPackageInstalled("limma", "3.44.0")
-    .ASE_check_args(SummarizedExperiment::colData(se), test_factor, 
+    .ASE_check_args(colData(se), test_factor, 
         test_nom, test_denom, batch1, batch2)
-
     se_use <- .ASE_filter(
         se, filter_antiover, filter_antinear, filter_annotated_IR)
+    # se_use <- realize_NxtSE(se_use)
     
     res.limma2 <- .ASE_limma_contrast(se_use, 
         test_factor, test_nom, test_denom,
@@ -168,12 +168,13 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
         filter_antiover = TRUE, filter_antinear = FALSE, 
         filter_annotated_IR = FALSE) { 
     NxtIRF.CheckPackageInstalled("DESeq2", "1.30.0")
-    .ASE_check_args(SummarizedExperiment::colData(se), 
+    .ASE_check_args(colData(se), 
         test_factor, test_nom, test_denom, batch1, batch2)
     BPPARAM_mod <- .validate_threads(n_threads)
-    
     se_use <- .ASE_filter(
         se, filter_antiover, filter_antinear, filter_annotated_IR)
+    # se_use <- realize_NxtSE(se_use)
+
     # Inc / Exc mode
     res.IncExc <- .ASE_DESeq2_contrast(se_use, 
         test_factor, test_nom, test_denom,

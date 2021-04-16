@@ -25,10 +25,9 @@
 using namespace std;
 
 	#ifndef GALAXY
-		#include "RcppArmadillo.h"
+		#include <Rcpp.h>
 		using namespace Rcpp;
 		#include <progress.hpp>
-		// [[Rcpp::depends(RcppArmadillo)]]
 		// [[Rcpp::depends(RcppProgress)]]
 	#else
 		#define Rcout cout

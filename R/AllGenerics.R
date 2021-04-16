@@ -45,6 +45,9 @@ setGeneric("assayNames<-",
 
 # NxtSE specific functions:
 
+setGeneric("realize_NxtSE", 
+    function(x, withDimnames=TRUE, ...) standardGeneric("realize_NxtSE"))
+
 setGeneric("up_inc", 
     function(x, withDimnames=TRUE, ...) standardGeneric("up_inc"))
 

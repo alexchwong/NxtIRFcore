@@ -66,6 +66,7 @@
 #' covfile covfile,NxtSE-method
 #' covfile<- covfile<-,NxtSE-method
 #' ref ref,NxtSE-method
+#' realize_NxtSE realize_NxtSE,NxtSE-method
 #' coerce,SummarizedExperiment,NxtSE-method
 #' @md
 NULL
@@ -308,12 +309,29 @@ setMethod("ref", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     x@metadata[["ref"]]
 })
 
+#' @describeIn NxtSE-methods Converts all DelayedMatrix assays as matrices
+#'   (i.e. performs all delayed calculation and loads resulting object
+#'   to RAM)
+#' @export
+setMethod("realize_NxtSE", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
+    assay.todo = c("Included", "Excluded", "Depth", "Coverage", 
+        "minDepth")
+    for(assayname in assay.todo) {
+        assay(x, assayname) <- as.matrix(assay(x, assayname))
+    }
+    up_inc(x) <- as.matrix(up_inc(x))
+    down_inc(x) <- as.matrix(down_inc(x))
+    up_exc(x) <- as.matrix(up_exc(x))
+    down_exc(x) <- as.matrix(down_exc(x))
+    return(x)
+})
+
 #' @describeIn NxtSE-methods Sets upstream included events (SE/MXE), or
 #'   upstream exon-intron spanning reads (IR)
 #' @export
 setReplaceMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
-    if (!is.matrix(value)) {
-        stop("replacement 'up_inc' value must be a matrix")
+    if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
+        stop("replacement 'up_inc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -326,8 +344,8 @@ setReplaceMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
 #'   downstream exon-intron spanning reads (IR)
 #' @export
 setReplaceMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
-    if (!is.matrix(value)) {
-        stop("replacement 'down_inc' value must be a matrix")
+    if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
+        stop("replacement 'down_inc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -339,8 +357,8 @@ setReplaceMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
 #' @describeIn NxtSE-methods Sets upstream excluded events (MXE only)
 #' @export
 setReplaceMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
-    if (!is.matrix(value)) {
-        stop("replacement 'up_exc' value must be a matrix")
+    if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
+        stop("replacement 'up_exc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -352,8 +370,8 @@ setReplaceMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
 #' @describeIn NxtSE-methods Sets downstream excluded events (MXE only)
 #' @export
 setReplaceMethod("down_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
-    if (!is.matrix(value)) {
-        stop("replacement 'down_exc' value must be a matrix")
+    if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
+        stop("replacement 'down_exc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -394,28 +412,28 @@ setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
         events_Exc = events[events %in% rownames(metadata(x)[["Up_Exc"]])]
         samples = colnames(x)[j]
 
-        up_inc(x, FALSE) <- as.matrix(
-            up_inc(x, FALSE)[events_Inc,samples,drop=FALSE])
-        down_inc(x, FALSE) <- as.matrix(
-            down_inc(x, FALSE)[events_Inc,samples,drop=FALSE])
-        up_exc(x, FALSE) <- as.matrix(
-            up_exc(x, FALSE)[events_Exc,samples,drop=FALSE])
-        down_exc(x, FALSE) <- as.matrix(
-            down_exc(x, FALSE)[events_Exc,samples,drop=FALSE])
+        up_inc(x, FALSE) <- 
+            up_inc(x, FALSE)[events_Inc,samples,drop=FALSE]
+        down_inc(x, FALSE) <- 
+            down_inc(x, FALSE)[events_Inc,samples,drop=FALSE]
+        up_exc(x, FALSE) <- 
+            up_exc(x, FALSE)[events_Exc,samples,drop=FALSE]
+        down_exc(x, FALSE) <- 
+            down_exc(x, FALSE)[events_Exc,samples,drop=FALSE]
         covfile(x, FALSE) <- covfile(x, FALSE)[samples]
     } else if (!missing(i)) {
         events <- rownames(x)[i]
         events_Inc = events[events %in% rownames(metadata(x)[["Up_Inc"]])]
         events_Exc = events[events %in% rownames(metadata(x)[["Up_Exc"]])]
 
-        up_inc(x, FALSE) <- as.matrix(
-            up_inc(x, FALSE)[events_Inc,,drop=FALSE])
-        down_inc(x, FALSE) <- as.matrix(
-            down_inc(x, FALSE)[events_Inc,,drop=FALSE])
-        up_exc(x, FALSE) <- as.matrix(
-            up_exc(x, FALSE)[events_Exc,,drop=FALSE])
-        down_exc(x, FALSE) <- as.matrix(
-            down_exc(x, FALSE)[events_Exc,,drop=FALSE])
+        up_inc(x, FALSE) <- 
+            up_inc(x, FALSE)[events_Inc,,drop=FALSE]
+        down_inc(x, FALSE) <- 
+            down_inc(x, FALSE)[events_Inc,,drop=FALSE]
+        up_exc(x, FALSE) <- 
+            up_exc(x, FALSE)[events_Exc,,drop=FALSE]
+        down_exc(x, FALSE) <- 
+            down_exc(x, FALSE)[events_Exc,,drop=FALSE]
     } else if (!missing(j)) {
         samples = colnames(x)[j]
 

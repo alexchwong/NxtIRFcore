@@ -9,7 +9,6 @@
 #' @import shinyWidgets
 #' @import rhandsontable
 #' @import ggplot2
-#' @importFrom boot logit inv.logit
 #' @importFrom methods as is coerce callNextMethod new
 #' @importFrom graphics text
 #' @importFrom stats as.formula model.matrix qt runif na.omit prcomp
@@ -24,6 +23,7 @@
 #' @importFrom Biostrings replaceAmbiguities type
 #' @importFrom BiocParallel bpparam bplapply SnowParam MulticoreParam 
 #' @importFrom BiocParallel SerialParam
+#' @importFrom DelayedArray qlogis plogis rowMeans
 #' @importFrom DT datatable selectRows 
 #' @importFrom genefilter rowttests
 #' @importFrom grDevices colorRampPalette
@@ -34,10 +34,12 @@
 #' @importFrom GenomicRanges makeGRangesListFromDataFrame mcols split strand 
 #' @importFrom GenomicRanges flank setdiff seqnames psetdiff disjoin mcols<- 
 #' @importFrom GenomicRanges strand<- seqnames<-
+#' @importFrom HDF5Array writeHDF5Array loadHDF5SummarizedExperiment
+#' @importFrom HDF5Array HDF5Array saveHDF5SummarizedExperiment
 #' @importFrom heatmaply heatmaply
 #' @importFrom httr HEAD GET status_code
 #' @importFrom IRanges IRanges Views RleList
-#' @importFrom matrixStats rowSds
+#' @importFrom DelayedMatrixStats rowSds
 #' @importFrom openssl md5
 #' @importFrom parallel detectCores
 #' @importFrom plotly config layout plotlyOutput event_data ggplotly 
@@ -54,6 +56,7 @@
 #' @importFrom SummarizedExperiment assayNames assayNames<-
 #' @importFrom S4Vectors coolcat metadata Rle metadata<- SimpleList 
 #' @importFrom S4Vectors endoapply from to setValidity2 DataFrame
+#' @importFrom S4Vectors bindCOLS bindROWS
 #' @importFrom XML getHTMLLinks
 #' @importClassesFrom SummarizedExperiment SummarizedExperiment
 #' @importClassesFrom S4Vectors DataFrame
