@@ -305,14 +305,24 @@ CollateData <- function(Experiment, reference_path, output_path,
 
     dash_progress("Building Final SummarizedExperiment Object", N)
     message("Building Final SummarizedExperiment Object")
-    .collateData_compile_assays(agg.list, df.internal,
+    assays <- .collateData_compile_assays(agg.list, df.internal,
         norm_output_path, low_memory_mode,
         item.todo, jobs, n_jobs)
-    .collateData_fix_juncnames(norm_output_path)
+    # .collateData_fix_juncnames(norm_output_path)
     .collateData_write_stats(df.internal, norm_output_path)
     .collateData_write_colData(df.internal, coverage_files, norm_output_path)
     cov_data <- prepare_covplot_data(reference_path)
     saveRDS(cov_data, file.path(norm_output_path, "Annotation", "cov_data.Rds"))
+    
+    # NEW compile HDF5SummarizedExperiment:
+    colData.Rds <- readRDS(file.path(norm_output_path, "colData.Rds"))
+    colData <- .makeSE_colData_clean(
+        colData.Rds$df.anno)
+    se <- .makeSE_initialise_HDF5(norm_output_path, colData)
+    
+    HDF5Array::saveHDF5SummarizedExperiment(se, 
+        dir = norm_output_path, prefix = "NxtSE")
+    
     dash_progress("NxtIRF Collation Finished", N)
     message("NxtIRF Collation Finished")
 }
@@ -1027,27 +1037,40 @@ CollateData <- function(Experiment, reference_path, output_path,
             paste(block$sample[i], "irf.fst.tmp", sep=".")))               
     } # end FOR loop
     
-    if(low_memory_mode == TRUE) {
+    # if(low_memory_mode == TRUE) {
         # .collateData_save_assays_lowmem(assays, norm_output_path, x)
-        .collateData_save_assays_lowmem_fst(assays, norm_output_path, x)
-        return(NULL)
-    } else {
-        final = list(
-            Included = assays[["Included"]][, -seq_len(3), with = FALSE],
-            Excluded = assays[["Excluded"]][, -seq_len(3), with = FALSE],
-            Depth = assays[["Depth"]][, -seq_len(3), with = FALSE],
-            Coverage = assays[["Coverage"]][, -seq_len(3), with = FALSE],
-            minDepth = assays[["minDepth"]][, -seq_len(3), with = FALSE],
-            Up_Inc = assays[["Up_Inc"]][, -seq_len(3), with = FALSE],
-            Down_Inc = assays[["Down_Inc"]][, -seq_len(3), with = FALSE],
-            Up_Exc = assays[["Up_Exc"]][, -seq_len(3), with = FALSE],
-            Down_Exc = assays[["Down_Exc"]][, -seq_len(3), with = FALSE],
-            junc_PSI = assays[["junc_PSI"]][, -seq_len(4), with = FALSE],
-            junc_counts = assays[["junc_counts"]][, -seq_len(4), 
-                with = FALSE]
-        )
-        return(final)
-    }
+        # .collateData_save_assays_lowmem_fst(assays, norm_output_path, x)
+        # return(NULL)
+    # } else {
+
+        # return(final)
+    # }
+
+    final = list(
+        Included = DelayedArray(
+            assays[["Included"]][, -seq_len(3), with = FALSE]),
+        Excluded = DelayedArray(
+            assays[["Excluded"]][, -seq_len(3), with = FALSE]),
+        Depth = DelayedArray(
+            assays[["Depth"]][, -seq_len(3), with = FALSE]),
+        Coverage = DelayedArray(
+            assays[["Coverage"]][, -seq_len(3), with = FALSE]),
+        minDepth = DelayedArray(
+            assays[["minDepth"]][, -seq_len(3), with = FALSE]),
+        Up_Inc = DelayedArray(
+            assays[["Up_Inc"]][, -seq_len(3), with = FALSE]),
+        Down_Inc = DelayedArray(
+            assays[["Down_Inc"]][, -seq_len(3), with = FALSE]),
+        Up_Exc = DelayedArray(
+            assays[["Up_Exc"]][, -seq_len(3), with = FALSE]),
+        Down_Exc = DelayedArray(
+            assays[["Down_Exc"]][, -seq_len(3), with = FALSE]),
+        junc_PSI = DelayedArray(
+            assays[["junc_PSI"]][, -seq_len(4), with = FALSE]),
+        junc_counts = DelayedArray(
+            assays[["junc_counts"]][, -seq_len(4), with = FALSE])
+    )
+    return(final)
 }
 
 
@@ -1447,45 +1470,78 @@ CollateData <- function(Experiment, reference_path, output_path,
 .collateData_compile_assays <- function(agg.list, df.internal,
         norm_output_path, low_memory_mode,
         item.todo, jobs, n_jobs) {
-    if(low_memory_mode) {
-        for(item in item.todo) {
-            file.DT = data.table(file = list.files(pattern = item, 
-                path = file.path(norm_output_path, "temp")))
-            file.DT[, c("index") := 
-                as.numeric(tstrsplit(file.DT, split=".", fixed = TRUE)[[2]])]
-            setorder(file.DT, "index")
-            mat = NULL
-            for(x in seq_len(n_jobs)) {
+    # if(low_memory_mode) {
+        # for(item in item.todo) {
+            # file.DT = data.table(file = list.files(pattern = item, 
+                # path = file.path(norm_output_path, "temp")))
+            # file.DT[, c("index") := 
+                # as.numeric(tstrsplit(file.DT, split=".", fixed = TRUE)[[2]])]
+            # setorder(file.DT, "index")
+            # mat = NULL
+            # for(x in seq_len(n_jobs)) {
                 # temp = t(fread(file.path(file.path(norm_output_path, "temp"), 
                     # file.DT$file[x]), data.table = FALSE))
-                temp <- fst::read.fst(file.path(norm_output_path, "temp", 
-                    file.DT$file[x]))
-                colnames(temp) = df.internal$sample[jobs[[x]]]
-                if(!is.null(mat)) {
-                    mat <- cbind(mat, temp)
-                } else mat <- temp
-                file.remove(file.path(file.path(norm_output_path, "temp"), 
-                    file.DT$file[x]))
-            }
-            rownames(mat) <- seq_len(nrow(mat))
-            outfile = file.path(norm_output_path, paste(item, "fst", sep="."))
-            write.fst(as.data.frame(mat), outfile)
+                # temp <- fst::read.fst(file.path(norm_output_path, "temp", 
+                    # file.DT$file[x]))
+                # colnames(temp) = df.internal$sample[jobs[[x]]]
+                # if(!is.null(mat)) {
+                    # mat <- cbind(mat, temp)
+                # } else mat <- temp
+                # file.remove(file.path(file.path(norm_output_path, "temp"), 
+                    # file.DT$file[x]))
+            # }
+            # rownames(mat) <- seq_len(nrow(mat))
+            # outfile = file.path(norm_output_path, paste(item, "fst", sep="."))
+            # write.fst(as.data.frame(mat), outfile)
+        # }
+    # } else {
+        # item.DTList = list()
+        # for(item in item.todo) {
+            # for(x in seq_len(n_jobs)) {
+                # if(x == 1) {
+                    # item.DTList[[item]] = agg.list[[x]][[item]]
+                # } else {
+                    # item.DTList[[item]] = cbind(item.DTList[[item]], 
+                        # agg.list[[x]][[item]])
+                # }
+            # }
+            # outfile = file.path(norm_output_path, paste(item, "fst", sep="."))
+            # write.fst(as.data.frame(item.DTList[[item]]), outfile)
+        # }
+    # }
+
+    junc_index <- fst::read.fst(file.path(
+        norm_output_path, "junc_PSI_index.fst"
+    ))
+    junc_rownames <- with(junc_index, 
+        paste0(seqnames, ":", start, "-", end, "/", strand))
+    # Realize all the DelayedArrays as H5:
+    assays = list()
+    agg_t = purrr::transpose(agg.list)
+    outfile = file.path(norm_output_path, paste("data", "h5", sep="."))
+    if(file.exists(outfile)) file.remove(outfile)
+    item.DTList = list()
+    for(item in item.todo) {
+        # for(x in seq_len(n_jobs)) {
+            # if(x == 1) {
+                # item.DTList[[item]] = agg.list[[x]][[item]]
+            # } else {
+                # item.DTList[[item]] = cbind(item.DTList[[item]], 
+                    # agg.list[[x]][[item]])
+            # }
+        # }
+        item.DTList[[item]] = do.call(cbind, agg_t[[item]])
+        
+        if(grepl("junc", item)) {
+            rownames(item.DTList[[item]]) <- junc_rownames
         }
-    } else {
-        item.DTList = list()
-        for(item in item.todo) {
-            for(x in seq_len(n_jobs)) {
-                if(x == 1) {
-                    item.DTList[[item]] = agg.list[[x]][[item]]
-                } else {
-                    item.DTList[[item]] = cbind(item.DTList[[item]], 
-                        agg.list[[x]][[item]])
-                }
-            }
-            outfile = file.path(norm_output_path, paste(item, "fst", sep="."))
-            write.fst(as.data.frame(item.DTList[[item]]), outfile)
-        }
+        
+        assays[[item]] <- HDF5Array::writeHDF5Array(item.DTList[[item]], 
+            filepath = outfile,
+            name = item, with.dimnames = TRUE
+        )
     }
+    return(assays)
 }
 
 .collateData_fix_juncnames <- function(norm_output_path) {
@@ -1580,8 +1636,17 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     colData <- .makeSE_validate_args(collate_path, colData)
     colData <- .makeSE_colData_clean(colData)
 
-    se <- .makeSE_initialise(collate_path, colData)
+    message("Loading NxtSE object from file...", appendLF = FALSE)
+    # se <- .makeSE_initialise_HDF5(collate_path, colData)
+    se <- HDF5Array::loadHDF5SummarizedExperiment(
+        dir = collate_path, prefix = "NxtSE")
+    # Encapsulate as NxtSE object
+    se = se[, colData$sample]
+    colData_use <- colData[, -1]
+    rownames(colData_use) <- colData$sample
+    colData(se) <- as(colData_use, "DataFrame")
     se = as(se, "NxtSE")
+    message("done\n")
     
     if(RemoveOverlapping == TRUE) {
         # Iterative filtering of IR
@@ -1595,7 +1660,6 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         # })
         se <- .makeSE_iterate_IR(se, collate_path)
     }
-    # Encapsulate as NxtSE object
     return(se)
 }
 
@@ -1605,14 +1669,14 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
 .makeSE_validate_args <- function(collate_path, colData) {
     item.todo = c("rowEvent", "Included", "Excluded", "Depth", "Coverage", 
         "minDepth", "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc")
-    files.todo = file.path(normalizePath(collate_path), 
-        paste(item.todo, "fst", sep="."))
-    if(!all(file.exists(files.todo))) {
-        stop(paste(
-            "FST File generation appears incomplete.",
-            "Suggest run CollateData() again"
-        ), call. = FALSE)
-    }
+    # files.todo = file.path(normalizePath(collate_path), 
+        # paste(item.todo, "fst", sep="."))
+    # if(!all(file.exists(files.todo))) {
+        # stop(paste(
+            # "FST File generation appears incomplete.",
+            # "Suggest run CollateData() again"
+        # ), call. = FALSE)
+    # }
     if(!file.exists(file.path(collate_path, "colData.Rds"))) {
         stop(paste("In MakeSE():",
             file.path(collate_path, "colData.Rds"),
@@ -1723,76 +1787,142 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     return(se)
 }
 
-.makeSE_iterate_IR <- function(se, collate_path) {
-    junc_PSI = fst::read.fst(file.path(
-        normalizePath(collate_path), "junc_PSI.fst"
+.makeSE_initialise_HDF5 <- function(collate_path, colData) {
+    item.todo = c("rowEvent", "Included", "Excluded", "Depth", "Coverage", 
+        "minDepth", "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc")
+    files.todo = file.path(normalizePath(collate_path), 
+        paste(item.todo, "fst", sep="."))
+    colData.Rds = readRDS(file.path(collate_path, "colData.Rds"))
+    h5file = file.path(collate_path, "data.h5")
+    rowData = read.fst(file.path(collate_path, "rowEvent.fst"))
+    Included = HDF5Array(h5file, item.todo[2])[,colData$sample]
+    Excluded = HDF5Array(h5file, item.todo[3])[,colData$sample]
+    Depth = HDF5Array(h5file, item.todo[4])[,colData$sample]
+    Coverage = HDF5Array(h5file, item.todo[5])[,colData$sample]
+    minDepth = HDF5Array(h5file, item.todo[6])[,colData$sample]
+    Up_Inc = HDF5Array(h5file, item.todo[7])[,colData$sample]
+    Down_Inc = HDF5Array(h5file, item.todo[8])[,colData$sample]
+    Up_Exc = HDF5Array(h5file, item.todo[9])[,colData$sample]
+    Down_Exc = HDF5Array(h5file, item.todo[10])[,colData$sample]
+    rownames(Up_Inc) = rowData$EventName[
+        rowData$EventType %in% c("IR", "MXE", "SE")]
+    rownames(Down_Inc) = rowData$EventName[
+        rowData$EventType %in% c("IR", "MXE", "SE")]
+    rownames(Up_Exc) = rowData$EventName[
+        rowData$EventType %in% c("MXE")]
+    rownames(Down_Exc) = rowData$EventName[
+        rowData$EventType %in% c("MXE")]
+    
+    # Annotate NMD direction
+    rowData = as.data.table(rowData)
+    rowData[, c("NMD_direction") := 0]
+    rowData[get("Inc_Is_NMD") & !get("Exc_Is_NMD"), c("NMD_direction") := 1]
+    rowData[!get("Inc_Is_NMD") & get("Exc_Is_NMD"), c("NMD_direction") := -1]
+    rowData = as.data.frame(rowData)
+    colData = as.data.frame(colData)
+    
+    colData_use = as.data.frame(
+            colData[, -1, drop=FALSE], row.names = colData$sample)
+    se = SummarizedExperiment(
+        assays = SimpleList(
+            Included = Included, Excluded = Excluded, 
+            Depth = Depth, Coverage = Coverage, minDepth = minDepth
+        ),
+        rowData = rowData, 
+        colData = colData_use
+    )
+    rownames(se) = rowData(se)$EventName
+
+    metadata(se)$Up_Inc = Up_Inc
+    metadata(se)$Down_Inc = Down_Inc
+    metadata(se)$Up_Exc = Up_Exc
+    metadata(se)$Down_Exc = Down_Exc
+    if("df.files" %in% names(colData.Rds) &&
+        "cov_file" %in% colnames(colData.Rds$df.files)) {
+        metadata(se)$cov_file = colData.Rds$df.files$cov_file
+        # names(metadata(se)$cov_file) = colData.Rds$df.files$sample       
+    }
+    metadata(se)$ref = readRDS(file.path(
+        collate_path, "Annotation", "cov_data.Rds"
     ))
-    rownames(junc_PSI) = junc_PSI$rownames
-    junc_PSI = junc_PSI[,-1,drop=FALSE]
+    return(se)
+}
+
+.makeSE_iterate_IR <- function(se, collate_path) {
+    # junc_PSI = fst::read.fst(file.path(
+        # normalizePath(collate_path), "junc_PSI.fst"
+    # ))
+    # rownames(junc_PSI) = junc_PSI$rownames
+    # junc_PSI = junc_PSI[,-1,drop=FALSE]
+    junc_PSI <- HDF5Array(file.path(normalizePath(collate_path), 
+        "data.h5"), "junc_PSI")[, colnames(se)]
 
     se.IR = se[rowData(se)$EventType == "IR",,drop = FALSE]
-    se.IR = se.IR[rowData(se.IR)$EventRegion %in% rownames(junc_PSI),,
-        drop = FALSE]
-
-    if(nrow(se.IR) > 0) {
+    se.coords = rowData(se.IR)$EventRegion[
+        rowData(se.IR)$EventRegion %in% rownames(junc_PSI)]
+    
+    if(length(se.coords) > 0) {
         message(paste(
             "Iterating through IR events to determine introns",
             "of main isoforms"))
-        include <- .makeSE_iterate_IR_select_events(se.IR, junc_PSI)
-        se.IR.final = se.IR[include,,drop = FALSE]
-        se.IR.excluded = se.IR[!include,,drop = FALSE]
+        include <- .makeSE_iterate_IR_select_events(se.coords, junc_PSI)
+        se.coords.final = se.coords[include]
+        se.coords.excluded = se.coords[!include]
 
         # Iteration to find events not overlapping with se.IR.final
         include <- .makeSE_iterate_IR_retrieve_excluded_introns(
-            se.IR.final, se.IR.excluded)
+            se.coords.final, se.coords.excluded)
         iteration = 0
-        while(length(include) > 0 & nrow(se.IR.final) > 0) {
+        while(length(include) > 0 & length(se.coords.final) > 0) {
             iteration = iteration + 1
             message(paste("Iteration", iteration))
-            se.IR.excluded = se.IR.excluded[include,,drop = FALSE]
+            se.coords.excluded = se.coords.excluded[include]
 
             include <- .makeSE_iterate_IR_select_events(
-                    se.IR.excluded, junc_PSI)
+                    se.coords.excluded, junc_PSI)
 
             if(length(include) > 0) {
-                se.IR.final = rbind(se.IR.final, 
-                    se.IR.excluded[include, , drop = FALSE])
-                se.IR.excluded = 
-                    se.IR.excluded[!include, ,drop = FALSE]
+                se.coords.final = c(se.coords.final, 
+                    se.coords.excluded[include])
+                se.coords.excluded = 
+                    se.coords.excluded[!include]
                 include <- .makeSE_iterate_IR_retrieve_excluded_introns(
-                    se.IR.final, se.IR.excluded)
+                    se.coords.final, se.coords.excluded)
             } else {
-                final.gr = c()
+                # final.gr = c()
                 include = c()
             }
         }
-        se = rbind(
-            se.IR[rownames(se.IR) %in% rownames(se.IR.final),,drop = FALSE],
-            se[rowData(se)$EventType != "IR",,drop = FALSE]
-        )
+        # se = rbind(
+            # se.IR[rownames(se.IR) %in% rownames(se.IR.final),,drop = FALSE],
+            # se[rowData(se)$EventType != "IR",,drop = FALSE]
+        # )
+        se = se[c(
+            which(rowData(se.IR)$EventRegion %in% se.coords.final), 
+            which(rowData(se)$EventType != "IR")
+        ),]
     }
     return(se)
 }
 
-.makeSE_iterate_IR_select_events <- function(se.IR, junc_PSI) {
-    junc_PSI = junc_PSI[rowData(se.IR)$EventRegion,, drop = FALSE]
-    se.IR.gr = NxtIRF.CoordToGR(rownames(junc_PSI))
-    se.IR.gr.reduced = reduce(se.IR.gr)
+.makeSE_iterate_IR_select_events <- function(se.coords, junc_PSI) {
+    gr = NxtIRF.CoordToGR(se.coords)
+    gr.reduced = reduce(gr)
 
-    OL = findOverlaps(se.IR.gr, se.IR.gr.reduced)
-    junc_PSI.group = as.data.table(junc_PSI)
+    OL = findOverlaps(gr, gr.reduced)
+    junc_PSI.group = as.data.table(junc_PSI[se.coords,, drop = FALSE])
+    junc_PSI.group$means = rowMeans(junc_PSI.group)
     junc_PSI.group$group = to(OL)
-    junc_PSI.group$means = rowMeans(junc_PSI)
     junc_PSI.group[, c("max_means") := max(get("means")), 
         by = "group"]
     return(junc_PSI.group$means == junc_PSI.group$max_means)
 }
 
 .makeSE_iterate_IR_retrieve_excluded_introns <- function(
-        se.IR.final, se.IR.excluded) {
-    if(nrow(se.IR.excluded) > 0) {
-        final.gr = NxtIRF.CoordToGR(rowData(se.IR.final)$EventRegion)
-        excluded.gr = NxtIRF.CoordToGR(rowData(se.IR.excluded)$EventRegion)
+        se.coords.final, se.coords.excluded) {
+    if(length(se.coords.excluded) > 0) {
+        final.gr = NxtIRF.CoordToGR(se.coords.final)
+        excluded.gr = NxtIRF.CoordToGR(se.coords.excluded)
 
         OL = findOverlaps(excluded.gr, final.gr)
         include = which(!(

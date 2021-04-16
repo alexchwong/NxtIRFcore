@@ -16,7 +16,7 @@ License: MIT + file LICENSE
 Depends:
   R (>= 4.0.0)
 Imports:
-	methods, stats, utils, boot, graphics, R.utils,
+	methods, stats, utils, graphics, R.utils,
 	Rcpp (>= 1.0.5),
 	data.table,
 	fst,
@@ -33,15 +33,17 @@ Imports:
 	BiocGenerics,
 	Biostrings,
 	BiocParallel,
+	DelayedArray,
 	DT,
 	genefilter,
 	grDevices,
 	GenomeInfoDb,
 	GenomicRanges,
+	HDF5Array,
 	heatmaply,
 	httr,
 	IRanges,
-	matrixStats,
+	DelayedMatrixStats,
 	openssl,
 	parallel,
 	plotly,
@@ -52,7 +54,7 @@ Imports:
 	SummarizedExperiment,
 	S4Vectors,
 	XML
-LinkingTo: Rcpp, RcppArmadillo, zlibbioc, RcppProgress
+LinkingTo: Rcpp, zlibbioc, RcppProgress
 Suggests: 
     knitr,
     rmarkdown,

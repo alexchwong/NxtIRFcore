@@ -116,16 +116,18 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive,
                 isolate(reactiveValuesToList(settings_expr)))
         }
         settings_expr$selected_rows = c()
-        settings_expr$df.files = Expr_Load_IRFs(
+        df.files <- Expr_Load_IRFs(
             settings_expr$df.files, settings_expr$irf_path)
-        output <- .server_expr_check_irf_path(settings_expr$df.files, 
+        output <- .server_expr_check_irf_path(df.files, 
             settings_expr$irf_path, output)
+        settings_expr$df.files <- df.files
     })
     observeEvent(settings_expr$irf_path,{
-        settings_expr$df.files = Expr_Load_IRFs(
+        df.files <- Expr_Load_IRFs(
             settings_expr$df.files, settings_expr$irf_path)
-        output <- .server_expr_check_irf_path(settings_expr$df.files, 
+        output <- .server_expr_check_irf_path(df.files, 
             settings_expr$irf_path, output)
+        settings_expr$df.files <- df.files
     })
     observeEvent(settings_expr$anno_file,{
         req(settings_expr$anno_file)
