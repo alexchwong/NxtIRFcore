@@ -40,7 +40,8 @@ setreactive_expr <- function() {
         df = c(),
         df.files = c(),
         df.anno = c(),
-        
+        df.files_savestate = c(),
+        df.anno_savestate = c(),
         se = NULL
     )
 }
