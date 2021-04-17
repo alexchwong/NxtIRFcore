@@ -1800,24 +1800,27 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     colData.Rds = readRDS(file.path(collate_path, "colData.Rds"))
     h5file = file.path(collate_path, "data.h5")
     rowData = read.fst(file.path(collate_path, "rowEvent.fst"))
-    Included = HDF5Array(h5file, item.todo[2])[,colData$sample]
-    Excluded = HDF5Array(h5file, item.todo[3])[,colData$sample]
-    Depth = HDF5Array(h5file, item.todo[4])[,colData$sample]
-    Coverage = HDF5Array(h5file, item.todo[5])[,colData$sample]
-    minDepth = HDF5Array(h5file, item.todo[6])[,colData$sample]
-    Up_Inc = HDF5Array(h5file, item.todo[7])[,colData$sample]
-    Down_Inc = HDF5Array(h5file, item.todo[8])[,colData$sample]
-    Up_Exc = HDF5Array(h5file, item.todo[9])[,colData$sample]
-    Down_Exc = HDF5Array(h5file, item.todo[10])[,colData$sample]
-    rownames(Up_Inc) = rowData$EventName[
-        rowData$EventType %in% c("IR", "MXE", "SE")]
-    rownames(Down_Inc) = rowData$EventName[
-        rowData$EventType %in% c("IR", "MXE", "SE")]
-    rownames(Up_Exc) = rowData$EventName[
-        rowData$EventType %in% c("MXE")]
-    rownames(Down_Exc) = rowData$EventName[
-        rowData$EventType %in% c("MXE")]
-    
+    Included = HDF5Array(h5file, item.todo[2])[,colData$sample, drop = FALSE]
+    Excluded = HDF5Array(h5file, item.todo[3])[,colData$sample, drop = FALSE]
+    Depth = HDF5Array(h5file, item.todo[4])[,colData$sample, drop = FALSE]
+    Coverage = HDF5Array(h5file, item.todo[5])[,colData$sample, drop = FALSE]
+    minDepth = HDF5Array(h5file, item.todo[6])[,colData$sample, drop = FALSE]
+    Up_Inc = HDF5Array(h5file, item.todo[7])[,colData$sample, drop = FALSE]
+    Down_Inc = HDF5Array(h5file, item.todo[8])[,colData$sample, drop = FALSE]
+    Up_Exc = HDF5Array(h5file, item.todo[9])[,colData$sample, drop = FALSE]
+    Down_Exc = HDF5Array(h5file, item.todo[10])[,colData$sample, drop = FALSE]
+    if(nrow(Up_Inc) > 0) {
+        rownames(Up_Inc) = rowData$EventName[
+            rowData$EventType %in% c("IR", "MXE", "SE")]
+        rownames(Down_Inc) = rowData$EventName[
+            rowData$EventType %in% c("IR", "MXE", "SE")]
+    }
+    if(nrow(Up_Exc) > 0) {
+        rownames(Up_Exc) = rowData$EventName[
+            rowData$EventType %in% c("MXE")]
+        rownames(Down_Exc) = rowData$EventName[
+            rowData$EventType %in% c("MXE")]
+    }
     # Annotate NMD direction
     rowData = as.data.table(rowData)
     rowData[, c("NMD_direction") := 0]
@@ -1860,7 +1863,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     # rownames(junc_PSI) = junc_PSI$rownames
     # junc_PSI = junc_PSI[,-1,drop=FALSE]
     junc_PSI <- HDF5Array(file.path(normalizePath(collate_path), 
-        "data.h5"), "junc_PSI")[, colnames(se)]
+        "data.h5"), "junc_PSI")[, colnames(se), drop = FALSE]
 
     se.IR = se[rowData(se)$EventType == "IR",,drop = FALSE]
     se.coords = rowData(se.IR)$EventRegion[

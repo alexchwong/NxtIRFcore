@@ -52,6 +52,4 @@ nxtIRF <- function(mode = c("dialog", "browser"),
     } else {
         runApp(shinyApp(ui_dash, dash_server))
     }
-
-    # runApp(shinyApp(ui_dash, dash_server))
 }

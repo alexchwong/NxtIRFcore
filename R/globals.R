@@ -2,6 +2,13 @@ globalVariables(c(":=","."))
 
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 
+is_valid <- function(x) {
+    !missing(x) &&
+    !is.null(x) && length(x) > 0 && 
+        (isS4(x) || !is.na(x)) && 
+        (!is.character(x) || (x != "" && x != "(none)"))
+}
+
 #' Converts an IGV-style coordinate to a GenomicRanges object
 #'
 #' IGV-style coordinates typically have the syntax 
@@ -107,11 +114,7 @@ semi_join.DT = function(A, B, by, nomatch = 0) {
     psetdiff(unlist(range(grl), use.names = TRUE), grl)
 }
 
-is_valid <- function(x) {
-    !is.null(x) && length(x) > 0 && 
-        (isS4(x) || !is.na(x)) && 
-        (!is.character(x) || (x != "" && x != "(none)"))
-}
+
 
 make.path.relative = function(base, target) {
     if(Sys.info()["sysname"] == "Windows") {

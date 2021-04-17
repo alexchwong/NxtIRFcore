@@ -1,22 +1,6 @@
 ui_expr <- function(id) {
     ns <- NS(id)
-    wellPanel(
-        conditionalPanel(
-            ns = ns,
-            condition = paste(
-                "output.txt_reference_path_load != '' &&",
-                "input.expr_ddb_ref_load % 2 != 0"
-            ),
-            fluidRow(
-                infoBoxOutput(ns("fasta_source_infobox")),
-                infoBoxOutput(ns("gtf_source_infobox"))
-            ),
-            fluidRow(
-                infoBoxOutput(ns("mappa_source_infobox")),
-                infoBoxOutput(ns("NPA_source_infobox")),
-                infoBoxOutput(ns("BL_source_infobox"))
-            )
-        ),    
+    wellPanel( 
         fluidRow(
             uiOutput(ns("ref_expr_infobox")),
             uiOutput(ns("bam_expr_infobox")),
@@ -26,6 +10,11 @@ ui_expr <- function(id) {
         fluidRow(
             column(4,
                 wellPanel(
+                    ui_ddb_project_dir(id), br(),br(),
+                    ui_ddb_ref_load(id), br(),br(),
+                    ui_ddb_bam_path(id), br(),br(),
+                    ui_ddb_irf_path(id), br(),br(),
+                    ui_ddb_build_expr(id), br(),br(),
                     conditionalPanel(
                         ns = ns,
                         condition = paste(
@@ -48,17 +37,14 @@ ui_expr <- function(id) {
                             )                                
                         )
                     ),
-                    ui_ddb_ref_load(id),
-                    ui_ddb_bam_path(id),
-                    ui_ddb_irf_path(id),
-                    ui_ddb_build_expr(id),
                 )
             ),
             column(8,
                 shinyWidgets::radioGroupButtons(
                     inputId = ns("hot_switch_expr"),
                     label = "Experiment Display",
-                    choices = c("Files", "Annotations"),
+                    choiceNames = c("Source Files", "Sample Annotations"),
+                    choiceValues = c("Files", "Annotations"),
                     selected = "Files"
                 ),
                 conditionalPanel(
@@ -73,6 +59,22 @@ ui_expr <- function(id) {
                     ),
                     rHandsontableOutput(ns("hot_anno_expr"))
                 )
+            )
+        ),
+        conditionalPanel(
+            ns = ns,
+            condition = paste(
+                "output.txt_reference_path_load != '' &&",
+                "input.expr_ddb_ref_load % 2 != 0"
+            ),
+            fluidRow(
+                infoBoxOutput(ns("fasta_source_infobox")),
+                infoBoxOutput(ns("gtf_source_infobox"))
+            ),
+            fluidRow(
+                infoBoxOutput(ns("mappa_source_infobox")),
+                infoBoxOutput(ns("NPA_source_infobox")),
+                infoBoxOutput(ns("BL_source_infobox"))
             )
         )
     )
@@ -144,29 +146,73 @@ ui_expr_limited <- function(id) {
 }
 
 
-ui_ddb_ref_load <- function(id) {
+ui_ddb_project_dir <- function(id, color = "danger") {
+    ns <- NS(id)
+    ui_toggle_wellPanel_modular(
+        inputId = "expr_ddb_project_dir",
+        id = id,
+        title = "Project Directory",
+        color = color,
+        icon = icon("folder-open", lib = "font-awesome"),
+        
+        tags$h4("Choose Directory to contain NxtSE Data"),
+        shinyDirButton(ns("dir_collate_path_load"), 
+            label = "Choose NxtSE output path", 
+            title = "Choose NxtSE output path"
+        ),
+        br(),br(),
+        
+        tags$h4("Clear Project Path"),
+        actionButton(ns("dir_collate_path_clear"), "Deselect Project Path")
+    )
+}
+
+ui_ddb_ref_load <- function(id, color = "danger") {
     ns <- NS(id)
     ui_toggle_wellPanel_modular(
         inputId = "expr_ddb_ref_load",
         id = id,
         title = "Reference",
-        color = "danger",
+        color = color,
         icon = icon("dna", lib = "font-awesome"),
+        
+        tags$h4("Select Reference Directory"),       
         shinyDirButton(ns("dir_reference_path_load"), 
             label = "Select reference path", 
             title = "Select reference path"),
-        textOutput(ns("txt_reference_path_load"))
+        textOutput(ns("txt_reference_path_load")),br(),
+        
+        tags$h4("Clear Reference Path"),
+        actionButton(ns("clearLoadRef"), "Deselect Reference")
     )
 }
 
-ui_ddb_irf_path <- function(id) {
+ui_ddb_bam_path <- function(id, color = "danger") {
+    ns <- NS(id)
+    ui_toggle_wellPanel_modular(
+        inputId = "expr_ddb_bam_load",
+        id = id,
+        title = "BAM Path",
+        color = color,
+        icon = icon("folder-open", lib = "font-awesome"),
+        
+        tags$h4("Select Directory containing BAM files"),
+        shinyDirButton(ns("dir_bam_path_load"), 
+            label = "Select BAM path", 
+            title = "Select BAM path"),
+    )    
+}
+
+ui_ddb_irf_path <- function(id, color = "danger") {
     ns <- NS(id)
     ui_toggle_wellPanel_modular(
         inputId = "expr_ddb_irf_load",
         id = id,
         title = "IRFinder",
-        color = "danger",
+        color = color,
         icon = icon("align-center", lib = "font-awesome"),
+        
+        tags$h4("Choose Directory to contain IRFinder output"),       
         shinyDirButton(ns("dir_irf_path_load"), 
             label = "Choose IRFinder output path", 
             title = "Choose IRFinder output path"), # done
@@ -178,86 +224,60 @@ ui_ddb_irf_path <- function(id) {
     )      
 }
 
-ui_ddb_bam_path <- function(id) {
-    ns <- NS(id)
-    ui_toggle_wellPanel_modular(
-        inputId = "expr_ddb_bam_load",
-        id = id,
-        title = "BAM Path",
-        color = "danger",
-        icon = icon("folder-open", lib = "font-awesome"),
-        shinyDirButton(ns("dir_bam_path_load"), 
-            label = "Select BAM path", 
-            title = "Select BAM path"),
-        textOutput(ns("txt_bam_path_expr"))
-    )    
-}
-
-ui_ddb_build_expr <- function(id) {
+ui_ddb_build_expr <- function(id, color = "danger") {
     ns <- NS(id)
     ui_toggle_wellPanel_modular(
         inputId = "expr_ddb_expr_load",
         id = id,
         title = "Construct Experiment",
-        color = "danger",
+        color = color,
         icon = icon("flask", lib = "font-awesome"),
 
-        shinyDirButton(ns("dir_collate_path_load"), 
-            label = "Choose NxtIRF FST output path", 
-            title = "Choose NxtIRF FST output path"
-        ),
-        # textOutput(ns("txt_collate_path_expr")), 
-        br(),        
-        tags$h4("Run NxtIRF CollateData on IRFinder output"),
-        actionButton(ns("run_collate_expr"), 
-            "Run CollateData"),
-        # textOutput(ns("txt_run_col_expr")),
-        br(),
 
+        tags$h4("Collate IRFinder data / Create NxtSE Object"),
+        actionButton(ns("run_collate_expr"), 
+            "Run CollateData()"),
+        br(),br(),
+
+        tags$h4("Add Annotations"),
         shinyFilesButton(ns("file_expr_anno_load"), 
-            label = "Add Sample Annotations", 
+            label = "Import From File", 
             title = "Choose Sample Annotation Table", 
-            multiple = FALSE), # done
-        textOutput(ns("txt_sample_anno_expr")), # done
-        br(),
+            multiple = FALSE),
+        actionButton(ns("add_anno"), "Edit Interactively"),
+        br(),br(),
 
         # actionButton(ns("build_expr"), "Build SummarizedExperiment"),
+        tags$h4("Save / Load Annotations to NxtSE directory"),
         actionButton(ns("load_expr"), "Load Annotations"),
         actionButton(ns("save_expr"), "Save Annotations"),
+        br(),br(),
+        
+        tags$h4("Clear Experiment"),
         actionButton(ns("clear_expr"), "Clear Experiment")
     )
 }
 
 
-ui_ddb_load_expr <- function(id) {
+ui_ddb_load_expr <- function(id, color = "danger") {
     ns <- NS(id)
     ui_toggle_wellPanel_modular(
         inputId = "expr_ddb_expr_load",
         id = id,
         title = "Construct Experiment",
-        color = "danger",
+        color = color,
         icon = icon("flask", lib = "font-awesome"),
 
         shinyDirButton(ns("dir_collate_path_load"), 
             label = "Select NxtIRF Experiment path", 
             title = "Select NxtIRF Experiment path"
         ),
-        # textOutput(ns("txt_collate_path_expr")),
         br(), # done
-        
-        # tags$h4("Run NxtIRF CollateData on IRFinder output"),
-        # actionButton(ns("run_collate_expr"), 
-            # "Compile NxtIRF FST files"),
-        # textOutput(ns("txt_run_col_expr")),
-        # br(),
-
         shinyFilesButton(ns("file_expr_anno_load"), 
             label = "Add Sample Annotations", 
             title = "Choose Sample Annotation Table", 
             multiple = FALSE), # done
-        # textOutput(ns("txt_sample_anno_expr")), # done
         br(),
-
         actionButton(ns("build_expr"), "Build SummarizedExperiment"),
         br(),
         actionButton(ns("load_expr"), "Load Annotations"),
@@ -289,7 +309,7 @@ ui_infobox_bam <- function(bam_path, bam_files, escape = FALSE) {
             color = "green"
         )
     } else {
-        ret = !missing(bam_files) &&is_valid(bam_files) && all(file.exists(bam_files))
+        ret = is_valid(bam_files) && all(file.exists(bam_files))
         box1 = infoBox(
             title = "bam path", 
             value = ifelse(!is_valid(bam_path),
