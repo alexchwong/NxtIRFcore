@@ -393,7 +393,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                     }
 
                     df$mean = rowMeans(as.matrix(df[,samples]))
-                    df$sd = matrixStats::rowSds(as.matrix(df[,samples]))
+                    df$sd = rowSds(as.matrix(df[,samples]))
                     n = length(samples)
                     df$ci = qt((1 + conf.int)/2,df = n-1) * df$sd / sqrt(n)
 
@@ -1088,7 +1088,7 @@ make_matrix <- function(se, event_list, sample_list = colnames(se),
         return(mat)
     } else if(method == "Z-score") {
         mat = mat - rowMeans(mat)
-        mat = mat / matrixStats::rowSds(mat)
+        mat = mat / rowSds(mat)
         return(mat)
     }
     
