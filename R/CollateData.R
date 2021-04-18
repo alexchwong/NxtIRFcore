@@ -1517,7 +1517,11 @@ CollateData <- function(Experiment, reference_path, output_path,
         paste0(seqnames, ":", start, "-", end, "/", strand))
     # Realize all the DelayedArrays as H5:
     assays = list()
-    agg_t = purrr::transpose(agg.list)
+    if(n_jobs > 1) {
+        agg_t = transpose(agg.list)
+    } else {
+        agg_t = NULL
+    }
     outfile = file.path(norm_output_path, paste("data", "h5", sep="."))
     if(file.exists(outfile)) file.remove(outfile)
     item.DTList = list()
@@ -1530,8 +1534,11 @@ CollateData <- function(Experiment, reference_path, output_path,
                     # agg.list[[x]][[item]])
             # }
         # }
-        item.DTList[[item]] = do.call(cbind, agg_t[[item]])
-        
+        if(!is.null(agg_t)) {
+            item.DTList[[item]] = do.call(cbind, agg_t[[item]])
+        } else {
+            item.DTList[[item]] = agg.list[[1]][[item]]
+        }
         if(grepl("junc", item)) {
             rownames(item.DTList[[item]]) <- junc_rownames
         }

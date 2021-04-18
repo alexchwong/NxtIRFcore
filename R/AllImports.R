@@ -24,7 +24,7 @@
 #' @importFrom BiocParallel bpparam bplapply SnowParam MulticoreParam 
 #' @importFrom BiocParallel SerialParam
 #' @importFrom DelayedArray qlogis plogis rowMeans DelayedArray
-#' @importFrom DelayedMatrixStats rowSds
+#' @importFrom DelayedMatrixStats rowSds colVars
 #' @importFrom DT datatable selectRows 
 #' @importFrom genefilter rowttests
 #' @importFrom grDevices colorRampPalette

@@ -24,14 +24,14 @@ the graphics user interface (GUI).
 
 First, load the NxtIRF package and navigate to your desired project path:
 
-```{r, eval = FALSE}
+```{r eval = FALSE}
 library(NxtIRF)
 setwd("/path/to/project") # Replace this with the path to your project
 ```
 
 Next, create (or assign) a directory to contain the NxtIRF reference
 
-```{r, eval = FALSE}
+```{r eval = FALSE}
 if(!dir.exists("Reference")) dir.create("Reference")
 reference_path = "./Reference"
 ```

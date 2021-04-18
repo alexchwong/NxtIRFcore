@@ -120,7 +120,7 @@ QC_update_plot <- function(QC, QC_cols, mode, x_axis, y_axis, output) {
 }
 
 QC_PCA <- function(mat) {
-    colVar = matrixStats::colVars(mat)
+    colVar = colVars(mat)
     mat = mat[,colVar > 0]
     PCA = prcomp(mat, scale. = TRUE)
     print(
