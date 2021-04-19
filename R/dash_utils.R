@@ -96,7 +96,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
         AS_count = 1;
         for(event in highlight_events) {
             gr = NxtIRF.CoordToGR(event)
-            introns.gr = makeGRangesFromDataFrame(as.data.frame(introns))
+            introns.gr = .grDT(introns)
             OL = findOverlaps(gr, introns.gr, type = "equal")
             introns[OL@to, c("highlight") := as.character(AS_count)]
 
@@ -107,10 +107,10 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
                 tr1 = unique(intersect(tr1, introns$transcript_id[OL_s2@to]))
             }
             tr_filter = c(tr_filter, tr1)
-            coord_keys = c(BiocGenerics::start(gr[1]) - 1, BiocGenerics::end(gr[1]) + 1)
+            coord_keys = c(start(gr[1]) - 1, end(gr[1]) + 1)
             if(length(gr) == 2) {
                 coord_keys = c(coord_keys,
-                    BiocGenerics::start(gr[2]) - 1, BiocGenerics::end(gr[2]) + 1)
+                    start(gr[2]) - 1, end(gr[2]) + 1)
             }
             exons[get("transcript_id") %in% tr1 & 
                 (get("start") %in% coord_keys | get("end")%in% coord_keys),
@@ -118,15 +118,6 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
             AS_count = AS_count + 1
         }  
     }
-    # if(any(exons$highlight != "0")) {
-        # OL_cds = findOverlaps(
-            # makeGRangesFromDataFrame(as.data.frame(exons[get("highlight") != "0"])),
-            # makeGRangesFromDataFrame(as.data.frame(misc))
-        # )
-        # misc[OL_cds@to, c("highlight") := TRUE]
-        # misc[!(get("transcript_id") %in% tr_filter), c("highlight") := FALSE]           
-    # }
-
     return(rbind(introns, exons, misc))
 }
 
@@ -144,7 +135,8 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
     setorderv(transcripts.DT, c("transcript_support_level", "width"))
     # filter transcripts if applicable
     if(!missing(selected_transcripts)) {
-        transcripts.DT = transcripts.DT[get("transcript_id") %in% selected_transcripts |
+        transcripts.DT = transcripts.DT[
+            get("transcript_id") %in% selected_transcripts |
             get("transcript_name") %in% selected_transcripts]
     }
     message(paste(nrow(transcripts.DT), " transcripts"))
@@ -165,7 +157,8 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
     }
 
     reduced.DT = copy(screen.DT)
-    reduced.DT[get("type") %in% c("CDS", "start_codon", "stop_codon"), c("type") := "CDS"]
+    reduced.DT[get("type") %in% c("CDS", "start_codon", "stop_codon"), 
+        c("type") := "CDS"]
     reduced.DT[get("type") != "CDS", c("type") := "exon"]
     
     # add introns to reduced.DT
@@ -178,10 +171,10 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
     introns.DT[reduced.DT, on = "transcript_id",
         "group_id" := get("i.group_id")]
 
-    reduced.DT = rbind(reduced.DT[, 
-        c("seqnames", "start", "end", "strand", "type", "group_id", "transcript_id")], 
-    introns.DT[, 
-        c("seqnames", "start", "end", "strand", "type", "group_id", "transcript_id")])
+    filter_cols = c("seqnames", "start", "end", "strand", 
+        "type", "group_id", "transcript_id")
+    reduced.DT = rbind(reduced.DT[, filter_cols, with = FALSE], 
+        introns.DT[, filter_cols, with = FALSE])
 
     # Highlight events here
     # highlight_events is of syntax chrX:10000-11000/-
@@ -212,7 +205,8 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
         repeat {
             bump_up_trs = unique(OL@to[OL@from == j])
             bump_up_trs = bump_up_trs[bump_up_trs > j]
-            bump_up_trs = bump_up_trs[group.DT$plot_level[bump_up_trs] == cur_level]
+            bump_up_trs = bump_up_trs[
+                group.DT$plot_level[bump_up_trs] == cur_level]
             if(length(bump_up_trs) > 0) {
                 group.DT[bump_up_trs, 
                     c("plot_level") := cur_level + 1]
@@ -246,7 +240,8 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
     group.DT[get("start") < view_start & get("end") > view_end, 
         c("disp_x") := 0.5 * (view_start + view_end)]
 
-    reduced.DT$group_id = factor(reduced.DT$group_id, unique(group.DT$group_id), ordered = TRUE)
+    reduced.DT$group_id = factor(reduced.DT$group_id, 
+        unique(group.DT$group_id), ordered = TRUE)
     reduced.DT[group.DT, on = "group_id", 
         c("plot_level") := get("i.plot_level")]
     
@@ -258,14 +253,16 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
     p = ggplot(reduced.DT)
 
     if(nrow(subset(as.data.frame(reduced.DT), type = "intron")) > 0) {
-        p = p + geom_segment(data = subset(as.data.frame(reduced.DT), type = "intron"), 
+        p = p + geom_segment(data = subset(as.data.frame(reduced.DT), 
+                type = "intron"), 
             aes(x = get("start"), xend = get("end"), 
                 y = get("plot_level"), yend = get("plot_level"),
             color = get("highlight")))
     }
     if(nrow(subset(as.data.frame(reduced.DT), type != "intron")) > 0) {
         p = p + 
-            geom_rect(data = subset(as.data.frame(reduced.DT), type != "intron"), 
+            geom_rect(data = subset(as.data.frame(reduced.DT), 
+                    type != "intron"), 
                 aes(xmin = get("start"), xmax = get("end"), 
                 ymin = get("plot_level") - 0.1 - 
                     ifelse(type %in% c("CDS", "start_codon", "stop_codon"), 
@@ -327,7 +324,8 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
 
 plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     norm_event, condition, tracks = list(), track_names = "", se, avail_files,
-    transcripts, elems, highlight_events, selected_transcripts, stack_tracks, graph_mode,
+    transcripts, elems, highlight_events, selected_transcripts, 
+    stack_tracks, graph_mode,
     conf.int = 0.95,
     t_test = FALSE, condensed = FALSE) {
 
@@ -387,7 +385,8 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                             data.t_test <- as.matrix(df)
                             fac = rep(as.character(i), ncol(df) - 1)
                         } else {
-                            data.t_test <- cbind(data.t_test, as.matrix(df[, -1]))
+                            data.t_test <- cbind(
+                                data.t_test, as.matrix(df[, -1]))
                             fac = c(fac, rep(as.character(i), ncol(df) - 1))
                         }
                     }
@@ -431,18 +430,21 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                 )
                 pl_track[[1]] = pl_track[[1]] %>% layout(
                     dragmode = "zoom",
-                    # yaxis = list(range = c(0, 1 + max(df$mean + df$ci)), fixedrange = TRUE)
                     yaxis = list(rangemode = "tozero")
                 )
                 for(j in seq_len(max_tracks)) {
                     pl_track[[1]]$x$data[[1 + j]]$showlegend = FALSE
                     pl_track[[1]]$x$data[[1 + j + max_tracks]]$showlegend = TRUE
-                    if(!missing(track_names) && length(track_names) >= max_tracks) {
+                    if(!missing(track_names) && 
+                            length(track_names) >= max_tracks) {
                         pl_track[[1]]$x$data[[1 + j]]$name = track_names[j]
-                        pl_track[[1]]$x$data[[1 + j + max_tracks]]$name = track_names[j]                
+                        pl_track[[1]]$x$data[[1 + j + max_tracks]]$name = 
+                            track_names[j]                
                     } else {
-                        pl_track[[1]]$x$data[[1 + j]]$name = paste(condition, tracks[[j]])
-                        pl_track[[1]]$x$data[[1 + j + max_tracks]]$name = paste(condition, tracks[[j]])
+                        pl_track[[1]]$x$data[[1 + j]]$name = 
+                            paste(condition, tracks[[j]])
+                        pl_track[[1]]$x$data[[1 + j + max_tracks]]$name = 
+                            paste(condition, tracks[[j]])
                     }
                 }
             }
@@ -458,14 +460,12 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                                 ymax = get("mean") + get("ci"))) +
                         geom_line(data = df, 
                             aes(x = get("x"), y = get("mean"))) +
-                        labs(y = paste(condition, tracks[[i]])) + # paste("Track", i, "Normalized Coverage")) +
+                        labs(y = paste(condition, tracks[[i]])) + 
                         theme_white_legend
                     pl_track[[i]] = ggplotly(gp_track[[i]],
                         tooltip = c("x", "y", "ymin", "ymax")
                     )
                     pl_track[[i]] = pl_track[[i]] %>% layout(
-                        # yaxis = list(range = c(0, 1 + max(df$mean + df$ci)), 
-                            # fixedrange = TRUE)
                         yaxis = list(rangemode = "tozero")
                     )
                     pl_track[[i]]$x$data[[2]]$showlegend = FALSE
@@ -474,8 +474,10 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                         pl_track[[i]]$x$data[[2]]$name = track_names[i]
                         pl_track[[i]]$x$data[[3]]$name = track_names[i]
                     } else {
-                        pl_track[[i]]$x$data[[2]]$name = paste(condition, tracks[[i]]) # paste("Track",i)
-                        pl_track[[i]]$x$data[[3]]$name = paste(condition, tracks[[i]])
+                        pl_track[[i]]$x$data[[2]]$name = paste(
+                            condition, tracks[[i]])
+                        pl_track[[i]]$x$data[[3]]$name = 
+                            paste(condition, tracks[[i]])
                     }
                 }
             }
@@ -484,7 +486,8 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
         for(i in seq_len(4)) {
             if(length(tracks) >= i && is_valid(tracks[[i]])) {
                 track_samples = tracks[[i]]
-                filename = avail_files[which(names(avail_files) == track_samples)]
+                filename = avail_files[which(
+                    names(avail_files) == track_samples)]
                 if(length(filename) == 1 && file.exists(filename)) {
                     df = GetCoverage_DF("sample", filename,
                         view_chr, view_start, view_end, view_strand)
@@ -507,13 +510,10 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                             )
                         )
                         pl_track[[i]]$x$data[[2]]$showlegend = FALSE
-                        # pl_track[[i]]$x$data[[2]]$showlegend = TRUE
                         if(!missing(track_names) && length(track_names) >= i) {
                             pl_track[[i]]$x$data[[2]]$name = track_names[i]
-                            # pl_track[[i]]$x$data[[2]]$name = track_names[i]
                         } else {
-                            pl_track[[i]]$x$data[[2]]$name = track_samples # paste("Track",i)
-                            # pl_track[[i]]$x$data[[2]]$name = track_samples
+                            pl_track[[i]]$x$data[[2]]$name = track_samples
                         }
                     }
                 }
@@ -597,13 +597,19 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     # Zero all but last subplot
     n_plots = length(plot_tracks) - 1
     
-    final_plot = final_plot %>% layout(yaxis = list(rangemode = "tozero", tick0 = 0))
-    if(n_plots > 1) final_plot = final_plot %>% layout(yaxis2 = list(rangemode = "tozero", tick0 = 0))
-    if(n_plots > 2) final_plot = final_plot %>% layout(yaxis3 = list(rangemode = "tozero", tick0 = 0))
-    if(n_plots > 3) final_plot = final_plot %>% layout(yaxis4 = list(rangemode = "tozero", tick0 = 0))
-    if(n_plots > 4) final_plot = final_plot %>% layout(yaxis5 = list(rangemode = "tozero", tick0 = 0))
+    final_plot = final_plot %>% layout(yaxis = list(
+        rangemode = "tozero", tick0 = 0))
+    if(n_plots > 1) final_plot = final_plot %>% layout(yaxis2 = 
+        list(rangemode = "tozero", tick0 = 0))
+    if(n_plots > 2) final_plot = final_plot %>% layout(yaxis3 = 
+        list(rangemode = "tozero", tick0 = 0))
+    if(n_plots > 3) final_plot = final_plot %>% layout(yaxis4 = 
+        list(rangemode = "tozero", tick0 = 0))
+    if(n_plots > 4) final_plot = final_plot %>% layout(yaxis5 = 
+        list(rangemode = "tozero", tick0 = 0))
 
-    # ggplot equivalent: list of ggplots. Allows advanced end-users to apply final edits to ggplots
+    # ggplot equivalent: list of ggplots. 
+    # Allows advanced end-users to apply final edits to ggplots
     
     message("Cov Plot finished")
     return(list(ggplot = gp_track, final_plot = final_plot))
@@ -614,43 +620,62 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
 
 #' Generate plotly / ggplot RNA-seq coverage plots from command line
 #'
-#' This function generates a coverage plot illustrating differential expression of intron retention
-#' or alternative splicing (differential exon coverage). It can normalise coverage of samples
-#' per condition using NxtIRF's SpliceOver parameter that normalises the flanking exon boundaries to 1.
+#' This function generates a coverage plot illustrating differential expression
+#' of intron retention or alternative splicing (differential exon coverage). 
+#' It can normalise coverage of samples per condition using NxtIRF's SpliceOver
+#' parameter that normalises the flanking exon boundaries to 1.
 #' 
-#' @param se A SummarizedExperiment object. It must contain the Event to be displayed
-#' @param Event The `EventName` or the IR / alternative splicing event to be normalised. Valid names 
-#'   are all entries within rownames(se)
-#' @param cov_data A list containing all the data required by this function. Generate this data using
-#'   prepare_covplot_data()
-#' @param strand Whether to show coverage of both strands "*" (default), or from the "+" or "-" strand only.
-#' @param tracks The names of individual samples (if condition is not set), or the names of the different
-#'   conditions to be plotted.
-#' @param track_names The names of the tracks to be displayed. Defaults to `tracks`
-#' @param condition The name of the column (of SummarizedExperiment::colData(se) containing the conditions to be contrasted.
-#'   If this is not set, `tracks` are assumed to be names of individual samples
-#' @param selected_transcripts Transcript ID or transcript names of transcripts to be displayed on the gene annotation 
-#'   rack. Useful to remove overlapping transcripts that are not relevant to the samples being displayed.
+#' @param se A SummarizedExperiment object. It must contain the Event to be 
+#'   displayed
+#' @param Event The `EventName` or the IR / alternative splicing event to be 
+#'   normalised. Valid names are all entries within rownames(se)
+#' @param cov_data A list containing all the data required by this function. 
+#'   Generate this data using prepare_covplot_data()
+#' @param strand Whether to show coverage of both strands "*" (default), or
+#'   from the "+" or "-" strand only.
+#' @param tracks The names of individual samples (if condition is not set),
+#'   or the names of the different conditions to be plotted.
+#' @param track_names The names of the tracks to be displayed. Defaults to 
+#'   `tracks`
+#' @param condition The name of the column (of `colData(se)` containing the 
+#'   conditions to be contrasted. If this is not set, `tracks` are assumed to be
+#'   names of individual samples
+#' @param selected_transcripts Transcript ID or transcript names of transcripts
+#'   to be displayed on the gene annotation track. Useful to remove overlapping
+#'   transcripts that are not relevant to the samples being displayed.
 #' @param condense_tracks Whether to collapse the transcript tracks by gene.
-#' @param stack_tracks Whether to graph all the conditions on a single coverage track. If set to true, each condition
-#'   will be displayed in a different colour
-#' @param t_test Whether to perform a pair-wise T-test. Only used if there are TWO condition tracks.
-#' @param norm_event Whether to normalise by an event different to that given in "Event". The difference between this
-#'   and Event is that the genomic coordinates are only centered around Event. norm_event overrides Event if both are given.
-#' @param stack_tracks Whether to graph all the conditions on a single coverage track. If set to true, each condition
-#' @param zoom_factor Zoom out from event. Each level of zoom zooms out by a factor of 3.
-#' @param bases_flanking How many bases flanking the zoomed window. Useful when used in conjunction with zoom_factor == 0
-#' @param Gene Whether to use the range for the given Gene. If given and valid, overrides Event (but `Event` or `norm_event` will 
-#'  be used to normalise by condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name (Gene Symbol)
-#' @param seqnames Use chromosome. Only used if `seqnames`, `start` and `end` are also given and valid.
-#'   If these coordinates are set, they will override Event and Gene, although Event / norm_event is still required for normalising
-#'   by condition
+#' @param stack_tracks Whether to graph all the conditions on a single coverage
+#'   track. If set to true, each condition will be displayed in a different
+#'   colour
+#' @param t_test Whether to perform a pair-wise T-test. Only used if there are
+#'   TWO condition tracks.
+#' @param norm_event Whether to normalise by an event different to that given
+#'   in "Event". The difference between this and Event is that the genomic
+#'   coordinates are only centered around Event. norm_event overrides Event
+#'   if both are given.
+#' @param stack_tracks Whether to graph all the conditions on a single coverage
+#'   track. If set to true, each condition
+#' @param zoom_factor Zoom out from event. Each level of zoom zooms out by a
+#'   factor of 3.
+#' @param bases_flanking How many bases flanking the zoomed window. Useful when
+#'    used in conjunction with zoom_factor == 0
+#' @param Gene Whether to use the range for the given Gene. If given and valid,
+#'   overrides Event (but `Event` or `norm_event` will be used to normalise by
+#'  condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name
+#'  (Gene Symbol)
+#' @param seqnames Use chromosome. Only used if `seqnames`, `start` and `end`
+#'   are also given and valid.
+#'   If these coordinates are set, they will override Event and Gene, although
+#'   Event / norm_event is still required for normalising by condition
 #' @param start Overrides with given start coordinate. See `seqnames`
 #' @param end Overrides with given end coordinate. See `seqnames`
 #' 
-#' @return A list containing two objects. final_plot is the plotly object. ggplot is a list of ggplot tracks.
-#'   `ggplot[[n]]` is the nth track (this function supports up to 4 tracks). `ggplot[[5]]` contains the T-test track if valid.
-#'   `ggplot[[6]]` always contains the genome track.
+#' @return A list containing two objects. final_plot is the plotly object. 
+#'   ggplot is a list of ggplot tracks.\cr\cr
+#'   `ggplot[[n]]` is the nth track (this function supports up to 4 tracks).
+#'   \cr\cr
+#'   `ggplot[[5]]` contains the T-test track if valid.\cr\cr
+#'   `ggplot[[6]]` always contains the genome track.\cr\cr
 #' @examples
 #' se = NxtIRF_example_NxtSE()
 #' 
@@ -761,18 +786,22 @@ Plot_Coverage <- function(se, Event, cov_data,
 
         if(rowData$EventType[match(norm_event, rowData$EventName)] 
             %in% c("MXE", "SE")) {
-            events_to_highlight[[1]] = c(rowData$Event1a[match(norm_event, rowData$EventName)],
+            events_to_highlight[[1]] = c(
+                rowData$Event1a[match(norm_event, rowData$EventName)],
                 rowData$Event2a[match(norm_event, rowData$EventName)])
         } else {
-            events_to_highlight[[1]] = rowData$Event1a[match(norm_event, rowData$EventName)]
+            events_to_highlight[[1]] = rowData$Event1a[
+                match(norm_event, rowData$EventName)]
         }
         if(rowData$EventType[match(norm_event, rowData$EventName)] 
             %in% c("MXE")) {
-            events_to_highlight[[2]] = c(rowData$Event1b[match(norm_event, rowData$EventName)],
+            events_to_highlight[[2]] = c(
+                rowData$Event1b[match(norm_event, rowData$EventName)],
                 rowData$Event2b[match(norm_event, rowData$EventName)])
         } else if(rowData$EventType[match(norm_event, rowData$EventName)] 
             %in% c("SE", "A3SS", "A5SS", "ALE", "AFE")){
-            events_to_highlight[[2]] = rowData$Event1b[match(norm_event, rowData$EventName)]
+            events_to_highlight[[2]] = rowData$Event1b[
+                match(norm_event, rowData$EventName)]
         }
         args$highlight_events = events_to_highlight
     }
@@ -908,89 +937,23 @@ Plot_Coverage <- function(se, Event, cov_data,
     }
 }
 
-#' Generates the requisite data for Plot_Coverage()
-#'
-#' @param reference_path The directory containing the NxtIRF reference
-#' @return A list, containing the genome, gene_list, elem.DT (containing information about
-#'   introns, exons and UTRs, and transcripts.DT which contains a list of transcripts
-prepare_covplot_data <- function(reference_path) {
-    .validate_reference(reference_path)
-    genome = Get_Genome(reference_path)
-    data = list(
-        seqInfo = seqinfo(genome),
-        gene_list = getGeneList(reference_path),
-        elem.DT = loadViewRef(reference_path),
-        transcripts.DT = loadTranscripts(reference_path)
-    )
-    return(data)
-}
-
-loadViewRef <- function(reference_path) {
-    .validate_reference(reference_path)
-    
-    dir_path = file.path(reference_path, "fst")
-
-    exons.DT = as.data.table(read.fst(file.path(dir_path, "Exons.fst"), 
-        c("seqnames", "start", "end", "strand", "type", "transcript_id")))
-    exons.DT = exons.DT[get("transcript_id") != "protein_coding"]
-
-    protein.DT = as.data.table(read.fst(file.path(dir_path, "Proteins.fst"),
-        c("seqnames", "start", "end", "strand", "type", "transcript_id")))
-    misc.DT = as.data.table(read.fst(file.path(dir_path, "Misc.fst"),
-        c("seqnames", "start", "end", "strand", "type", "transcript_id")))
-
-    total.DT = rbindlist(list(
-        exons.DT[, c("seqnames", "start", "end", "strand", "type", "transcript_id")],
-        protein.DT[, c("seqnames", "start", "end", "strand", "type", "transcript_id")],
-        misc.DT[, c("seqnames", "start", "end", "strand", "type", "transcript_id")]
-    ))
-    return(total.DT)
-}
-
-getGeneList <- function(reference_path) {
-    .validate_reference(reference_path)
-    
-    file_path = file.path(reference_path, "fst", "Genes.fst")
-    if(!file.exists(file_path)) return(NULL)
-
-    df = as.data.table(read.fst(file_path))
-    return(df)
-}
-
-loadTranscripts <- function(reference_path) {
-    .validate_reference(reference_path)
-    
-    file_path = file.path(reference_path, "fst", "Transcripts.fst")
-
-    Transcripts.DT = as.data.table(read.fst(file_path))
-
-    if("transcript_support_level" %in% colnames(Transcripts.DT)) {
-        Transcripts.DT$transcript_support_level = 
-            tstrsplit(Transcripts.DT$transcript_support_level, split=" ")[[1]]
-        Transcripts.DT$transcript_support_level[
-            is.na(Transcripts.DT$transcript_support_level)] = "NA"
-    } else {
-        Transcripts.DT$transcript_support_level = 1
-    }
-
-    return(Transcripts.DT)
-}
-
 #' Retrieves a list of default recommended filters
 #'
 #' This function returns the recommended filters. These are:\cr\cr
 #' (1) Depth filter of 20,\cr\cr
 #' (2) Coverage filter requiring 90% coverage in IR events\cr\cr
-#' (3) Coverage filter requiring 60% coverage in AS events (i.e. Included + Excluded
-#' isoforms must cover at least 60% of all junction events across the given region)\cr\cr
-#' (4) Consistency filter requring log difference of 2 (for skipped exon and mutually exclusive
-#'  exon events, each junction must comprise at least 1/(2^2) = 1/4 of all reads associated with
-#'  each isoform)\cr\cr
-#' In all filters, we require at least 80% samples `pcTRUE = 80` from the entire dataset `minCond = "All"`.
-#' Events with read depth (reads supporting either included or excluded isoforms) lower than 20 `minDepth = 20`
-#' are excluded from filters 2,3,4.
-#' @return A list of filters to be used in `apply_filters()`. Alternatively, individual filters can be run using
-#'   `runFilter()`
+#' (3) Coverage filter requiring 60% coverage in AS events
+#'   (i.e. Included + Excluded isoforms must cover at least 60% of all junction
+#'   events across the given region)\cr\cr
+#' (4) Consistency filter requring log difference of 2 (for skipped exon and
+#'  mutually exclusive exon events, each junction must comprise at least 1/(2^2)
+#'  = 1/4 of all reads associated with each isoform)\cr\cr
+#' In all filters, we require at least 80% samples `pcTRUE = 80` from the entire
+#'   dataset `minCond = "All"`.
+#' Events with read depth (reads supporting either included or excluded isoforms)
+#'   lower than 20 `minDepth = 20` are excluded from filters 2,3,4.
+#' @return A list of filters to be used in `apply_filters()`. Alternatively,
+#'   individual filters can be run using `runFilter()`
 #' @examples
 #' filters = get_default_filters()
 #' @md
@@ -1039,25 +1002,36 @@ get_default_filters <- function() {
 
 #' Constructs a matrix containing PSI values of the given ASE events
 #'
-#' This function takes an input SummarizedExperiment `se`, a list of alternative
-#' splicing events `event_list`, and (optionally) a list of sample names `sample_list`. 
-#' It returns a matrix containing PSI values with columns as samples and rows as ASE events.
+#' This function takes an input SummarizedExperiment `se`, a list of 
+#'   alternative splicing events `event_list`, and (optionally) a list of
+#'   sample names `sample_list`. 
+#' It returns a matrix containing PSI values with columns as samples and rows
+#'   as ASE events.
 #' 
 #' @param se A NxtIRF SummarizedExperiment
-#' @param event_list A character vector containing the row names of ASE events (as given by the 
-#'   `EventName` column of differential ASE results table using `limma_ASE()` or `DESeq_ASE()`)
-#' @param sample_list (default = `colnames(se)`) A list of sample names referring to the subset
-#'   of samples in the given experiment to be included in the returned matrix
-#' @param method The values to be returned (default = "PSI"). It can alternately be "logit"
-#'   which returns logit-transformed PSI values, or "Z-score" which returns Z-score-transformed PSI values
-#' @param depth_threshold (default = 10) If any PSI is derived from raw values with both isoforms represented
-#'   by reads below this value, it is given as NA as the uncertainty of PSI would be deemed too highlight
-#' @param logit_max The max or min logit values to be capped at. Because logit(0) == -Inf and logit(1) = Inf,
-#'   this function caps logit values using logit_max. (Only relevant if `method = "logit"`)
-#' @param na.percent.max (default = 0.1) The maximum number of NA values in an event for the PSI
-#'   values for each event to be returned. Most heatmap functions will spring an error if there are too
-#'   many NA values in any given row. This option caps the number of NA values to avoid returning this error.
-#' @return A matrix of PSI (or alternate) values, with columns as samples and rows as ASE events.
+#' @param event_list A character vector containing the row names of ASE events
+#'   (as given by the `EventName` column of differential ASE results table 
+#'   using `limma_ASE()` or `DESeq_ASE()`)
+#' @param sample_list (default = `colnames(se)`) A list of sample names
+#'   referring to the subset of samples in the given experiment to be included
+#'   in the returned matrix
+#' @param method The values to be returned (default = "PSI"). It can
+#'   alternately be "logit" which returns logit-transformed PSI values, or 
+#'   "Z-score" which returns Z-score-transformed PSI values
+#' @param depth_threshold (default = 10) If any PSI is derived from raw values
+#'   with both isoforms represented by reads below this value, it is given as
+#'   `NA` as the uncertainty of PSI would be deemed too highlight
+#' @param logit_max The max or min logit values to be capped at, because 
+#'   `logit(0) == -Inf` and `logit(1) = Inf`,
+#'   this function caps logit values using logit_max. 
+#'   (Only used if `method = "logit"`)
+#' @param na.percent.max (default = 0.1) The maximum number of NA values in 
+#'   an event for the PSI values for each event to be returned. Most heatmap
+#'   functions will spring an error if there are too many NA values in any
+#'   given row. This option caps the number of NA values to avoid returning
+#'   this error.
+#' @return A matrix of PSI (or alternate) values, with columns as samples and
+#'   rows as ASE events.
 #' @md
 #' @examples
 #' se = NxtIRF_example_NxtSE()
@@ -1073,8 +1047,8 @@ make_matrix <- function(se, event_list, sample_list = colnames(se),
     depth_threshold = 10, logit_max = 5, na.percent.max = 0.1) {
 
     method = match.arg(method)
-    inc = SummarizedExperiment::assay(se, "Included")[event_list, sample_list, drop = FALSE]
-    exc = SummarizedExperiment::assay(se, "Excluded")[event_list, sample_list, drop = FALSE]
+    inc = assay(se, "Included")[event_list, sample_list, drop = FALSE]
+    exc = assay(se, "Excluded")[event_list, sample_list, drop = FALSE]
     mat = inc/(inc + exc)
     mat[inc + exc < depth_threshold] = NA
     mat = mat[rowSums(is.na(mat)) < na.percent.max * ncol(mat),, drop = FALSE]
@@ -1094,29 +1068,36 @@ make_matrix <- function(se, event_list, sample_list = colnames(se),
     
 }
 
-#' Constructs a data frame containing average PSI values of the two contrasted conditions
+#' Constructs a data frame containing average PSI values of the two contrasted 
+#'   conditions
 #'
-#' This function takes an input SummarizedExperiment `se`, a list of alternative
-#' splicing events `event_list`, the `condition` column containing the experimental annotation,
-#' and the nominator `nom_DE` and denominator `denom_DE` 
-#' It returns a 3 column data frame, with the first column containing `event_list` list of ASE events,
-#' and the last 2 columns containing the average PSI values of the nominator and denominator conditions
-#' Note that this function takes the geometric mean of PSI, by first converting all values to logit(PSI),
-#' taking the average logit(PSI) values of each condition, and then converting back to PSI using inv.logit.
+#' This function takes an input SummarizedExperiment `se`, a list of 
+#'   alternative splicing events `event_list`, the `condition` column 
+#'   containing the experimental annotation, and the nominator `nom_DE` and
+#'   denominator `denom_DE`.\cr\cr
+#' Note that this function takes the geometric mean of PSI, by first converting
+#'   all values to logit(PSI), taking the average logit(PSI) values of each
+#'   condition, and then converting back to PSI using inv.logit.
 #' 
 #' @param se A NxtIRF SummarizedExperiment
-#' @param event_list A character vector containing the row names of ASE events (as given by the 
-#'   `EventName` column of differential ASE results table using `limma_ASE()` or `DESeq_ASE()`)
-#' @param condition The name of the column containing the condition values in `SummarizedExperiment::colData(se)`
+#' @param event_list A character vector containing the row names of ASE events
+#'   (as given by the `EventName` column of differential ASE results table
+#'   using `limma_ASE()` or `DESeq_ASE()`)
+#' @param condition The name of the column containing the condition values in 
+#'   `colData(se)`
 #' @param nom_DE The condition to be contrasted, e.g. `nom_DE = "treatment"`
-#' @param denom_DE The condition to be contrasted against, e.g. `denom_DE = "control"`
-#' @param depth_threshold (default = 10) Samples with the number of reads supporting either included or excluded
-#'   isoforms below this values are excluded
-#' @param logit_max (default = 5). This function works by converting all PSI values as logit(PSI), taking the average,
-#'   then converting back to PSI using inverse logit. Because logit(0) == -Inf and logit(1) = Inf,
+#' @param denom_DE The condition to be contrasted against, e.g. 
+#'   `denom_DE = "control"`
+#' @param depth_threshold (default = 10) Samples with the number of reads 
+#'   supporting either included or excluded isoforms below this values are 
+#'   excluded
+#' @param logit_max (default = 5). This function works by converting all PSI 
+#'   values as logit(PSI), taking the average, then converting back to PSI 
+#'   using inverse logit. Because `logit(0) == -Inf` and `logit(1) = Inf`,
 #'   this function caps logit values using logit_max
-#' @return A a 3 column data frame, with the first column containing `event_list` list of ASE events,
-#' and the last 2 columns containing the average PSI values of the nominator and denominator conditions
+#' @return A a 3 column data frame, with the first column containing 
+#'   `event_list` list of ASE events, and the last 2 columns containing the 
+#'   average PSI values of the nominator and denominator conditions.
 #' @examples
 #' se = NxtIRF_example_NxtSE()
 #'

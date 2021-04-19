@@ -1589,6 +1589,71 @@ CollateData <- function(Experiment, reference_path, output_path,
     saveRDS(colData, file.path(norm_output_path, "colData.Rds"))
 }
 
+prepare_covplot_data <- function(reference_path) {
+    .validate_reference(reference_path)
+    genome = Get_Genome(reference_path)
+    data = list(
+        seqInfo = seqinfo(genome),
+        gene_list = getGeneList(reference_path),
+        elem.DT = loadViewRef(reference_path),
+        transcripts.DT = loadTranscripts(reference_path)
+    )
+    return(data)
+}
+
+loadViewRef <- function(reference_path) {
+    .validate_reference(reference_path)
+    
+    dir_path = file.path(reference_path, "fst")
+
+    exons.DT = as.data.table(read.fst(file.path(dir_path, "Exons.fst"), 
+        c("seqnames", "start", "end", "strand", "type", "transcript_id")))
+    exons.DT = exons.DT[get("transcript_id") != "protein_coding"]
+
+    protein.DT = as.data.table(read.fst(file.path(dir_path, "Proteins.fst"),
+        c("seqnames", "start", "end", "strand", "type", "transcript_id")))
+    misc.DT = as.data.table(read.fst(file.path(dir_path, "Misc.fst"),
+        c("seqnames", "start", "end", "strand", "type", "transcript_id")))
+
+    total.DT = rbindlist(list(
+        exons.DT[, c("seqnames", "start", "end", "strand", "type",
+            "transcript_id")],
+        protein.DT[, c("seqnames", "start", "end", "strand", "type",
+            "transcript_id")],
+        misc.DT[, c("seqnames", "start", "end", "strand", "type",
+            "transcript_id")]
+    ))
+    return(total.DT)
+}
+
+getGeneList <- function(reference_path) {
+    .validate_reference(reference_path)
+    
+    file_path = file.path(reference_path, "fst", "Genes.fst")
+    if(!file.exists(file_path)) return(NULL)
+
+    df = as.data.table(read.fst(file_path))
+    return(df)
+}
+
+loadTranscripts <- function(reference_path) {
+    .validate_reference(reference_path)
+    
+    file_path = file.path(reference_path, "fst", "Transcripts.fst")
+
+    Transcripts.DT = as.data.table(read.fst(file_path))
+
+    if("transcript_support_level" %in% colnames(Transcripts.DT)) {
+        Transcripts.DT$transcript_support_level = 
+            tstrsplit(Transcripts.DT$transcript_support_level, split=" ")[[1]]
+        Transcripts.DT$transcript_support_level[
+            is.na(Transcripts.DT$transcript_support_level)] = "NA"
+    } else {
+        Transcripts.DT$transcript_support_level = 1
+    }
+
+    return(Transcripts.DT)
+}
 
 ################################################################################
 

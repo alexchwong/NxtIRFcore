@@ -2,7 +2,8 @@
 % Please edit documentation in R/dash_utils.R
 \name{make_diagonal}
 \alias{make_diagonal}
-\title{Constructs a data frame containing average PSI values of the two contrasted conditions}
+\title{Constructs a data frame containing average PSI values of the two contrasted
+conditions}
 \usage{
 make_diagonal(
   se,
@@ -17,34 +18,40 @@ make_diagonal(
 \arguments{
 \item{se}{A NxtIRF SummarizedExperiment}
 
-\item{event_list}{A character vector containing the row names of ASE events (as given by the
-\code{EventName} column of differential ASE results table using \code{limma_ASE()} or \code{DESeq_ASE()})}
+\item{event_list}{A character vector containing the row names of ASE events
+(as given by the \code{EventName} column of differential ASE results table
+using \code{limma_ASE()} or \code{DESeq_ASE()})}
 
-\item{condition}{The name of the column containing the condition values in \code{SummarizedExperiment::colData(se)}}
+\item{condition}{The name of the column containing the condition values in
+\code{colData(se)}}
 
 \item{nom_DE}{The condition to be contrasted, e.g. \code{nom_DE = "treatment"}}
 
-\item{denom_DE}{The condition to be contrasted against, e.g. \code{denom_DE = "control"}}
+\item{denom_DE}{The condition to be contrasted against, e.g.
+\code{denom_DE = "control"}}
 
-\item{depth_threshold}{(default = 10) Samples with the number of reads supporting either included or excluded
-isoforms below this values are excluded}
+\item{depth_threshold}{(default = 10) Samples with the number of reads
+supporting either included or excluded isoforms below this values are
+excluded}
 
-\item{logit_max}{(default = 5). This function works by converting all PSI values as logit(PSI), taking the average,
-then converting back to PSI using inverse logit. Because logit(0) == -Inf and logit(1) = Inf,
+\item{logit_max}{(default = 5). This function works by converting all PSI
+values as logit(PSI), taking the average, then converting back to PSI
+using inverse logit. Because \code{logit(0) == -Inf} and \code{logit(1) = Inf},
 this function caps logit values using logit_max}
 }
 \value{
-A a 3 column data frame, with the first column containing \code{event_list} list of ASE events,
-and the last 2 columns containing the average PSI values of the nominator and denominator conditions
+A a 3 column data frame, with the first column containing
+\code{event_list} list of ASE events, and the last 2 columns containing the
+average PSI values of the nominator and denominator conditions.
 }
 \description{
-This function takes an input SummarizedExperiment \code{se}, a list of alternative
-splicing events \code{event_list}, the \code{condition} column containing the experimental annotation,
-and the nominator \code{nom_DE} and denominator \code{denom_DE}
-It returns a 3 column data frame, with the first column containing \code{event_list} list of ASE events,
-and the last 2 columns containing the average PSI values of the nominator and denominator conditions
-Note that this function takes the geometric mean of PSI, by first converting all values to logit(PSI),
-taking the average logit(PSI) values of each condition, and then converting back to PSI using inv.logit.
+This function takes an input SummarizedExperiment \code{se}, a list of
+alternative splicing events \code{event_list}, the \code{condition} column
+containing the experimental annotation, and the nominator \code{nom_DE} and
+denominator \code{denom_DE}.\cr\cr
+Note that this function takes the geometric mean of PSI, by first converting
+all values to logit(PSI), taking the average logit(PSI) values of each
+condition, and then converting back to PSI using inv.logit.
 }
 \examples{
 se = NxtIRF_example_NxtSE()
