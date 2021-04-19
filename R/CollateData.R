@@ -1841,7 +1841,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         # names(metadata(se)$cov_file) = colData.Rds$df.files$sample       
     }
     metadata(se)$ref = readRDS(file.path(
-        collate_path, "Annotation", "cov_data.Rds"
+        collate_path, "annotation", "cov_data.Rds"
     ))
     return(se)
 }
