@@ -18,20 +18,21 @@ ui_expr <- function(id) {
                     conditionalPanel(
                         ns = ns,
                         condition = paste(
-                            "['Annotations'].indexOf(input.hot_switch_expr) >= 0"
+                            "['Annotations'].indexOf(input.hot_switch_expr)",
+                            ">= 0"
                         ),
                         wellPanel(
                             tags$h4("Annotation Columns"),
                             uiOutput(ns("newcol_expr")), # done
                             div(class='row',
                                 div(class= "col-sm-6",
-                                    radioButtons(ns("type_newcol_expr"), "Type", 
+                                    radioButtons(ns("type_newcol_expr"), "Type",
                                     c("character", "integer", "double"))
                                 ),
                                 div(class = "col-sm-6", 
-                                    actionButton(ns("addcolumn_expr"), "Add"), 
+                                    actionButton(ns("addcolumn_expr"), "Add"),
                                     br(),  # done
-                                    actionButton(ns("removecolumn_expr"), 
+                                    actionButton(ns("removecolumn_expr"),
                                         "Remove") # done
                                 )
                             )                                
@@ -96,14 +97,15 @@ ui_expr_limited <- function(id) {
                     conditionalPanel(
                         ns = ns,
                         condition = paste(
-                            "['Annotations'].indexOf(input.hot_switch_expr) >= 0"
+                            "['Annotations'].indexOf(input.hot_switch_expr)",
+                            ">= 0"
                         ),
                         wellPanel(
                             tags$h4("Annotation Columns"),
                             uiOutput(ns("newcol_expr")), # done
                             div(class='row',
                                 div(class= "col-sm-6",
-                                    radioButtons(ns("type_newcol_expr"), "Type", 
+                                    radioButtons(ns("type_newcol_expr"), "Type",
                                     c("character", "integer", "double"))
                                 ),
                                 div(class = "col-sm-6", 
@@ -337,7 +339,8 @@ ui_infobox_irf <- function(irf_path, irf_files, escape = FALSE) {
         box1 =  infoBox(
             title = "irfinder output", 
             value = ifelse(!is_valid(irf_path),
-                "MISSING", ifelse(ret == TRUE, "LOADED", "Some IRF files missing")),
+                "MISSING", ifelse(ret == TRUE, 
+                "LOADED", "Some IRF files missing")),
             subtitle = ifelse(is_valid(irf_path),
                 irf_path, ""),
             icon = icon("align-center", lib = "font-awesome"),

@@ -7,21 +7,23 @@
 get_default_filters()
 }
 \value{
-A list of filters to be used in \code{apply_filters()}. Alternatively, individual filters can be run using
-\code{runFilter()}
+A list of filters to be used in \code{apply_filters()}. Alternatively,
+individual filters can be run using \code{runFilter()}
 }
 \description{
 This function returns the recommended filters. These are:\cr\cr
 (1) Depth filter of 20,\cr\cr
 (2) Coverage filter requiring 90\% coverage in IR events\cr\cr
-(3) Coverage filter requiring 60\% coverage in AS events (i.e. Included + Excluded
-isoforms must cover at least 60\% of all junction events across the given region)\cr\cr
-(4) Consistency filter requring log difference of 2 (for skipped exon and mutually exclusive
-exon events, each junction must comprise at least 1/(2^2) = 1/4 of all reads associated with
-each isoform)\cr\cr
-In all filters, we require at least 80\% samples \code{pcTRUE = 80} from the entire dataset \code{minCond = "All"}.
-Events with read depth (reads supporting either included or excluded isoforms) lower than 20 \code{minDepth = 20}
-are excluded from filters 2,3,4.
+(3) Coverage filter requiring 60\% coverage in AS events
+(i.e. Included + Excluded isoforms must cover at least 60\% of all junction
+events across the given region)\cr\cr
+(4) Consistency filter requring log difference of 2 (for skipped exon and
+mutually exclusive exon events, each junction must comprise at least 1/(2^2)
+= 1/4 of all reads associated with each isoform)\cr\cr
+In all filters, we require at least 80\% samples \code{pcTRUE = 80} from the entire
+dataset \code{minCond = "All"}.
+Events with read depth (reads supporting either included or excluded isoforms)
+lower than 20 \code{minDepth = 20} are excluded from filters 2,3,4.
 }
 \examples{
 filters = get_default_filters()
