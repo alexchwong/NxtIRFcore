@@ -250,7 +250,6 @@ CollateData <- function(Experiment, reference_path, output_path,
     coverage_files = .collateData_COV(Experiment)
     
     df.internal <- .collateData_expr(Experiment)
-    # jobs <- .collateData_jobs(nrow(df.internal), BPPARAM_mod, samples_per_block)
     jobs = NxtIRF.SplitVector(seq_len(nrow(df.internal)),
         ceiling(nrow(df.internal) / samples_per_block))
     n_jobs = length(jobs)
