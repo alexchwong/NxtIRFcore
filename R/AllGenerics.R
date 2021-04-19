@@ -45,32 +45,41 @@ setGeneric("assayNames<-",
 
 # NxtSE specific functions:
 
-setGeneric("up_inc", function(x, withDimnames=TRUE, ...) standardGeneric("up_inc"))
+setGeneric("realize_NxtSE", 
+    function(x, withDimnames=TRUE, ...) standardGeneric("realize_NxtSE"))
 
-setGeneric("down_inc", function(x, withDimnames=TRUE, ...) standardGeneric("down_inc"))
+setGeneric("up_inc", 
+    function(x, withDimnames=TRUE, ...) standardGeneric("up_inc"))
 
-setGeneric("up_exc", function(x, withDimnames=TRUE, ...) standardGeneric("up_exc"))
+setGeneric("down_inc", 
+    function(x, withDimnames=TRUE, ...) standardGeneric("down_inc"))
 
-setGeneric("down_exc", function(x, withDimnames=TRUE, ...) standardGeneric("down_exc"))
+setGeneric("up_exc", 
+    function(x, withDimnames=TRUE, ...) standardGeneric("up_exc"))
 
-setGeneric("covfile", function(x, withDimnames=TRUE, ...) standardGeneric("covfile"))
+setGeneric("down_exc", 
+    function(x, withDimnames=TRUE, ...) standardGeneric("down_exc"))
 
-setGeneric("ref", function(x, withDimnames=TRUE, ...) standardGeneric("ref"))
+setGeneric("covfile", 
+    function(x, withDimnames=TRUE, ...) standardGeneric("covfile"))
+
+setGeneric("ref", 
+    function(x, withDimnames=TRUE, ...) standardGeneric("ref"))
 
 setGeneric("up_inc<-",
-           function(x, withDimnames=TRUE, ..., value) standardGeneric("up_inc<-"))
+    function(x, withDimnames=TRUE, ..., value) standardGeneric("up_inc<-"))
 
 setGeneric("down_inc<-",
-           function(x, withDimnames=TRUE, ..., value) standardGeneric("down_inc<-"))
+    function(x, withDimnames=TRUE, ..., value) standardGeneric("down_inc<-"))
 
 setGeneric("up_exc<-",
-           function(x, withDimnames=TRUE, ..., value) standardGeneric("up_exc<-"))
+    function(x, withDimnames=TRUE, ..., value) standardGeneric("up_exc<-"))
 
 setGeneric("down_exc<-",
-           function(x, withDimnames=TRUE, ..., value) standardGeneric("down_exc<-"))
+    function(x, withDimnames=TRUE, ..., value) standardGeneric("down_exc<-"))
 
 setGeneric("covfile<-",
-           function(x, withDimnames=TRUE, ..., value) standardGeneric("covfile<-"))
+    function(x, withDimnames=TRUE, ..., value) standardGeneric("covfile<-"))
 
 setGeneric("ref<-",
-           function(x, withDimnames=TRUE, ..., value) standardGeneric("ref<-"))
+    function(x, withDimnames=TRUE, ..., value) standardGeneric("ref<-"))

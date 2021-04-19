@@ -16,10 +16,12 @@ FindSamples(
 that match the given \code{suffix}}
 
 \item{suffix}{A vector of or or more strings that specifies the file suffix
-(e.g. '.bam' denotes BAM files, whereas ".txt.gz" denotes gzipped txt files).}
+(e.g. '.bam' denotes BAM files, whereas ".txt.gz" denotes gzipped txt
+files).}
 
 \item{suffix_type}{A vector of string that determines the column
-names of the files retrieved by \code{suffix}. Must be the same length as \code{suffix}}
+names of the files retrieved by \code{suffix}. Must be the same length as
+\code{suffix}}
 
 \item{use_subdir}{Whether to assume the directory name containing
 the found files denote the sample name. If \code{FALSE}, the base name

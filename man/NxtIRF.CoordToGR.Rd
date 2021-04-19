@@ -14,7 +14,8 @@ to be converted}
 A GRanges object that corresponds to the given coordinates
 }
 \description{
-IGV-style coordinates typically have the syntax \code{seqnames:start-end/strand}\cr\cr
+IGV-style coordinates typically have the syntax
+\code{seqnames:start-end/strand}\cr\cr
 For example: "chr3:10550-10730/+" or "X:51231-51330/-"
 }
 \examples{

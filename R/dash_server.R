@@ -107,9 +107,9 @@ dash_server = function(input, output, session) {
             settings_refresh$cov = runif(1)
         }
     })
-# End of server function		
- }
- 
+# End of server function
+}
+
 .dash_get_threads <- function(thread_option, cores_numeric) {
     if(thread_option == "Single-Thread"){
         n_threads = 1

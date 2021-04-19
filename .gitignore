@@ -44,7 +44,10 @@ vignettes/*.R
 # Rcpp compiled code and DLLs
 src/*.o
 src/*.dll
+src-i386/*
+src-x64/*
 
 # doc
 Meta
 README.md
+doc

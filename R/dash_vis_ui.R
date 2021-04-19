@@ -1,8 +1,8 @@
 ui_vis_diag <- function(id) {
     ns <- NS(id)
-	wellPanel(
+    wellPanel(
         fluidRow(
-            column(3,	
+            column(3,
                 shinyWidgets::sliderTextInput(
                     inputId = ns("number_events_diag"), 
                     label = "Number of Top Events",
@@ -30,15 +30,15 @@ ui_vis_diag <- function(id) {
             column(9,
                 plotlyOutput(ns("plot_diag"), height = "800px")
             )
-        )	
-	)
+        )
+    )
 }
 
 ui_vis_volcano <- function(id) {
     ns <- NS(id)
-	wellPanel(
+    wellPanel(
         fluidRow(
-            column(3,	
+            column(3,    
                 shinyWidgets::sliderTextInput(
                     inputId = ns("number_events_volc"), 
                     label = "Number of Top Events",
@@ -71,7 +71,7 @@ ui_vis_volcano <- function(id) {
 
 ui_vis_heatmap <- function(id) {
     ns <- NS(id)
-	wellPanel(
+    wellPanel(
         fluidRow(
             column(3, 
                 shinyWidgets::radioGroupButtons(ns("select_events_heat"), 

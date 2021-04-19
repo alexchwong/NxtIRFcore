@@ -1,7 +1,7 @@
 filterModule_UI <- function(id, label = "Counter") {
     ns <- NS(id)
     wellPanel(
-        h5(label),	# e.g. "Filter #1"
+        h5(label),  # e.g. "Filter #1"
         selectInput(ns("filterClass"), "Filter Class", 
             width = '100%', choices = c("(none)", "Annotation", "Data")),
         selectInput(ns("filterType"), "Filter Type", 
@@ -83,17 +83,17 @@ filterModule_server <- function(id, filterdata, conditionList) {
                     inputId = "select_conds", 
                     choices = choices_conds, 
                     selected = "(none)")            
-            }       
+            }
         })
 
-        # inputs from final -> UI			
+        # inputs from final -> UI
         observeEvent(filterdata(), {
             final = filterdata()
 
             if(is_valid(final$filterClass)) {
                 if(final$filterClass == "Annotation") {
                     type_choices = c("Protein_Coding", 
-                        "NMD_Switching", "Transcript_Support_Level")              
+                        "NMD_Switching", "Transcript_Support_Level")
                 } else if(final$filterClass == "Data") {
                     type_choices = c("Depth", "Coverage", "Consistency")
                 } else {
@@ -120,7 +120,7 @@ filterModule_server <- function(id, filterdata, conditionList) {
 
                 return()
             }
-         
+            
             if(is_valid((final$filterVars$minimum))) {
                 if(final$filterType == "Depth") {
                     shinyWidgets::updateSliderTextInput(
@@ -129,7 +129,7 @@ filterModule_server <- function(id, filterdata, conditionList) {
                 } else  if(final$filterType == "Coverage"){
                     updateSliderInput(session = session, 
                         inputId = "slider_cov_min", 
-                        value = final$filterVars$minimum)							
+                        value = final$filterVars$minimum)
                 } else  if(final$filterType == "Transcript_Support_Level"){
                     shinyWidgets::updateSliderTextInput(
                         session = session, inputId = "slider_TSL_min", 
@@ -194,7 +194,7 @@ filterModule_server <- function(id, filterdata, conditionList) {
             if(is_valid(cur_choice) && cur_choice %in% type_choices) {
                 updateSelectInput(session = session, 
                     inputId = "filterType", 
-                    choices = type_choices, selected = cur_choice)                    
+                    choices = type_choices, selected = cur_choice)
             } else {
                 updateSelectInput(session = session, 
                     inputId = "filterType", 
@@ -252,4 +252,4 @@ filterModule_server <- function(id, filterdata, conditionList) {
         # Returns filter list from module
         return(final)
     })
-}	
+}

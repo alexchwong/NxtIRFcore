@@ -23,5 +23,5 @@ bam_path = dirname(example_bams())[1]
 bams = Find_Bams(bam_path)
 }
 \seealso{
-\code{\link[=FindSamples]{FindSamples()}}
+\link{FindSamples}
 }

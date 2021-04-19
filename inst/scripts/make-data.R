@@ -72,5 +72,9 @@ make_example_NxtSE <- function() {
     
     # De-identify COV files for validity:
     covfile(se) <- rep("", 6)
+    
+    # Convert from HDF5-linked se to in-memory se:
+    se <- realize_NxtSE(se)
+    
     saveRDS(se, "../extdata/example_NxtSE.Rds")
 }

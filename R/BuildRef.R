@@ -1,27 +1,118 @@
+#' NxtIRF package for IRFinder-based differential Alternative Splicing
+#' and Intron Retention analysis
+#' 
+#' The NxtIRF package analyses RNA-seq datasets (aligned as BAM files using 
+#' splice aware genome aligners such as STAR). It fully incorporates the
+#' IRFinder algorithm, porting its C++ code into the R platform using RCPP.
+#' @details
+#' Enhancements include:
+#'
+#' \itemize{
+#' \item One-step reference generation from user-supplied or AnnotationHub 
+#'   genome and gene annotations;
+#' \item Multi-threaded support for core IRFinder algorithm to simultaneously
+#'   analyse multiple BAM files;
+#' \item Streamlined integration of IRFinder results from large datasets;
+#' \item Easy generation of experimental designs and data handling using
+#'   NxtSE which is a SummarizedExperiment object extended for NxtIRF-based
+#'   analysis;
+#' \item Simplified workflow for filtering low-abundance splicing events and
+#'   limma- or DESeq2- based differential alternative splicing events analysis;
+#' \item Interactive workflow and visualisation tools using shinydashboard;
+#' \item Advanced RNA-seq coverage visualisation, including the ability to 
+#'   combine RNA-seq coverage of multiple samples using advanced normalisation 
+#'   methods across samples grouped by conditions;
+#' }
+#' 
+#' The main functions are:
+#'
+#' \itemize{
+#' \item \code{\link{BuildReference}} - Prepares genome and gene annotation
+#'   references (FASTA/TwoBit, GTF files), and synthesises the NxtIRF reference
+#'   for the IRFinder engine and NxtIRF-based analysis
+#' \item \code{\link{IRFinder}} - Runs the IRFinder C++ routine to analyse
+#'   single or multiple BAM files using the NxtIRF/IRFinder reference.
+#' \item \code{\link{CollateData}} - Combines multiple IRFinder outputs
+#'   into one unified data structure
+#' \item \code{\link{MakeSE}} - Constructs a \code{NxtSE} 
+#'   object (see \code{\link{NxtSE-methods}}) to contain IRFinder output 
+#'   produced by \code{\link{CollateData}}
+#' \item \code{\link{apply_filters}} - Easily specify and apply a list of
+#'   filters to exclude low-abundance splicing events from downstream analysis
+#' \item \code{\link{limma_ASE}}, \code{\link{DESeq_ASE}} - perform
+#'   differential alternate splice event (ASE) analysis on a filtered NxtSE 
+#    object using limma or DESeq2
+#' \item \code{\link{make_diagonal}}, \code{\link{make_matrix}}: Generate
+#'   data to produce scatter plots or heatmaps of ASE events
+#' \item \code{\link{Plot_Coverage}}: Generate RNA-seq coverage plots of
+#'   individual samples or across samples grouped by user-specified conditions
+#' }
+#' 
+#' See \code{vignette("NxtIRF")} for worked examples on how to use NxtIRF
+#' 
+#' @author Alex Wong, Ulf Schmitz, William Ritchie
+#' 
+#' @docType package
+#' @name NxtIRF-package
+#' @aliases NxtIRF-package
+#' @keywords package
+#' @md
+NULL
+
 #' Builds reference files used by IRFinder / NxtIRF.
 #'
 #' @description
-#' This function builds the reference required by the IRFinder engine, as well
-#' as access-ready refined splice annotation data for NxtIRF. This reference
-#' can be created using either:
-#' 1. AnnotationHub genome and gene annotation (Ensembl): supply the names of
-#'    the genome sequence `ah_genome` and gene annotations `ah_transcriptome`
-#'    (see example below), or
-#' 2. User-supplied FASTA and GTF file. This can be a file path, or a web link
-#'   (e.g. 'http://', 'https://' or 'ftp://')
+#' These function builds the reference required by the IRFinder engine, as well
+#' as access-ready refined splice annotation data for NxtIRF. See details below.
+#' @details
+#' `GetReferenceResource()` processes the files, downloads resources from
+#' web links or from `AnnotationHub()`, and saves a local copy in the "resource"
+#' subdirectory within the given `reference_path`\cr\cr
+#' `BuildReference()` runs `GetReferenceResource()` if resources are not 
+#' saved locally (i.e. `GetReferenceResource()` is not already run). Then,
+#' it creates the NxtIRF / IRFinder references.\cr\cr
+#' NB: the parameters `fasta_file`, `gtf_file`, `ah_genome` and 
+#' `ah_transcriptome` can be omitted in `BuildReference()` if 
+#' `GetReferenceResource()` is already run. See examples below.\cr\cr
+#' The NxtIRF reference can be created using either:\cr\cr
+#' 1. User-supplied FASTA and GTF file. This can be a file path, or a web link
+#'   (e.g. 'http://', 'https://' or 'ftp://'). Use `fasta_file` and `gtf_file`
+#'    to specify the files or web paths to use.\cr\cr
+#' 2. AnnotationHub genome and gene annotation (Ensembl): supply the names of
+#'    the genome sequence `ah_genome` and gene annotations 
+#'    `ah_transcriptome` \cr\cr
 #'
-#' @param fasta The path to the user-supplied genome fasta file
-#' @param gtf The path to the user-supplied transcript gtf file
+#' @param fasta_file The file path or web link to the user-supplied genome
+#'   FASTA file.
+#' @param gtf_file The file path or web link  to the user-supplied transcript 
+#'   GTF file (or gzipped GTF file).
 #' @param ah_genome The name of the AnnotationHub record containing the genome 
-#'   2bit file. Leave blank to use user-supplied `fasta` file.
+#'   FASTA resource (Ensembl - TwoBit file resource).
 #' @param ah_transcriptome The name of the AnnotationHub record containing the 
-#'   transcript gtf file. Leave blank to use user-supplied `gtf` file.
-#' @param reference_path (required) The directory to store the reference files
-#' @param genome_type (required) Allows `BuildReference()` to select default 
+#'   transcript GTF file.
+#' @param reference_path (REQUIRED) The directory to store the reference files
+#' @param convert_chromosome_names (Optional) A 2-column data frame containing 
+#'   chromosome name conversions. The first column lists the chromosome names 
+#'   of the source reference files, and the second column gives the desired 
+#'   chromosome names). See example below, or refer to
+#'   <https://github.com/dpryan79/ChromosomeMappings> for a list of
+#'   chromosome conversion resources. If chromosome conversion occurs, only
+#'   annotations that match the source chromosome names will be included in
+#'   the final NxtIRF reference (i.e. records with non-matching chromosome
+#'   names will be discarded)
+#' @param overwrite_resource (default FALSE) `BuildReference()` will first 
+#'   run `GetReferenceResource()` before generating the NxtIRF reference.
+#'   If the genome TwoBit and gene annotation GTF files (generated by 
+#'   `GetReferenceResource()`) are found in the "resource" subdirectory, 
+#'   `BuildReference()` will use these resources (and not overwrite these),
+#'   unless `overwrite_resource` is set to TRUE.
+#' @param genome_type Allows `BuildReference()` to select default 
 #'   `nonPolyARef` and `MappabilityRef` for selected genomes. Allowed options 
 #'   include: 'hg38', 'hg19', 'mm9', 'mm10'.
-#'   Setting to any other value to use custom
-#'   `nonPolyARef` and `MappabilityRef` files
+#'   Omit this parameter, or set to any other value to manually set the
+#'   `nonPolyARef` and `MappabilityRef` files. Use `GetNonPolyARef()` and
+#'   `GetMappabilityRef()` to retrieve NxtIRF-supplied default files
+#'   for the supported chromosomes (see examples below).
 #' @param nonPolyARef A BED file (3 unnamed columns containing chromosome, 
 #'   start and end coordinates) of regions defining known non-polyadenylated 
 #'   transcripts. This file is used for QC analysis of IRFinder-processed files 
@@ -39,17 +130,16 @@
 #' @param BlacklistRef A BED file (3 unnamed columns containing chromosome, 
 #'   start and end coordinates) of regions to be otherwise excluded from IR 
 #'   analysis. Leave blank to not use a `BlacklistRef` file.
-#' @param convert_chromosome_names An optional 2-column data frame containing 
-#'   conversion (first column being the chromosome names of the source 
-#'   reference, and the second being the desired chromosome names). 
-#'   See <https://github.com/dpryan79/ChromosomeMappings> for a list of
-#'   chromosome conversion resources
-#' @param UseExtendedTranscripts Should IRFinder include non-protein-coding 
-#'   transcripts such as anti-sense and lincRNAs? Setting `FALSE` (default 
-#'   IRFinder) will exclude transcripts other than `protein_coding` and 
+#' @param UseExtendedTranscripts (default TRUE) Should non-protein-coding 
+#'   transcripts such as anti-sense and lincRNAs be included in searching
+#'   for IR / AS events? Setting `FALSE` (vanilla IRFinder) will exclude 
+#'   transcripts other than `protein_coding` and 
 #'   `processed_transcript` transcripts from IR analysis.
-#' @return Nothing. The created reference will be written to the given directory. 
+#' @return Nothing. The created reference will be written to the given 
+#'   directory. 
 #'   This includes:
+#' * `reference_path`/settings.Rds: An RDS file containing parameters used
+#'   to generate the NxtIRF reference
 #' * `reference_path`/IRFinder.ref.gz: A gzipped text file containing collated 
 #'   IRFinder references to be used as input for the IRFinder analysis
 #' * `reference_path`/fst/: Contains fst files for subsequent easy access to 
@@ -57,30 +147,154 @@
 #' * `reference_path`/resource/genome.2bit: Contains a TwoBitFile generated 
 #'   by this function for easy subsequent access to the genome. This step is
 #'   skipped if an AnnotationHub resource is used and convert_chromosome_names
-#'   is not used
+#'   is not used, as the TwoBit file is identical to the cached AnnotationHub
+#'   resource.
 #' * `reference_path`/resource/transcripts.gtf.gz: Contains a copy of the GTF
 #'   file used by this reference. This is used by featureCounts option in
 #'   `IRFinder()` 
 #' @examples
-#' BuildReference(
-#'   fasta = mock_genome(), gtf = mock_gtf(),
-#'   reference_path = file.path(tempdir(), "Reference"),
-#'   genome_type = "other"
+#' # Reference generation from NxtIRF's example mock genome
+#' 
+#' GetReferenceResource(
+#'     fasta = mock_genome(), gtf = mock_gtf(),
+#'     reference_path = file.path(tempdir(), "Reference")
 #' )
-#' @seealso [GenerateMappabilityReads()], [GenerateMappabilityBED()], 
+#' BuildReference(
+#'     reference_path = file.path(tempdir(), "Reference")
+#' )
+#' 
+#' # Gets path to the Non-PolyA BED file for hg19
+#'
+#' GetNonPolyARef("hg19")
+#'
+#' # Gets path to the Mappability Exclusion BED file for mm10 (from a tempdir())
+#'
+#' GetMappabilityRef("mm10")
+#'
+#' # Reference generation from user supplied FASTA and GTF files (NOT RUN)
+#' 
+#' # GetReferenceResource(
+#' #     fasta = "genome.fa", gtf = "transcripts.gtf",
+#' #     reference_path = "./Reference_user"
+#' # )
+#' # BuildReference(reference_path = "./Reference_user",
+#' #     genome_type = "hg38" 
+#' # )
+#'
+#' # Reference generation from Ensembl's FTP links (NOT RUN):
+#' 
+#' # FTP = "ftp://ftp.ensembl.org/pub/release-94/"
+#' # GetReferenceResource(
+#' #     fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
+#' #         "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
+#' #     gtf = paste0(FTP, "gtf/homo_sapiens/",
+#' #         "Homo_sapiens.GRCh38.94.chr.gtf.gz"), 
+#' #     reference_path = "./Reference_FTP"
+#' # )
+#' # BuildReference(reference_path = "./Reference_FTP",
+#' #     genome_type = "hg38" 
+#' # )
+#' 
+#' # Get AnnotationHub record names for Ensembl release-94 (NOT RUN)
+#' 
+#' # ah = AnnotationHub::AnnotationHub()
+#' # ah_r94 = AnnotationHub::query(ah, c("Homo Sapiens", "release-94"))
+#' # ah_r94
+#' # AnnotationHub with 9 records
+#' # # snapshotDate(): 2021-04-12
+#' # # $dataprovider: Ensembl
+#' # # $species: Homo sapiens
+#' # # $rdataclass: TwoBitFile, GRanges
+#' # # additional mcols(): taxonomyid, genome, description, coordinate_1_based, 
+#' # # maintainer, rdatadateadded,
+#' # #   preparerclass, tags, rdatapath, sourceurl, sourcetype
+#' # # retrieve records with, e.g., 'object[["AH64628"]]'
+#' # 
+#' #             title                                           
+#' #   AH64628 | Homo_sapiens.GRCh38.94.abinitio.gtf
+#' #   AH64629 | Homo_sapiens.GRCh38.94.chr.gtf
+#' #   AH64630 | Homo_sapiens.GRCh38.94.chr_patch_hapl_scaff.gtf
+#' #   AH64631 | Homo_sapiens.GRCh38.94.gtf
+#' #   AH65744 | Homo_sapiens.GRCh38.cdna.all.2bit
+#' #   AH65745 | Homo_sapiens.GRCh38.dna.primary_assembly.2bit
+#' #   AH65746 | Homo_sapiens.GRCh38.dna_rm.primary_assembly.2bit
+#' #   AH65747 | Homo_sapiens.GRCh38.dna_sm.primary_assembly.2bit
+#' #   AH65748 | Homo_sapiens.GRCh38.ncrna.2bit
+#' 
+#' # Reference generation from AnnotationHub's Ensembl release-94 (NOT RUN)
+#' 
+#' # GetReferenceResource(
+#' #     ah_genome =  = "AH65745", 
+#' #     ah_transcriptome = "AH64631",
+#' #     reference_path = "./Reference_AH"
+#' # )
+#' # BuildReference(reference_path = "./Reference_AH",
+#' #     genome_type = "hg38" 
+#' # )
+#' 
+#' # AnnotationHub's Ensembl release-94, converting Ensembl chromosomes
+#' # to UCSC style (NOT RUN)
+#' 
+#' # chrom.df = GenomeInfoDb::genomeStyles()$Homo_sapiens
+#' #
+#' # GetReferenceResource(
+#' #     ah_genome = "AH65745", 
+#' #     ah_transcriptome = "AH64631",
+#' #     reference_path = "./Reference_UCSC",
+#' #     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
+#' # )
+#' # BuildReference(reference_path = "./Reference_UCSC",
+#' #     genome_type = "hg38", 
+#' #     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
+#' # )
+#' @seealso [GenerateMappabilityReads], [GenerateMappabilityBED], 
+#' \link[AnnotationHub]{AnnotationHub}
+#' @name BuildReference
 #' @md
+NULL
+
+#' @describeIn BuildReference Processes / downloads a copy of the genome
+#' and gene annotations and stores this in the "resource" subdirectory
+#' of the given reference path
+#' @export
+GetReferenceResource <- function(
+        fasta_file, gtf_file,
+        ah_genome, ah_transcriptome, 
+        reference_path = "./Reference",
+        convert_chromosome_names = NULL,
+        overwrite_resource = FALSE
+) {
+    if(missing(fasta_file)) fasta_file = ""
+    if(missing(gtf_file)) gtf_file = ""
+    if(missing(ah_genome)) ah_genome = ""
+    if(missing(ah_transcriptome)) ah_transcriptome = ""
+    .validate_reference_path(reference_path)
+
+    chromosomes = .convert_chromosomes(convert_chromosome_names)
+    reference_data = .get_reference_data(
+        fasta_file, gtf_file, ah_genome, ah_transcriptome, 
+        reference_path, chromosomes)
+}
+
+#' @describeIn BuildReference First calls \code{GetReferenceResource()}
+#' (if required). Afterwards creates the NxtIRF reference in the
+#' given reference path
 #' @export
 BuildReference <- function(
-        fasta = "genome.fa", gtf = "transcripts.gtf",
-        ah_genome = "", ah_transcriptome = "", 
-        reference_path = "./Reference", genome_type = "", 
-        nonPolyARef = "", MappabilityRef = "", BlacklistRef = "", 
+        fasta_file, gtf_file,
+        ah_genome, ah_transcriptome, 
+        reference_path = "./Reference",
         convert_chromosome_names = NULL,
+        overwrite_resource = FALSE, genome_type, 
+        nonPolyARef = "", MappabilityRef = "", BlacklistRef = "", 
         UseExtendedTranscripts = TRUE
     ) {
-    .validate_genome_type(genome_type)
+    if(missing(genome_type)) genome_type = ""
+    if(missing(fasta_file)) fasta_file = ""
+    if(missing(gtf_file)) gtf_file = ""
+    if(missing(ah_genome)) ah_genome = ""
+    if(missing(ah_transcriptome)) ah_transcriptome = ""
     .validate_reference_path(reference_path)
-    .prep_ref_path(reference_path)
     extra_files <- .fetch_genome_defaults(
         genome_type, nonPolyARef, MappabilityRef, BlacklistRef
     )
@@ -88,7 +302,9 @@ BuildReference <- function(
     dash_progress("Reading Reference Files", N)
     chromosomes = .convert_chromosomes(convert_chromosome_names)
     reference_data = .get_reference_data(
-        fasta, gtf, ah_genome, ah_transcriptome, reference_path, chromosomes)
+        fasta_file, gtf_file, ah_genome, ah_transcriptome, 
+        reference_path, chromosomes,
+        overwrite_resource)
 
     dash_progress("Processing gtf file", N)
     reference_data$gtf_gr = .validate_gtf(reference_data$genome, 
@@ -127,17 +343,58 @@ BuildReference <- function(
     message("Reference build finished")
     dash_progress("Reference build finished", N)
 
-    # create settings.Rds only after everything is finalised
-    settings.list <- list(
-        fasta_file = reference_data$fasta_file, 
-        gtf_file = reference_data$gtf_file,
-        ah_genome = ah_genome, ah_transcriptome = ah_transcriptome,
-        reference_path = reference_path, genome_type = genome_type,
-        nonPolyARef = nonPolyARef, MappabilityRef = MappabilityRef,
-        BlacklistRef = BlacklistRef,
-        UseExtendedTranscripts = UseExtendedTranscripts
-    )
+    # Update settings.Rds only after everything is finalised
+    settings.list = readRDS(file.path(reference_path, "settings.Rds"))
+    settings.list$genome_type = genome_type
+    settings.list$nonPolyARef = nonPolyARef
+    settings.list$MappabilityRef = MappabilityRef
+    settings.list$BlacklistRef = BlacklistRef
+    settings.list$UseExtendedTranscripts = UseExtendedTranscripts
     saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
+}
+
+#' @describeIn BuildReference Returns the path to the BED file containing
+#'   coordinates of known non-polyadenylated transcripts for genomes 
+#'   \code{hg38}, \code{hg19}, \code{mm10} and \code{mm9}, 
+#' @export
+GetNonPolyARef <- function(genome_type) {
+    if (genome_type == "hg38") {
+        nonPolyAFile <- system.file(
+            "extra-input-files/Human_hg38_nonPolyA_ROI.bed",
+            package = "NxtIRF"
+        )
+    } else if (genome_type == "hg19") {
+        nonPolyAFile <- system.file(
+            "extra-input-files/Human_hg19_nonPolyA_ROI.bed",
+            package = "NxtIRF"
+        )
+    } else if (genome_type == "mm10") {
+        nonPolyAFile <- system.file(
+            "extra-input-files/Mouse_mm10_nonPolyA_ROI.bed",
+            package = "NxtIRF"
+        )
+    } else if (genome_type == "mm9") {
+        nonPolyAFile <- system.file(
+            "extra-input-files/Mouse_mm9_nonPolyA_ROI.bed",
+            package = "NxtIRF"
+        )
+    } else {
+        nonPolyAFile <- ""
+    }
+    return(nonPolyAFile)
+}
+
+#' @describeIn BuildReference Returns the path to the NxtIRF-provided
+#'   Mappability Exclusion coordinates of lowly-mappable regions for genomes 
+#'   \code{hg38}, \code{hg19}, \code{mm10} and \code{mm9}, 
+#' @export
+GetMappabilityRef <- function(genome_type) {
+    if (!(genome_type %in% c("hg38", "hg19", "mm9", "mm10"))) {
+        mapfile <- ""
+    } else {
+        mapfile <- get_mappability_exclusion(genome_type)
+    }
+    return(mapfile)
 }
 
 #' Gets a genome object from NxtIRF reference.
@@ -153,26 +410,30 @@ Get_Genome <- function(reference_path) {
             file.path(reference_path, "resource", "genome.2bit")))
     } else if(file.exists(file.path(reference_path, "settings.Rds"))){
         settings = readRDS(file.path(reference_path, "settings.Rds"))
-        tryCatch(
-            genome = .fetch_AH(settings$ah_genome, 
-                rdataclass = "TwoBitFile"),
-            error = function(e) {
-                stop(paste("In Get_Genome()",
-                    settings$ah_genome,
-                    "is an invalid AnnotationHub resource"
-                ), call. = FALSE)
-            }
-        )
+        # tryCatch(
+            # genome = .fetch_AH(settings$ah_genome, 
+                # rdataclass = "TwoBitFile"),
+            # error = function(e) {
+                # stop(paste("In Get_Genome()",
+                    # settings$ah_genome,
+                    # "is an invalid AnnotationHub resource"
+                # ), call. = FALSE)
+            # }
+        # )
+        genome = .fetch_AH(settings$ah_genome, 
+            rdataclass = "TwoBitFile")
     } else {
         stop(paste("In Get_Genome,",
             "invalid reference_path supplied"
         ), call. = FALSE)
     }
+    return(genome)
 }
 
 Get_GTF_file <- function(reference_path) {
     .validate_reference(reference_path)
-    if(file.exists(file.path(reference_path, "resource", "transcripts.gtf.gz"))) {
+    if(file.exists(file.path(reference_path, 
+            "resource", "transcripts.gtf.gz"))) {
         return(file.path(reference_path, "resource", "transcripts.gtf.gz"))
     } else {
         stop(paste("In Get_GTF_file,",
@@ -202,16 +463,15 @@ Get_GTF_file <- function(reference_path) {
                 normalizePath(dirname(reference_path)) != "", TRUE, TRUE
             ),
             error = function(e) FALSE
-        )    
+        )
     }) {
-        return(TRUE)
+        # continue
+    } else {
+        stop(paste("In BuildReference(),", "error in 'reference_path',",
+            paste0("base path of '", reference_path, "' does not exist")
+        ), call. = FALSE)
     }
-    stop(paste("In BuildReference(),", "error in 'reference_path',",
-        paste0("base path of '", reference_path, "' does not exist")
-    ), call. = FALSE)
-}
 
-.prep_ref_path <- function(reference_path) {
     base <- normalizePath(dirname(reference_path))
     if (!dir.exists(file.path(base, basename(reference_path)))) {
         dir.create(file.path(base, basename(reference_path)))
@@ -242,38 +502,12 @@ Get_GTF_file <- function(reference_path) {
 
 .fetch_genome_defaults <- function(genome_type, nonPolyARef = "", 
         MappabilityRef = "", BlacklistRef = "") {
-    if(nonPolyARef == "") {
-        if (genome_type == "hg38") {
-            nonPolyAFile <- system.file(
-                "extra-input-files/Human_hg38_nonPolyA_ROI.bed",
-                package = "NxtIRF"
-            )
-        } else if (genome_type == "hg19") {
-            nonPolyAFile <- system.file(
-                "extra-input-files/Human_hg19_nonPolyA_ROI.bed",
-                package = "NxtIRF"
-            )
-        } else if (genome_type == "mm10") {
-            nonPolyAFile <- system.file(
-                "extra-input-files/Mouse_mm10_nonPolyA_ROI.bed",
-                package = "NxtIRF"
-            )
-        } else if (genome_type == "mm9") {
-            nonPolyAFile <- system.file(
-                "extra-input-files/Mouse_mm9_nonPolyA_ROI.bed",
-                package = "NxtIRF"
-            )
-        } else {
-            nonPolyAFile <-
-                .parse_valid_file(nonPolyARef, "non-polyA reference")
-        }
-    } else {
-        nonPolyAFile <-
-            .parse_valid_file(nonPolyARef, "non-polyA reference")    
-    }
+    nonPolyAFile <- GetNonPolyARef(genome_type)
+    nonPolyAFile <- .parse_valid_file(nonPolyARef, "non-polyA reference")    
+
     if(MappabilityRef == "" &
             genome_type %in% c("hg38", "hg19", "mm9", "mm10")) {
-        MappabilityFile <- .fetch_mappability_file(genome_type)
+        MappabilityFile <- GetMappabilityRef(genome_type)
     } else {
         MappabilityFile <-
             .parse_valid_file(MappabilityRef, "Mappability reference")        
@@ -304,35 +538,47 @@ Get_GTF_file <- function(reference_path) {
 
 .get_reference_data <- function(
         fasta, gtf, ah_genome, ah_transcriptome, reference_path, 
-        chromosomes = NULL) {
+        chromosomes = NULL, overwrite_resource = FALSE) {
 
-    genome <- .fetch_fasta(
-        reference_path = reference_path,
-        fasta = fasta,
-        ah_genome = ah_genome,
-        convert_chromosome_names = chromosomes
-    )
-    if (ah_genome != "") {
-        fasta_file <- fasta
+    # If resources already exist in 'resource', then recall these:
+    resource_path = file.path(reference_path, "resource")
+    if(!overwrite_resource && 
+        dir.exists(resource_path) &&
+        file.exists(file.path(reference_path, "settings.Rds")) &&
+        file.exists(file.path(resource_path, "genome.2bit")) &&
+        file.exists(file.path(resource_path, "transcripts.gtf.gz"))
+    ) {
+        genome <- TwoBitFile(file.path(resource_path, "genome.2bit"))
+        gtf_gr <- rtracklayer::import(
+            file.path(resource_path, "transcripts.gtf.gz"))
     } else {
-        fasta_file <- fasta    
+        genome <- .fetch_fasta(
+            reference_path = reference_path,
+            fasta = fasta,
+            ah_genome = ah_genome,
+            convert_chromosome_names = chromosomes
+        )
+        gtf_gr <- .fetch_gtf(
+            gtf = gtf, ah_transcriptome = ah_transcriptome,
+            reference_path = reference_path, 
+            convert_chromosome_names = chromosomes
+        )
+        # Save Resource details to settings.Rds:
+        settings.list <- list(
+            fasta_file = fasta, 
+            gtf_file = gtf,
+            ah_genome = ah_genome, ah_transcriptome = ah_transcriptome,
+            chromosomes = chromosomes,
+            reference_path = reference_path
+        )
+        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
     }
-    gtf_gr <- .fetch_gtf(
-        gtf = gtf, ah_transcriptome = ah_transcriptome,
-        reference_path = reference_path, 
-        # ah = ah,
-        convert_chromosome_names = chromosomes
-    )
-    if (ah_genome != "") {
-        gtf_file <- ""
-    } else {
-        gtf_file <- gtf    
-    }
+    settings.list = readRDS(file.path(reference_path, "settings.Rds"))
     final = list(
         genome = genome,
-        fasta_file = fasta_file,
+        fasta_file = settings.list$fasta_file,
         gtf_gr = gtf_gr,
-        gtf_file = gtf_file
+        gtf_file = settings.list$gtf_file
     )
     return(final)
 }
@@ -382,7 +628,7 @@ Get_GTF_file <- function(reference_path) {
     if (!dir.exists(file.path(reference_path, "resource"))) {
         dir.create(file.path(reference_path, "resource"))
     }
-    message("Converting genome to TwoBitFile...", appendLF = FALSE)
+    message("Saving genome as TwoBitFile...", appendLF = FALSE)
     genome.2bit = file.path(reference_path, "resource", "genome.2bit")
     rtracklayer::export(genome, genome.2bit, "2bit")
     message("done\n")
@@ -416,7 +662,7 @@ Get_GTF_file <- function(reference_path) {
         message("done\n")
     }
     if(!is.null(convert_chromosome_names)) {
-        gtf_gr = gr_convert_seqnames(gtf_gr, convert_chromosome_names)
+        gtf_gr = .gr_convert_seqnames(gtf_gr, convert_chromosome_names)
     }
     gc()
     # Convert to local gtf.gz for later FeatureCounts
@@ -442,7 +688,7 @@ Get_GTF_file <- function(reference_path) {
         file.remove(file.path(r_path, "transcripts.gtf"))
     }
     message("done\n")    
-    gtf_gr
+    return(gtf_gr)
 }
 
 .validate_gtf <- function(genome, gtf_gr) {
@@ -457,7 +703,7 @@ Get_GTF_file <- function(reference_path) {
     return(gtf_gr)
 }
 
-gr_convert_seqnames <- function(gr, convert_chromosome_names) {
+.gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     if(!is.null(convert_chromosome_names)) {
         converter = data.table(Original = GenomeInfoDb::seqlevels(gr))
         converter[convert_chromosome_names,
@@ -537,7 +783,7 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     } else if ( any(startsWith(file, c("http", "ftp")))) {
         url <- file
         # BiocFileCache this and return file path
-        cache <- rappdirs::user_cache_dir(appname = "NxtIRF")
+        cache <- tools::R_user_dir(package = "NxtIRF", which="cache")
         bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
         path <- BiocFileCache::bfcrpath(bfc, url)
         return(unname(path))
@@ -555,15 +801,6 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
         ))
         return("")
     }
-}
-
-.fetch_mappability_file <- function(genome_type) {
-    if (!(genome_type %in% c("hg38", "hg19", "mm9", "mm10"))) {
-        MappabilityFile <- ""
-    } else {
-        MappabilityFile <- get_mappability_exclusion(genome_type)
-    }
-    return(MappabilityFile)
 }
 
 .fix_gtf <- function(gtf_gr) {
@@ -1162,7 +1399,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
 
 .overlaps_exon_island <- function(intron.DT, groups.DT, upstream = TRUE) {
     if(all(c("intron_start", "intron_end") %in% colnames(intron.DT))) {
-        int.DT = intron.DT[, c("seqnames", "start", "end", "strand", "intron_start", "intron_end")]
+        int.DT = intron.DT[, c("seqnames", "start", "end", "strand", 
+            "intron_start", "intron_end")]
     } else {
         int.DT = intron.DT[, c("seqnames", "start", "end", "strand")]
         int.DT[, c("intron_start", "intron_end") := 
@@ -1227,7 +1465,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
         convert_chromosome_names, genome, 
         data[["Genes"]], data[["Transcripts"]])
     message("done\n")
-    message("Generating IRFinder reference: ref-read-continues.ref ...", appendLF = FALSE)
+    message("Generating IRFinder reference: ref-read-continues.ref ...", 
+        appendLF = FALSE)
     readcons = .gen_irf_readcons(reference_path,
         tmpdir.IntronCover.summa, tmpnd.IntronCover.summa
     )
@@ -1316,7 +1555,7 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
             rtracklayer::import(extra_files$BlacklistFile, "bed"))
     }
     if(!is.null(convert_chromosome_names)) {
-        exclude.omnidirectional = gr_convert_seqnames(
+        exclude.omnidirectional = .gr_convert_seqnames(
             exclude.omnidirectional,convert_chromosome_names)
     }
     # merge with any gaps <= 9
@@ -1584,7 +1823,7 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     if (extra_files$nonPolyAFile != "") {
         nonPolyA <- rtracklayer::import(extra_files$nonPolyAFile, "bed")
         if(!is.null(convert_chromosome_names)) {
-            nonPolyA = gr_convert_seqnames(nonPolyA, convert_chromosome_names)
+            nonPolyA = .gr_convert_seqnames(nonPolyA, convert_chromosome_names)
         }
         nonPolyA = as.data.table(nonPolyA)
         nonPolyA <- nonPolyA[, c("seqnames", "start", "end"), with = FALSE]
@@ -1609,6 +1848,7 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     Intergenic <- unlist(AllChr.split)
     if (length(Intergenic) > 0) {
         names(Intergenic) <- seq_len(length(Intergenic))
+        Intergenic = as.data.table(Intergenic)
         Intergenic <- Intergenic[, c("seqnames", "start", "end"), with = FALSE]
         Intergenic[, c("name") := paste("Intergenic", Intergenic$seqnames, 
             sep = "/")]
@@ -1619,7 +1859,7 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     if(!is.null(ref.ROI) && nrow(ref.ROI) > 0) {
         # ref.ROI = as.data.table(ref.ROI)
         setorderv(ref.ROI, c("seqnames", "start"))
-        ref.ROI[ c("start") := get("start") - 1] # convert back to 0-based
+        ref.ROI[, c("start") := get("start") - 1] # convert back to 0-based
     }
     return(ref.ROI)
 }
@@ -1737,7 +1977,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     # Exclude introns preceding any ORF exons:
     # protein.introns = protein.introns[get("intron_type") != "UTR5"]
     NMD.Table <- .gen_nmd_determine(Exons.tr, protein.introns, genome, 50)
-    protein.introns.red = unique(protein.introns[, c("intron_id", "intron_type")])
+    protein.introns.red = unique(
+        protein.introns[, c("intron_id", "intron_type")])
     NMD.Table[protein.introns.red,
         on = "intron_id",
         c("intron_type") := get("i.intron_type")
@@ -1846,7 +2087,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
 
     intron.DT.use = intron.DT[get("intron_type") != "UTR5"]
     exon.DT.skinny <- exon.DT[, -("seq")]
-    i_partition <- c(seq(1, nrow(intron.DT.use), by = 10000), nrow(intron.DT.use) + 1)    
+    i_partition <- c(seq(1, nrow(intron.DT.use), by = 10000), 
+        nrow(intron.DT.use) + 1)
     message("Computing for Intron Sequences...")
     pb <- txtProgressBar(max = length(i_partition) - 1, style = 3)
     l_seq = 1000
@@ -2091,7 +2333,8 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     candidate.introns <- as.data.table(
         read.fst(file.path(reference_path, "fst", "junctions.fst"))
     )
-    introns.skipcoord <- .gen_splice_skipcoord(reference_path, candidate.introns)
+    introns.skipcoord <- .gen_splice_skipcoord(
+        reference_path, candidate.introns)
 
     # chrOrder <- names(seqinfo(genome))
     message("Annotating Mutually-Exclusive-Exon Splice Events...",
@@ -3023,61 +3266,125 @@ gr_convert_seqnames <- function(gr, convert_chromosome_names) {
     return(AS_Table.Extended)
 }
 
-#' Generates Mappability reads from a genome FASTA file
+#' Creates a custom Mappability Exclusion BED file
 #'
-#' This function generates sequential reads from a supplied FASTA file. These
-#' reads of length `read_len = 70` are generated from a starting point spaced
-#' `read_stride = 10` nucleotides apart, alternating between forward and reverse
-#' strand, and contains a single nucleotide error `error_pos = 35` nucleotides
-#' from the start of the read.\cr\cr
-#' This function replicates the functionality of generateReadsError.pl in
-#' the original IRFinder
-#' @param fasta The path to the user-supplied genome fasta file
-#' @param ah_genome The name of the AnnotationHub record containing the genome 
-#'   TwoBit file. Leave blank to use user-supplied `fasta` file.
+#' @description
+#' These function create a custom Mappability Exclusion BED file from the 
+#' supplied genome FASTA and gene annotation GTF file. 
+#' 
+#' @details Creating a Mappability Exclusion BED file is a three-step process.
+#' \cr\cr
+#' First, using `GenerateMappabilityReads()`,
+#' reads are systematically generated by the given genome FASTA file 
+#' (or the `reference_path` containing the genome resource).\cr\cr
+#' Second, an aligner
+#' such as STAR (preferably the same aligner used for the subsequent RNA-seq 
+#' experiment) is required to align these reads to the source genome. Poorly
+#' mapped regions of the genome will be reflected by regions of low coverage 
+#' depth.\cr\cr
+#' Finally, the BAM file containing the aligned reads is analysed 
+#' using `GenerateMappabilityBED()`, to identify
+#' low-mappability regions to compile the Mappability Exclusion BED file.
+#' 
+#' @param fasta_file The path to the user-supplied genome fasta file
 #' @param reference_path The directory to store the reference files
 #' @param read_len The nucleotide length of the generated reads
 #' @param read_stride The nucleotide distance between sequentially generated
 #'   reads
 #' @param error_pos The position of the generated error within the reads
 #' @param verbose Whether additional status messages are shown
-#'   records to be used.
-#' @return None. Output reads are stored in `MappabilityReads.genome.fa`
-#'   in the given reference path. If from an AnnotationHub object, `genome`
-#'   is replaced by the name of the AnnotationHub record
+#' @param aligned_bam The BAM file of reads (generated by 
+#'   `GenerateMappabilityReads()`), aligned by the user using their
+#'   aligner of choice.
+#' @param output_file The output file name of the Mappability Exclusion
+#'   BED file. The function will automatically append the ".txt" suffix to
+#'   the file
+#' @param threshold Regions with this read depth (or below) are defined as low
+#'   mappability regions.
+#' @return None. `GenerateMappabilityReads()` writes `MappabilityReads.fa`
+#'   to the given `reference_path`. `GenerateMappabilityBED()` writes
+#'   its output BED file as named by `output_file` inside `reference_path`,
+#'   appended by the ".txt" suffix. This BED file can be used as input
+#'   as `MappabilityRef` in `BuildReference()`
 #' @examples
-#' # GenerateMappabilityReads(ah_genome = "AH65745",
-#' #   reference_path = file.path(tempdir(), "Reference"))
-#' @seealso <https://github.com/williamritchie/IRFinder/blob/master/bin/util/generateReadsError.pl>
+#' 
+#' # (1) Creates resource files and systematically generate reads based on
+#' # the NxtIRF mock genome:
+#' 
+#' GetReferenceResource(
+#'     fasta = mock_genome(), gtf = mock_gtf(),
+#'     reference_path = file.path(tempdir(), "Reference")
+#' )
+#'
+#' GenerateMappabilityReads(
+#'     reference_path = file.path(tempdir(), "Reference"),
+#' )
+#' 
+#' # NB BELOW NOT RUN (by R CMD CHECK):
+#' 
+#' # (2) Align the generated reads using Rsubread:
+#' 
+#' # setwd(file.path(tempdir(), "Reference"))
+#' # Rsubread::buildindex(basename = "./reference_index", 
+#' #     reference = mock_genome())
+#' # Rsubread::subjunc(
+#' #     index = "./reference_index", 
+#' #     readfile1 = "MappabilityReads.fa", 
+#' #     output_file = "MappabilityReads.bam", 
+#' #     useAnnotation = TRUE, 
+#' #     annot.ext = mock_gtf(), 
+#' #     isGTF = TRUE
+#' # )
+#' 
+#' # (3) Analyse the aligned reads for low-mappability regions:
+#' 
+#' # GenerateMappabilityBED(aligned_bam = "MappabilityReads.bam",
+#' #     output_file = file.path(tempdir(), "Reference", "Mappability.bed")
+#' # )
+#' @name Mappability-methods
+#' @aliases 
+#' GenerateMappabilityReads
+#' GenerateMappabilityBED
+#' @seealso [BuildReference]
+#' <https://github.com/williamritchie/IRFinder/blob/master/bin/util/generateReadsError.pl>
 #' @md
+NULL
+
+#' @describeIn Mappability-methods Generates Mappability reads from a 
+#' genome FASTA file. This function replicates the functionality of 
+#' generateReadsError.pl in vanilla IRFinder.
 #' @export
-GenerateMappabilityReads <- function(fasta = "", ah_genome = "",
-        reference_path, read_len = 70, read_stride = 10, error_pos = 35,
-        verbose = FALSE) {
-    .genmapreads_validate(fasta, ah_genome, reference_path)
-    if (ah_genome != "") {
-        genome <- .fetch_AH(ah_genome, verbose = verbose, 
-                rdataclass = "TwoBitFile")
-        fasta_file <- file.path(
-            reference_path, "resource",
-            paste(ah_genome, "fa", sep = ".")
-        )
+GenerateMappabilityReads <- function(fasta_file, reference_path, 
+        read_len = 70, read_stride = 10, error_pos = 35,
+        verbose = TRUE) {
+    .gmr_check_params(read_len, read_stride, error_pos)
+    if(missing(fasta_file)) fasta_file <- ""
+    ah_genome = .genmapreads_validate(fasta_file, reference_path)
+    genome <- NULL
+    if(!is_valid(fasta_file)) {
+        if (ah_genome != "") {
+            genome <- .fetch_AH(ah_genome, verbose = verbose, 
+                    rdataclass = "TwoBitFile")
+            fasta_file <- file.path(
+                reference_path, "resource",
+                paste(ah_genome, "fa", sep = "."))
+        } else if(file.exists(
+                file.path(reference_path, "resource", "genome.2bit"))){
+            genome <- rtracklayer::TwoBitFile(
+                file.path(reference_path, "resource", "genome.2bit"))
+            fasta_file <- file.path(
+                reference_path, "resource",
+                paste("genome", "fa", sep = "."))
+        }
         if (verbose) message(paste("Preparing to export as", fasta_file))
         # Write fasta to file
         genome.DNA <- rtracklayer::import(genome)
         gc()
-        genome <- Biostrings::replaceAmbiguities(genome)
+        genome.DNA <- Biostrings::replaceAmbiguities(genome.DNA)
         gc()
-        rtracklayer::export(genome, fasta_file, "fasta")
+        rtracklayer::export(genome.DNA, fasta_file, "fasta")
         if (verbose) message(paste("Successful export of", fasta_file))
-    } else if(file.exists(fasta)) {
-        if(!file.exists(normalizePath(fasta))) {
-            stop(paste("In GenerateMappabilityReads(),",
-                "Given genome file", normalizePath(fasta), "not found"
-            ), call. = FALSE)
-        }
-        fasta_file <- fasta
-    } 
+    }
     if(!file.exists(fasta_file)) {
         stop(paste("In GenerateMappabilityReads,",
             "failed to generate genome fasta file from given reference"
@@ -3086,34 +3393,70 @@ GenerateMappabilityReads <- function(fasta = "", ah_genome = "",
     # Run map read generator:
     run_IRFinder_GenerateMapReads(
         normalizePath(fasta_file),
-        file.path(normalizePath(reference_path), paste("MappabilityReads",
-            ifelse(ah_genome == "", "genome", ah_genome), "fa",
-            sep = "."
-        )),
+        file.path(normalizePath(reference_path), "MappabilityReads.fa"),
         read_len, read_stride, error_pos
     )
 }
 
-.genmapreads_validate <- function(fasta, ah_genome, reference_path) {
-    if (ah_genome != "" && substr(ah_genome, 1, 2) != "AH") {
-        stop(paste("In GenerateMappabilityReads",
-            ah_genome, "is not a valid AnnotationHub record name"
-        ), call. = FALSE)
-    }
-    if(
-        (fasta != "" && !file.exists(fasta)) |
-        (fasta == "" & ah_genome == "")
-    ) {
+.gmr_check_params <- function(read_len, read_stride, error_pos) {
+    if(!is.numeric(read_len) || read_len < 30) {
         stop(paste("In GenerateMappabilityReads,",
-            "please supply a valid fasta file or AnnotationHub record name,",
-            "the latter using 'ah_genome'"
+            "read_len must be numerical and at least 30"
         ), call. = FALSE)
     }
+    if(!is.numeric(read_stride) || read_stride > read_len) {
+        stop(paste("In GenerateMappabilityReads,",
+            "read_stride must be numerical and less than read_len"
+        ), call. = FALSE)
+    }
+    if(!is.numeric(error_pos) || error_pos > read_len) {
+        stop(paste("In GenerateMappabilityReads,",
+            "error_pos must be numerical and less than read_len"
+        ), call. = FALSE)
+    }
+}
+
+.genmapreads_validate <- function(fasta, reference_path) {
+    ah_genome = ""
     if (!dir.exists(dirname(reference_path))) {
         stop(paste("In GenerateMappabilityReads",
             dirname(reference_path),
             "does not exist"
         ), call. = FALSE)
+    }
+    if(file.exists(fasta)) {
+        if({
+            tryCatch({
+                genome = rtracklayer::import(fasta, "fasta")
+                FALSE
+            }, error = function(e) TRUE)
+        }) {
+            stop(paste("In GenerateMappabilityReads",
+                fasta,
+                "does not appear to be a valid FASTA file"
+            ), call. = FALSE)
+        }
+    } else {
+        if (!file.exists(file.path(reference_path, "settings.Rds"))) {
+            stop(paste("In GenerateMappabilityReads",
+                "settings.Rds is not found.",
+                "Run GetReferenceResource() first or supply a FASTA file"
+            ), call. = FALSE)
+        }
+        settings.Rds = readRDS(file.path(reference_path, "settings.Rds"))
+        ah_genome = settings.Rds[["ah_genome"]]
+        if (ah_genome != "" && substr(ah_genome, 1, 2) != "AH") {
+            stop(paste("In GenerateMappabilityReads",
+                ah_genome, "is not a valid AnnotationHub record name"
+            ), call. = FALSE)
+        } else if(ah_genome == "" && !file.exists(
+                file.path(reference_path, "resource", "genome.2bit"))) {
+            stop(paste("In GenerateMappabilityReads",
+                "resource/genome.2bit", "was not found in", reference_path,
+                ". Perhaps run GetReferenceResource() again or supply",
+                "a FASTA file"
+            ), call. = FALSE)
+        }
     }
     if (!dir.exists(file.path(reference_path))) {
         dir.create(file.path(reference_path))
@@ -3121,40 +3464,30 @@ GenerateMappabilityReads <- function(fasta = "", ah_genome = "",
     if (!dir.exists(file.path(reference_path, "resource"))) {
         dir.create(file.path(reference_path, "resource"))
     }
+    return(ah_genome)
 }
 
-#' Generate a BED file containing low mappability regions from an aligned genome
-#'
-#' NxtIRF uses IRFinder's method of empirically defining low-mappability
-#' regions. This is done by aligning artificial reads derived from a given
-#' genome (alternate +/- strands, with set length and stride), back onto
-#' the genome with the aligner. Genomic regions where the derived read cannot be
-#' mapped back to itself are low-mappability regions
-#' @param BAM The file name of the aligned BAM file
-#' @param out.bed The output file name
-#' @param threshold Regions with this read depth (or below) are defined as low
-#'   mappability regions
-#' @return None. This function writes a 3-column BED file to `out.bed`
-#' @examples
-#' # GenerateMappabilityBED(BAM = "aligned.BAM",
-#' #   out.bed = file.path(tempdir(), "Reference", "Mappability.bed")
-#' # )
-#' @md
+#' @describeIn Mappability-methods Generate a BED file defining 
+#' low mappability regions, using reads generated by 
+#' \code{GenerateMappabilityReads()}, aligned to the genome.
 #' @export
-GenerateMappabilityBED <- function(BAM = "", out.bed, threshold = 4) {
-    if(!file.exists(BAM)) {
+GenerateMappabilityBED <- function(aligned_bam = "", 
+        output_file, threshold = 4) {
+    if(!file.exists(aligned_bam)) {
         stop(paste("In GenerateMappabilityBED(),",
-            BAM, "BAM file does not exist"
+            aligned_bam, "BAM file does not exist"
         ), call. = FALSE)
     }
-    if(!dir.exists(dirname(out.bed))) {
+    if(!dir.exists(dirname(output_file))) {
         stop(paste("In GenerateMappabilityBED(),",
-            dirname(out.bed), "directory does not exist"
+            dirname(output_file), "directory does not exist"
         ), call. = FALSE)
     }
     return(
-        IRF_GenerateMappabilityRegions(normalizePath(BAM),
-            file.path(normalizePath(dirname(out.bed)), out.bed),
+        run_IRFinder_MapExclusionRegions(
+            normalizePath(aligned_bam),
+            file.path(normalizePath(dirname(output_file)), 
+                basename(output_file)),
             threshold = threshold
         )
     )

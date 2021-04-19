@@ -1,18 +1,17 @@
 GetCoverage_DF <- function(samples, files, seqname, start, end, strand) {
-
-  covData = list()
-  for(i in seq_len(length(files))) {
-    cov = GetCoverage(files[i], seqname, start - 1, end, 
-        ifelse(strand == "+", 0, ifelse(strand == "-", 1, 2)))
-    view = IRanges::Views(cov, start, end)
-    view.df = as.data.frame(view[[1]])
-    covData[[i]] = view.df
-  }
-  df = do.call(cbind, covData)
-  colnames(df) = samples
-  x = seq(start,end)
-  df = cbind(x, df)
-  return(df)
+    covData = list()
+    for(i in seq_len(length(files))) {
+        cov = GetCoverage(files[i], seqname, start - 1, end, 
+            ifelse(strand == "+", 0, ifelse(strand == "-", 1, 2)))
+        view = IRanges::Views(cov, start, end)
+        view.df = as.data.frame(view[[1]])
+        covData[[i]] = view.df
+    }
+    df = do.call(cbind, covData)
+    colnames(df) = samples
+    x = seq(start,end)
+    df = cbind(x, df)
+    return(df)
 }
 
 bin_df <- function(df, binwidth = 3) {
@@ -134,7 +133,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 plot_view_ref_fn <- function(view_chr, view_start, view_end, 
     transcripts, elems, highlight_events, condensed = FALSE,
     selected_transcripts) {
-			
+
     data_start = view_start - (view_end - view_start)
     data_end = view_end + (view_end - view_start)
 
@@ -223,7 +222,7 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
         }
         cur_level = cur_level + 1
     }
-      
+    
     if(condense_this == TRUE) {
         group.DT[transcripts.DT, on = "group_id", 
             c("group_name", "group_biotype") :=
@@ -246,7 +245,7 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
         c("disp_x") := 0.5 * (get("start") + view_end)]
     group.DT[get("start") < view_start & get("end") > view_end, 
         c("disp_x") := 0.5 * (view_start + view_end)]
-		
+
     reduced.DT$group_id = factor(reduced.DT$group_id, unique(group.DT$group_id), ordered = TRUE)
     reduced.DT[group.DT, on = "group_id", 
         c("plot_level") := get("i.plot_level")]
@@ -301,7 +300,7 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
             text = group.DT$display_name,
             xref = "x", yref = "y", showarrow = FALSE)      
     }
-      
+    
     if(nrow(group.DT) == 0) {
         max_plot_level = 1
     } else {
@@ -323,7 +322,7 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
             fixedrange = TRUE)
     )
     
-    return(list(gp = gp, pl = pl))		
+    return(list(gp = gp, pl = pl))
 }
 
 plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
@@ -348,7 +347,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     }
     gp_track = list()
     pl_track = list()
-  
+    
     cur_zoom = floor(log((view_end - view_start)/50) / log(3))
 
     data.list = list()
@@ -394,9 +393,9 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                     }
 
                     df$mean = rowMeans(as.matrix(df[,samples]))
-                    df$sd = matrixStats::rowSds(as.matrix(df[,samples]))
+                    df$sd = rowSds(as.matrix(df[,samples]))
                     n = length(samples)
-                    df$ci = qt((1 + conf.int)/2,df=	n-1) * df$sd / sqrt(n)
+                    df$ci = qt((1 + conf.int)/2,df = n-1) * df$sd / sqrt(n)
 
                     if(length(track_names) == length(tracks)) {
                         df$track = track_names[i]
@@ -463,7 +462,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                         theme_white_legend
                     pl_track[[i]] = ggplotly(gp_track[[i]],
                         tooltip = c("x", "y", "ymin", "ymax")
-                    )						
+                    )
                     pl_track[[i]] = pl_track[[i]] %>% layout(
                         # yaxis = list(range = c(0, 1 + max(df$mean + df$ci)), 
                             # fixedrange = TRUE)
@@ -525,7 +524,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     if(t_test == TRUE && !is.null(fac) && length(unique(fac)) == 2) {
         fac = factor(fac)
         t_test = genefilter::rowttests(data.t_test[, -1], fac)
-         message(paste("rowttests performed for", condition))
+        message(paste("rowttests performed for", condition))
 
         DT = data.table(x = data.t_test[, 1])
         DT[, c("t_stat") := -log10(t_test$p.value)]
@@ -575,12 +574,13 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     
     final_plot = subplot(plot_tracks, nrows = length(plot_tracks), 
         shareX = TRUE, titleY = TRUE) %>%
-      layout(
-        xaxis = list(
-          dtick = tick_size, 
-          tick0 = first_tick, 
-          tickmode = "linear"
-      ))
+        layout(
+            xaxis = list(
+                dtick = tick_size, 
+                tick0 = first_tick, 
+                tickmode = "linear"
+            )
+        )
 
     if(graph_mode == "Pan") {
         final_plot = final_plot %>% 
@@ -1073,25 +1073,25 @@ make_matrix <- function(se, event_list, sample_list = colnames(se),
     depth_threshold = 10, logit_max = 5, na.percent.max = 0.1) {
 
     method = match.arg(method)
-	inc = SummarizedExperiment::assay(se, "Included")[event_list, sample_list, drop = FALSE]
-	exc = SummarizedExperiment::assay(se, "Excluded")[event_list, sample_list, drop = FALSE]
+    inc = SummarizedExperiment::assay(se, "Included")[event_list, sample_list, drop = FALSE]
+    exc = SummarizedExperiment::assay(se, "Excluded")[event_list, sample_list, drop = FALSE]
     mat = inc/(inc + exc)
     mat[inc + exc < depth_threshold] = NA
-    mat = mat[rowSums(is.na(mat)) < na.percent.max * ncol(mat),, drop = FALSE]	
-	if(method == "PSI") {
-		# essentially M/Cov
-		return(mat)
-	} else if(method == "logit") {
-		mat = boot::logit(mat)
-		mat[mat > logit_max] = logit_max
-		mat[mat < -logit_max] = -logit_max
-		return(mat)
-	} else if(method == "Z-score") {
+    mat = mat[rowSums(is.na(mat)) < na.percent.max * ncol(mat),, drop = FALSE]
+    if(method == "PSI") {
+        # essentially M/Cov
+        return(mat)
+    } else if(method == "logit") {
+        mat = qlogis(mat)
+        mat[mat > logit_max] = logit_max
+        mat[mat < -logit_max] = -logit_max
+        return(mat)
+    } else if(method == "Z-score") {
         mat = mat - rowMeans(mat)
-        mat = mat / matrixStats::rowSds(mat)
-		return(mat)
-	}
-	
+        mat = mat / rowSds(mat)
+        return(mat)
+    }
+    
 }
 
 #' Constructs a data frame containing average PSI values of the two contrasted conditions
@@ -1129,61 +1129,66 @@ make_matrix <- function(se, event_list, sample_list = colnames(se),
 #' )
 #' @md
 #' @export
-make_diagonal <- function(se, event_list, condition, nom_DE, denom_DE, depth_threshold = 10, logit_max = 5) {
+make_diagonal <- function(se, event_list = rownames(se), 
+        condition, nom_DE, 
+        denom_DE, depth_threshold = 10, logit_max = 5) {
 
-	inc = SummarizedExperiment::assay(se, "Included")[event_list, ]
-	exc = SummarizedExperiment::assay(se, "Excluded")[event_list, ]
-	mat = inc/(inc + exc)
-	mat[inc + exc < depth_threshold] = NA
+    inc = assay(se, "Included")[event_list, ]
+    exc = assay(se, "Excluded")[event_list, ]
+    mat = inc/(inc + exc)
+    mat[inc + exc < depth_threshold] = NA
 
-	# use logit method to calculate geometric mean
+    # use logit method to calculate geometric mean
 
-	mat.nom = boot::logit(mat[, SummarizedExperiment::colData(se)[,condition] == nom_DE])
-	mat.denom = boot::logit(mat[, SummarizedExperiment::colData(se)[,condition] == denom_DE])
-	
-	mat.nom[mat.nom > logit_max] = logit_max
-	mat.denom[mat.denom > logit_max] = logit_max
-	mat.nom[mat.nom < -logit_max] = -logit_max
-	mat.denom[mat.denom < -logit_max] = -logit_max
-			
-	df = data.frame(EventName = event_list, nom = boot::inv.logit(rowMeans(mat.nom, na.rm = TRUE)),
-		denom = boot::inv.logit(rowMeans(mat.denom, na.rm = TRUE)))
-	
-	return(df)
+    mat.nom = qlogis(mat[, colData(se)[,condition] == nom_DE])
+    mat.denom = qlogis(mat[, colData(se)[,condition] == denom_DE])
+    
+    mat.nom[mat.nom > logit_max] = logit_max
+    mat.denom[mat.denom > logit_max] = logit_max
+    mat.nom[mat.nom < -logit_max] = -logit_max
+    mat.denom[mat.denom < -logit_max] = -logit_max
+
+    df = data.frame(EventName = event_list, 
+        nom = plogis(rowMeans(mat.nom, na.rm = TRUE)),
+        denom = plogis(rowMeans(mat.denom, na.rm = TRUE)))
+    
+    return(df)
 }
 
 update_data_frame <- function(existing_df, new_df) {
-	# add extra samples to existing df
-	DT1 = as.data.table(existing_df)
-	DT2 = as.data.table(new_df)
+    # add extra samples to existing df
+    DT1 = as.data.table(existing_df)
+    DT2 = as.data.table(new_df)
 
-  common_cols = intersect(names(DT1)[-1], names(DT2)[-1])
-  new_cols = names(DT2)[!(names(DT2) %in% names(DT1))]
+    common_cols = intersect(names(DT1)[-1], names(DT2)[-1])
+    new_cols = names(DT2)[!(names(DT2) %in% names(DT1))]
 
-  if(!all(DT2$sample %in% DT1$sample)) {
-    DT_add = DT2[!(sample %in% DT1$sample)]
-    if(length(new_cols) > 0) DT_add = DT_add[, c(new_cols) := NULL]
-    newDT = rbind(DT1, DT_add, fill = TRUE)
-  } else {
-    newDT = copy(DT1)
-  }
-
-  if(length(new_cols) > 0) {
-    DT_tomerge = copy(DT2)
-    if(length(common_cols) > 0) {
-      DT_tomerge[, c(common_cols) := NULL]
+    if(!all(DT2$sample %in% DT1$sample)) {
+        DT_add = DT2[!(sample %in% DT1$sample)]
+        if(length(new_cols) > 0) DT_add = DT_add[, c(new_cols) := NULL]
+        newDT = rbind(DT1, DT_add, fill = TRUE)
+    } else {
+        newDT = copy(DT1)
     }
-    newDT = merge(newDT, DT_tomerge, all = TRUE, by = "sample")
-  }
 
-  # now update conflicting values
-  if(length(common_cols) > 0 & any(DT2$sample %in% DT1$sample)) {
-    DT_toupdate = DT2[(sample %in% DT1$sample)]
-    if(length(new_cols) > 0) DT_toupdate = DT_toupdate[, c(new_cols) := NULL]
+    if(length(new_cols) > 0) {
+        DT_tomerge = copy(DT2)
+        if(length(common_cols) > 0) {
+            DT_tomerge[, c(common_cols) := NULL]
+        }
+        newDT = merge(newDT, DT_tomerge, all = TRUE, by = "sample")
+    }
 
-    newDT[DT_toupdate, on=.(sample), (common_cols) := mget(paste0("i.", common_cols))]
-  }
-  return(as.data.frame(newDT))
+    # now update conflicting values
+    if(length(common_cols) > 0 & any(DT2$sample %in% DT1$sample)) {
+        DT_toupdate = DT2[(sample %in% DT1$sample)]
+        if(length(new_cols) > 0) {
+            DT_toupdate = DT_toupdate[, c(new_cols) := NULL]
+        }
+        newDT[DT_toupdate, on = .(sample), 
+            (common_cols) := mget(paste0("i.", common_cols))]
+    }
+    return(as.data.frame(newDT))
 }
 
 NxtIRF.SpliceCurve = function(xstart,xend,ystart,yend,y_height,info) {
@@ -1206,18 +1211,19 @@ NxtIRF.SpliceCurve = function(xstart,xend,ystart,yend,y_height,info) {
             )
         final = rbind(final, temp)
     }
-	return(final)
+    return(final)
 }
 
 #' Draws an arc plot representing the spliced reads of a given sample
 #'
-#' NB Experimental / WIP
+#' NB Experimental / WIP. Internal function only
 #' @param fst_path The path to the output generated by [CollateData()]
 #' @param seqnames,start,end,strand The region to display. `seqnames` and
 #'   `strand` should be characters, whereas start and end should be integers
 #' @param sample_name The sample name.
 #' @return A ggplot object containing the rendered arc plot.
-Plot_Junctions <- function(fst_path, seqnames, start, end, strand, sample_name) {
+Plot_Junctions <- function(fst_path, 
+        seqnames, start, end, strand, sample_name) {
     if(!file.exists(file.path(fst_path, "junc_counts.fst"))) {
         stop(paste("In Plot_Junctions(),",
             "The file", file.path(fst_path, "junc_counts.fst"), "was not found"
@@ -1245,7 +1251,8 @@ Plot_Junctions <- function(fst_path, seqnames, start, end, strand, sample_name) 
     colnames(data)[1] = "sample"
     data = data[data$sample > 0,]
 
-    df = NxtIRF.SpliceCurve(data$start, data$end, 0,0,data$sample, rownames(data))
+    df = NxtIRF.SpliceCurve(data$start, data$end, 0, 0,
+        data$sample, rownames(data))
     y_range = max(df$y)
     
     data_mod = data

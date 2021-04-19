@@ -2,17 +2,30 @@
 % Please edit documentation in R/NxtSE-methods.R
 \name{NxtSE-methods}
 \alias{NxtSE-methods}
+\alias{up_inc}
 \alias{up_inc,NxtSE-method}
+\alias{up_inc<-}
 \alias{up_inc<-,NxtSE-method}
+\alias{down_inc}
 \alias{down_inc,NxtSE-method}
+\alias{down_inc<-}
 \alias{down_inc<-,NxtSE-method}
+\alias{up_exc}
 \alias{up_exc,NxtSE-method}
+\alias{up_exc<-}
 \alias{up_exc<-,NxtSE-method}
+\alias{down_exc}
 \alias{down_exc,NxtSE-method}
+\alias{down_exc<-}
 \alias{down_exc<-,NxtSE-method}
+\alias{covfile}
 \alias{covfile,NxtSE-method}
+\alias{covfile<-}
 \alias{covfile<-,NxtSE-method}
+\alias{ref}
 \alias{ref,NxtSE-method}
+\alias{realize_NxtSE}
+\alias{realize_NxtSE,NxtSE-method}
 \alias{coerce,SummarizedExperiment,NxtSE-method}
 \alias{NxtSE}
 \alias{[,NxtSE,ANY,ANY,ANY-method}
@@ -34,6 +47,8 @@ NxtSE(...)
 \S4method{covfile}{NxtSE}(x, withDimnames = TRUE, ...)
 
 \S4method{ref}{NxtSE}(x, withDimnames = TRUE, ...)
+
+\S4method{realize_NxtSE}{NxtSE}(x, withDimnames = TRUE, ...)
 
 \S4method{up_inc}{NxtSE}(x, withDimnames = TRUE) <- value
 
@@ -98,8 +113,12 @@ downstream exon-intron spanning reads (IR)
 \item \code{covfile,NxtSE-method}: Gets a named vector with
 the paths to the corresponding COV files
 
-\item \code{ref,NxtSE-method}: Retrieves a list of annotation data associated with this
-NxtSE object; primarily used in Plot_Coverage()
+\item \code{ref,NxtSE-method}: Retrieves a list of annotation data associated 
+with this NxtSE object; primarily used in Plot_Coverage()
+
+\item \code{realize_NxtSE,NxtSE-method}: Converts all DelayedMatrix assays as matrices
+(i.e. performs all delayed calculation and loads resulting object
+to RAM)
 
 \item \code{up_inc<-,NxtSE-method}: Sets upstream included events (SE/MXE), or
 upstream exon-intron spanning reads (IR)
@@ -160,4 +179,17 @@ se_IR = subset(se, EventType == "IR")
 se_SE = subset(se, EventType == "SE")
 se_IRSE = rbind(se_IR, se_SE)
 identical(se_IRSE, subset(se, EventType \%in\% c("IR", "SE"))) # TRUE
+
+# Convert HDF5-based NxtSE to in-memory se
+# MakeSE() creates a HDF5-based NxtSE object where all assay data is stored
+# as an h5 file instead of in-memory. All operations are performed as
+# delayed operations as per DelayedArray package.
+# To realize the NxtSE object as an in-memory object, use:
+
+se_real <- realize_NxtSE(se)
+
+# To check the difference, run:
+up_inc(se)
+up_inc(se_real)
+
 }

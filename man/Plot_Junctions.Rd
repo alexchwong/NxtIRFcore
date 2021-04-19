@@ -18,5 +18,5 @@ Plot_Junctions(fst_path, seqnames, start, end, strand, sample_name)
 A ggplot object containing the rendered arc plot.
 }
 \description{
-NB Experimental / WIP
+NB Experimental / WIP. Internal function only
 }

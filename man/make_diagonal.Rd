@@ -6,7 +6,7 @@
 \usage{
 make_diagonal(
   se,
-  event_list,
+  event_list = rownames(se),
   condition,
   nom_DE,
   denom_DE,
