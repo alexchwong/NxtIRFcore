@@ -16,7 +16,7 @@ License: MIT + file LICENSE
 Depends:
   R (>= 4.0.0)
 Imports:
-	methods, stats, utils, graphics, R.utils, magrittr,
+	methods, stats, utils, graphics, R.utils, magrittr, tools,
 	Rcpp (>= 1.0.5),
 	data.table,
 	fst,
@@ -45,7 +45,6 @@ Imports:
 	openssl,
 	parallel,
 	plotly,
-	rappdirs,
 	rtracklayer,
 	RColorBrewer,
 	stringr,
