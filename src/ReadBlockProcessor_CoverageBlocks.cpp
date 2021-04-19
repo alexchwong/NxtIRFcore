@@ -462,9 +462,17 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 				}
 				
 			}catch (const std::out_of_range& e) {
-				std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";
-			}catch (const std::invalid_argument& e) {
-				std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";			
+        #ifndef GALAXY
+          Rcout "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";
+        #else
+          std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";
+        #endif
+      }catch (const std::invalid_argument& e) {
+        #ifndef GALAXY
+          Rcout << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";			
+        #else
+          std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";
+        #endif
 			}
 		}
 	}
