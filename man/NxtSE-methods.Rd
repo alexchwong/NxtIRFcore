@@ -188,7 +188,7 @@ identical(se_IRSE, subset(se, EventType \%in\% c("IR", "SE"))) # TRUE
 
 se_real <- realize_NxtSE(se)
 
-To check the difference, run:
+# To check the difference, run:
 up_inc(se)
 up_inc(se_real)
 

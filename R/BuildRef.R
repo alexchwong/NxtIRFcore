@@ -783,7 +783,7 @@ Get_GTF_file <- function(reference_path) {
     } else if ( any(startsWith(file, c("http", "ftp")))) {
         url <- file
         # BiocFileCache this and return file path
-        cache <- rappdirs::user_cache_dir(appname = "NxtIRF")
+        cache <- tools::R_user_dir(package = "NxtIRF", which="cache")
         bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
         path <- BiocFileCache::bfcrpath(bfc, url)
         return(unname(path))

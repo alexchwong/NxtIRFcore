@@ -10,6 +10,7 @@
 #' @import rhandsontable
 #' @import ggplot2
 #' @importFrom methods as is coerce callNextMethod new
+#' @importFrom tools R_user_dir
 #' @importFrom graphics text
 #' @importFrom stats as.formula model.matrix qt runif na.omit prcomp
 #' @importFrom utils download.file packageVersion getFromNamespace
@@ -46,7 +47,6 @@
 #' @importFrom plotly plotlyProxy plotlyProxyInvoke renderPlotly subplot 
 #' @importFrom plotly highlight
 #' @importFrom R.utils gzip
-#' @importFrom rappdirs user_cache_dir
 #' @importFrom rtracklayer import export TwoBitFile track
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom stringr str_locate

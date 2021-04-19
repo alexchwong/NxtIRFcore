@@ -158,7 +158,7 @@ get_mappability_exclusion <- function(
 
 .fetch_files_from_urls <- function(urls, filenames, destination_path) {
     # No error checking
-    cache <- rappdirs::user_cache_dir(appname = "NxtIRF")
+    cache <- tools::R_user_dir(package = "NxtIRF", which="cache")
     bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
     files = c()
     for(i in seq_len(length(urls))) {

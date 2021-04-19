@@ -1,0 +1,61 @@
+---
+title: 'NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis'
+author: "Alex Chit Hei Wong"
+date: "`r Sys.Date()`"
+output:
+    rmarkdown::html_vignette:
+        toc: true
+vignette: >
+    %\VignetteIndexEntry{NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis}
+    %\VignetteEngine{knitr::rmarkdown}
+    \usepackage[utf8]{inputenc}
+---
+
+# Introduction
+
+blablabla
+
+# Generating a reference
+
+NxtIRF needs to generate a set of reference files in order to 
+perform downstream applications including running the IRFinder
+algorithm, collating these output files into an experiment, and
+drawing visualisation tools. This vignette will show how to
+generate a reference using either the command-line interface, or
+the graphics user interface (GUI).
+
+## Command Line Interface
+
+First, load the NxtIRF package and make a copy of the NxtIRF example reference
+FASTA and GTF files:
+
+```{r eval = FALSE}
+library(NxtIRF)
+mock_genome(".") # Copies NxtIRF mock genome as example
+mock_gtf(".") # Copies NxtIRF mock GTF file as example
+```
+
+## Running BuildReference
+
+NxtIRF generates a reference from a user-provided genome FASTA and 
+genome annotation GTF file, and is optimised for Ensembl references but can
+accept other reference GTF files. Alternatively, NxtIRF accepts AnnotationHub
+resources, using the record names of AnnotationHub records as input.
+
+We will first demonstrate a runnable example using the included mock 
+NxtIRF genome:
+
+```{r eval = FALSE}
+GetReferenceResource(
+    fasta_file = mock_genome(),
+    gtf_file = mock_gtf(),
+    reference_path = "./Reference"
+)
+BuildReference(reference_path = "./Reference")
+```
+
+The first function, GetReferenceResource(), requires 3 arguments:
+(1) \code{fasta_file} The file (or url) of the genome FASTA file,
+(2) \code{gtf_file} The file (or url) of the gene annotation GTF file, and
+(3) \code{reference_path} The directory (ideally an empty directory) to create
+the NxtIRF reference
