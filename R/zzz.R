@@ -156,12 +156,6 @@ get_mappability_exclusion <- function(
     return(ret)
 }
 
-.bfc_has_downloaded <- function(url) {
-    cache <- rappdirs::user_cache_dir(appname = "NxtIRF")
-    bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
-    return(nrow(BiocFileCache::bfcquery(bfc, url, field = "rname")) == 1)
-}
-
 .fetch_files_from_urls <- function(urls, filenames, destination_path) {
     # No error checking
     cache <- rappdirs::user_cache_dir(appname = "NxtIRF")
@@ -170,18 +164,48 @@ get_mappability_exclusion <- function(
     for(i in seq_len(length(urls))) {
         url = urls[i]
         file = filenames[i]
-        path <- tryCatch(BiocFileCache::bfcrpath(bfc, url),
-            error = function(e) {
-                warning(paste("Download failed for", url))
-                return("")
-            })
+        test <- BiocFileCache::bfcquery(bfc, url, field = "rname")
+        if(length(test$rpath) > 1) {
+            # Corrupt cache, delete all and re-download
+            BiocFileCache::bfcremove(bfc, test$rid)
+            test <- BiocFileCache::bfcquery(bfc, url, field = "rname")
+            if(length(test$rpath) > 0) {
+                stop(paste("Corrupt BiocFileCache for NxtIRF:",
+                    url, "multiple records exist and undeletable"
+                ), call. = FALSE)
+            }
+        }
+        if(length(test$rpath) < 1) {
+            if(.check_if_url_exists(url)) {
+                path <- tryCatch(BiocFileCache::bfcrpath(bfc, url),
+                error = function(e) {
+                    stop(paste("Download from url failed:", url, 
+                        "- please check connection"
+                    ), call. = FALSE)
+                })
+            } else {
+                stop(paste("url not found:", url, 
+                    "- please check connection"
+                ), call. = FALSE)
+            }
+        } else {
+            path <- test$rpath
+        }
+        
         if(destination_path == "") {
             files = c(files, path)
         } else {
-            file.copy(path,
-                file.path(destination_path, file),
-                overwrite = TRUE
-            )
+            dest = file.path(destination_path, file)
+            if(file.exists(dest) && 
+                    identical(openssl::md5(file(path)), 
+                        openssl::md5(file(dest)))) {
+                # if md5 identical, do nothing
+            } else {
+                file.copy(path,
+                    file.path(destination_path, file),
+                    overwrite = TRUE
+                )
+            }
             files = c(files, file.path(destination_path, file))
         }
     }
@@ -210,15 +234,6 @@ get_mappability_exclusion <- function(
                 return("")
             }
         )
-    }
-    # If all files are cached then simply return these:
-    if(all(unlist(lapply(urls, .bfc_has_downloaded)))) {
-        return(.fetch_files_from_urls(urls, filenames, destination_path))
-    }
-    ret = .check_if_url_exists(urls)
-    if(!all(ret)) {
-        warning(paste(urls[!ret], "- broken url detected\n"))
-        return("")
     }
     return(.fetch_files_from_urls(urls, filenames, destination_path))
 }

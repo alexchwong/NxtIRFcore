@@ -103,7 +103,11 @@ se = NxtIRF_example_NxtSE()
 
 colData(se)$treatment = rep(c("A", "B"), each = 3)
 
-res_limma = limma_ASE(se, "treatment", "A", "B")
+if("limma" \%in\% rownames(installed.packages())) {
+    res_limma = limma_ASE(se, "treatment", "A", "B")
+}
 
-res_DESeq = DESeq_ASE(se, "treatment", "A", "B")
+if("DESeq2" \%in\% rownames(installed.packages())) {
+    res_DESeq = DESeq_ASE(se, "treatment", "A", "B")
+}
 }
