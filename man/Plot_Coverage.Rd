@@ -26,60 +26,78 @@ Plot_Coverage(
 )
 }
 \arguments{
-\item{se}{A SummarizedExperiment object. It must contain the Event to be displayed}
+\item{se}{A SummarizedExperiment object. It must contain the Event to be
+displayed}
 
-\item{Event}{The \code{EventName} or the IR / alternative splicing event to be normalised. Valid names
-are all entries within rownames(se)}
+\item{Event}{The \code{EventName} or the IR / alternative splicing event to be
+normalised. Valid names are all entries within rownames(se)}
 
-\item{cov_data}{A list containing all the data required by this function. Generate this data using
-prepare_covplot_data()}
+\item{cov_data}{A list containing all the data required by this function.
+Generate this data using prepare_covplot_data()}
 
-\item{strand}{Whether to show coverage of both strands "*" (default), or from the "+" or "-" strand only.}
+\item{strand}{Whether to show coverage of both strands "*" (default), or
+from the "+" or "-" strand only.}
 
-\item{tracks}{The names of individual samples (if condition is not set), or the names of the different
-conditions to be plotted.}
+\item{tracks}{The names of individual samples (if condition is not set),
+or the names of the different conditions to be plotted.}
 
-\item{track_names}{The names of the tracks to be displayed. Defaults to \code{tracks}}
+\item{track_names}{The names of the tracks to be displayed. Defaults to
+\code{tracks}}
 
-\item{condition}{The name of the column (of SummarizedExperiment::colData(se) containing the conditions to be contrasted.
-If this is not set, \code{tracks} are assumed to be names of individual samples}
+\item{condition}{The name of the column (of \code{colData(se)} containing the
+conditions to be contrasted. If this is not set, \code{tracks} are assumed to be
+names of individual samples}
 
-\item{selected_transcripts}{Transcript ID or transcript names of transcripts to be displayed on the gene annotation
-rack. Useful to remove overlapping transcripts that are not relevant to the samples being displayed.}
+\item{selected_transcripts}{Transcript ID or transcript names of transcripts
+to be displayed on the gene annotation track. Useful to remove overlapping
+transcripts that are not relevant to the samples being displayed.}
 
 \item{condense_tracks}{Whether to collapse the transcript tracks by gene.}
 
-\item{stack_tracks}{Whether to graph all the conditions on a single coverage track. If set to true, each condition}
+\item{stack_tracks}{Whether to graph all the conditions on a single coverage
+track. If set to true, each condition}
 
-\item{t_test}{Whether to perform a pair-wise T-test. Only used if there are TWO condition tracks.}
+\item{t_test}{Whether to perform a pair-wise T-test. Only used if there are
+TWO condition tracks.}
 
-\item{norm_event}{Whether to normalise by an event different to that given in "Event". The difference between this
-and Event is that the genomic coordinates are only centered around Event. norm_event overrides Event if both are given.}
+\item{norm_event}{Whether to normalise by an event different to that given
+in "Event". The difference between this and Event is that the genomic
+coordinates are only centered around Event. norm_event overrides Event
+if both are given.}
 
-\item{zoom_factor}{Zoom out from event. Each level of zoom zooms out by a factor of 3.}
+\item{zoom_factor}{Zoom out from event. Each level of zoom zooms out by a
+factor of 3.}
 
-\item{bases_flanking}{How many bases flanking the zoomed window. Useful when used in conjunction with zoom_factor == 0}
+\item{bases_flanking}{How many bases flanking the zoomed window. Useful when
+used in conjunction with zoom_factor == 0}
 
-\item{Gene}{Whether to use the range for the given Gene. If given and valid, overrides Event (but \code{Event} or \code{norm_event} will
-be used to normalise by condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name (Gene Symbol)}
+\item{Gene}{Whether to use the range for the given Gene. If given and valid,
+overrides Event (but \code{Event} or \code{norm_event} will be used to normalise by
+condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name
+(Gene Symbol)}
 
-\item{seqnames}{Use chromosome. Only used if \code{seqnames}, \code{start} and \code{end} are also given and valid.
-If these coordinates are set, they will override Event and Gene, although Event / norm_event is still required for normalising
-by condition}
+\item{seqnames}{Use chromosome. Only used if \code{seqnames}, \code{start} and \code{end}
+are also given and valid.
+If these coordinates are set, they will override Event and Gene, although
+Event / norm_event is still required for normalising by condition}
 
 \item{start}{Overrides with given start coordinate. See \code{seqnames}}
 
 \item{end}{Overrides with given end coordinate. See \code{seqnames}}
 }
 \value{
-A list containing two objects. final_plot is the plotly object. ggplot is a list of ggplot tracks.
-\code{ggplot[[n]]} is the nth track (this function supports up to 4 tracks). \code{ggplot[[5]]} contains the T-test track if valid.
-\code{ggplot[[6]]} always contains the genome track.
+A list containing two objects. final_plot is the plotly object.
+ggplot is a list of ggplot tracks.\cr\cr
+\code{ggplot[[n]]} is the nth track (this function supports up to 4 tracks).
+\cr\cr
+\code{ggplot[[5]]} contains the T-test track if valid.\cr\cr
+\code{ggplot[[6]]} always contains the genome track.\cr\cr
 }
 \description{
-This function generates a coverage plot illustrating differential expression of intron retention
-or alternative splicing (differential exon coverage). It can normalise coverage of samples
-per condition using NxtIRF's SpliceOver parameter that normalises the flanking exon boundaries to 1.
+This function generates a coverage plot illustrating differential expression
+of intron retention or alternative splicing (differential exon coverage).
+It can normalise coverage of samples per condition using NxtIRF's SpliceOver
+parameter that normalises the flanking exon boundaries to 1.
 }
 \examples{
 se = NxtIRF_example_NxtSE()
