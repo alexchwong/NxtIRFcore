@@ -2,19 +2,21 @@
 % Please edit documentation in R/CollateData.R
 \name{apply_filters}
 \alias{apply_filters}
-\title{Convenience function to apply a list of filters to a SummarizedExperiment object}
+\title{Convenience function to apply a list of filters to a SummarizedExperiment
+object}
 \usage{
 apply_filters(se, filters)
 }
 \arguments{
 \item{se}{A SummarizedExperiment object created by \code{MakeSE()}}
 
-\item{filters}{A list of filters to apply. Each filter must contain the elements
-\code{filterClass}, \code{filterType} and \code{filterVars}. See \code{?runFilter} for details}
+\item{filters}{A list of filters to apply. Each filter must contain the
+elements \code{filterClass}, \code{filterType} and \code{filterVars}.
+See \code{?runFilter} for details}
 }
 \value{
-A vector of logicals, with \code{TRUE} indicating events to be retained, and
-\code{FALSE} for events to be filtered out
+A vector of logicals, with \code{TRUE} indicating events to be retained,
+and \code{FALSE} for events to be filtered out
 }
 \description{
 See \code{\link[=runFilter]{runFilter()}} for details regarding filters

@@ -33,20 +33,26 @@ using NxtIRF, suitable for use in generating references based on hg38,
 hg19, mm10 and mm9 genomes.
 }
 \examples{
-mock_genome() # returns the location of the genome.fa file of the mock reference
+# returns the location of the genome.fa file of the mock reference
+mock_genome() 
 
-mock_gtf() # returns the location of the transcripts.gtf file of the mock reference
+# returns the location of the transcripts.gtf file of the mock reference
+mock_gtf() 
 
-example_bams() # returns the locations of the 6 example bam files
+# returns the locations of the 6 example bam files
+example_bams() 
 
-get_mappability_exclusion("hg38") # returns the location of the Mappability exclusion BED for hg38
+# returns the location of the Mappability exclusion BED for hg38
+get_mappability_exclusion("hg38") 
 }
 \references{
 Generation of the mappability files was performed using NxtIRF using
 a method analogous to that described in:
 
-Middleton R, Gao D, Thomas A, Singh B, Au A, Wong JJ, Bomane A, Cosson B, Eyras E, Rasko JE, Ritchie W.
-IRFinder: assessing the impact of intron retention on mammalian gene expression.
+Middleton R, Gao D, Thomas A, Singh B, Au A, Wong JJ, Bomane A, Cosson B,
+Eyras E, Rasko JE, Ritchie W.
+IRFinder: assessing the impact of intron retention on mammalian gene
+expression.
 Genome Biol. 2017 Mar 15;18(1):51.
 \url{https://doi.org/10.1186/s13059-017-1184-4}
 }

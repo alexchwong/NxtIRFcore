@@ -40,7 +40,8 @@ setreactive_expr <- function() {
         df = c(),
         df.files = c(),
         df.anno = c(),
-        
+        df.files_savestate = c(),
+        df.anno_savestate = c(),
         se = NULL
     )
 }
@@ -81,7 +82,7 @@ setreactive_Diag <- function() {
     # NB same code as Volcano
     reactiveValues(
         plot_ini = FALSE,
-		plotly_click = NULL,
+        plotly_click = NULL,
         final_plot = NULL,
         selected = NULL
     )
@@ -100,14 +101,14 @@ setreactive_Cov <- function() {
         view_end = "",
         data_start = 0,
         data_end = 0,
-			
+
         view_strand = "*",
 
         event.ranges = NULL,
 
         plotly_relayout = NULL,
         plot_ini = FALSE,
-       
+        
         final_plot = NULL,
         
         trigger = NULL,

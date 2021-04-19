@@ -2,7 +2,7 @@ ui_filters <- function(id) {
     ns <- NS(id)
     wellPanel(
         fluidRow(
-            column(4,	
+            column(4,
                 wellPanel(style = "overflow-y:scroll; max-height: 800px",
                     filterModule_UI(ns("filter1"), "Filter #1"),
                     filterModule_UI(ns("filter2"), "Filter #2"),
@@ -10,7 +10,7 @@ ui_filters <- function(id) {
                     filterModule_UI(ns("filter4"), "Filter #4")
                 )
             ),
-            column(4,	
+            column(4,
                 wellPanel(style = "overflow-y:scroll; max-height: 800px",
                     filterModule_UI(ns("filter5"), "Filter #5"),
                     filterModule_UI(ns("filter6"), "Filter #6"),
@@ -18,17 +18,18 @@ ui_filters <- function(id) {
                     filterModule_UI(ns("filter8"), "Filter #8")
                 )
             ),
-            column(4,	
+            column(4,
                 textOutput(ns("current_expr_Filters")), br(),
                 textOutput(ns("current_ref_Filters")), br(),
                 # actionButton("load_filterdata_Filters", "Load Data"),
                 actionButton(ns("refresh_filters_Filters"), "Refresh Filters"),
                 plotlyOutput(ns("plot_filtered_Events")),
-                selectInput(ns('graphscale_Filters'), 'Y-axis Scale', width = '100%',
-                    choices = c("linear", "log10")), 
-                shinySaveButton(ns("saveAnalysis_Filters"), "Save Filters", "Save Filters as...", 
-                    filetype = list(RDS = "Rds")),
-                shinyFilesButton(ns("loadAnalysis_Filters"), label = "Load Filters", 
+                selectInput(ns('graphscale_Filters'), 'Y-axis Scale', 
+                    width = '100%', choices = c("linear", "log10")), 
+                shinySaveButton(ns("saveAnalysis_Filters"), "Save Filters", 
+                    "Save Filters as...", filetype = list(RDS = "Rds")),
+                shinyFilesButton(ns("loadAnalysis_Filters"), 
+                    label = "Load Filters", 
                     title = "Load Filters from Rds", multiple = FALSE),
                 actionButton(ns("loadDefault_Filters"), "Load Default Filters"),
             )

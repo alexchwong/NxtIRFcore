@@ -6,10 +6,6 @@
 #' class and is defined to represent that it is constructed from `MakeSE()`.
 #' @name NxtSE-class
 #' @export
-#' @importFrom utils packageVersion
-#' @importFrom stats setNames
-#' @importClassesFrom SummarizedExperiment SummarizedExperiment
-#' @importClassesFrom S4Vectors DataFrame
 setClass("NxtSE",
     slots=c(int_elementMetadata = "DataFrame",
         int_colData = "DataFrame",

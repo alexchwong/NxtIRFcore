@@ -30,8 +30,8 @@ ui_ref_new <- function(id) {
                 title = "Choose genome FASTA File", multiple = FALSE)
             ),
             textOutput(ns("txt_genome")),
-            tags$div(title = paste("Choose a user-supplied transcript reference",
-                    "gtf file"),
+            tags$div(title = paste("Choose a user-supplied transcript",
+                "reference gtf file"),
                 shinyFilesButton(ns("file_gtf"), 
                 label = "Choose transcriptome GTF File", 
                 title = "Choose transcriptome GTF File", multiple = FALSE)
@@ -43,7 +43,7 @@ ui_ref_new <- function(id) {
                     "mappability and non-polyA reference files for",
                     "hg38, hg19, mm10 and mm9 genomes"),
                 selectInput(ns('newref_genome_type'),
-                    'Select Genome Type to set Mappability and non-PolyA files', 
+                    'Select Genome Type to set Mappability and non-PolyA files',
                     c("(custom)", "hg38", "mm10", "hg19", "mm9"))
             ),
             tags$div(title = paste("Select Mappability Exclusion file.",

@@ -53,19 +53,33 @@
 #' se_SE = subset(se, EventType == "SE")
 #' se_IRSE = rbind(se_IR, se_SE)
 #' identical(se_IRSE, subset(se, EventType %in% c("IR", "SE"))) # TRUE
+#'
+#' # Convert HDF5-based NxtSE to in-memory se
+#' # MakeSE() creates a HDF5-based NxtSE object where all assay data is stored
+#' # as an h5 file instead of in-memory. All operations are performed as
+#' # delayed operations as per DelayedArray package.
+#' # To realize the NxtSE object as an in-memory object, use:
+#' 
+#' se_real <- realize_NxtSE(se)
+#'
+#' # To check the difference, run:
+#' up_inc(se)
+#' up_inc(se_real)
+#'
 #' @name NxtSE-methods
 #' @aliases
-#' up_inc,NxtSE-method
-#' up_inc<-,NxtSE-method
-#' down_inc,NxtSE-method
-#' down_inc<-,NxtSE-method
-#' up_exc,NxtSE-method
-#' up_exc<-,NxtSE-method
-#' down_exc,NxtSE-method
-#' down_exc<-,NxtSE-method
-#' covfile,NxtSE-method
-#' covfile<-,NxtSE-method
-#' ref,NxtSE-method
+#' up_inc up_inc,NxtSE-method
+#' up_inc<- up_inc<-,NxtSE-method
+#' down_inc down_inc,NxtSE-method
+#' down_inc<- down_inc<-,NxtSE-method
+#' up_exc up_exc,NxtSE-method
+#' up_exc<- up_exc<-,NxtSE-method
+#' down_exc down_exc,NxtSE-method
+#' down_exc<- down_exc<-,NxtSE-method
+#' covfile covfile,NxtSE-method
+#' covfile<- covfile<-,NxtSE-method
+#' ref ref,NxtSE-method
+#' realize_NxtSE realize_NxtSE,NxtSE-method
 #' coerce,SummarizedExperiment,NxtSE-method
 #' @md
 NULL
@@ -79,17 +93,11 @@ NxtSE <- function(...) {
 }
 
 #' @exportMethod coerce
-#' @importClassesFrom SummarizedExperiment SummarizedExperiment
 setAs("SummarizedExperiment", "NxtSE", function(from) {
     .se_to_nxtse(from)
 })
 
-#' @importFrom S4Vectors DataFrame SimpleList
-#' @importClassesFrom S4Vectors DataFrame
-#' @importFrom methods new
-#' @importFrom BiocGenerics nrow ncol
 .se_to_nxtse <- function(se) {
-    # Simple test to make sure se is a SummarizedExperiment made by NxtIRF::MakeSE()
     old <- S4_disableValidity()
     if (!isTRUE(old)) {
         S4_disableValidity(TRUE)
@@ -132,12 +140,14 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     ]
     rownames_up_inc <- rownames(up_inc(x))
     if (!identical(rownames_rowData, rownames_up_inc)) {
-        txt <- "Up_Inc events do not encompass all IR / SE / MXE events in rowData"
+        txt <- paste("Up_Inc events do not encompass all IR / SE / MXE events",
+            "in rowData")
         return(txt)    
     }
     rownames_down_inc <- rownames(down_inc(x))
     if (!identical(rownames_rowData, rownames_down_inc)) {
-        txt <- "Down_Inc events do not encompass all IR / SE / MXE events in rowData"
+        txt <- paste("Down_Inc events do not encompass all IR / SE / MXE", 
+            "events in rowData")
         return(txt)
     }
     NULL
@@ -156,12 +166,14 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     ]
     rownames_up_exc <- rownames(up_exc(x))
     if (!identical(rownames_rowData, rownames_up_exc)) {
-        txt <- "Up_exc events do not encompass all IR / SE / MXE events in rowData"
+        txt <- paste("Up_exc events do not encompass all IR / SE /",
+            "MXE events in rowData")
         return(txt)    
     }
     rownames_down_exc <- rownames(down_exc(x))
     if (!identical(rownames_rowData, rownames_down_exc)) {
-        txt <- "Down_exc events do not encompass all IR / SE / MXE events in rowData"
+        txt <- paste("Down_exc events do not encompass all IR / SE /",
+            "MXE events in rowData")
         return(txt)
     }
     NULL
@@ -303,19 +315,36 @@ setMethod("covfile", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     }
 })
 
-#' @describeIn NxtSE-methods Retrieves a list of annotation data associated with this
-#'   NxtSE object; primarily used in Plot_Coverage()
+#' @describeIn NxtSE-methods Retrieves a list of annotation data associated 
+#'   with this NxtSE object; primarily used in Plot_Coverage()
 #' @export
 setMethod("ref", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     x@metadata[["ref"]]
+})
+
+#' @describeIn NxtSE-methods Converts all DelayedMatrix assays as matrices
+#'   (i.e. performs all delayed calculation and loads resulting object
+#'   to RAM)
+#' @export
+setMethod("realize_NxtSE", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
+    assay.todo = c("Included", "Excluded", "Depth", "Coverage", 
+        "minDepth")
+    for(assayname in assay.todo) {
+        assay(x, assayname) <- as.matrix(assay(x, assayname))
+    }
+    up_inc(x) <- as.matrix(up_inc(x))
+    down_inc(x) <- as.matrix(down_inc(x))
+    up_exc(x) <- as.matrix(up_exc(x))
+    down_exc(x) <- as.matrix(down_exc(x))
+    return(x)
 })
 
 #' @describeIn NxtSE-methods Sets upstream included events (SE/MXE), or
 #'   upstream exon-intron spanning reads (IR)
 #' @export
 setReplaceMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
-    if (!is.matrix(value)) {
-        stop("replacement 'up_inc' value must be a matrix")
+    if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
+        stop("replacement 'up_inc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -328,8 +357,8 @@ setReplaceMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
 #'   downstream exon-intron spanning reads (IR)
 #' @export
 setReplaceMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
-    if (!is.matrix(value)) {
-        stop("replacement 'down_inc' value must be a matrix")
+    if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
+        stop("replacement 'down_inc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -341,8 +370,8 @@ setReplaceMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
 #' @describeIn NxtSE-methods Sets upstream excluded events (MXE only)
 #' @export
 setReplaceMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
-    if (!is.matrix(value)) {
-        stop("replacement 'up_exc' value must be a matrix")
+    if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
+        stop("replacement 'up_exc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -354,8 +383,8 @@ setReplaceMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
 #' @describeIn NxtSE-methods Sets downstream excluded events (MXE only)
 #' @export
 setReplaceMethod("down_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
-    if (!is.matrix(value)) {
-        stop("replacement 'down_exc' value must be a matrix")
+    if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
+        stop("replacement 'down_exc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -396,20 +425,28 @@ setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
         events_Exc = events[events %in% rownames(metadata(x)[["Up_Exc"]])]
         samples = colnames(x)[j]
 
-        up_inc(x, FALSE) <- as.matrix(up_inc(x, FALSE)[events_Inc,samples,drop=FALSE])
-        down_inc(x, FALSE) <- as.matrix(down_inc(x, FALSE)[events_Inc,samples,drop=FALSE])
-        up_exc(x, FALSE) <- as.matrix(up_exc(x, FALSE)[events_Exc,samples,drop=FALSE])
-        down_exc(x, FALSE) <- as.matrix(down_exc(x, FALSE)[events_Exc,samples,drop=FALSE])
+        up_inc(x, FALSE) <- 
+            up_inc(x, FALSE)[events_Inc,samples,drop=FALSE]
+        down_inc(x, FALSE) <- 
+            down_inc(x, FALSE)[events_Inc,samples,drop=FALSE]
+        up_exc(x, FALSE) <- 
+            up_exc(x, FALSE)[events_Exc,samples,drop=FALSE]
+        down_exc(x, FALSE) <- 
+            down_exc(x, FALSE)[events_Exc,samples,drop=FALSE]
         covfile(x, FALSE) <- covfile(x, FALSE)[samples]
     } else if (!missing(i)) {
         events <- rownames(x)[i]
         events_Inc = events[events %in% rownames(metadata(x)[["Up_Inc"]])]
         events_Exc = events[events %in% rownames(metadata(x)[["Up_Exc"]])]
 
-        up_inc(x, FALSE) <- as.matrix(up_inc(x, FALSE)[events_Inc,,drop=FALSE])
-        down_inc(x, FALSE) <- as.matrix(down_inc(x, FALSE)[events_Inc,,drop=FALSE])
-        up_exc(x, FALSE) <- as.matrix(up_exc(x, FALSE)[events_Exc,,drop=FALSE])
-        down_exc(x, FALSE) <- as.matrix(down_exc(x, FALSE)[events_Exc,,drop=FALSE])
+        up_inc(x, FALSE) <- 
+            up_inc(x, FALSE)[events_Inc,,drop=FALSE]
+        down_inc(x, FALSE) <- 
+            down_inc(x, FALSE)[events_Inc,,drop=FALSE]
+        up_exc(x, FALSE) <- 
+            up_exc(x, FALSE)[events_Exc,,drop=FALSE]
+        down_exc(x, FALSE) <- 
+            down_exc(x, FALSE)[events_Exc,,drop=FALSE]
     } else if (!missing(j)) {
         samples = colnames(x)[j]
 
@@ -425,9 +462,8 @@ setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
 
 #' @describeIn NxtSE-methods Sets a subsetted NxtSE object
 #' @export
-#' @importClassesFrom SummarizedExperiment SummarizedExperiment
-#' @importFrom SummarizedExperiment rowData colData
-setMethod("[<-", c("NxtSE", "ANY", "ANY", "NxtSE"), function(x, i, j, ..., value) {
+setMethod("[<-", c("NxtSE", "ANY", "ANY", "NxtSE"), 
+        function(x, i, j, ..., value) {
     if (missing(i) && missing(j)) {
         return(value)
     }
@@ -465,7 +501,6 @@ setMethod("[<-", c("NxtSE", "ANY", "ANY", "NxtSE"), function(x, i, j, ..., value
 
 #' @describeIn NxtSE-methods Combines two NxtSE objects (by samples - columns)
 #' @export
-#' @importFrom BiocGenerics rbind cbind
 setMethod("cbind", "NxtSE", function(..., deparse.level=1) {
     old <- S4_disableValidity()
     if (!isTRUE(old)) {
@@ -480,42 +515,48 @@ setMethod("cbind", "NxtSE", function(..., deparse.level=1) {
         metadata$Up_Inc <- do.call(cbind, lapply(args, up_inc))
     }, error=function(err) {
         stop(
-            "failed to combine 'Up_Inc' in 'cbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'Up_Inc' in 'cbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$Down_Inc <- do.call(cbind, lapply(args, down_inc))
     }, error=function(err) {
         stop(
-            "failed to combine 'Down_Inc' in 'cbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'Down_Inc' in 'cbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$Up_Exc <- do.call(cbind, lapply(args, up_exc))
     }, error=function(err) {
         stop(
-            "failed to combine 'Up_Exc' in 'cbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'Up_Exc' in 'cbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$Down_Exc <- do.call(cbind, lapply(args, down_exc))
     }, error=function(err) {
         stop(
-            "failed to combine 'Down_Exc' in 'cbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'Down_Exc' in 'cbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$cov_file <- do.call(c, lapply(args, covfile))
     }, error=function(err) {
         stop(
-            "failed to combine 'cov_file' in 'cbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'cov_file' in 'cbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$ref <- ref(args[[1]])
     }, error=function(err) {
         stop(
-            "failed to combine 'cov_file' in 'cbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'cov_file' in 'cbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     BG_replaceSlots(out, metadata=metadata, check=FALSE)
@@ -523,7 +564,6 @@ setMethod("cbind", "NxtSE", function(..., deparse.level=1) {
 
 #' @describeIn NxtSE-methods Combines two NxtSE objects (by AS/IR events - rows)
 #' @export
-#' @importFrom BiocGenerics rbind cbind
 setMethod("rbind", "NxtSE", function(..., deparse.level=1) {
     old <- S4_disableValidity()
     if (!isTRUE(old)) {
@@ -538,42 +578,48 @@ setMethod("rbind", "NxtSE", function(..., deparse.level=1) {
         metadata$Up_Inc <- do.call(rbind, lapply(args, up_inc))
     }, error=function(err) {
         stop(
-            "failed to combine 'Up_Inc' in 'rbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'Up_Inc' in 'rbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$Down_Inc <- do.call(rbind, lapply(args, down_inc))
     }, error=function(err) {
         stop(
-            "failed to combine 'Down_Inc' in 'rbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'Down_Inc' in 'rbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$Up_Exc <- do.call(rbind, lapply(args, up_exc))
     }, error=function(err) {
         stop(
-            "failed to combine 'Up_Exc' in 'rbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'Up_Exc' in 'rbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$Down_Exc <- do.call(rbind, lapply(args, down_exc))
     }, error=function(err) {
         stop(
-            "failed to combine 'Down_Exc' in 'rbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'Down_Exc' in 'rbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$cov_file <- covfile(args[[1]])
     }, error=function(err) {
         stop(
-            "failed to combine 'cov_file' in 'rbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'cov_file' in 'rbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     tryCatch({
         metadata$ref <- ref(args[[1]])
     }, error=function(err) {
         stop(
-            "failed to combine 'ref' in 'rbind(<", class(args[[1]]), ">)':\n  ",
+            "failed to combine 'ref' in 'rbind(<", 
+            class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
     BG_replaceSlots(out, metadata=metadata, check=FALSE)

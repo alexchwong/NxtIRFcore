@@ -6,8 +6,7 @@ run_IRFinder_multithreaded = function(
         output_files = "./Sample",
         max_threads = max(parallel::detectCores() - 2, 1),
         Use_OpenMP = TRUE,
-        run_featureCounts = FALSE,
-        as_sqlite = FALSE
+        run_featureCounts = FALSE
     ) {
     .validate_reference(reference_path)
 
@@ -30,11 +29,12 @@ run_IRFinder_multithreaded = function(
 
         BPPARAM = BiocParallel::bpparam()
         if(Sys.info()["sysname"] == "Windows") {
-          BPPARAM_mod = BiocParallel::SnowParam(n_threads)
-          message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
+            BPPARAM_mod = BiocParallel::SnowParam(n_threads)
+            message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
         } else {
-          BPPARAM_mod = BiocParallel::MulticoreParam(n_threads)
-          message(paste("Using MulticoreParam", BPPARAM_mod$workers, "threads"))
+            BPPARAM_mod = BiocParallel::MulticoreParam(n_threads)
+            message(paste("Using MulticoreParam", BPPARAM_mod$workers, 
+                "threads"))
         }
 
         row_starts = seq(1, by = n_threads,
@@ -55,34 +55,6 @@ run_IRFinder_multithreaded = function(
                 reference_file = ref_file,
                 BPPARAM = BPPARAM_mod
             )
-        }
-    }
-    # reformat and write as sqlite
-    if(as_sqlite) {
-        dbs = c("BAM", "Directionality", "QC", "ROIname",
-            "JC_seqname", "SP_seqname", "ChrCoverage_seqname",
-            "Nondir_Chr", "Dir_Chr")
-        dbs_name = c("stats", "direction", "QC", "ROI",
-            "JC", "SP", "ChrCoverage",
-            "Nondir", "Dir")
-        for(i in seq_len(length(output_files))) {
-            irf_file = paste0(output_files[i], ".txt.gz")
-            sqlite_file = paste0(output_files[i], ".txt.gz.sqlite")
-            if(file.exists(irf_file)) {
-                message(paste(
-                    "Converting", basename(irf_file), "to sqlite"
-                ))
-                data.list = get_multi_DT_from_gz(
-                    normalizePath(irf_file), dbs)
-                sqldb <- .open_sqlite(sqlite_file)               
-                for(j in seq_len(length(dbs))) {
-                    if(nrow(data.list[[dbs[j]]]) > 0) {
-                        .to_sqlite(sqldb, data.list[[dbs[j]]], 
-                        dbs_name[j], overwrite = TRUE)
-                    }
-                }
-                .close_sqlite(sqldb)
-            }
         }
     }
     
@@ -123,7 +95,8 @@ run_IRFinder_multithreaded = function(
         # Append to existing main.FC.Rds if exists:
         
         if(file.exists(file.path(dirname(output_files[1]), "main.FC.Rds"))) {
-            res.old = readRDS(file.path(dirname(output_files[1]), "main.FC.Rds"))
+            res.old = readRDS(
+                file.path(dirname(output_files[1]), "main.FC.Rds"))
 
             # Check md5 of annotation to show same reference was used
             md5.old = openssl::md5(paste(
@@ -182,7 +155,8 @@ run_IRFinder_multithreaded = function(
     if(!all(dir.exists(dirname(output_files)))) {
         stop(paste("In run_IRFinder_multithreaded(), ",
             paste(
-                unique(dirname(output_files[!dir.exists(dirname(output_files))])),
+                unique(dirname(
+                    output_files[!dir.exists(dirname(output_files))])),
                 collapse = ""
             ),
             " - directories not found"
@@ -199,16 +173,17 @@ run_IRFinder_multithreaded = function(
 
 run_IRFinder_GenerateMapReads = function(genome.fa = "", out.fa, 
     read_len = 70, read_stride = 10, error_pos = 35) {
-  return(
-    IRF_GenerateMappabilityReads(normalizePath(genome.fa), 
-        file.path(normalizePath(dirname(out.fa)), out.fa),
-        read_len = read_len, 
-        read_stride = read_stride, 
-        error_pos = error_pos)
-  )
+    return(
+        IRF_GenerateMappabilityReads(normalizePath(genome.fa), 
+            file.path(normalizePath(dirname(out.fa)), basename(out.fa)),
+            read_len = read_len, 
+            read_stride = read_stride, 
+            error_pos = error_pos)
+    )
 }
 
-run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file, threshold = 4, includeCov = FALSE) {
+run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file, 
+        threshold = 4, includeCov = FALSE) {
     s_bam = normalizePath(bamfile)
     if(!file.exists(s_bam)) {
         stop(paste("In run_IRFinder_MapExclusionRegions(),",
@@ -217,7 +192,7 @@ run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file, threshold
     }
     return(
         IRF_GenerateMappabilityRegions(s_bam, 
-            normalizePath(output_file),
+            output_file,
             threshold = threshold,
             includeCov = includeCov)
     )
@@ -238,7 +213,8 @@ run_Gunzip = function(infile = "", outfile) {
     IRF_gunzip(file_to_read, outfile)
 }
 
-get_multi_DT_from_gz = function(infile = "", block_headers = c("Header1", "Header2")) {
+get_multi_DT_from_gz = function(infile = "", 
+        block_headers = c("Header1", "Header2")) {
     file_to_read = normalizePath(infile)
     if(!file.exists(file_to_read)) {
         stop(paste("In get_multi_DT_from_gz(),",
@@ -297,7 +273,6 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0, strand = 2) {
         ), call. = FALSE)
     }
 
-    # message(paste("Fetching file=",file,"coords", seqname, start, end, strand))                       
     if(seqname == "") {
         raw_list = IRF_RLEList_From_Cov(normalizePath(file), strand)
         final_list = list()
@@ -325,7 +300,7 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0, strand = 2) {
             round(as.numeric(start)), round(as.numeric(end)), 
             as.numeric(strand)
         )
-        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$length)													 
+        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$length)
     }
 }
 
