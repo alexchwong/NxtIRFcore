@@ -141,44 +141,6 @@ make.path.relative = function(base, target) {
         sub(common, '', target))
 }
 
-# SQLITE operations
-
-.open_sqlite <- function(sqlite_file) {
-    return(DBI::dbConnect(SQLite(), sqlite_file))
-}
-
-.close_sqlite <- function(conn) {
-    DBI::dbDisconnect(conn)
-}
-
-.to_sqlite <- function(sqldb, df, DB_name,...) {
-    tryCatch({
-        RSQLite::dbWriteTable(sqldb, DB_name, df, ...)
-    }, error = function(e) {
-        .close_sqlite(sqldb)
-        stop(paste(
-            "Writing table:", DB_name, "to sqlite failed"
-        ), call. = FALSE)
-    })
-}
-
-.from_sqlite <- function(sqldb, DB_name, DT = FALSE, ...) {
-    df = NULL
-    tryCatch({
-        df = RSQLite::dbReadTable(sqldb, DB_name, ...)
-    }, error = function(e) {
-        .close_sqlite(sqldb)
-        stop(paste(
-            "Reading table:", DB_name, "from sqlite failed"
-        ), call. = FALSE)
-    })
-    if(DT == TRUE) {
-        return(as.data.table(df))
-    } else {
-        return(df)
-    }
-}
-
 #' GGPLOT themes
 #'
 #' A ggplot theme object for white background figures without a legend

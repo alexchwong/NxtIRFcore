@@ -6,8 +6,7 @@ run_IRFinder_multithreaded = function(
         output_files = "./Sample",
         max_threads = max(parallel::detectCores() - 2, 1),
         Use_OpenMP = TRUE,
-        run_featureCounts = FALSE,
-        as_sqlite = FALSE
+        run_featureCounts = FALSE
     ) {
     .validate_reference(reference_path)
 
@@ -56,34 +55,6 @@ run_IRFinder_multithreaded = function(
                 reference_file = ref_file,
                 BPPARAM = BPPARAM_mod
             )
-        }
-    }
-    # reformat and write as sqlite
-    if(as_sqlite) {
-        dbs = c("BAM", "Directionality", "QC", "ROIname",
-            "JC_seqname", "SP_seqname", "ChrCoverage_seqname",
-            "Nondir_Chr", "Dir_Chr")
-        dbs_name = c("stats", "direction", "QC", "ROI",
-            "JC", "SP", "ChrCoverage",
-            "Nondir", "Dir")
-        for(i in seq_len(length(output_files))) {
-            irf_file = paste0(output_files[i], ".txt.gz")
-            sqlite_file = paste0(output_files[i], ".txt.gz.sqlite")
-            if(file.exists(irf_file)) {
-                message(paste(
-                    "Converting", basename(irf_file), "to sqlite"
-                ))
-                data.list = get_multi_DT_from_gz(
-                    normalizePath(irf_file), dbs)
-                sqldb <- .open_sqlite(sqlite_file)               
-                for(j in seq_len(length(dbs))) {
-                    if(nrow(data.list[[dbs[j]]]) > 0) {
-                        .to_sqlite(sqldb, data.list[[dbs[j]]], 
-                        dbs_name[j], overwrite = TRUE)
-                    }
-                }
-                .close_sqlite(sqldb)
-            }
         }
     }
     

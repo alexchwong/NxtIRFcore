@@ -1,16 +1,20 @@
 #' @useDynLib NxtIRF, .registration = TRUE 
+#' @importFrom magrittr %>%
 #' @import data.table
-#' @importFrom fst read.fst write.fst
-#' @importFrom DBI dbConnect dbDisconnect
-#' @importFrom RSQLite SQLite dbWriteTable dbReadTable dbListTables
 #' @import shiny
 #' @import shinydashboard
-#' @import shinyFiles
-#' @import shinyWidgets
-#' @import rhandsontable
 #' @import ggplot2
-#' @importFrom methods as is coerce callNextMethod new
+#' @importFrom shinyFiles getVolumes parseDirPath parseFilePaths parseSavePath
+#' @importFrom shinyFiles shinyDirButton shinyDirChoose shinyFileChoose
+#' @importFrom shinyFiles shinyFilesButton shinyFileSave shinySaveButton
+#' @importFrom shinyWidgets sliderTextInput updateSliderTextInput
+#' @importFrom shinyWidgets radioGroupButtons updateRadioGroupButtons
+#' @importFrom shinyWidgets switchInput actionBttn
+#' @importFrom shinyWidgets sendSweetAlert ask_confirmation
+#' @importFrom rhandsontable rhandsontable hot_to_r
+#' @importFrom rhandsontable renderRHandsontable rHandsontableOutput
 #' @importFrom tools R_user_dir
+#' @importFrom methods as is coerce callNextMethod new
 #' @importFrom graphics text
 #' @importFrom stats as.formula model.matrix qt runif na.omit prcomp
 #' @importFrom utils download.file packageVersion getFromNamespace
@@ -22,11 +26,12 @@
 #' @importFrom BiocGenerics nrow ncol rbind cbind
 #' @importFrom Biostrings getSeq readDNAStringSet DNAStringSet translate 
 #' @importFrom Biostrings replaceAmbiguities type
-#' @importFrom BiocParallel bpparam bplapply SnowParam MulticoreParam 
-#' @importFrom BiocParallel SerialParam
+#' @importFrom BiocParallel SnowParam MulticoreParam SerialParam
+#' @importFrom BiocParallel bpparam bplapply
 #' @importFrom DelayedArray qlogis plogis rowMeans DelayedArray
 #' @importFrom DelayedMatrixStats rowSds colVars
 #' @importFrom DT datatable selectRows 
+#' @importFrom fst read.fst write.fst
 #' @importFrom genefilter rowttests
 #' @importFrom grDevices colorRampPalette
 #' @importFrom GenomeInfoDb sortSeqlevels seqinfo seqlengths seqlevels<- 

@@ -16,12 +16,10 @@ License: MIT + file LICENSE
 Depends:
   R (>= 4.0.0)
 Imports:
-	methods, stats, utils, graphics, R.utils,
+	methods, stats, utils, graphics, R.utils, magrittr,
 	Rcpp (>= 1.0.5),
 	data.table,
 	fst,
-  DBI,
-  RSQLite,
 	shiny,
 	shinyFiles,
 	shinyWidgets,

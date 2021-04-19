@@ -444,20 +444,14 @@ CollateData <- function(Experiment, reference_path, output_path,
                 work = jobs[[x]]
                 block = df.internal[work]
                 for(i in seq_len(length(work))) {
-                    if(file.exists(paste0(block$path[i], ".sqlite"))) {
-                        sqldb <- .open_sqlite(paste0(block$path[i], ".sqlite"))
-                        stats = .from_sqlite(sqldb, "stats", DT = TRUE)
-                        direct = .from_sqlite(sqldb, "direction", DT = TRUE)
-                        QC = .from_sqlite(sqldb, "QC", DT = TRUE)
-                        .close_sqlite(sqldb)
-                    } else {
-                        data.list = get_multi_DT_from_gz(
-                            normalizePath(block$path[i]), 
-                            c("BAM", "Directionality", "QC")) 
-                        stats = data.list$BAM
-                        direct = data.list$Directionality
-                        QC = data.list$QC                    
-                    }
+
+                    data.list = get_multi_DT_from_gz(
+                        normalizePath(block$path[i]), 
+                        c("BAM", "Directionality", "QC")) 
+                    stats = data.list$BAM
+                    direct = data.list$Directionality
+                    QC = data.list$QC                    
+
                     block <- .collateData_stats_reads(block, i, stats, direct)
                     block <- .collateData_stats_QC(block, i, QC, direct)
                 }
@@ -564,14 +558,10 @@ CollateData <- function(Experiment, reference_path, output_path,
             block = df.internal[work]
             junc.segment = NULL
             for(i in seq_len(length(work))) {
-                if(file.exists(paste0(block$path[i], ".sqlite"))) {
-                    sqldb <- .open_sqlite(paste0(block$path[i], ".sqlite"))
-                    junc <- .from_sqlite(sqldb, "JC", DT = TRUE)
-                    .close_sqlite(sqldb)
-                } else {
-                    junc = suppressWarnings(as.data.table(
-                        fread(block$path[i], skip = "JC_seqname")))
-                }
+
+                junc = suppressWarnings(as.data.table(
+                    fread(block$path[i], skip = "JC_seqname")))
+
                 setnames(junc, "JC_seqname", "seqnames")
                 if(is.null(junc.segment)) {
                     junc.segment = junc[,seq_len(4), with = FALSE]
@@ -618,19 +608,11 @@ CollateData <- function(Experiment, reference_path, output_path,
             irf.md5 = c()
             phrase = ifelse(runStranded, "Dir_Chr", "Nondir_Chr")
             for(i in seq_len(length(work))) {
-                if(file.exists(paste0(block$path[i], ".sqlite"))) {
-                    sqldb <- .open_sqlite(paste0(block$path[i], ".sqlite"))
-                    if(runStranded) {
-                        irf = .from_sqlite(sqldb, "Dir", DT = TRUE)
-                    } else {
-                        irf = .from_sqlite(sqldb, "Nondir", DT = TRUE)
-                    }
-                    .close_sqlite(sqldb)
-                } else {
-                    irf = suppressWarnings(
-                        fread(block$path[i], skip = phrase)
-                    )
-                }
+
+                irf = suppressWarnings(
+                    fread(block$path[i], skip = phrase)
+                )
+
                 setnames(irf, c(phrase, "Start", "End", "Strand"), 
                     c("seqnames","start","end", "strand"))
                 irf.md5 = unique(c(irf.md5, 
