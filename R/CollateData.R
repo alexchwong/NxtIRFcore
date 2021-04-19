@@ -311,7 +311,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     .collateData_write_stats(df.internal, norm_output_path)
     .collateData_write_colData(df.internal, coverage_files, norm_output_path)
     cov_data <- prepare_covplot_data(reference_path)
-    saveRDS(cov_data, file.path(norm_output_path, "Annotation", "cov_data.Rds"))
+    saveRDS(cov_data, file.path(norm_output_path, "annotation", "cov_data.Rds"))
     
     # NEW compile HDF5SummarizedExperiment:
     colData.Rds <- readRDS(file.path(norm_output_path, "colData.Rds"))
