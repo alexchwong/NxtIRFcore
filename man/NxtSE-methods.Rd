@@ -179,4 +179,17 @@ se_IR = subset(se, EventType == "IR")
 se_SE = subset(se, EventType == "SE")
 se_IRSE = rbind(se_IR, se_SE)
 identical(se_IRSE, subset(se, EventType \%in\% c("IR", "SE"))) # TRUE
+
+# Convert HDF5-based NxtSE to in-memory se
+# MakeSE() creates a HDF5-based NxtSE object where all assay data is stored
+# as an h5 file instead of in-memory. All operations are performed as
+# delayed operations as per DelayedArray package.
+# To realize the NxtSE object as an in-memory object, use:
+
+se_real <- realize_NxtSE(se)
+
+To check the difference, run:
+up_inc(se)
+up_inc(se_real)
+
 }

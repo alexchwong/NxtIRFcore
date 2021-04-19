@@ -321,7 +321,8 @@ CollateData <- function(Experiment, reference_path, output_path,
     se <- .makeSE_initialise_HDF5(norm_output_path, colData)
     
     HDF5Array::saveHDF5SummarizedExperiment(se, 
-        dir = norm_output_path, prefix = "NxtSE_")
+        dir = norm_output_path, prefix = "NxtSE_",
+        replace = TRUE)
     
     dash_progress("NxtIRF Collation Finished", N)
     message("NxtIRF Collation Finished")

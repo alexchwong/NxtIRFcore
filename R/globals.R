@@ -39,15 +39,29 @@ NxtIRF.CoordToGR = function(coordinates) {
 }
 
 NxtIRF.CheckPackageInstalled <- function(
-        package = "DESeq2", version = "1.0.0") {
+        package = "DESeq2", version = "1.0.0", 
+        returntype = c("error", "warning", "silent")) {
     res = tryCatch(
         ifelse(packageVersion(package)>=version, TRUE, FALSE),
         error = function(e) FALSE)
     if(!res) {
-        stop(paste(
-            package, "package is not installed;",
-            "and is required for this function"
-        ), call. = FALSE)
+        returntype = match.arg(returntype)
+        if(returntype == "error") {
+            stop(paste(
+                package, "version", version, "is not installed;",
+                "and is required for this function"
+            ), call. = FALSE)
+        } else if(returntype == "warning") {
+            warning(paste(
+                package, "version", version, "is not installed;",
+                "and is required for this function"
+            ))
+            return(FALSE)
+        } else {
+            return(FALSE)
+        }
+    } else {
+        return(TRUE)
     }
 }
 

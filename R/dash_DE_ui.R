@@ -1,10 +1,18 @@
 ui_DE <- function(id) {
     ns = NS(id)
+    DE_opts = c()
+    if(NxtIRF.CheckPackageInstalled("limma", "3.44.0", "silent")) {
+        DE_opts = "limma"
+    }
+    if(NxtIRF.CheckPackageInstalled("DESeq2", "1.30.0", "silent")) {
+        DE_opts = c(DE_opts, "DESeq2")
+    }
+    if(is.null(DE_opts)) DE_opts = ("(none)")
     fluidRow(
         column(4,
             textOutput(ns("warning_DE")),
             selectInput(ns('method_DE'), 'Method', 
-                c("limma", "DESeq2")),
+                DE_opts),
             selectInput(ns('variable_DE'), 'Variable', 
                 c("(none)")),
             selectInput(ns('nom_DE'), 'Nominator', 
