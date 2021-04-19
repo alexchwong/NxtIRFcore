@@ -62,7 +62,7 @@
 #' 
 #' se_real <- realize_NxtSE(se)
 #'
-#' To check the difference, run:
+#' # To check the difference, run:
 #' up_inc(se)
 #' up_inc(se_real)
 #'
