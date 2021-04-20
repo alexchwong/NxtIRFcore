@@ -205,28 +205,6 @@ dash_progress <- function(message = "", total_items = 1, add_msg = FALSE) {
 #'
 #' Intended to be run using the NxtIRF mock reference genome and gene 
 #' annotations
-#' @return A data frame, with the columns being the sample names and paths
-#'   of the example BAM dataset aligned to the mock chromosome
-#' @examples
-#' bams = NxtIRF_example_bams()
-#' @export
-NxtIRF_example_bams <- function() {
-    Find_Bams(dirname(example_bams())[1])
-}
 
-#' Retrieves a NxtSE object created from NxtIRF's example bam and mock reference
-#'
-#' @return A NxtSE object returned after creating and using the mock reference
-#'   to run IRFinder, CollateData and MakeSE on the example bam files
-#' @examples
-#' se = NxtIRF_example_NxtSE()
-#' @seealso [NxtIRF_example_bams()], [mock_genome()], [mock_gtf()]
-#' @seealso [BuildReference()], [IRFinder()], [CollateData()], [MakeSE()]
-#' @export
-NxtIRF_example_NxtSE <- function() {
-    se = readRDS(system.file("extdata", 
-        "example_NxtSE.Rds", package = "NxtIRF"))
-    covs = FindSamples(system.file("extdata", package = "NxtIRF"), ".cov")
-    covfile(se) <- covs$path
-    se
-}
+
+
