@@ -1,6 +1,6 @@
 #' NxtIRF Examples
 #'
-#' This contains files that provides a workable example for the 
+#' Contains files that provides a workable example for the 
 #' NxtIRF package.\cr\cr
 #' A mock reference, with genome sequence (FASTA) and gene annotation (GTF)
 #' files are provided, based on the genes SRSF1, SRSF2, SRSF3, TRA2A, TRA2B, 
@@ -16,20 +16,39 @@
 #' using NxtIRF, suitable for use in generating references based on hg38,
 #' hg19, mm10 and mm9 genomes.
 #' @param genome_type Either one of `hg38`, `hg19`, `mm10` or `mm9`
-#' @param destination_path The directory to place the downloaded example files
-#' @return See Examples section below.
+#' @param destination_path The directory to place the downloaded example files.
+#'   If left blank, gives the direct BiocFileCache path of the resource.
+#' @return See Functions section below.
 #' @examples
 #' # returns the location of the genome.fa file of the mock reference
+#'
 #' mock_genome() 
 #'
 #' # returns the location of the transcripts.gtf file of the mock reference
+#'
 #' mock_gtf() 
+#' 
+#' # returns the location of the Mappability exclusion BED for hg38
+#'
+#' get_mappability_exclusion("hg38") 
 #'
 #' # returns the locations of the 6 example bam files
+#'
 #' example_bams() 
 #'
-#' # returns the location of the Mappability exclusion BED for hg38
-#' get_mappability_exclusion("hg38") 
+#' # returns a data frame with the first column as sample names, and the 
+#' # second column as BAM paths
+#'
+#' NxtIRF_example_bams() 
+#'
+#' # Returns a NxtSE object created by the example bams aligned to the
+#'
+#' # mock NxtSE reference
+#'
+#' NxtIRF_example_NxtSE() 
+#'
+
+#'
 #' @references
 #' Generation of the mappability files was performed using NxtIRF using
 #' a method analogous to that described in:
@@ -39,20 +58,21 @@
 #' IRFinder: assessing the impact of intron retention on mammalian gene 
 #' expression.
 #' Genome Biol. 2017 Mar 15;18(1):51.
-#' \url{https://doi.org/10.1186/s13059-017-1184-4}
-#' @name NxtIRF-example-data
+#' \doi{10.1186/s13059-017-1184-4}
+#' @name example-NxtIRF-data
 #' @aliases 
-#' mock_genome
-#' mock_gtf
-#' example_bams
+#' mock_genome mock_gtf example_bams NxtIRF_example_bams NxtIRF_example_NxtSE
 #' get_mappability_exclusion
 #' @keywords package
+#' @seealso [BuildReference()], [IRFinder()], [CollateData()], [MakeSE()]
 #' @md
 NULL
 
 
 res_url <- "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF"
 
+#' @describeIn example-NxtIRF-data Makes a copy of the NxtIRF mock genome FASTA
+#'   file, in the given destination path
 #' @export
 mock_genome <- function(destination_path = tempdir())
 {
@@ -60,6 +80,8 @@ mock_genome <- function(destination_path = tempdir())
         destination_path)
 }
 
+#' @describeIn example-NxtIRF-data Makes a copy of the NxtIRF mock gene 
+#'   annotation GTF file, in the given destination path
 #' @export
 mock_gtf <- function(destination_path = tempdir())
 {
@@ -67,16 +89,8 @@ mock_gtf <- function(destination_path = tempdir())
         destination_path)
 }
 
-#' @export
-example_bams <- function(destination_path = tempdir())
-{
-    bams = c("02H003.bam", "02H025.bam", "02H026.bam",
-        "02H033.bam", "02H043.bam", "02H046.bam")
-    .cache_and_create_file(
-        paste(res_url, bams, sep="/"),
-        destination_path)
-}
-
+#' @describeIn example-NxtIRF-data Returns a copy of Mappability Exclusion 
+#'   BED file for the specified genome, in the given destination path
 #' @export
 get_mappability_exclusion <- function(
         genome_type = c("hg38", "hg19", "mm10", "mm9"),
@@ -103,6 +117,36 @@ get_mappability_exclusion <- function(
             "genome_type = ", genome_type, "is not recogised"
         ), call. = FALSE)
     }
+}
+
+#' @describeIn example-NxtIRF-data Makes a copy of the Leucegene example 
+#'   BAM files, aligned to the NxtIRF mock genome, in the given destination path
+#' @export
+example_bams <- function(destination_path = tempdir())
+{
+    bams = c("02H003.bam", "02H025.bam", "02H026.bam",
+        "02H033.bam", "02H043.bam", "02H046.bam")
+    .cache_and_create_file(
+        paste(res_url, bams, sep="/"),
+        destination_path)
+}
+
+#' @describeIn example-NxtIRF-data Returns a 2-column data frame, containing 
+#'   sample names and sample paths (in tempdir()) of example BAM files
+#' @export
+NxtIRF_example_bams <- function() {
+    Find_Bams(dirname(example_bams())[1])
+}
+
+#' @describeIn example-NxtIRF-data Returns a (in-memory / realized) NxtSE object 
+#'   generated using the NxtIRF mock reference and example BAM files
+#' @export
+NxtIRF_example_NxtSE <- function() {
+    se = readRDS(system.file("extdata", 
+        "example_NxtSE.Rds", package = "NxtIRF"))
+    covs = FindSamples(system.file("extdata", package = "NxtIRF"), ".cov")
+    covfile(se) <- covs$path
+    se
 }
 
 .capture_error <- function(code, otherwise = NULL, quiet = TRUE) {

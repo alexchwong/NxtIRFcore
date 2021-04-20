@@ -22,6 +22,10 @@
 \alias{covfile,NxtSE-method}
 \alias{covfile<-}
 \alias{covfile<-,NxtSE-method}
+\alias{sampleQC}
+\alias{sampleQC,NxtSE-method}
+\alias{sampleQC<-}
+\alias{sampleQC<-,NxtSE-method}
 \alias{ref}
 \alias{ref,NxtSE-method}
 \alias{realize_NxtSE}
@@ -46,6 +50,8 @@ NxtSE(...)
 
 \S4method{covfile}{NxtSE}(x, withDimnames = TRUE, ...)
 
+\S4method{sampleQC}{NxtSE}(x, withDimnames = TRUE, ...)
+
 \S4method{ref}{NxtSE}(x, withDimnames = TRUE, ...)
 
 \S4method{realize_NxtSE}{NxtSE}(x, withDimnames = TRUE, ...)
@@ -59,6 +65,8 @@ NxtSE(...)
 \S4method{down_exc}{NxtSE}(x, withDimnames = TRUE) <- value
 
 \S4method{covfile}{NxtSE}(x, withDimnames = TRUE) <- value
+
+\S4method{sampleQC}{NxtSE}(x, withDimnames = TRUE) <- value
 
 \S4method{[}{NxtSE,ANY,ANY,ANY}(x, i, j, ..., drop = TRUE)
 
@@ -113,6 +121,9 @@ downstream exon-intron spanning reads (IR)
 \item \code{covfile,NxtSE-method}: Gets a named vector with
 the paths to the corresponding COV files
 
+\item \code{sampleQC,NxtSE-method}: Gets a data frame with the QC parameters
+of the samples
+
 \item \code{ref,NxtSE-method}: Retrieves a list of annotation data associated 
 with this NxtSE object; primarily used in Plot_Coverage()
 
@@ -131,6 +142,9 @@ downstream exon-intron spanning reads (IR)
 \item \code{down_exc<-,NxtSE-method}: Sets downstream excluded events (MXE only)
 
 \item \code{covfile<-,NxtSE-method}: Sets the paths to the corresponding COV files
+
+\item \code{sampleQC<-,NxtSE-method}: Sets the values in the data frame containing
+sample QC
 
 \item \code{[,NxtSE,ANY,ANY,ANY-method}: Subsets a NxtSE object
 
@@ -159,6 +173,9 @@ down_exc(se)
 
 # Get list of available coverage files
 covfile(se)
+
+# Get sample QC information
+sampleQC(se)
 
 # Get resource NxtIRF data (used internally for Plot_Coverage())
 ref(se)

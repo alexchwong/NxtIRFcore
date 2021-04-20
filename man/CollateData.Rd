@@ -9,7 +9,6 @@ CollateData(
   reference_path,
   output_path,
   IRMode = c("SpliceOverMax", "SpliceMax"),
-  low_memory_mode = FALSE,
   samples_per_block = 16,
   n_threads = 1
 )
@@ -44,17 +43,10 @@ transcripts). Note for introns that are internal to a single exon island
 uses \code{GenomicRanges::findOverlaps()} to summate competing mapped
 splice reads.}
 
-\item{low_memory_mode}{Use this mode in memory-limited systems with many
-samples (> 16). CollateData will write to file for every N samples as
-defined by \code{samples_per_block = N}. Memory usage is often a problem
-for large datasets or using multiple cores. If you experience crashes due
-to running out of memory, set this to true and make sure 
-\code{n_threads = 1}}
+\item{samples_per_block}{How many samples to process per thread.}
 
-\item{samples_per_block}{How many samples to process per thread. Use in 
-conjunction with low_memory_mode to lower memory requirements}
-
-\item{n_threads}{The number of threads to use.}
+\item{n_threads}{The number of threads to use. On low
+memory systems, reduce the number of `n_threads` and `samples_per_block`}
 }
 \value{
 None. \code{CollateData()} writes to the directory given by 
@@ -82,6 +74,5 @@ CollateData(expr,
 )
 }
 \seealso{
-"NxtIRF: 2 - Building an Experiment" 
-  (accessed via `browseVignettes("NxtIRF")`)
+[IRFinder()], [MakeSE()]
 }

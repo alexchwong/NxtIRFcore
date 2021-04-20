@@ -185,7 +185,7 @@ GetNonPolyARef("hg19")
 
 GetMappabilityRef("mm10")
 
-\donttest{
+\dontrun{
 # Reference generation from user supplied FASTA and GTF files
 
 GetReferenceResource(
