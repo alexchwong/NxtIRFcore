@@ -950,8 +950,8 @@ Plot_Coverage <- function(se, Event, cov_data,
 #'  = 1/4 of all reads associated with each isoform)\cr\cr
 #' In all filters, we require at least 80% samples `pcTRUE = 80` from the entire
 #'   dataset `minCond = "All"`.
-#' Events with read depth (reads supporting either included or excluded isoforms)
-#'   lower than 20 `minDepth = 20` are excluded from filters 2,3,4.
+#' Events with read depth (reads supporting either included or excluded 
+#'   isoforms) lower than 20 `minDepth = 20` are excluded from filters 2,3,4.
 #' @return A list of filters to be used in `apply_filters()`. Alternatively,
 #'   individual filters can be run using `runFilter()`
 #' @examples

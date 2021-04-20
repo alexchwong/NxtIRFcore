@@ -307,6 +307,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     assays <- .collateData_compile_assays(agg.list, df.internal,
         norm_output_path, low_memory_mode,
         item.todo, jobs, n_jobs)
+
     # .collateData_fix_juncnames(norm_output_path)
     .collateData_write_stats(df.internal, norm_output_path)
     .collateData_write_colData(df.internal, coverage_files, norm_output_path)
@@ -317,12 +318,13 @@ CollateData <- function(Experiment, reference_path, output_path,
     colData.Rds <- readRDS(file.path(norm_output_path, "colData.Rds"))
     colData <- .makeSE_colData_clean(
         colData.Rds$df.anno)
-    se <- .makeSE_initialise_HDF5(norm_output_path, colData)
+    se <- .makeSE_initialise_HDF5(norm_output_path, colData, assays)
     
-    HDF5Array::saveHDF5SummarizedExperiment(se, 
-        dir = norm_output_path, prefix = "NxtSE_",
-        replace = TRUE)
+    # HDF5Array::saveHDF5SummarizedExperiment(se, 
+        # dir = norm_output_path, prefix = "NxtSE_",
+        # replace = TRUE)
     
+    .collateData_save_NxtSE(se, file.path(norm_output_path, "NxtSE.rds"))
     dash_progress("NxtIRF Collation Finished", N)
     message("NxtIRF Collation Finished")
 }
@@ -691,36 +693,40 @@ CollateData <- function(Experiment, reference_path, output_path,
     junc.common.unanno = junc.common[get("strand") == "*"]
     junc.common.anno = junc.common[get("strand") != "*"]
     
-    left.gr = with(junc.common.unanno, 
-        GRanges(seqnames = seqnames, 
-        ranges = IRanges(start = start, end = start + 1), 
-        strand = "+"))
-    right.gr = with(junc.common.unanno, 
-        GRanges(seqnames = seqnames, 
-        ranges = IRanges(start = end - 1, end = end), 
-        strand = "+"))
-    
-    genome = Get_Genome(reference_path)
-    junc.common.unanno[, c("splice_motif") := paste0(
-        as.character(getSeq(genome, left.gr)), 
-        as.character(getSeq(genome, right.gr))
-    )]
-    splice_motifs = data.frame(
-        seqs = c("GTAG", "GCAG", "ATAC", "ATAG"),
-        seqs_r = c("CTAC", "CTGC", "GTAT", "CTAT")
-    )
-    junc.common.unanno[ get("splice_motif") %in% splice_motifs$seqs,
-        c("strand") := "+"]
-    junc.common.unanno[ get("splice_motif") %in% splice_motifs$seqs_r,
-        c("strand") := "-"]
-    # Do not accept un-annotated GTACs - too confusing
-    # Exclude unannotated non-splice motifs
-    junc.common.unanno = junc.common.unanno[
-        get("strand") != "*"]
-    junc.common.unanno[get("strand") == "-",
-        c("splice_motif") := splice_motifs$seqs[match(
-            get("splice_motif"), splice_motifs$seqs_r)]]
-    junc.final = rbindlist(list(junc.common.anno, junc.common.unanno))
+    if(nrow(junc.common.unanno) != 0) {
+        left.gr = with(junc.common.unanno, 
+            GRanges(seqnames = seqnames, 
+            ranges = IRanges(start = start, end = start + 1), 
+            strand = "+"))
+        right.gr = with(junc.common.unanno, 
+            GRanges(seqnames = seqnames, 
+            ranges = IRanges(start = end - 1, end = end), 
+            strand = "+"))
+        
+        genome = Get_Genome(reference_path)
+        junc.common.unanno[, c("splice_motif") := paste0(
+            as.character(getSeq(genome, left.gr)), 
+            as.character(getSeq(genome, right.gr))
+        )]
+        splice_motifs = data.frame(
+            seqs = c("GTAG", "GCAG", "ATAC", "ATAG"),
+            seqs_r = c("CTAC", "CTGC", "GTAT", "CTAT")
+        )
+        junc.common.unanno[ get("splice_motif") %in% splice_motifs$seqs,
+            c("strand") := "+"]
+        junc.common.unanno[ get("splice_motif") %in% splice_motifs$seqs_r,
+            c("strand") := "-"]
+        # Do not accept un-annotated GTACs - too confusing
+        # Exclude unannotated non-splice motifs
+        junc.common.unanno = junc.common.unanno[
+            get("strand") != "*"]
+        junc.common.unanno[get("strand") == "-",
+            c("splice_motif") := splice_motifs$seqs[match(
+                get("splice_motif"), splice_motifs$seqs_r)]]
+        junc.final = rbindlist(list(junc.common.anno, junc.common.unanno))
+    } else {
+        junc.final = junc.common.anno
+    }
     # Assign region names to junctions:
     junc.final[, c("Event") := paste0(get("seqnames"), ":", 
         get("start"), "-", get("end"), "/", get("strand"))]
@@ -1524,39 +1530,39 @@ CollateData <- function(Experiment, reference_path, output_path,
         if(grepl("junc", item)) {
             rownames(item.DTList[[item]]) <- junc_rownames
         }
-        
+        # Realize as HDF5Array
         assays[[item]] <- HDF5Array::writeHDF5Array(item.DTList[[item]], 
             filepath = outfile,
             name = item, with.dimnames = TRUE
         )
     }
     return(assays)
+    # return(item.DTList)
 }
 
-.collateData_fix_juncnames <- function(norm_output_path) {
-    # Rewrite junc_PSI and junc_count by adding in NxtIRF rownames 
-    #   (as first column)
-    junc_index = fst::read.fst(file.path(
-        norm_output_path, "junc_PSI_index.fst"
-    ))
-    junc_PSI = fst::read.fst(file.path(
-        norm_output_path, "junc_PSI.fst"
-    ))  
-    junc_counts = fst::read.fst(file.path(
-        norm_output_path, "junc_counts.fst"
-    ))
-    junc_PSI$rownames = with(junc_index, 
-        paste0(seqnames, ":", start, "-", end, "/", strand))
-    junc_counts$rownames = junc_PSI$rownames
-    fst::write.fst(cbind(junc_PSI[,ncol(junc_PSI),drop=FALSE],
-        junc_PSI[,-ncol(junc_PSI)]),file.path(
-        norm_output_path, "junc_PSI.fst"
-    ))
-    fst::write.fst(cbind(junc_counts[,ncol(junc_counts),drop=FALSE],
-        junc_counts[,-ncol(junc_counts)]),file.path(
-        norm_output_path, "junc_counts.fst"
-    ))
-}
+
+# .collateData_fix_juncnames <- function(norm_output_path) {
+    # junc_index = fst::read.fst(file.path(
+        # norm_output_path, "junc_PSI_index.fst"
+    # ))
+    # junc_PSI = fst::read.fst(file.path(
+        # norm_output_path, "junc_PSI.fst"
+    # ))  
+    # junc_counts = fst::read.fst(file.path(
+        # norm_output_path, "junc_counts.fst"
+    # ))
+    # junc_PSI$rownames = with(junc_index, 
+        # paste0(seqnames, ":", start, "-", end, "/", strand))
+    # junc_counts$rownames = junc_PSI$rownames
+    # fst::write.fst(cbind(junc_PSI[,ncol(junc_PSI),drop=FALSE],
+        # junc_PSI[,-ncol(junc_PSI)]),file.path(
+        # norm_output_path, "junc_PSI.fst"
+    # ))
+    # fst::write.fst(cbind(junc_counts[,ncol(junc_counts),drop=FALSE],
+        # junc_counts[,-ncol(junc_counts)]),file.path(
+        # norm_output_path, "junc_counts.fst"
+    # ))
+# }
 
 .collateData_write_stats <- function(df.internal, norm_output_path) {
     outfile = file.path(norm_output_path, paste("stats", "fst", sep="."))
@@ -1587,6 +1593,73 @@ CollateData <- function(Experiment, reference_path, output_path,
         df.anno = data.table(sample = df.internal$sample)
     )
     saveRDS(colData, file.path(norm_output_path, "colData.Rds"))
+}
+
+# Lifted from HDF%Array saveHDF5SummarizedExperiment
+
+.collateData_simplify_assay_path <- function(assay) {
+    DelayedArray::modify_seeds(assay,
+        function(x) {
+            x@filepath <- basename(x@filepath)
+            x
+        }
+    )
+}
+
+.collateData_simplify_assay_paths <- function(assays) {
+    nassay <- length(assays)
+    for (i in seq_len(nassay)) {
+        a <- .collateData_simplify_assay_path(getListElement(assays, i))
+        assays <- setListElement(assays, i, a)
+    }
+    return(assays)
+}
+
+.collateData_expand_assay_path <- function(assay, path) {
+    DelayedArray::modify_seeds(assay,
+        function(x) {
+            x@filepath <- file.path(path, x@filepath)
+            x
+        }
+    )
+}
+
+.collateData_expand_assay_paths <- function(assays, path) {
+
+    nassay <- length(assays)
+    for (i in seq_len(nassay)) {
+        a <- .collateData_expand_assay_path(getListElement(assays, i), path)
+        assays <- setListElement(assays, i, a)
+    }
+    return(assays)
+}
+
+.collateData_save_NxtSE <- function(se, filepath) {
+    se@assays <- .collateData_simplify_assay_paths(se@assays)
+    se@metadata[["Up_Inc"]] <- .collateData_simplify_assay_path(
+        se@metadata[["Up_Inc"]])
+    se@metadata[["Down_Inc"]] <- .collateData_simplify_assay_path(
+        se@metadata[["Down_Inc"]])
+    se@metadata[["Up_Exc"]] <- .collateData_simplify_assay_path(
+        se@metadata[["Up_Exc"]])
+    se@metadata[["Down_Exc"]] <- .collateData_simplify_assay_path(
+        se@metadata[["Down_Exc"]])
+    saveRDS(se, filepath)
+}
+
+.collateData_load_NxtSE <- function(filepath) {
+    se <- readRDS(filepath)
+    path <- dirname(filepath)
+    se@assays <- .collateData_expand_assay_paths(se@assays, path)
+    se@metadata[["Up_Inc"]] <- .collateData_expand_assay_path(
+        se@metadata[["Up_Inc"]], path)
+    se@metadata[["Down_Inc"]] <- .collateData_expand_assay_path(
+        se@metadata[["Down_Inc"]], path)
+    se@metadata[["Up_Exc"]] <- .collateData_expand_assay_path(
+        se@metadata[["Up_Exc"]], path)
+    se@metadata[["Down_Exc"]] <- .collateData_expand_assay_path(
+        se@metadata[["Down_Exc"]], path)
+    return(se)
 }
 
 prepare_covplot_data <- function(reference_path) {
@@ -1694,8 +1767,10 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     dash_progress("Loading NxtSE object from file...", N)
     message("Loading NxtSE object from file...", appendLF = FALSE)
     # se <- .makeSE_initialise_HDF5(collate_path, colData)
-    se <- HDF5Array::loadHDF5SummarizedExperiment(
-        dir = collate_path, prefix = "NxtSE_")
+    # se <- HDF5Array::loadHDF5SummarizedExperiment(
+        # dir = collate_path, prefix = "NxtSE_")
+    # se = readRDS(file.path(collate_path, "NxtSE.rds"))
+    se = .collateData_load_NxtSE(file.path(collate_path, "NxtSE.rds"))
     # Encapsulate as NxtSE object
     se = se[, colData$sample]
     if(ncol(colData) > 1) {
@@ -1846,23 +1921,21 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     return(se)
 }
 
-.makeSE_initialise_HDF5 <- function(collate_path, colData) {
+.makeSE_initialise_HDF5 <- function(collate_path, colData, assays) {
     item.todo = c("rowEvent", "Included", "Excluded", "Depth", "Coverage", 
         "minDepth", "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc")
-    files.todo = file.path(normalizePath(collate_path), 
-        paste(item.todo, "fst", sep="."))
     colData.Rds = readRDS(file.path(collate_path, "colData.Rds"))
     h5file = file.path(collate_path, "data.h5")
     rowData = read.fst(file.path(collate_path, "rowEvent.fst"))
-    Included = HDF5Array(h5file, item.todo[2])[,colData$sample, drop = FALSE]
-    Excluded = HDF5Array(h5file, item.todo[3])[,colData$sample, drop = FALSE]
-    Depth = HDF5Array(h5file, item.todo[4])[,colData$sample, drop = FALSE]
-    Coverage = HDF5Array(h5file, item.todo[5])[,colData$sample, drop = FALSE]
-    minDepth = HDF5Array(h5file, item.todo[6])[,colData$sample, drop = FALSE]
-    Up_Inc = HDF5Array(h5file, item.todo[7])[,colData$sample, drop = FALSE]
-    Down_Inc = HDF5Array(h5file, item.todo[8])[,colData$sample, drop = FALSE]
-    Up_Exc = HDF5Array(h5file, item.todo[9])[,colData$sample, drop = FALSE]
-    Down_Exc = HDF5Array(h5file, item.todo[10])[,colData$sample, drop = FALSE]
+    Included = assays[[item.todo[2]]]
+    Excluded = assays[[item.todo[3]]]
+    Depth = assays[[item.todo[4]]]
+    Coverage = assays[[item.todo[5]]]
+    minDepth = assays[[item.todo[6]]]
+    Up_Inc = assays[[item.todo[7]]]
+    Down_Inc = assays[[item.todo[8]]]
+    Up_Exc = assays[[item.todo[9]]]
+    Down_Exc = assays[[item.todo[10]]]
     if(nrow(Up_Inc) > 0) {
         rownames(Up_Inc) = rowData$EventName[
             rowData$EventType %in% c("IR", "MXE", "SE")]
