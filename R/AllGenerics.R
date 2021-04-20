@@ -63,6 +63,9 @@ setGeneric("down_exc",
 setGeneric("covfile", 
     function(x, withDimnames=TRUE, ...) standardGeneric("covfile"))
 
+setGeneric("sampleQC", 
+    function(x, withDimnames=TRUE, ...) standardGeneric("sampleQC"))
+
 setGeneric("ref", 
     function(x, withDimnames=TRUE, ...) standardGeneric("ref"))
 
@@ -81,5 +84,8 @@ setGeneric("down_exc<-",
 setGeneric("covfile<-",
     function(x, withDimnames=TRUE, ..., value) standardGeneric("covfile<-"))
 
+setGeneric("sampleQC<-",
+    function(x, withDimnames=TRUE, ..., value) standardGeneric("sampleQC<-"))
+    
 setGeneric("ref<-",
     function(x, withDimnames=TRUE, ..., value) standardGeneric("ref<-"))

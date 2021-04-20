@@ -21,7 +21,7 @@ An interactive shinydashboard NxtIRF app runs.
 This function launches the NxtIRF interactive app using Shiny Dashboard
 }
 \examples{
-\donttest{
+\dontrun{
 # Launches interactive ShinyDashboard NxtIRF app as fixed-size dialog box
 nxtIRF(mode = "dialog", width = 1600, height = 900) 
 

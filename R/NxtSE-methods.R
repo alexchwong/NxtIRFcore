@@ -33,6 +33,9 @@
 #' 
 #' # Get list of available coverage files
 #' covfile(se)
+#' 
+#' # Get sample QC information
+#' sampleQC(se)
 #'
 #' # Get resource NxtIRF data (used internally for Plot_Coverage())
 #' ref(se)
@@ -78,6 +81,8 @@
 #' down_exc<- down_exc<-,NxtSE-method
 #' covfile covfile,NxtSE-method
 #' covfile<- covfile<-,NxtSE-method
+#' sampleQC sampleQC,NxtSE-method
+#' sampleQC<- sampleQC<-,NxtSE-method
 #' ref ref,NxtSE-method
 #' realize_NxtSE realize_NxtSE,NxtSE-method
 #' coerce,SummarizedExperiment,NxtSE-method
@@ -122,6 +127,7 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     up_exc(out) <- se@metadata[["Up_Exc"]]
     down_exc(out) <- se@metadata[["Down_Exc"]]
     covfile(out) <- se@metadata[["cov_file"]]
+    sampleQC(out) <- se@metadata[["sampleQC"]]
     ref(out) <- se@metadata[["ref"]]
     return(out)
 }
@@ -195,7 +201,22 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     if(length(cov_files) != ncol(x)){
         txt <- "cov_files must be of same length as number of samples"
         return(txt)    
-    }    
+    }
+    if(!identical(names(cov_files), colnames(x))){
+        txt <- paste("names of cov_files vector must be identical to",
+            "colnames of NxtSE object")
+        return(txt)    
+    }  
+    NULL
+}
+
+.valid.NxtSE.meta_QC <- function(x) {
+    sampleQC <- metadata(x)[["sampleQC"]]
+    if(!identical(rownames(sampleQC), colnames(x))){
+        txt <- paste("row names of sampleQC data frame must be identical to",
+            "colnames of NxtSE object")
+        return(txt)    
+    }
     NULL
 }
 
@@ -204,7 +225,8 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     c(
         .valid.NxtSE.meta_inc(x),
         .valid.NxtSE.meta_exc(x),
-        .valid.NxtSE.meta_cov(x)
+        .valid.NxtSE.meta_cov(x),
+        .valid.NxtSE.meta_QC(x)
     )
 }
 
@@ -262,6 +284,18 @@ vector_withDimnames <- function(x, vector) {
     vector[x_dimnames]
 }
 
+sampleQC_withDimnames <- function(x, df) {
+    x_dimnames <- dimnames(x)[[2]]
+    if(is.null(rownames(df)) || any(is.na(rownames(df)))) {
+        rownames(df) <- x_dimnames
+        return(df)
+    }
+    if (is.null(x_dimnames) || any(is.na(x_dimnames))) {
+        stop("Some sample names in NxtSE have null values")
+    }
+    df[x_dimnames,,drop=FALSE]
+}
+
 #' @describeIn NxtSE-methods Gets upstream included events (SE/MXE), or
 #'   upstream exon-intron spanning reads (IR)
 #' @export
@@ -312,6 +346,17 @@ setMethod("covfile", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
         vector_withDimnames(x, x@metadata[["cov_file"]])
     } else {
         x@metadata[["cov_file"]]
+    }
+})
+
+#' @describeIn NxtSE-methods Gets a data frame with the QC parameters
+#'   of the samples
+#' @export
+setMethod("sampleQC", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
+    if(withDimnames) {
+        sampleQC_withDimnames(x, x@metadata[["sampleQC"]])
+    } else {
+        x@metadata[["sampleQC"]]
     }
 })
 
@@ -399,10 +444,18 @@ setReplaceMethod("covfile", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     if(withDimnames) {
         value <- vector_withDimnames(x, value)
     }
-    if(is.null(names(value))) {
-        names(value) <- colnames(x)
-    }
     x@metadata[["cov_file"]] <- value
+    x
+})
+
+#' @describeIn NxtSE-methods Sets the values in the data frame containing
+#'   sample QC
+#' @export
+setReplaceMethod("sampleQC", c("NxtSE"), function(x, withDimnames=TRUE, value) {
+    if(withDimnames) {
+        value <- sampleQC_withDimnames(x, value)
+    }
+    x@metadata[["sampleQC"]] <- value
     x
 })
 
@@ -434,6 +487,7 @@ setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
         down_exc(x, FALSE) <- 
             down_exc(x, FALSE)[events_Exc,samples,drop=FALSE]
         covfile(x, FALSE) <- covfile(x, FALSE)[samples]
+        sampleQC(x, FALSE) <- sampleQC(x, FALSE)[samples,,drop=FALSE]
     } else if (!missing(i)) {
         events <- rownames(x)[i]
         events_Inc = events[events %in% rownames(metadata(x)[["Up_Inc"]])]
@@ -455,6 +509,7 @@ setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
         up_exc(x, FALSE) <- up_exc(x, FALSE)[,samples,drop=FALSE]
         down_exc(x, FALSE) <- down_exc(x, FALSE)[,samples,drop=FALSE]
         covfile(x, FALSE) <- covfile(x, FALSE)[samples]
+        sampleQC(x, FALSE) <- sampleQC(x, FALSE)[samples,,drop=FALSE]
     }
     callNextMethod()
 
@@ -478,6 +533,7 @@ setMethod("[<-", c("NxtSE", "ANY", "ANY", "NxtSE"),
         up_exc(x)[events_Exc, samples] <- up_exc(value)
         down_exc(x)[events_Exc, samples] <- down_exc(value)
         covfile(x)[samples] <- covfile(value)
+        sampleQC(x)[samples,] <- sampleQC(value)
     } else if (!missing(i)) {
         events <- rownames(x)[i]
         events_Inc = events[events %in% rownames(metadata(x)[["Up_Inc"]])]
@@ -494,6 +550,7 @@ setMethod("[<-", c("NxtSE", "ANY", "ANY", "NxtSE"),
         up_exc(x)[,samples] <- up_exc(value)
         down_exc(x)[,samples] <- down_exc(value)
         covfile(x)[samples] <- covfile(value)
+        sampleQC(x)[samples,] <- sampleQC(value)
     }
 
     callNextMethod()
@@ -548,6 +605,14 @@ setMethod("cbind", "NxtSE", function(..., deparse.level=1) {
     }, error=function(err) {
         stop(
             "failed to combine 'cov_file' in 'cbind(<", 
+            class(args[[1]]), ">)':\n  ",
+            conditionMessage(err))
+    })
+    tryCatch({
+        metadata$sampleQC <- do.call(rbind, lapply(args, sampleQC))
+    }, error=function(err) {
+        stop(
+            "failed to combine 'sampleQC' in 'cbind(<", 
             class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
@@ -611,6 +676,14 @@ setMethod("rbind", "NxtSE", function(..., deparse.level=1) {
     }, error=function(err) {
         stop(
             "failed to combine 'cov_file' in 'rbind(<", 
+            class(args[[1]]), ">)':\n  ",
+            conditionMessage(err))
+    })
+    tryCatch({
+        metadata$sampleQC <- sampleQC(args[[1]])
+    }, error=function(err) {
+        stop(
+            "failed to combine 'sampleQC' in 'rbind(<", 
             class(args[[1]]), ">)':\n  ",
             conditionMessage(err))
     })
