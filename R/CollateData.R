@@ -208,15 +208,9 @@ IRFinder <- function(
 #'   (i.e. akin to "known-exon" introns from IRFinder), \code{SpliceOverMax} 
 #'   uses \code{GenomicRanges::findOverlaps()} to summate competing mapped
 #'   splice reads.
-#' @param low_memory_mode Use this mode in memory-limited systems with many
-#'   samples (> 16). CollateData will write to file for every N samples as
-#'   defined by \code{samples_per_block = N}. Memory usage is often a problem
-#'   for large datasets or using multiple cores. If you experience crashes due
-#'   to running out of memory, set this to true and make sure 
-#'   \code{n_threads = 1}
-#' @param samples_per_block How many samples to process per thread. Use in 
-#'   conjunction with low_memory_mode to lower memory requirements
-#' @param n_threads The number of threads to use.
+#' @param samples_per_block How many samples to process per thread. 
+#' @param n_threads The number of threads to use. On low
+#'   memory systems, reduce the number of `n_threads` and `samples_per_block`
 #' @return None. \code{CollateData()} writes to the directory given by 
 #'   \code{output_path}
 #' @examples
@@ -230,12 +224,11 @@ IRFinder <- function(
 #'   reference_path = file.path(tempdir(), "Reference"),
 #'   output_path = file.path(tempdir(), "NxtIRF_output")
 #' )
-#' @seealso "NxtIRF: 2 - Building an Experiment" 
-#'   (accessed via `browseVignettes("NxtIRF")`)
+#' @seealso [IRFinder()], [MakeSE()]
 #' @export
 CollateData <- function(Experiment, reference_path, output_path,
         IRMode = c("SpliceOverMax", "SpliceMax"), 
-        low_memory_mode = FALSE, samples_per_block = 16, n_threads = 1) {
+        samples_per_block = 16, n_threads = 1) {
 
     IRMode = match.arg(IRMode)
     if(IRMode == "") {
@@ -250,18 +243,13 @@ CollateData <- function(Experiment, reference_path, output_path,
     coverage_files = .collateData_COV(Experiment)
     
     df.internal <- .collateData_expr(Experiment)
-    jobs = NxtIRF.SplitVector(seq_len(nrow(df.internal)),
-        ceiling(nrow(df.internal) / samples_per_block))
+    jobs = .collateData_jobs(nrow(df.internal), BPPARAM_mod, samples_per_block)
     n_jobs = length(jobs)
     N <- 7
     dash_progress("Compiling Sample Stats", N)
     message("Compiling Sample Stats")
     df.internal = .collateData_stats(df.internal, jobs, BPPARAM_mod)
-    if(any(df.internal$strand == 0)) {
-        runStranded = FALSE
-    } else {
-        runStranded = TRUE
-    }    
+    runStranded = !any(df.internal$strand == 0)
     
     dash_progress("Compiling Junction List", N)
     message("Compiling Junction List")       
@@ -275,9 +263,6 @@ CollateData <- function(Experiment, reference_path, output_path,
         output_path, runStranded)
     gc()
 
-    irf.common[, start := start + 1]
-    junc.common[, start := start + 1]
-
 # Reassign +/- based on junctions.fst annotation
     # Annotate junctions
     dash_progress("Tidying up splice junctions and intron retentions", N)
@@ -289,15 +274,10 @@ CollateData <- function(Experiment, reference_path, output_path,
 
     dash_progress("Generating NxtIRF FST files", N)
     message("Generating NxtIRF FST files")
-    
-    item.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth", 
-        "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc", "junc_PSI", "junc_counts")
-
     agg.list <- suppressWarnings(BiocParallel::bplapply(seq_len(n_jobs),
         .collateData_compile_agglist, 
         jobs = jobs, df.internal = df.internal, 
         norm_output_path = norm_output_path, IRMode = IRMode,
-        low_memory_mode = low_memory_mode,
         BPPARAM = BPPARAM_mod
     ))
     gc()
@@ -305,28 +285,90 @@ CollateData <- function(Experiment, reference_path, output_path,
     dash_progress("Building Final SummarizedExperiment Object", N)
     message("Building Final SummarizedExperiment Object")
     assays <- .collateData_compile_assays(agg.list, df.internal,
-        norm_output_path, low_memory_mode,
-        item.todo, jobs, n_jobs)
+        norm_output_path, jobs, n_jobs)
 
-    # .collateData_fix_juncnames(norm_output_path)
     .collateData_write_stats(df.internal, norm_output_path)
     .collateData_write_colData(df.internal, coverage_files, norm_output_path)
     cov_data <- prepare_covplot_data(reference_path)
     saveRDS(cov_data, file.path(norm_output_path, "annotation", "cov_data.Rds"))
     
-    # NEW compile HDF5SummarizedExperiment:
+    # NEW compile NxtSE:
     colData.Rds <- readRDS(file.path(norm_output_path, "colData.Rds"))
-    colData <- .makeSE_colData_clean(
-        colData.Rds$df.anno)
-    se <- .makeSE_initialise_HDF5(norm_output_path, colData, assays)
-    
-    # HDF5Array::saveHDF5SummarizedExperiment(se, 
-        # dir = norm_output_path, prefix = "NxtSE_",
-        # replace = TRUE)
+    colData <- .makeSE_colData_clean(colData.Rds$df.anno)
+    se <- .collateData_initialise_HDF5(norm_output_path, colData, assays)
     
     .collateData_save_NxtSE(se, file.path(norm_output_path, "NxtSE.rds"))
     dash_progress("NxtIRF Collation Finished", N)
     message("NxtIRF Collation Finished")
+}
+
+################################################################################
+
+#' Constructs a SummarizedExperiment object from the collated data
+#'
+#' MakeSE() creates a SummarizedExperiment object from the data collated
+#' from IRFinder output using CollateData().
+#'
+#' @param collate_path The output path given to CollateData() pointing to the
+#'   collated data
+#' @param colData A data frame containing the sample annotation information.
+#'   Note that the first column must contain the sample names. If the names of 
+#'   only a subset of samples are given, then `MakeSE()` will construct the SE 
+#'   object based only on the samples given. Omit `colData` to generate an SE 
+#'   object based on the whole dataset. The colData can be set later using 
+#'   `colData()`
+#' @param RemoveOverlapping (default = TRUE) Whether to filter out overlapping 
+#'   introns of IR events belonging to minor isoforms. MakeSE will try to 
+#'   identify which junctions belong to major isoforms, then select the 
+#'   junctions from non-overlapping minor isoforms in an iterative approach, 
+#'   until no non-overlapping introns remain. This is important
+#'   to make sure IR events are not 'double-counted'
+#'
+#' @return A NxtIRF SummarizedExperiment (`NxtSE`) object 
+#'
+#' @examples
+#' se = MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
+#' @md
+#' @export
+MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
+    # Includes iterative filtering for IR events with highest mean PSI
+        # To annotate IR events of major isoforms
+
+    colData <- .makeSE_validate_args(collate_path, colData)
+    colData <- .makeSE_colData_clean(colData)
+
+    N <- 8
+    dash_progress("Loading NxtSE object from file...", N)
+    message("Loading NxtSE object from file...", appendLF = FALSE)
+    # se <- .makeSE_initialise_HDF5(collate_path, colData)
+    # se <- HDF5Array::loadHDF5SummarizedExperiment(
+        # dir = collate_path, prefix = "NxtSE_")
+    # se = readRDS(file.path(collate_path, "NxtSE.rds"))
+    se = .collateData_load_NxtSE(file.path(collate_path, "NxtSE.rds"))
+    # Encapsulate as NxtSE object
+    se = se[, colData$sample]
+    if(ncol(colData) > 1) {
+        colData_use <- colData[, -1, drop = FALSE]
+        rownames(colData_use) <- colData$sample
+        colData(se) <- as(colData_use, "DataFrame")    
+    }
+    se = as(se, "NxtSE")
+    message("done\n")
+    
+    if(RemoveOverlapping == TRUE) {
+        # Iterative filtering of IR
+        # tryCatch({
+            # se <- .makeSE_iterate_IR(se, collate_path)
+        # }, error = function(e) {
+            # message(paste(
+                # "Iterative filtering of IR appears to have",'
+                # "run into an error.",
+                # "Using RemoveOverlapping = FALSE"))
+        # })
+        dash_progress("Removing overlapping introns...", N)
+        se <- .makeSE_iterate_IR(se, collate_path)
+    }
+    return(se)
 }
 
 ################################################################################
@@ -423,11 +465,8 @@ CollateData <- function(Experiment, reference_path, output_path,
     n_jobs = min(ceiling(n_expr / samples_per_block), 
         BPPARAM_mod$workers)
     jobs = NxtIRF.SplitVector(seq_len(n_expr), n_jobs)  
-    n_jobs = length(jobs)
     return(jobs)
 }
-
-
 
 ################################################################################
 # Sub
@@ -589,6 +628,7 @@ CollateData <- function(Experiment, reference_path, output_path,
                 all = TRUE, by = colnames(junc.common))
         }
     }
+    junc.common[, c("start") := get("start") + 1]
     return(junc.common)
 }
 
@@ -639,6 +679,7 @@ CollateData <- function(Experiment, reference_path, output_path,
         paste(df.internal$sample[1], "irf.fst.tmp", sep=".")),
         as.data.table = TRUE)
     irf.common = irf[,seq_len(6), with = FALSE]
+    irf.common[, c("start") := get("start") + 1]
     return(irf.common)
 }
 
@@ -986,11 +1027,8 @@ CollateData <- function(Experiment, reference_path, output_path,
 # Sub
 
 .collateData_compile_agglist <- function(x, jobs, df.internal, 
-        norm_output_path, IRMode, low_memory_mode) {
-    # suppressPackageStartupMessages({
-        # requireNamespace("data.table")
-        # requireNamespace("stats")
-    # })
+        norm_output_path, IRMode) {
+        
     rowEvent = as.data.table(read.fst(
         file.path(norm_output_path, "rowEvent.brief.fst")))
     junc.common = as.data.table(read.fst(
@@ -1024,16 +1062,11 @@ CollateData <- function(Experiment, reference_path, output_path,
         file.remove(file.path(norm_output_path, "temp", 
             paste(block$sample[i], "irf.fst.tmp", sep=".")))               
     } # end FOR loop
-    
-    # if(low_memory_mode == TRUE) {
-        # .collateData_save_assays_lowmem(assays, norm_output_path, x)
-        # .collateData_save_assays_lowmem_fst(assays, norm_output_path, x)
-        # return(NULL)
-    # } else {
 
-        # return(final)
-    # }
+    return(.collateData_compile_agglist_final(assays))
+}
 
+.collateData_compile_agglist_final <- function(assays) {
     final = list(
         Included = DelayedArray(
             assays[["Included"]][, -seq_len(3), with = FALSE]),
@@ -1060,8 +1093,6 @@ CollateData <- function(Experiment, reference_path, output_path,
     )
     return(final)
 }
-
-
 
 .collateData_assays_init <- function(rowEvent, junc_PSI) {
     assays = list(
@@ -1383,120 +1414,17 @@ CollateData <- function(Experiment, reference_path, output_path,
     return(assays)
 }
 
-.collateData_save_assays_lowmem <- function(assays, norm_output_path, x) {
-    value = t(as.matrix(assays[["Included"]][, -c(1,2,3)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("Included", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["Excluded"]][, -c(1,2,3)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("Excluded", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["Depth"]][, -c(1,2,3)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("Depth", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["Coverage"]][, -c(1,2,3)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("Coverage", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["minDepth"]][, -c(1,2,3)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("minDepth", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["Up_Inc"]][, -c(1,2,3)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("Up_Inc", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["Down_Inc"]][, -c(1,2,3)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("Down_Inc", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["Up_Exc"]][, -c(1,2,3)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("Up_Exc", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["Down_Exc"]][, -c(1,2,3)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("Down_Exc", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["junc_PSI"]][, -c(1,2,3,4)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("junc_PSI", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-    value = t(as.matrix(assays[["junc_counts"]][, -c(1,2,3,4)]))
-    fwrite(as.data.frame(value), file.path(norm_output_path, "temp", 
-        paste("junc_counts", as.character(x), "txt.gz", sep=".")), 
-        col.names = FALSE, row.names = FALSE)
-}
-
-.collateData_save_assays_lowmem_fst <- function(assays, norm_output_path, x) {
-    assaynames = c("Included", "Excluded", "Depth", "Coverage", "minDepth",
-        "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc", 
-        "junc_PSI", "junc_counts")
-    for(assayname in assaynames) {
-        if(grepl("junc", assayname)) {
-            .collateData_save_assays_lowmem_fst_indiv(
-                assays[[assayname]][, -seq_len(4), with = FALSE],
-                assayname, norm_output_path, x)
-        } else {
-            .collateData_save_assays_lowmem_fst_indiv(
-                assays[[assayname]][, -seq_len(3), with = FALSE],
-                assayname, norm_output_path, x)
-        }
-    }
-}
-
-.collateData_save_assays_lowmem_fst_indiv <- function(mat, assayname, 
-        norm_output_path, x) {
-    mat = as.data.frame(mat)
-    colnames(mat) = as.character(seq_len(ncol(mat)))
-    fst::write.fst(mat, file.path(norm_output_path, "temp", 
-        paste(assayname, as.character(x), "fst", sep=".")))
-}
+################################################################################
 
 .collateData_compile_assays <- function(agg.list, df.internal,
-        norm_output_path, low_memory_mode,
-        item.todo, jobs, n_jobs) {
-    # if(low_memory_mode) {
-        # for(item in item.todo) {
-            # file.DT = data.table(file = list.files(pattern = item, 
-                # path = file.path(norm_output_path, "temp")))
-            # file.DT[, c("index") := 
-                # as.numeric(tstrsplit(file.DT, split=".", fixed = TRUE)[[2]])]
-            # setorder(file.DT, "index")
-            # mat = NULL
-            # for(x in seq_len(n_jobs)) {
-                # temp = t(fread(file.path(file.path(norm_output_path, "temp"), 
-                    # file.DT$file[x]), data.table = FALSE))
-                # temp <- fst::read.fst(file.path(norm_output_path, "temp", 
-                    # file.DT$file[x]))
-                # colnames(temp) = df.internal$sample[jobs[[x]]]
-                # if(!is.null(mat)) {
-                    # mat <- cbind(mat, temp)
-                # } else mat <- temp
-                # file.remove(file.path(file.path(norm_output_path, "temp"), 
-                    # file.DT$file[x]))
-            # }
-            # rownames(mat) <- seq_len(nrow(mat))
-            # outfile = file.path(norm_output_path, paste(item, "fst", sep="."))
-            # write.fst(as.data.frame(mat), outfile)
-        # }
-    # } else {
-        # item.DTList = list()
-        # for(item in item.todo) {
-            # for(x in seq_len(n_jobs)) {
-                # if(x == 1) {
-                    # item.DTList[[item]] = agg.list[[x]][[item]]
-                # } else {
-                    # item.DTList[[item]] = cbind(item.DTList[[item]], 
-                        # agg.list[[x]][[item]])
-                # }
-            # }
-            # outfile = file.path(norm_output_path, paste(item, "fst", sep="."))
-            # write.fst(as.data.frame(item.DTList[[item]]), outfile)
-        # }
-    # }
+        norm_output_path, jobs, n_jobs) {
+
+    item.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth", 
+        "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc", "junc_PSI", "junc_counts")
+
+    rowData = as.data.table(read.fst(file.path(norm_output_path, "rowEvent.fst")))
+    Inc_Events <- rowData$EventName[rowData$EventType %in% c("IR", "MXE", "SE")]
+    Exc_Events <- rowData$EventName[rowData$EventType %in% "MXE"]
 
     junc_index <- fst::read.fst(file.path(
         norm_output_path, "junc_PSI_index.fst"
@@ -1514,21 +1442,21 @@ CollateData <- function(Experiment, reference_path, output_path,
     if(file.exists(outfile)) file.remove(outfile)
     item.DTList = list()
     for(item in item.todo) {
-        # for(x in seq_len(n_jobs)) {
-            # if(x == 1) {
-                # item.DTList[[item]] = agg.list[[x]][[item]]
-            # } else {
-                # item.DTList[[item]] = cbind(item.DTList[[item]], 
-                    # agg.list[[x]][[item]])
-            # }
-        # }
-        if(!is.null(agg_t)) {
+
+        if(n_jobs > 1) {
             item.DTList[[item]] = do.call(cbind, agg_t[[item]])
         } else {
             item.DTList[[item]] = agg.list[[1]][[item]]
         }
-        if(grepl("junc", item)) {
+        if(grepl("junc", item) && length(junc_rownames) > 0) {
             rownames(item.DTList[[item]]) <- junc_rownames
+        } else if(grepl("_Inc", item) && length(Inc_Events) > 0) {
+            rownames(item.DTList[[item]]) <- Inc_Events
+        } else if(grepl("_Exc", item) && length(Exc_Events) > 0) {
+            rownames(item.DTList[[item]]) <- Exc_Events
+        } else {
+            # Standard assay
+            rownames(item.DTList[[item]]) <- rowData$EventName
         }
         # Realize as HDF5Array
         assays[[item]] <- HDF5Array::writeHDF5Array(item.DTList[[item]], 
@@ -1537,35 +1465,10 @@ CollateData <- function(Experiment, reference_path, output_path,
         )
     }
     return(assays)
-    # return(item.DTList)
 }
 
-
-# .collateData_fix_juncnames <- function(norm_output_path) {
-    # junc_index = fst::read.fst(file.path(
-        # norm_output_path, "junc_PSI_index.fst"
-    # ))
-    # junc_PSI = fst::read.fst(file.path(
-        # norm_output_path, "junc_PSI.fst"
-    # ))  
-    # junc_counts = fst::read.fst(file.path(
-        # norm_output_path, "junc_counts.fst"
-    # ))
-    # junc_PSI$rownames = with(junc_index, 
-        # paste0(seqnames, ":", start, "-", end, "/", strand))
-    # junc_counts$rownames = junc_PSI$rownames
-    # fst::write.fst(cbind(junc_PSI[,ncol(junc_PSI),drop=FALSE],
-        # junc_PSI[,-ncol(junc_PSI)]),file.path(
-        # norm_output_path, "junc_PSI.fst"
-    # ))
-    # fst::write.fst(cbind(junc_counts[,ncol(junc_counts),drop=FALSE],
-        # junc_counts[,-ncol(junc_counts)]),file.path(
-        # norm_output_path, "junc_counts.fst"
-    # ))
-# }
-
 .collateData_write_stats <- function(df.internal, norm_output_path) {
-    outfile = file.path(norm_output_path, paste("stats", "fst", sep="."))
+    outfile = file.path(norm_output_path, "stats.fst")
     write.fst(as.data.frame(df.internal), outfile)
 }
 
@@ -1595,8 +1498,53 @@ CollateData <- function(Experiment, reference_path, output_path,
     saveRDS(colData, file.path(norm_output_path, "colData.Rds"))
 }
 
-# Lifted from HDF%Array saveHDF5SummarizedExperiment
+.collateData_initialise_HDF5 <- function(collate_path, colData, assays) {
+    item.todo = c("rowEvent", "Included", "Excluded", "Depth", "Coverage", 
+        "minDepth", "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc")
+    
+    # Annotate NMD direction
+    rowData = as.data.table(read.fst(file.path(collate_path, "rowEvent.fst")))
+    rowData[, c("NMD_direction") := 0]
+    rowData[get("Inc_Is_NMD") & !get("Exc_Is_NMD"), c("NMD_direction") := 1]
+    rowData[!get("Inc_Is_NMD") & get("Exc_Is_NMD"), c("NMD_direction") := -1]
+    rowData = as.data.frame(rowData)
+    
+    colData = as.data.frame(colData)   
+    colData_use = colData[, -1, drop=FALSE]
+    rownames(colData_use) = colData$sample
+            
+    se = SummarizedExperiment(
+        assays = SimpleList(
+            Included = assays[["Included"]], 
+            Excluded = assays[["Excluded"]], 
+            Depth = assays[["Depth"]], 
+            Coverage = assays[["Coverage"]], 
+            minDepth = assays[["minDepth"]]
+        ), rowData = rowData, colData = colData_use
+    )
+    rownames(se) = rowData(se)$EventName
 
+    metadata(se)$Up_Inc = assays[["Up_Inc"]]
+    metadata(se)$Down_Inc = assays[["Down_Inc"]]
+    metadata(se)$Up_Exc = assays[["Up_Exc"]]
+    metadata(se)$Down_Exc = assays[["Down_Exc"]]
+    
+    colData.Rds <- readRDS(file.path(collate_path, "colData.Rds"))
+    if("df.files" %in% names(colData.Rds) &&
+        "cov_file" %in% colnames(colData.Rds$df.files)) {
+        metadata(se)$cov_file <- colData.Rds$df.files$cov_file     
+    }
+    metadata(se)$ref <- readRDS(file.path(
+        collate_path, "annotation", "cov_data.Rds"
+    ))
+    stats.df <- fst::read.fst(file.path(collate_path, "stats.fst"))
+    metadata(se)$sampleQC <- stats.df[, -1, drop = FALSE]
+    rownames(metadata(se)$sampleQC) <- colnames(se)
+    
+    return(se)
+}
+
+# Lifted from HDF5Array saveHDF5SummarizedExperiment
 .collateData_simplify_assay_path <- function(assay) {
     DelayedArray::modify_seeds(assay,
         function(x) {
@@ -1728,77 +1676,10 @@ loadTranscripts <- function(reference_path) {
     return(Transcripts.DT)
 }
 
-################################################################################
 
-#' Constructs a SummarizedExperiment object from the collated data
-#'
-#' MakeSE() creates a SummarizedExperiment object from the data collated
-#' from IRFinder output using CollateData().
-#'
-#' @param collate_path The output path given to CollateData() pointing to the
-#'   collated data
-#' @param colData A data frame containing the sample annotation information.
-#'   Note that the first column must contain the sample names. If the names of 
-#'   only a subset of samples are given, then `MakeSE()` will construct the SE 
-#'   object based only on the samples given. Omit `colData` to generate an SE 
-#'   object based on the whole dataset. The colData can be set later using 
-#'   `colData()`
-#' @param RemoveOverlapping (default = TRUE) Whether to filter out overlapping 
-#'   introns of IR events belonging to minor isoforms. MakeSE will try to 
-#'   identify which junctions belong to major isoforms, then select the 
-#'   junctions from non-overlapping minor isoforms in an iterative approach, 
-#'   until no non-overlapping introns remain. This is important
-#'   to make sure IR events are not 'double-counted'
-#'
-#' @return A NxtIRF SummarizedExperiment (`NxtSE`) object 
-#'
-#' @examples
-#' se = MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
-#' @md
-#' @export
-MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
-    # Includes iterative filtering for IR events with highest mean PSI
-        # To annotate IR events of major isoforms
-
-    colData <- .makeSE_validate_args(collate_path, colData)
-    colData <- .makeSE_colData_clean(colData)
-
-    N <- 8
-    dash_progress("Loading NxtSE object from file...", N)
-    message("Loading NxtSE object from file...", appendLF = FALSE)
-    # se <- .makeSE_initialise_HDF5(collate_path, colData)
-    # se <- HDF5Array::loadHDF5SummarizedExperiment(
-        # dir = collate_path, prefix = "NxtSE_")
-    # se = readRDS(file.path(collate_path, "NxtSE.rds"))
-    se = .collateData_load_NxtSE(file.path(collate_path, "NxtSE.rds"))
-    # Encapsulate as NxtSE object
-    se = se[, colData$sample]
-    if(ncol(colData) > 1) {
-        colData_use <- colData[, -1, drop = FALSE]
-        rownames(colData_use) <- colData$sample
-        colData(se) <- as(colData_use, "DataFrame")    
-    }
-    se = as(se, "NxtSE")
-    message("done\n")
-    
-    if(RemoveOverlapping == TRUE) {
-        # Iterative filtering of IR
-        # tryCatch({
-            # se <- .makeSE_iterate_IR(se, collate_path)
-        # }, error = function(e) {
-            # message(paste(
-                # "Iterative filtering of IR appears to have",'
-                # "run into an error.",
-                # "Using RemoveOverlapping = FALSE"))
-        # })
-        dash_progress("Removing overlapping introns...", N)
-        se <- .makeSE_iterate_IR(se, collate_path)
-    }
-    return(se)
-}
 
 ################################################################################
-# helpers
+# MakeSE() helpers
 
 .makeSE_validate_args <- function(collate_path, colData) {
     item.todo = c("rowEvent", "Included", "Excluded", "Depth", "Coverage", 
@@ -1863,125 +1744,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     return(colData)
 }
 
-.makeSE_initialise <- function(collate_path, colData) {
-    item.todo = c("rowEvent", "Included", "Excluded", "Depth", "Coverage", 
-        "minDepth", "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc")
-    files.todo = file.path(normalizePath(collate_path), 
-        paste(item.todo, "fst", sep="."))
-    colData.Rds = readRDS(file.path(collate_path, "colData.Rds"))
-    rowData = read.fst(files.todo[1])
-    Included = as.matrix(read.fst(files.todo[2], columns = colData$sample))
-    Excluded = as.matrix(read.fst(files.todo[3], columns = colData$sample))
-    Depth = as.matrix(read.fst(files.todo[4], columns = colData$sample))
-    Coverage = as.matrix(read.fst(files.todo[5], columns = colData$sample))
-    minDepth = as.matrix(read.fst(files.todo[6], columns = colData$sample))
-    Up_Inc = as.matrix(read.fst(files.todo[7], columns = colData$sample))
-    Down_Inc = as.matrix(read.fst(files.todo[8], columns = colData$sample))
-    Up_Exc = as.matrix(read.fst(files.todo[9], columns = colData$sample))
-    Down_Exc = as.matrix(read.fst(files.todo[10], columns = colData$sample))
-    rownames(Up_Inc) = rowData$EventName[
-        rowData$EventType %in% c("IR", "MXE", "SE")]
-    rownames(Down_Inc) = rowData$EventName[
-        rowData$EventType %in% c("IR", "MXE", "SE")]
-    rownames(Up_Exc) = rowData$EventName[
-        rowData$EventType %in% c("MXE")]
-    rownames(Down_Exc) = rowData$EventName[
-        rowData$EventType %in% c("MXE")]
-    
-    # Annotate NMD direction
-    rowData = as.data.table(rowData)
-    rowData[, c("NMD_direction") := 0]
-    rowData[get("Inc_Is_NMD") & !get("Exc_Is_NMD"), c("NMD_direction") := 1]
-    rowData[!get("Inc_Is_NMD") & get("Exc_Is_NMD"), c("NMD_direction") := -1]
-    rowData = as.data.frame(rowData)
 
-    se = SummarizedExperiment(
-        assays = SimpleList(
-            Included = Included, Excluded = Excluded, 
-            Depth = Depth, Coverage = Coverage, minDepth = minDepth
-        ),
-        rowData = rowData, 
-        colData = as.data.frame(
-            colData[, -1, drop=FALSE], row.names = colData$sample)
-    )
-    rownames(se) = rowData(se)$EventName
-
-    metadata(se)$Up_Inc = Up_Inc
-    metadata(se)$Down_Inc = Down_Inc
-    metadata(se)$Up_Exc = Up_Exc
-    metadata(se)$Down_Exc = Down_Exc
-    if("df.files" %in% names(colData.Rds) &&
-        "cov_file" %in% colnames(colData.Rds$df.files)) {
-        metadata(se)$cov_file = colData.Rds$df.files$cov_file
-        # names(metadata(se)$cov_file) = colData.Rds$df.files$sample       
-    }
-    metadata(se)$ref = readRDS(file.path(
-        collate_path, "annotation", "cov_data.Rds"
-    ))
-    return(se)
-}
-
-.makeSE_initialise_HDF5 <- function(collate_path, colData, assays) {
-    item.todo = c("rowEvent", "Included", "Excluded", "Depth", "Coverage", 
-        "minDepth", "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc")
-    colData.Rds = readRDS(file.path(collate_path, "colData.Rds"))
-    h5file = file.path(collate_path, "data.h5")
-    rowData = read.fst(file.path(collate_path, "rowEvent.fst"))
-    Included = assays[[item.todo[2]]]
-    Excluded = assays[[item.todo[3]]]
-    Depth = assays[[item.todo[4]]]
-    Coverage = assays[[item.todo[5]]]
-    minDepth = assays[[item.todo[6]]]
-    Up_Inc = assays[[item.todo[7]]]
-    Down_Inc = assays[[item.todo[8]]]
-    Up_Exc = assays[[item.todo[9]]]
-    Down_Exc = assays[[item.todo[10]]]
-    if(nrow(Up_Inc) > 0) {
-        rownames(Up_Inc) = rowData$EventName[
-            rowData$EventType %in% c("IR", "MXE", "SE")]
-        rownames(Down_Inc) = rowData$EventName[
-            rowData$EventType %in% c("IR", "MXE", "SE")]
-    }
-    if(nrow(Up_Exc) > 0) {
-        rownames(Up_Exc) = rowData$EventName[
-            rowData$EventType %in% c("MXE")]
-        rownames(Down_Exc) = rowData$EventName[
-            rowData$EventType %in% c("MXE")]
-    }
-    # Annotate NMD direction
-    rowData = as.data.table(rowData)
-    rowData[, c("NMD_direction") := 0]
-    rowData[get("Inc_Is_NMD") & !get("Exc_Is_NMD"), c("NMD_direction") := 1]
-    rowData[!get("Inc_Is_NMD") & get("Exc_Is_NMD"), c("NMD_direction") := -1]
-    rowData = as.data.frame(rowData)
-    colData = as.data.frame(colData)
-    
-    colData_use = as.data.frame(
-            colData[, -1, drop=FALSE], row.names = colData$sample)
-    se = SummarizedExperiment(
-        assays = SimpleList(
-            Included = Included, Excluded = Excluded, 
-            Depth = Depth, Coverage = Coverage, minDepth = minDepth
-        ),
-        rowData = rowData, 
-        colData = colData_use
-    )
-    rownames(se) = rowData(se)$EventName
-
-    metadata(se)$Up_Inc = Up_Inc
-    metadata(se)$Down_Inc = Down_Inc
-    metadata(se)$Up_Exc = Up_Exc
-    metadata(se)$Down_Exc = Down_Exc
-    if("df.files" %in% names(colData.Rds) &&
-        "cov_file" %in% colnames(colData.Rds$df.files)) {
-        metadata(se)$cov_file = colData.Rds$df.files$cov_file
-        # names(metadata(se)$cov_file) = colData.Rds$df.files$sample       
-    }
-    metadata(se)$ref = readRDS(file.path(
-        collate_path, "annotation", "cov_data.Rds"
-    ))
-    return(se)
-}
 
 .makeSE_iterate_IR <- function(se, collate_path) {
     # junc_PSI = fst::read.fst(file.path(

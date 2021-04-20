@@ -50,8 +50,7 @@ make_example_NxtSE <- function() {
     bams = NxtIRF_example_bams()
     BuildReference(
       fasta = mock_genome(), gtf = mock_gtf(),
-      reference_path = file.path(tempdir(), "Reference"),
-      genome_type = "other"
+      reference_path = file.path(tempdir(), "Reference")
     )
     IRFinder(bams$BAM, bams$sample,
       reference_path = file.path(tempdir(), "Reference"),
