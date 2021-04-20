@@ -50,6 +50,7 @@
 #' @md
 NULL
 
+
 res_url <- "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF"
 
 #' @export
@@ -201,19 +202,16 @@ get_mappability_exclusion <- function(
                         openssl::md5(file(dest)))) {
                 # if md5 identical, do nothing
             } else {
-                file.copy(path,
-                    file.path(destination_path, file),
-                    overwrite = TRUE
-                )
+                file.copy(path, dest, overwrite = TRUE)
             }
-            files = c(files, file.path(destination_path, file))
+            files = c(files, dest)
         }
     }
     return(normalizePath(files))
 }
 
 .cache_and_create_file <- function(urls, destination_path = "",
-        filenames = basename(urls)) {
+        filenames = basename(urls), try_eh = TRUE) {
     if(destination_path != "" && !dir.exists(dirname(destination_path))) {
         warning(paste(destination_path, "- parent directory does not exist"))
         return("")
@@ -235,6 +233,37 @@ get_mappability_exclusion <- function(
             }
         )
     }
+    if(try_eh) {
+        # ExperimentHub retrieval of source url (if record(s) exists)
+        eh = ExperimentHub::ExperimentHub()
+        if(all(urls %in% eh$sourceurl)) {
+            return(.cache_and_create_file_eh(urls, eh, 
+                destination_path, filenames))
+        }
+    }
     return(.fetch_files_from_urls(urls, filenames, destination_path))
 }
 
+.cache_and_create_file_eh <- function(urls, eh = ExperimentHub::ExperimentHub(),
+        destination_path = "", filenames = basename(urls)) {
+    eh = eh[match(urls, eh$sourceurl)]
+    files = c()
+    for(i in seq_len(length(eh))) {
+        cache = unname(cache(eh[i])[1])     # first file is bam
+        file = filenames[i]
+        if(destination_path == "") {
+            files = c(files, cache)
+        } else {
+            dest = file.path(destination_path, file)
+            if(file.exists(dest) && 
+                    identical(openssl::md5(file(dest)), 
+                        openssl::md5(file(cache)))) {
+                # if md5 identical, do nothing
+            } else {
+                file.copy(cache, dest, overwrite = TRUE)
+            }
+            files = c(files, dest)
+        }
+    }
+    return(normalizePath(files))
+}

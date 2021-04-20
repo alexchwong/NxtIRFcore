@@ -22,8 +22,8 @@ mutually exclusive exon events, each junction must comprise at least 1/(2^2)
 = 1/4 of all reads associated with each isoform)\cr\cr
 In all filters, we require at least 80\% samples \code{pcTRUE = 80} from the entire
 dataset \code{minCond = "All"}.
-Events with read depth (reads supporting either included or excluded isoforms)
-lower than 20 \code{minDepth = 20} are excluded from filters 2,3,4.
+Events with read depth (reads supporting either included or excluded
+isoforms) lower than 20 \code{minDepth = 20} are excluded from filters 2,3,4.
 }
 \examples{
 filters = get_default_filters()

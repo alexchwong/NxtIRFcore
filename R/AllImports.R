@@ -31,6 +31,7 @@
 #' @importFrom DelayedArray qlogis plogis rowMeans DelayedArray
 #' @importFrom DelayedMatrixStats rowSds colVars
 #' @importFrom DT datatable selectRows 
+#' @importFrom ExperimentHub ExperimentHub
 #' @importFrom fst read.fst write.fst
 #' @importFrom genefilter rowttests
 #' @importFrom grDevices colorRampPalette
@@ -41,8 +42,7 @@
 #' @importFrom GenomicRanges makeGRangesListFromDataFrame mcols split strand 
 #' @importFrom GenomicRanges flank setdiff seqnames psetdiff disjoin mcols<- 
 #' @importFrom GenomicRanges strand<- seqnames<-
-#' @importFrom HDF5Array writeHDF5Array loadHDF5SummarizedExperiment
-#' @importFrom HDF5Array HDF5Array saveHDF5SummarizedExperiment
+#' @importFrom HDF5Array HDF5Array writeHDF5Array
 #' @importFrom heatmaply heatmaply
 #' @importFrom httr HEAD GET status_code
 #' @importFrom IRanges IRanges Views RleList
@@ -61,7 +61,7 @@
 #' @importFrom SummarizedExperiment assayNames assayNames<-
 #' @importFrom S4Vectors coolcat metadata Rle metadata<- SimpleList 
 #' @importFrom S4Vectors endoapply from to setValidity2 DataFrame
-#' @importFrom S4Vectors bindCOLS bindROWS
+#' @importFrom S4Vectors bindCOLS bindROWS getListElement setListElement
 #' @importFrom XML getHTMLLinks
 #' @importClassesFrom SummarizedExperiment SummarizedExperiment
 #' @importClassesFrom S4Vectors DataFrame

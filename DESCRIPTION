@@ -1,17 +1,19 @@
 Package: NxtIRF
-Title: User-friendly Intron Retention and Alternative Splicing analysis using the IRFinder engine
+Title: User-Friendly Intron Retention and Alternative Splicing Analysis using 
+    the IRFinder Engine
 Version: 0.98.0
-Date: 2020-11-07
+Date: 2021-04-21
 Authors@R: c(person("Alex Chit Hei", "Wong", email="a.wong@centenary.org.au", 
 		role=c("aut", "cre", "cph")),
 	person("William", "Ritchie", role=c("aut", "cph")),
 	person("Dadi", "Gao", role=c("ctb")),
 	person("Ulf", "Schmitz", role=c("ctb")))    
-Description: NxtIRF is the next evolution for Intron Retention detection for RNA-seq 
-    data. NxtIRF is now fully compatible with Windows and Mac as well as Linux. In addition
-    to analysis of bam files aligned to the genome using a splice-aware aligner (e.g. STAR),
-    NxtIRF provides convenient pipelines for downstream analysis and publication-ready
-    visualisation.
+Description: Interactively analyses Intron Retention and Alternative Splicing 
+    Events (ASE) in RNA-seq data. NxtIRF quantifies ASE events in BAM files 
+    aligned to the genome using a splice-aware aligner such as STAR. The core 
+    quantitation algorithm relies on the IRFinder/C++ engine ported via Rcpp for 
+    multi-platform compatibility. In addition, NxtIRF provides convenient 
+    pipelines for downstream analysis and publication-ready visualisation tools.
 License: MIT + file LICENSE
 Depends:
   R (>= 4.0.0)
@@ -26,8 +28,7 @@ Imports:
 	shinydashboard,
 	rhandsontable,
 	ggplot2,
-	AnnotationHub,
-	BiocFileCache,
+	AnnotationHub, ExperimentHub, BiocFileCache,
 	BiocGenerics,
 	Biostrings,
 	BiocParallel,
@@ -60,7 +61,8 @@ Suggests:
     Rsubread,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
-biocViews: Software, Transcriptomics, RNASeq, AlternativeSplicing, Coverage, DifferentialSplicing
+biocViews: Software, Transcriptomics, RNASeq, AlternativeSplicing, Coverage, 
+  DifferentialSplicing
 SystemRequirements: C++11
 Collate: AllImports.R
 	RcppExports.R
