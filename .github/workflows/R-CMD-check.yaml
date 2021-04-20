@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+    types: [opened, synchronize, closed]      
 
 name: R-CMD-check
 
