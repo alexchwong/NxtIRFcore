@@ -62,7 +62,8 @@ int GZWriter::flush(bool final) {
     if (ret != Z_OK) {
       std::ostringstream oss;
       oss << "Exception during zlib initialization: (" << ret << ") "  << strm.msg;
-      throw(std::runtime_error(oss.str()));
+      // throw(std::runtime_error(oss.str()));
+			return(ret);
     }
 
     strm.avail_in = bufferPos;
@@ -75,7 +76,8 @@ int GZWriter::flush(bool final) {
     if (ret != Z_OK && ret != Z_STREAM_END) {
         std::ostringstream oss;
         oss << "Exception during zlib deflate: (" << ret << ") " << strm.msg;
-        throw(std::runtime_error(oss.str()));
+        // throw(std::runtime_error(oss.str()));
+				return(ret);
     }
 
     have = strm.total_out;
