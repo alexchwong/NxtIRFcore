@@ -1,5 +1,5 @@
 # GitHub Actions
-.github
+.github/
 
 # R/Bioconductor hidden_file_ext
 *.renviron
