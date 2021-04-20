@@ -1,3 +1,6 @@
+# GitHub Actions
+.github
+
 # R/Bioconductor hidden_file_ext
 *.renviron
 *.rprofile
