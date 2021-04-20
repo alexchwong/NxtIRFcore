@@ -1,10 +1,15 @@
-bam_samples = c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046")
+bam_samples <- c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046")
+
+source_repo <- "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/"
 
 df_bams <- data.frame(
-    Title = sprintf("RNA-seq reads aligned to the NxtIRF mock genome from %s of the Leucegene dataset (GSE67039)", 
+    Title = sprintf(paste("RNA-seq reads aligned to the NxtIRF mock genome",
+        "from %s of the Leucegene dataset (GSE67039)"), 
         c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046")), 
-    Description = paste(c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046"),
-        "- aligned reads (from this sample in GSE67039) were filtered by those mapping to genes in the NxtIRF mock genome.",
+    Description = paste(
+        c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046"),
+        "- aligned reads (from this sample in GSE67039) were filtered by",
+        "those mapping to genes in the NxtIRF mock genome.",
         "These were re-aligned to the mock genome using STAR."
     ),
     BiocVersion="3.13", 
@@ -12,9 +17,8 @@ df_bams <- data.frame(
     SourceType="BAM",
     SourceUrl=
         sprintf(
-            paste("%s.bam", "%s.bam.bai", sep = ", "),
-            paste0("https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF/", bam_samples),
-            paste0("https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF/", bam_samples)
+            "%s.bam",
+            paste0(source_repo, "NxtIRF/", bam_samples)
         ),
     SourceVersion="0.99.0",
     Species="Homo sapiens",
@@ -24,7 +28,7 @@ df_bams <- data.frame(
     Maintainer="Alex Wong <a.wong@centenary.org.au>",
     RDataClass="BamFile",
     DispatchClass="BamFile",
-    Location_Prefix = "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/",
+    Location_Prefix = source_repo,
     RDataPath = sprintf(
             paste("%s.bam", "%s.bam.bai", sep = ", "),
             paste0("NxtIRF/", bam_samples),
@@ -50,14 +54,16 @@ df_mappa <- data.frame(
             "Ensembl GRCm38 (mm10) release-94",
             "Ensembl NCBIM37 (mm9) release-67"
         ),
-        "mappability exclusion regions were generated using a modified script of the method ",
-        "as described in https://github.com/williamritchie/IRFinder/blob/master/bin/util/Mapability"
+        "mappability exclusion regions were generated using a modified script",
+        "of the method as described in",
+        paste0("https://github.com/williamritchie/IRFinder/",
+            "blob/master/bin/util/Mapability")
     ),
     BiocVersion="3.13", 
     Genome=c("hg38", "hg19", "mm10", "mm9"),
     SourceType="BED",
-    SourceUrl=paste(
-        "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF/",
+    SourceUrl=paste0(
+        source_repo, "NxtIRF/",
         c(
             "Mappability_Regions_hg38_v94.txt.gz",
             "Mappability_Regions_hg19_v75.txt.gz",
@@ -73,7 +79,7 @@ df_mappa <- data.frame(
     Maintainer="Alex Wong <a.wong@centenary.org.au>",
     RDataClass="GRanges",
     DispatchClass="BEDFile",
-    Location_Prefix = "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/",
+    Location_Prefix = source_repo,
     RDataPath = c(
         "NxtIRF/Mappability_Regions_hg38_v94.txt.gz",
         "NxtIRF/Mappability_Regions_hg19_v75.txt.gz",
@@ -86,4 +92,4 @@ df_mappa <- data.frame(
 
 df = rbind(df_bams, df_mappa)
 
-# write.csv(file="../extdata/metadata.csv", df, row.names=FALSE)
+write.csv(file="../extdata/metadata.csv", df, row.names=FALSE)

@@ -185,35 +185,36 @@ GetNonPolyARef("hg19")
 
 GetMappabilityRef("mm10")
 
-# Reference generation from user supplied FASTA and GTF files (NOT RUN)
+\donttest{
+# Reference generation from user supplied FASTA and GTF files
 
-# GetReferenceResource(
-#     fasta = "genome.fa", gtf = "transcripts.gtf",
-#     reference_path = "./Reference_user"
-# )
-# BuildReference(reference_path = "./Reference_user",
-#     genome_type = "hg38" 
-# )
+GetReferenceResource(
+    fasta = "genome.fa", gtf = "transcripts.gtf",
+    reference_path = "./Reference_user"
+)
+BuildReference(reference_path = "./Reference_user",
+    genome_type = "hg38" 
+)
 
-# Reference generation from Ensembl's FTP links (NOT RUN):
+# Reference generation from Ensembl's FTP links:
 
-# FTP = "ftp://ftp.ensembl.org/pub/release-94/"
-# GetReferenceResource(
-#     fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
-#         "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
-#     gtf = paste0(FTP, "gtf/homo_sapiens/",
-#         "Homo_sapiens.GRCh38.94.chr.gtf.gz"), 
-#     reference_path = "./Reference_FTP"
-# )
-# BuildReference(reference_path = "./Reference_FTP",
-#     genome_type = "hg38" 
-# )
+FTP = "ftp://ftp.ensembl.org/pub/release-94/"
+GetReferenceResource(
+    fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
+        "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
+    gtf = paste0(FTP, "gtf/homo_sapiens/",
+        "Homo_sapiens.GRCh38.94.chr.gtf.gz"), 
+    reference_path = "./Reference_FTP"
+)
+BuildReference(reference_path = "./Reference_FTP",
+    genome_type = "hg38" 
+)
 
-# Get AnnotationHub record names for Ensembl release-94 (NOT RUN)
+# Get AnnotationHub record names for Ensembl release-94:
 
-# ah = AnnotationHub::AnnotationHub()
-# ah_r94 = AnnotationHub::query(ah, c("Homo Sapiens", "release-94"))
-# ah_r94
+ah = AnnotationHub::AnnotationHub()
+ah_r94 = AnnotationHub::query(ah, c("Homo Sapiens", "release-94"))
+ah_r94
 # AnnotationHub with 9 records
 # # snapshotDate(): 2021-04-12
 # # $dataprovider: Ensembl
@@ -235,32 +236,33 @@ GetMappabilityRef("mm10")
 #   AH65747 | Homo_sapiens.GRCh38.dna_sm.primary_assembly.2bit
 #   AH65748 | Homo_sapiens.GRCh38.ncrna.2bit
 
-# Reference generation from AnnotationHub's Ensembl release-94 (NOT RUN)
+# Reference generation from AnnotationHub's Ensembl release-94:
 
-# GetReferenceResource(
-#     ah_genome =  = "AH65745", 
-#     ah_transcriptome = "AH64631",
-#     reference_path = "./Reference_AH"
-# )
-# BuildReference(reference_path = "./Reference_AH",
-#     genome_type = "hg38" 
-# )
+GetReferenceResource(
+    ah_genome = "AH65745", 
+    ah_transcriptome = "AH64631",
+    reference_path = "./Reference_AH"
+)
+BuildReference(reference_path = "./Reference_AH",
+    genome_type = "hg38" 
+)
 
 # AnnotationHub's Ensembl release-94, converting Ensembl chromosomes
-# to UCSC style (NOT RUN)
+# to UCSC style:
 
-# chrom.df = GenomeInfoDb::genomeStyles()$Homo_sapiens
-#
-# GetReferenceResource(
-#     ah_genome = "AH65745", 
-#     ah_transcriptome = "AH64631",
-#     reference_path = "./Reference_UCSC",
-#     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
-# )
-# BuildReference(reference_path = "./Reference_UCSC",
-#     genome_type = "hg38", 
-#     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
-# )
+chrom.df = GenomeInfoDb::genomeStyles()$Homo_sapiens
+
+GetReferenceResource(
+    ah_genome = "AH65745", 
+    ah_transcriptome = "AH64631",
+    reference_path = "./Reference_UCSC",
+    convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
+)
+BuildReference(reference_path = "./Reference_UCSC",
+    genome_type = "hg38", 
+    convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
+)
+}
 }
 \seealso{
 \link{GenerateMappabilityReads}, \link{GenerateMappabilityBED},
