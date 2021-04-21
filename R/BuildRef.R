@@ -553,12 +553,12 @@ Get_GTF_file <- function(reference_path) {
         }
         settings.list <- readRDS(settings.file)
         if(!file.exists(file.path(resource_path, "genome.2bit"))) {
-            if(!is_valid(settings[["ah_genome"]])) {
+            if(!is_valid(settings.list[["ah_genome"]])) {
                 stop(paste("Genome could not be found inside", reference_path),
                     call. = FALSE)
             }
             genome <- .fetch_fasta(reference_path = reference_path,
-                ah_genome = settings[["ah_genome"]], 
+                ah_genome = settings.list[["ah_genome"]], 
                 convert_chromosome_names = chromosomes)
         } else {
             genome <- TwoBitFile(file.path(resource_path, "genome.2bit"))
