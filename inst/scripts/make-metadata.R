@@ -2,6 +2,37 @@ bam_samples <- c("02H003", "02H025", "02H026", "02H033", "02H043", "02H046")
 
 source_repo <- "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/"
 
+genes <- "SRSF1, SRSF2, SRSF3, TRA2A, TRA2B, TP53 and NSUN5"
+
+df_refs <- data.frame(
+    Title = sprintf(paste("NxtIRF mock %s containing human genes:", genes),
+        c("genome", "gene annotations")), 
+    Description = paste(
+        "Sequences from genes (", genes, ") were pasted together to create",
+        "an artificial 'chrZ' chromosome. Chromosomal coordinates for gene",
+        "annotations were modified accordingly."
+    ),
+    BiocVersion="3.13", 
+    Genome="NxtIRF_chrZ", 
+    SourceType=c("FASTA", "GTF"),
+    SourceUrl=
+        sprintf(paste0(source_repo, "NxtIRF/%s"),
+            c("genome.fa", "transcripts.gtf")
+        ),
+    SourceVersion="0.99.0",
+    Species="Homo sapiens",
+    TaxonomyId="9606",
+    Coordinate_1_based=1,
+    DataProvider="NxtIRF",
+    Maintainer="Alex Wong <a.wong@centenary.org.au>",
+    RDataClass=c("FaFile", "GRanges"),
+    DispatchClass=c("FaFile", "GFFFile"),
+    Location_Prefix = source_repo,
+    RDataPath = sprintf("NxtIRF/%s", c("genome.fa", "transcripts.gtf")),
+    Tags = "MockGenome:NxtIRF",
+    stringsAsFactors = FALSE
+)
+
 df_bams <- data.frame(
     Title = sprintf(paste("RNA-seq reads aligned to the NxtIRF mock genome",
         "from %s of the Leucegene dataset (GSE67039)"), 
@@ -90,6 +121,6 @@ df_mappa <- data.frame(
     stringsAsFactors = FALSE
 )
 
-df = rbind(df_bams, df_mappa)
+df = rbind(df_refs, df_bams, df_mappa)
 
 write.csv(file="../extdata/metadata.csv", df, row.names=FALSE)
