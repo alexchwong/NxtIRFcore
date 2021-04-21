@@ -121,6 +121,7 @@ semi_join.DT = function(A, B, by, nomatch = 0) {
 
 .grDT <- function(DT, ...) {
     # Converts data table to GRanges object, preserving info
+    if(nrow(DT) == 0) return(GenomicRanges::GRanges(NULL))
     makeGRangesFromDataFrame(as.data.frame(DT), ...)
 }
 

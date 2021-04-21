@@ -1179,33 +1179,34 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     # Then use a simple overlap method to account for the remainder
     junc.subset = junc[get("JG_up") == get("JG_down") & 
         get("JG_up") != "" & get("JG_down") != ""]
-    junc.from = .grDT(junc.subset)
-    junc.to = .grDT(junc)
-    
-    OL = findOverlaps(junc.from, junc.to)
+    if(nrow(junc.subset) > 0) {
+        junc.from = .grDT(junc.subset)
+        junc.to = .grDT(junc)
+        
+        OL = findOverlaps(junc.from, junc.to)
 
-    splice.overlaps.DT = data.table(from = from(OL), to = to(OL))
-    splice.overlaps.DT[, 
-        c("count") := junc$count[to(OL)]]
-    splice.overlaps.DT[, 
-        c("count_sum") := sum(get("count")), by = "from"]
-    splice.summa = unique(
-        splice.overlaps.DT[, c("from", "count_sum")])        
+        splice.overlaps.DT = data.table(from = from(OL), to = to(OL))
+        splice.overlaps.DT[, 
+            c("count") := junc$count[to(OL)]]
+        splice.overlaps.DT[, 
+            c("count_sum") := sum(get("count")), by = "from"]
+        splice.summa = unique(
+            splice.overlaps.DT[, c("from", "count_sum")])        
 
-    junc.subset[splice.summa$from, 
-        c("SO_I") := splice.summa$count_sum]
+        junc.subset[splice.summa$from, 
+            c("SO_I") := splice.summa$count_sum]
 
-    junc[junc.subset, on = c("Event"), c("SO_I") := get("i.SO_I")]
+        junc[junc.subset, on = c("Event"), c("SO_I") := get("i.SO_I")]
 
-    # For annotated junctions, take SpliceOver as max of 
-    # SpliceLeft, SpliceRight, or SpliceOver
-    junc[get("SO_L") < get("SO_I"), c("SO_L") := get("SO_I")]
-    junc[get("SO_R") < get("SO_I"), c("SO_R") := get("SO_I")]
-    # Finally, for extreme cases, make SO_L = SL if underestimates
-    junc[get("SO_L") < get("SL"), c("SO_L") := get("SL")]
-    junc[get("SO_R") < get("SR"), c("SO_R") := get("SR")]
-    junc[, c("SO_I") := NULL]
-    
+        # For annotated junctions, take SpliceOver as max of 
+        # SpliceLeft, SpliceRight, or SpliceOver
+        junc[get("SO_L") < get("SO_I"), c("SO_L") := get("SO_I")]
+        junc[get("SO_R") < get("SO_I"), c("SO_R") := get("SO_I")]
+        # Finally, for extreme cases, make SO_L = SL if underestimates
+        junc[get("SO_L") < get("SL"), c("SO_L") := get("SL")]
+        junc[get("SO_R") < get("SR"), c("SO_R") := get("SR")]
+        junc[, c("SO_I") := NULL]
+    }
     return(junc)
 }
 
