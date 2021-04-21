@@ -24,7 +24,7 @@ ui_vis_diag <- function(id) {
                 shinySaveButton(ns("saveplot_diag"), 
                     "Save Plot as PDF", "Save Plot as PDF...", 
                     filetype = list(PDF = "pdf")),
-                actionButton(ns("clear_diag"), "Clear settings"),
+                actionButton(ns("clear_diag"), "Clear settings"), br(), br(),
                 textOutput(ns("warning_diag"))
             ),
             column(9,
@@ -59,7 +59,7 @@ ui_vis_volcano <- function(id) {
                 shinySaveButton(ns("saveplot_volc"), 
                     "Save Plot as PDF", "Save Plot as PDF...", 
                     filetype = list(PDF = "pdf")),
-                actionButton(ns("clear_volc"), "Clear settings"),
+                actionButton(ns("clear_volc"), "Clear settings"), br(), br(),
                 textOutput(ns("warning_volc"))
             ),
             column(9,
