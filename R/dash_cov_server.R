@@ -46,23 +46,25 @@ server_cov <- function(id, refresh_tab, volumes, get_se, get_de,
     chr_rd <- chr_r %>% debounce(1000)
     start_rd <- start_r %>% debounce(1000)
     end_rd <- end_r %>% debounce(1000)
-    tracks_rd <- tracks_r %>% debounce(1000)
+    tracks_rd <- tracks_r %>% debounce(3000)
     trigger_rd <- trigger_r %>% debounce(1000)
     
     observeEvent(list(chr_rd(), start_rd(), end_rd()), {
         .server_cov_update_norm_event(input, session, settings_Cov$event.ranges)
     })
-    observeEvent(list(input$refresh_coverage, trigger_rd(), tracks_rd()), {
+    observeEvent(list(input$refresh_coverage, input$stack_tracks_cov,
+        input$graph_mode_cov, input$pairwise_t_cov, input$condense_cov), {
+        settings_Cov$trigger <- runif(1)
+    })
+    observeEvent(list(trigger_rd(), tracks_rd()), {
         tracks <- tracks_r()
-        obj <- .server_cov_refresh_plot(get_se(), get_ref(), 
+        settings_Cov$plot_params <- .server_cov_refresh_plot_args(get_se(), get_ref(), 
             input$event_norm_cov, 
             input$chr_cov, suppressWarnings(as.numeric(input$start_cov)), 
             suppressWarnings(as.numeric(input$end_cov)), tracks, 
             settings_Cov$plot_params, input)
+        obj <- do.call(plot_cov_fn, settings_Cov$plot_params)
         req(obj)
-        settings_Cov$plot_params = list(input$event_norm_cov, 
-            input$chr_cov, suppressWarnings(as.numeric(input$start_cov)), 
-            suppressWarnings(as.numeric(input$end_cov)), tracks)
         settings_Cov$final_plot = obj$final_plot
         settings_Cov$final_plot$x$source = "plotly_ViewRef"
         output$plot_cov <- renderPlotly({
@@ -77,11 +79,11 @@ server_cov <- function(id, refresh_tab, volumes, get_se, get_de,
         .server_cov_plot_change_mode(session, input$graph_mode_cov)
     })
     observeEvent(input$mode_cov, {
+        .server_cov_refresh_track_condition(session, input$mode_cov, get_se())
         .server_cov_refresh_tracks_cov(session, input$mode_cov, 
             input$condition_cov, get_se())
     })
     observeEvent(input$condition_cov, {
-        .server_cov_refresh_track_condition(session, input$mode_cov, get_se())
         .server_cov_refresh_tracks_cov(session, input$mode_cov, 
             input$condition_cov, get_se())
     })
@@ -90,6 +92,7 @@ server_cov <- function(id, refresh_tab, volumes, get_se, get_de,
         event_data("plotly_relayout", source = "plotly_ViewRef")
     })
     observeEvent(settings_Cov$plotly_relayout(), {
+        print(settings_Cov$plotly_relayout())
         req(length(settings_Cov$plotly_relayout()) == 2)
         req(all(c("xaxis.range[0]", "xaxis.range[1]") %in% 
             names(settings_Cov$plotly_relayout())))
@@ -263,12 +266,10 @@ server_cov_get_all_tracks <- function(input) {
     }
 }
 
-.server_cov_refresh_plot <- function(se, ref, norm_event, 
-        view_chr, view_start, view_end, tracks, 
-        plot_params, input) {
+.server_cov_refresh_plot_args <- function(se, ref, norm_event, 
+        view_chr, view_start, view_end, tracks, plot_params, input) {
     req(view_chr, view_start, view_end, se)
-    cur_params = list(norm_event, view_chr, view_start, view_end, tracks)
-    req(is.null(plot_params) || !identical(plot_params, cur_params))
+
     rowData = rowData(se)
     events_to_highlight = list()
     if(is_valid(norm_event) && norm_event %in% rowData$EventName) {
@@ -298,22 +299,23 @@ server_cov_get_all_tracks <- function(input) {
     conf.int = 0.95
     req(ref$elem.DT)
     req(ref$transcripts.DT)
-    obj = plot_cov_fn(
-        view_chr, view_start, view_end, input$strand_cov, 
-        norm_event = norm_event, 
+    args = list(
+        view_chr = view_chr, view_start = view_start, view_end = view_end, 
+        view_strand = input$strand_cov, norm_event = norm_event,
         condition = input$condition_cov, tracks = tracks, 
-        track_names = "",
-        se = se, 
+        track_names = "", se = se, 
         avail_files = covfile(se)[file.exists(covfile(se))],
         transcripts = ref$transcripts.DT, 
         elems = ref$elem.DT,
         highlight_events = events_to_highlight,
-        graph_mode = input$graph_mode_cov,
         stack_tracks = input$stack_tracks_cov,
+        graph_mode = input$graph_mode_cov,
         t_test = input$pairwise_t_cov,
         condensed = input$condense_cov
     )
-    obj
+    req(is.null(plot_params) || !identical(plot_params, args))
+
+    return(args)
 }
 
 .server_cov_plot_change_mode <- function(session, mode) {

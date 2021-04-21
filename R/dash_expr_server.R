@@ -234,6 +234,8 @@ server_expr <- function(id, refresh_tab, volumes, get_threads_reactive,
         output <- .server_expr_parse_collate_path(limited = limited,
             settings_expr = reactiveValuesToList(settings_expr), 
             output = output)
+        output$txt_NxtSE_path_load <- renderText(
+            settings_expr$collate_path)
     })
 
 # Running IRFinder
@@ -846,7 +848,7 @@ Expr_Load_Anno = function(df.anno, df.files, anno_file, session) {
         }
     } else if(is_valid(settings_expr$collate_path) &&
             file.exists(file.path(
-                settings_expr$collate_path, "NxtSE_se.rds"))) {
+                settings_expr$collate_path, "NxtSE.rds"))) {
         if(ncol(settings_expr$df.anno) > 1 && 
                 .server_expr_check_savestate(settings_expr)) {
             output$se_expr_infobox <- renderUI(
@@ -882,7 +884,7 @@ Expr_Load_Anno = function(df.anno, df.files, anno_file, session) {
 
 .server_expr_parse_collate_path_full <- function(settings_expr, output) {
     if(is_valid(settings_expr$collate_path) &&
-        file.exists(file.path(settings_expr$collate_path, "NxtSE_se.rds"))) {
+        file.exists(file.path(settings_expr$collate_path, "NxtSE.rds"))) {
             if(.server_expr_check_savestate(settings_expr)) {
                 output$se_expr_infobox <- renderUI(
                     ui_infobox_expr(3, "NxtSE ready to load", 
@@ -901,8 +903,12 @@ Expr_Load_Anno = function(df.anno, df.files, anno_file, session) {
             is_valid(settings_expr$df.files)) {
         output$se_expr_infobox <- renderUI(
             ui_infobox_expr(1, "IRFinder files incomplete"))
+    } else if(is_valid(settings_expr$collate_path)) {
+        output$se_expr_infobox <- renderUI(ui_infobox_expr(0,
+            paste("Selected path:", settings_expr$collate_path)))
     } else {
-        output$se_expr_infobox <- renderUI(ui_infobox_expr(0))
+        output$se_expr_infobox <- renderUI(ui_infobox_expr(0,
+            "Select path for NxtSE output"))
     }
     return(output)
 }

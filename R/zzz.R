@@ -77,7 +77,7 @@ res_url <- "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF"
 mock_genome <- function(destination_path = tempdir())
 {
     .cache_and_create_file(paste(res_url, "genome.fa", sep="/"),
-        destination_path)
+        destination_path, hub = AnnotationHub::AnnotationHub())
 }
 
 #' @describeIn example-NxtIRF-data Makes a copy of the NxtIRF mock gene 
@@ -86,7 +86,7 @@ mock_genome <- function(destination_path = tempdir())
 mock_gtf <- function(destination_path = tempdir())
 {
     .cache_and_create_file(paste(res_url, "transcripts.gtf", sep="/"),
-        destination_path)
+        destination_path, hub = AnnotationHub::AnnotationHub())
 }
 
 #' @describeIn example-NxtIRF-data Returns a copy of Mappability Exclusion 
@@ -99,19 +99,19 @@ get_mappability_exclusion <- function(
     if(genome_type == "hg38") {
         .cache_and_create_file(paste(res_url, 
             "Mappability_Regions_hg38_v94.txt.gz", sep="/"),
-            destination_path)
+            destination_path, hub = AnnotationHub::AnnotationHub())
     } else if(genome_type == "hg19") {
         .cache_and_create_file(paste(res_url, 
             "Mappability_Regions_hg19_v75.txt.gz", sep="/"),
-            destination_path)    
+            destination_path, hub = AnnotationHub::AnnotationHub())    
     } else if(genome_type == "mm10") {
         .cache_and_create_file(paste(res_url, 
             "Mappability_Regions_mm10_v94.txt.gz", sep="/"),     
-            destination_path)    
+            destination_path, hub = AnnotationHub::AnnotationHub())    
     } else if(genome_type == "mm9") {
         .cache_and_create_file(paste(res_url, 
             "Mappability_Regions_mm9_v67.txt.gz", sep="/"),    
-            destination_path)    
+            destination_path, hub = AnnotationHub::AnnotationHub())    
     } else {
         stop(paste("In get_mappability_exclusion():",
             "genome_type = ", genome_type, "is not recogised"
@@ -128,7 +128,7 @@ example_bams <- function(destination_path = tempdir())
         "02H033.bam", "02H043.bam", "02H046.bam")
     .cache_and_create_file(
         paste(res_url, bams, sep="/"),
-        destination_path)
+        destination_path, hub = ExperimentHub::ExperimentHub())
 }
 
 #' @describeIn example-NxtIRF-data Returns a 2-column data frame, containing 
@@ -255,11 +255,11 @@ NxtIRF_example_NxtSE <- function() {
 }
 
 .cache_and_create_file <- function(urls, destination_path = "",
-        filenames = basename(urls), try_eh = TRUE) {
+        filenames = basename(urls), hub = NULL) {
     if(destination_path != "" && !dir.exists(dirname(destination_path))) {
         warning(paste(destination_path, "- parent directory does not exist"))
         return("")
-    } else if(destination_path != "" && any(filenames == "")) {
+    } else if(destination_path != "" && any(filenames %in% "")) {
         warning("Invalid return filename(s) for web resource download")
         return("")
     } else if(length(urls) == 0 && length(urls) != length(filenames)) {
@@ -277,23 +277,22 @@ NxtIRF_example_NxtSE <- function() {
             }
         )
     }
-    if(try_eh) {
-        # ExperimentHub retrieval of source url (if record(s) exists)
-        eh = ExperimentHub::ExperimentHub()
-        if(all(urls %in% eh$sourceurl)) {
-            return(.cache_and_create_file_eh(urls, eh, 
+    if(!is.null(hub)) {
+        # AnnotationHub or ExperimentHub retrieval of source url (if record(s) exists)
+        if(all(urls %in% hub$sourceurl)) {
+            return(.cache_and_create_file_hub(urls, hub, 
                 destination_path, filenames))
         }
     }
     return(.fetch_files_from_urls(urls, filenames, destination_path))
 }
 
-.cache_and_create_file_eh <- function(urls, eh = ExperimentHub::ExperimentHub(),
+.cache_and_create_file_hub <- function(urls, hub = ExperimentHub::ExperimentHub(),
         destination_path = "", filenames = basename(urls)) {
-    eh = eh[match(urls, eh$sourceurl)]
+    hub = hub[match(urls, hub$sourceurl)]
     files = c()
-    for(i in seq_len(length(eh))) {
-        cache = unname(cache(eh[i])[1])     # first file is bam
+    for(i in seq_len(length(hub))) {
+        cache = unname(cache(hub[i])[1])     # first file is bam
         file = filenames[i]
         if(destination_path == "") {
             files = c(files, cache)

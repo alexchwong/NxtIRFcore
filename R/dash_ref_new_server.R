@@ -206,9 +206,9 @@ server_ref_new <- function(id, refresh_tab, volumes) {
             args <- Filter(is_valid, args)
             if(!("reference_path" %in% names(args))) {
                 output$refStatus = renderText({ "Reference path not set" })
-            } else if(!any(c("fasta", "ah_genome_tmp") %in% names(args))) {
+            } else if(!any(c("fasta_file") %in% names(args))) {
                 output$refStatus = renderText({ "Genome not provided" })        
-            } else if(!any(c("gtf", "ah_gtf_tmp") %in% names(args))) {
+            } else if(!any(c("gtf_file") %in% names(args))) {
                 output$refStatus = renderText("Gene annotations not provided")
             } else {        
                 args.df = as.data.frame(t(as.data.frame(args)))

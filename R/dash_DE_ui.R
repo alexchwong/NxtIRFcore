@@ -7,7 +7,7 @@ ui_DE <- function(id) {
     if(NxtIRF.CheckPackageInstalled("DESeq2", "1.30.0", "silent")) {
         DE_opts = c(DE_opts, "DESeq2")
     }
-    if(is.null(DE_opts)) DE_opts = ("(none)")
+    if(is.null(DE_opts)) DE_opts = ("(none) - please install either limma or DESeq2")
     fluidRow(
         column(4,
             textOutput(ns("warning_DE")),
