@@ -543,17 +543,45 @@ Get_GTF_file <- function(reference_path) {
         chromosomes = NULL, overwrite_resource = FALSE) {
 
     # If resources already exist in 'resource', then recall these:
-    resource_path = file.path(reference_path, "resource")
-    if(!overwrite_resource && 
-        dir.exists(resource_path) &&
-        file.exists(file.path(reference_path, "settings.Rds")) &&
-        file.exists(file.path(resource_path, "genome.2bit")) &&
-        file.exists(file.path(resource_path, "transcripts.gtf.gz"))
-    ) {
-        genome <- TwoBitFile(file.path(resource_path, "genome.2bit"))
-        gtf_gr <- rtracklayer::import(
-            file.path(resource_path, "transcripts.gtf.gz"))
+    if(!(is_valid(fasta) | is_valid(ah_genome) | is_valid(gtf) | 
+            is_valid(ah_transcriptome)) & !overwrite_resource) {
+        resource_path <- file.path(reference_path, "resource")
+        settings.file <- file.path(reference_path, "settings.Rds")
+        if(!file.exists(settings.file)) {
+            stop(paste("Invalid reference path:", reference_path),
+                call. = FALSE)        
+        }
+        settings.list <- readRDS(settings.file)
+        if(!file.exists(file.path(resource_path, "genome.2bit"))) {
+            if(!is_valid(settings[["ah_genome"]])) {
+                stop(paste("Genome could not be found inside", reference_path),
+                    call. = FALSE)
+            }
+            genome <- .fetch_fasta(reference_path = reference_path,
+                ah_genome = settings[["ah_genome"]], 
+                convert_chromosome_names = chromosomes)
+        } else {
+            genome <- TwoBitFile(file.path(resource_path, "genome.2bit"))
+        }
+        if(!file.exists(file.path(resource_path, "transcripts.gtf.gz"))) {
+            stop(paste("Gene annotations (GTF) could not be found inside", 
+                reference_path), call. = FALSE)
+        }
+        gtf_gr <- .fetch_gtf(
+            gtf = file.path(resource_path, "transcripts.gtf.gz"),
+            reference_path = reference_path, 
+            convert_chromosome_names = chromosomes
+        )
+        settings.list$chromosomes = chromosomes
+        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
     } else {
+        if(!is_valid(fasta) & !is_valid(ah_genome)) {
+            stop("At least one of fasta_file or ah_genome is required",
+                call. = FALSE)
+        } else if(!is_valid(gtf) & !is_valid(ah_transcriptome)) {
+            stop("At least one of gtf_file or ah_transcriptome is required",
+                call. = FALSE)        
+        }
         genome <- .fetch_fasta(
             reference_path = reference_path,
             fasta = fasta,
