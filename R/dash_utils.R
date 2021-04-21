@@ -281,8 +281,8 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
     }
 
     p = p + theme_white_legend +
-        theme(axis.text.y = element_blank(), axis.title.y = element_blank()) +
-        labs(fill = "")
+        theme(axis.text.y = element_blank(), axis.title.y = element_blank(),
+            legend.title = element_blank())
 
     if(condense_this == TRUE) {
         anno = list(
@@ -424,13 +424,14 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                     geom_line(data = df, aes(x = get("x"), 
                         y = get("mean"), colour = get("track"))) +
                     labs(y = "Normalized Coverage") +
-                    theme_white_legend
+                    theme_white_legend +
+                    theme(legend.title = element_blank())                 
                 pl_track[[1]] = ggplotly(gp_track[[1]],
                     tooltip = c("x", "y", "ymin", "ymax", "colour")
                 )
                 pl_track[[1]] = pl_track[[1]] %>% layout(
                     dragmode = "zoom",
-                    yaxis = list(rangemode = "tozero")
+                    yaxis = list(rangemode = "tozero", fixedrange = TRUE)
                 )
                 for(j in seq_len(max_tracks)) {
                     pl_track[[1]]$x$data[[1 + j]]$showlegend = FALSE
@@ -466,7 +467,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                         tooltip = c("x", "y", "ymin", "ymax")
                     )
                     pl_track[[i]] = pl_track[[i]] %>% layout(
-                        yaxis = list(rangemode = "tozero")
+                        yaxis = list(rangemode = "tozero", fixedrange = TRUE)
                     )
                     pl_track[[i]]$x$data[[2]]$showlegend = FALSE
                     pl_track[[i]]$x$data[[3]]$showlegend = FALSE
@@ -1047,8 +1048,8 @@ make_matrix <- function(se, event_list, sample_list = colnames(se),
     depth_threshold = 10, logit_max = 5, na.percent.max = 0.1) {
 
     method = match.arg(method)
-    inc = assay(se, "Included")[event_list, sample_list, drop = FALSE]
-    exc = assay(se, "Excluded")[event_list, sample_list, drop = FALSE]
+    inc = as.matrix(assay(se, "Included")[event_list, sample_list, drop = FALSE])
+    exc = as.matrix(assay(se, "Excluded")[event_list, sample_list, drop = FALSE])
     mat = inc/(inc + exc)
     mat[inc + exc < depth_threshold] = NA
     mat = mat[rowSums(is.na(mat)) < na.percent.max * ncol(mat),, drop = FALSE]

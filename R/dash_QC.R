@@ -43,9 +43,9 @@ server_qc <- function(id, refresh_tab, get_se_path, get_df) {
                 choices = "(none)")
             output$DT_QC <- DT::renderDataTable(NULL)
             
-            print(refresh_tab())
-            print(get_se_path())
-            print(get_df())
+            # print(refresh_tab())
+            # print(get_se_path())
+            # print(get_df())
             if(file.exists(file.path(get_se_path(), "stats.fst"))) {
                 settings_QC$QC = as.data.table(read.fst(
                     file.path(get_se_path(), "stats.fst")))               
