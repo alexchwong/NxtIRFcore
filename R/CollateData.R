@@ -125,6 +125,8 @@ Find_IRFinder_Output <- function(sample_path, ...) {
 #' @param n_threads The number of threads to use. On Linux / Windows, this will
 #'   use OpenMP from within the C++ subroutine. On Macs, BiocParallel
 #'   MulticoreParam will be used on single-threaded NxtIRF/IRFinder
+#' @param overwrite (default FALSE) If IRFinder output files already exist,
+#'   will not attempt to re-run.
 #' @param run_featureCounts Whether this function will run 
 #'   `Rsubread::featureCounts()` on the BAM files. If so, the output will be
 #'   saved to "main.FC.Rds" in the output directory as a list object
@@ -149,6 +151,7 @@ IRFinder <- function(
         reference_path = "./Reference",
         output_path = "./IRFinder_Output",
         n_threads = 1,
+        overwrite = FALSE,
         run_featureCounts = FALSE
         ) {
     if(length(bamfiles) != length(sample_names)) {
@@ -164,10 +167,20 @@ IRFinder <- function(
     if(!dir.exists(output_path)) dir.create(output_path)
 
     s_output = file.path(normalizePath(output_path), sample_names)
+
+    if(!overwrite) {
+        already_exist = (
+            file.exists(paste(s_output, "txt.gz")) &
+            file.exists(paste(s_output, ".cov"))
+        )
+    } else {
+        already_exist = rep(FALSE, length(bamfiles))
+    }
+
     run_IRFinder_multithreaded(
         reference_path = reference_path,
-        bamfiles = bamfiles,
-        output_files = s_output,
+        bamfiles = bamfiles[!already_exist],
+        output_files = s_output[!already_exist],
         max_threads = n_threads,
         run_featureCounts = run_featureCounts
     )
