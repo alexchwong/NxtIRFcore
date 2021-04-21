@@ -21,17 +21,16 @@ ui_filters <- function(id) {
             column(4,
                 textOutput(ns("current_expr_Filters")), br(),
                 textOutput(ns("current_ref_Filters")), br(),
-                # actionButton("load_filterdata_Filters", "Load Data"),
-                actionButton(ns("refresh_filters_Filters"), "Refresh Filters"),
-                plotlyOutput(ns("plot_filtered_Events")),
-                selectInput(ns('graphscale_Filters'), 'Y-axis Scale', 
-                    width = '100%', choices = c("linear", "log10")), 
+                actionButton(ns("loadDefault_Filters"), "Load Default Filters"), br(), br(),
                 shinySaveButton(ns("saveAnalysis_Filters"), "Save Filters", 
                     "Save Filters as...", filetype = list(RDS = "Rds")),
                 shinyFilesButton(ns("loadAnalysis_Filters"), 
                     label = "Load Filters", 
                     title = "Load Filters from Rds", multiple = FALSE),
-                actionButton(ns("loadDefault_Filters"), "Load Default Filters"),
+                plotlyOutput(ns("plot_filtered_Events")),
+                selectInput(ns('graphscale_Filters'), 'Y-axis Scale', 
+                    width = '100%', choices = c("linear", "log10")), 
+                actionButton(ns("refresh_filters_Filters"), "Apply Filters"),
             )
         )
     )
@@ -92,8 +91,8 @@ server_filters <- function(id, refresh_tab, volumes,
                 filterSummary = rep(TRUE, nrow(get_se()))
                 if(is_valid(settings_filter$filters)) {
                     for(i in seq_len(8)) {
-                        print(settings_filter$filters[[i]]$filterVars)
-                        print(settings_filter$filters[[i]]$trigger)
+                        # print(settings_filter$filters[[i]]$filterVars)
+                        # print(settings_filter$filters[[i]]$trigger)
                         if(!is.null(settings_filter$filters[[i]]$trigger)) {
                             filterSummary = filterSummary & runFilter(
                                 settings_filter$filters[[i]]$filterClass,
@@ -102,12 +101,12 @@ server_filters <- function(id, refresh_tab, volumes,
                                 get_se()
                             )
                         } else {
-                            message(paste("Trigger", i, "is NULL"))
+                            # message(paste("Trigger", i, "is NULL"))
                         }
                     }
                 }
                 settings_filter$filterSummary = filterSummary
-                message(sum(filterSummary == TRUE))
+                message(paste("Filtered", sum(filterSummary == TRUE), "ASE events"))
             }
         }
             
@@ -213,9 +212,9 @@ Filters_Plot_Summary <- function(DT, scale) {
         aes(x = get("EventType"), y = get("Events"), fill = get("filtered"))
     ) + geom_bar(position="stack", stat="identity")
     if(scale == "log10") {
-        p = p + labs(y = "log10 Events")
+        p = p + labs(x = "Event Type", y = "log10 Events")
     } else {
-        p = p + labs(y = "Events")        
+        p = p + labs(x = "Event Type", y = "Events")        
     }
     p = p + labs(fill = "Filtered")
     return(p)

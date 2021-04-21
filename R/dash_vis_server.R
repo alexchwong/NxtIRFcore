@@ -178,6 +178,7 @@ server_vis_diag <- function(id, refresh_tab, volumes, get_se, get_de,
             updateSelectInput(session = session, inputId = "variable_diag", 
                 choices = c("(none)", colnames(colData)), selected = "(none)")
         } else {
+            output$warning_diag = renderText("")
             updateSelectInput(session = session, inputId = "nom_diag", 
                 choices = c("(none)", levels(colData[,input$variable_diag])), 
                 selected = "(none)")
@@ -233,7 +234,6 @@ server_vis_volcano <- function(id, refresh_tab, volumes, get_se, get_de,
     observeEvent(settings_Volc$plotly_click(), {
         req(settings_Volc$plotly_click())
         click = settings_Volc$plotly_click()
-        # print(click)
         click.id = which(get_de()$EventName == click$key)
         req(click.id)
 
@@ -245,7 +245,6 @@ server_vis_volcano <- function(id, refresh_tab, volumes, get_se, get_de,
             selected = c(selected, click.id)
         }
         settings_Volc$selected = selected
-        # DT::dataTableProxy("DT_DE") %>% DT::selectRows(selected)
     })
 
     settings_Volc$plotly_brush = reactive({
@@ -258,19 +257,16 @@ server_vis_volcano <- function(id, refresh_tab, volumes, get_se, get_de,
     observeEvent(settings_Volc$plotly_brush(), {
         req(settings_Volc$plotly_brush())
         brush = settings_Volc$plotly_brush()
-        # print(brush)
         brush.id = which(get_de()$EventName %in% brush$key)
         req(brush.id)
 
         selected = settings_Volc$selected
         selected = unique(c(selected, brush.id))
         settings_Volc$selected = selected
-        # DT::dataTableProxy("DT_DE") %>% DT::selectRows(selected)
     })
 
 
     output$plot_volc <- renderPlotly({
-        # settings_Diag$plot_ini = FALSE
         validate(need(get_se(), "Load Experiment first"))
         validate(need(get_de(), "Load DE Analysis first"))
 
@@ -341,7 +337,7 @@ server_vis_volcano <- function(id, refresh_tab, volumes, get_se, get_de,
             tooltip = "text",
             source = "plotly_volcano") %>% layout(dragmode = "lasso")
         print(
-        settings_Volc$final_plot
+            settings_Volc$final_plot
         )
     })
     observe({

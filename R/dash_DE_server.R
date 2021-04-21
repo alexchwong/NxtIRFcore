@@ -221,6 +221,11 @@ server_DE <- function(id, refresh_tab, volumes, get_threads,
         req(all(c("res", "settings") %in% names(load_DE)))
 
         # check all parameters exist in colData(se)
+        output$warning_DE = renderText({
+            validate(need(get_se(), 
+                "Please load experiment via 'Experiment' tab"))
+            "Experiment Loaded"
+        })
         req(get_se())
         colData = colData(get_se())
         req(load_DE$settings$DE_Var %in% colnames(colData))

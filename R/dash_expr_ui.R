@@ -162,7 +162,7 @@ ui_ddb_project_dir <- function(id, color = "danger") {
             label = "Choose NxtSE output path", 
             title = "Choose NxtSE output path"
         ),
-        br(),br(),
+        textOutput(ns("txt_NxtSE_path_load")),br(),
         
         tags$h4("Clear Project Path"),
         actionButton(ns("dir_collate_path_clear"), "Deselect Project Path")
