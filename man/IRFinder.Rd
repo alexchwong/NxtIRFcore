@@ -10,6 +10,7 @@ IRFinder(
   reference_path = "./Reference",
   output_path = "./IRFinder_Output",
   n_threads = 1,
+  overwrite = FALSE,
   run_featureCounts = FALSE
 )
 }
@@ -27,6 +28,9 @@ should be stored}
 \item{n_threads}{The number of threads to use. On Linux / Windows, this will
 use OpenMP from within the C++ subroutine. On Macs, BiocParallel
 MulticoreParam will be used on single-threaded NxtIRF/IRFinder}
+
+\item{overwrite}{(default FALSE) If IRFinder output files already exist,
+will not attempt to re-run.}
 
 \item{run_featureCounts}{Whether this function will run
 \code{Rsubread::featureCounts()} on the BAM files. If so, the output will be
