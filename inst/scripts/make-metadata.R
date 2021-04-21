@@ -29,7 +29,7 @@ df_refs <- data.frame(
     DispatchClass=c("FaFile", "GFFFile"),
     Location_Prefix = source_repo,
     RDataPath = sprintf("NxtIRF/%s", c("genome.fa", "transcripts.gtf")),
-    Tags = "MockGenome:NxtIRF",
+    Tags = "Annotation:MockGenome:NxtIRF",
     stringsAsFactors = FALSE
 )
 
@@ -65,7 +65,7 @@ df_bams <- data.frame(
             paste0("NxtIRF/", bam_samples),
             paste0("NxtIRF/", bam_samples)
         ),
-    Tags = "MockGenome:Leucegene:NxtIRF",
+    Tags = "ExperimentData:MockGenome:Leucegene:NxtIRF",
     stringsAsFactors = FALSE
 )
 
@@ -117,7 +117,7 @@ df_mappa <- data.frame(
         "NxtIRF/Mappability_Regions_mm10_v94.txt.gz",
         "NxtIRF/Mappability_Regions_mm9_v67.txt.gz"
     ),
-    Tags = "MappabilityExclusion:Mappability:NxtIRF", 
+    Tags = "Annotation:MappabilityExclusion:Mappability:NxtIRF", 
     stringsAsFactors = FALSE
 )
 
