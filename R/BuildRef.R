@@ -889,6 +889,9 @@ Get_GTF_file <- function(reference_path) {
             "gene_id", "gene_name", "gene_biotype"))
         Genes$type = "gene"
         Genes = .grDT(Genes, keep.extra.columns = TRUE)
+        if(length(Genes) == 0) {
+            stop("No genes detected in reference!")
+        }
     }
     Genes <- GenomeInfoDb::sortSeqlevels(Genes)
     Genes <- sort(Genes)
@@ -945,11 +948,12 @@ Get_GTF_file <- function(reference_path) {
             "transcript_id", "transcript_name", "transcript_biotype"))
         Transcripts$type = "transcript"
         Transcripts = .grDT(Transcripts, keep.extra.columns = TRUE)
+        if(length(Transcripts) == 0) {
+            stop("No transcripts detected in reference!")
+        }
     }
-    
     Transcripts <- GenomeInfoDb::sortSeqlevels(Transcripts)
     Transcripts <- sort(Transcripts)
-
     if ("gene_biotype" %in% names(mcols(Transcripts))) {
         # do nothing
     } else if ("gene_type" %in% names(mcols(Transcripts))) {
@@ -973,7 +977,6 @@ Get_GTF_file <- function(reference_path) {
             is.na(Transcripts$transcript_support_level)
         ] <- "NA"
     }
-
     write.fst(
         as.data.frame(Transcripts),
         file.path(reference_path, "fst", "Transcripts.fst")
@@ -983,6 +986,9 @@ Get_GTF_file <- function(reference_path) {
 .process_gtf_misc <- function(gtf_gr, reference_path) {
     # Proteins
     Proteins <- gtf_gr[gtf_gr$type == "CDS"]
+    if(length(Proteins) == 0) {
+        stop("No CDS (proteins) detected in reference!")
+    }
     Proteins <- GenomeInfoDb::sortSeqlevels(Proteins)
     Proteins <- sort(Proteins)
     write.fst(
@@ -991,6 +997,9 @@ Get_GTF_file <- function(reference_path) {
     )
     # Misc
     gtf.misc <- gtf_gr[!gtf_gr$type %in% c("gene", "transcript", "exon", "CDS")]
+    if(length(gtf.misc) == 0) {
+        stop("No start / stop codons detected in reference!")
+    }
     gtf.misc <- GenomeInfoDb::sortSeqlevels(gtf.misc)
     gtf.misc <- sort(gtf.misc)
     write.fst(
@@ -1001,6 +1010,9 @@ Get_GTF_file <- function(reference_path) {
 
 .process_gtf_exons <- function(gtf_gr, reference_path, Genes_group) {
     Exons <- gtf_gr[gtf_gr$type == "exon"]
+    if(length(Exons) == 0) {
+        stop("No exons detected in reference!")
+    }
     Exons <- GenomeInfoDb::sortSeqlevels(Exons)
     Exons <- sort(Exons)
 
@@ -1043,10 +1055,8 @@ Get_GTF_file <- function(reference_path) {
     Exons$exon_group_unstranded[from(OL)] <-
         tmp.Exons_group.unstranded$exon_group[to(OL)]
 
-    # Finally write to disk
     write.fst(as.data.frame(Exons), 
         file.path(reference_path, "fst", "Exons.fst"))
-    # Also write tmp.Exon groups
     write.fst(
         rbind(tmp.Exons_group.stranded, tmp.Exons_group.unstranded),
         file.path(reference_path, "fst", "Exons.Group.fst")
@@ -1509,7 +1519,7 @@ Get_GTF_file <- function(reference_path) {
 ################################################################################
 
 .gen_irf_prep_data <- function(reference_path) {
-    Genes <- makeGRangesFromDataFrame(
+    Genes <- .grDT(
         read.fst(file.path(reference_path, "fst", "Genes.fst")),
         keep.extra.columns = TRUE
     )
@@ -1525,11 +1535,11 @@ Get_GTF_file <- function(reference_path) {
     candidate.introns <- as.data.table(
         read.fst(file.path(reference_path, "fst", "junctions.fst"))
     )
-    Exons <- makeGRangesFromDataFrame(
+    Exons <- .grDT(
         read.fst(file.path(reference_path, "fst", "Exons.fst")),
         keep.extra.columns = TRUE
     )
-    Transcripts <- makeGRangesFromDataFrame(
+    Transcripts <- .grDT(
         read.fst(file.path(reference_path, "fst", "Transcripts.fst")),
         keep.extra.columns = TRUE
     )
@@ -1575,7 +1585,7 @@ Get_GTF_file <- function(reference_path) {
     exclude.directional[, c("start") := get("start") - 5]
     exclude.directional[, c("end") := get("end") + 5]
 
-    exclude.omnidirectional <- GenomicRanges::GRanges(NULL)
+    exclude.omnidirectional <- GRanges(NULL)
     if (extra_files$MappabilityFile != "") {
         exclude.omnidirectional <- c(exclude.omnidirectional,
             rtracklayer::import(extra_files$MappabilityFile, "bed"))
@@ -1749,7 +1759,7 @@ Get_GTF_file <- function(reference_path) {
     IntronCover.summa <- .gen_irf_irfname(IntronCover.summa, 
         stranded = stranded)
     
-    IntronCover <- makeGRangesFromDataFrame(IntronCover, 
+    IntronCover <- .grDT(IntronCover, 
         keep.extra.columns = TRUE)
     IntronCover <- split(IntronCover, IntronCover$intron_id)
     names(IntronCover) <- IntronCover.summa$IRFname[match(
@@ -3145,9 +3155,7 @@ Get_GTF_file <- function(reference_path) {
         on = c("transcript_id", "exon_number"),
         c("EventID", "seqnames", "start", "end", "width", "strand", "phase")
     ]
-    Upstream_gr <- makeGRangesFromDataFrame(as.data.frame(
-        na.omit(Upstream)
-    ), keep.extra.columns = TRUE)
+    Upstream_gr <- .grDT(na.omit(Upstream), keep.extra.columns = TRUE)
     Upstream_seq <- getSeq(genome, Upstream_gr)
     Upstream[!is.na(get("seqnames")), c("seq") := as.character(Upstream_seq)]
     # Trim sequence by phase
