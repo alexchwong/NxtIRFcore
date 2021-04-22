@@ -69,3 +69,16 @@ NULL
 
 S4_disableValidity <- getFromNamespace("disableValidity", "S4Vectors")
 BG_replaceSlots <- getFromNamespace("replaceSlots", "BiocGenerics")
+SE_charbound <- 
+    function(idx, txt, fmt)
+{
+    orig <- idx
+    idx <- match(idx, txt)
+    if (any(bad <- is.na(idx))) {
+        msg <- paste(S4_selectSome(orig[bad]), collapse=" ")
+        stop(sprintf(fmt, msg))
+    }
+    idx
+}
+
+S4_selectSome <- getFromNamespace("selectSome", "S4Vectors")

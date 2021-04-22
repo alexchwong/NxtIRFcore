@@ -17,12 +17,12 @@ run_IRFinder_multithreaded = function(
     
     ref_file = normalizePath(file.path(s_ref, "IRFinder.ref.gz"))
 
-
-    if(Has_OpenMP() > 0 & Use_OpenMP) {
-        n_threads = floor(max_threads)
-        n_threads = min(n_threads, length(s_bam))
-        IRF_main_multithreaded(ref_file, s_bam, output_files, n_threads)
-    } else {
+    # OpenMP version currently causes C stack usage errors. Disable for now
+    # if(Has_OpenMP() > 0 & Use_OpenMP) {
+        # n_threads = floor(max_threads)
+        # n_threads = min(n_threads, length(s_bam))
+        # IRF_main_multithreaded(ref_file, s_bam, output_files, n_threads)
+    # } else {
         # Use BiocParallel
         n_rounds = ceiling(length(s_bam) / floor(max_threads))
         n_threads = ceiling(length(s_bam) / n_rounds)
@@ -56,7 +56,7 @@ run_IRFinder_multithreaded = function(
                 BPPARAM = BPPARAM_mod
             )
         }
-    }
+    # }
     
     if(run_featureCounts == TRUE) {
 
