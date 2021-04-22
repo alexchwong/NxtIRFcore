@@ -501,8 +501,7 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 
 		std::string s_output_txt = output_file + ".txt.gz";
 		std::string s_output_cov = output_file + ".cov";
-
-	
+		
     std::string myLine;
     std::string myBuffer;
     
@@ -517,8 +516,8 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		inCoverageBlocks.str(myBuffer);
 		oCoverageBlocks.loadRef(inCoverageBlocks);
 
-			getline(iss, myLine, '\n');
-			getline(iss, myBuffer, '>');
+		getline(iss, myLine, '\n');
+		getline(iss, myBuffer, '>');
 
 		SpansPoint oSpansPoint;
 		oSpansPoint.setSpanLength(5,4);
@@ -526,18 +525,18 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		inSpansPoint.str(myBuffer);
 		oSpansPoint.loadRef(inSpansPoint);
 
-			getline(iss, myLine, '\n');
-			getline(iss, myBuffer, '>');
+		getline(iss, myLine, '\n');
+		getline(iss, myBuffer, '>');
 		
 		FragmentsInROI oFragmentsInROI;
 		FragmentsInChr oFragmentsInChr;
 
-			std::istringstream inFragmentsInROI;
-			inFragmentsInROI.str(myBuffer);
-			oFragmentsInROI.loadRef(inFragmentsInROI);
+		std::istringstream inFragmentsInROI;
+		inFragmentsInROI.str(myBuffer);
+		oFragmentsInROI.loadRef(inFragmentsInROI);
 
-			getline(iss, myLine, '\n');
-			getline(iss, myBuffer, '>');
+		getline(iss, myLine, '\n');
+		getline(iss, myBuffer, '>');
 
 		JunctionCount oJuncCount;
 		std::istringstream inJuncCount;
@@ -546,7 +545,7 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		
 		FragmentsMap oFragMap;
 		
-  BAM2blocks BB;
+		BAM2blocks BB;
   
 		BB.registerCallbackChrMappingChange( std::bind(&JunctionCount::ChrMapUpdate, &oJuncCount, std::placeholders::_1) );
 		BB.registerCallbackProcessBlocks( std::bind(&JunctionCount::ProcessBlocks, &oJuncCount, std::placeholders::_1) );
@@ -556,7 +555,7 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		
 		BB.registerCallbackChrMappingChange( std::bind(&SpansPoint::ChrMapUpdate, &oSpansPoint, std::placeholders::_1) );
 		BB.registerCallbackProcessBlocks( std::bind(&SpansPoint::ProcessBlocks, &oSpansPoint, std::placeholders::_1) );
-				
+		
 		BB.registerCallbackChrMappingChange( std::bind(&FragmentsInROI::ChrMapUpdate, &oFragmentsInROI, std::placeholders::_1) );
 		BB.registerCallbackProcessBlocks( std::bind(&FragmentsInROI::ProcessBlocks, &oFragmentsInROI, std::placeholders::_1) );
 		
@@ -566,42 +565,42 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		BB.registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &oFragMap, std::placeholders::_1) );
 		BB.registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &oFragMap, std::placeholders::_1) );
 		
-  BAMReader inbam;
-  std::ifstream inbam_stream;
-  inbam_stream.open(s_bam, std::ios::in | std::ios::binary);
-  inbam.SetInputHandle(&inbam_stream);
-  
-	Rcout << "Processing " << s_bam << "\n";
-	
-  BB.openFile(&inbam); // This file needs to be a decompressed BAM. (setup via fifo / or expect already decompressed via stdin).
-  BB.processAll(myLine, true);
+		BAMReader inbam;
+		std::ifstream inbam_stream;
+		inbam_stream.open(s_bam, std::ios::in | std::ios::binary);
+		inbam.SetInputHandle(&inbam_stream);
+		
+		Rcout << "Processing " << s_bam << "\n";
+		
+		BB.openFile(&inbam); // This file needs to be a decompressed BAM. (setup via fifo / or expect already decompressed via stdin).
+		BB.processAll(myLine, true);
 
-  std::ofstream out;
-  out.open(s_output_txt, std::ios::binary);
+		std::ofstream out;
+		out.open(s_output_txt, std::ios::binary);
 
-// GZ compression:
-  GZWriter outGZ;
-  outGZ.SetOutputHandle(&out);
+	// GZ compression:
+		GZWriter outGZ;
+		outGZ.SetOutputHandle(&out);
 
-// Write stats here:
+	// Write stats here:
 
-  outGZ.writeline("BAM_report\tValue");
-  outGZ.writestring(myLine);
-  outGZ.writeline("");
+		outGZ.writeline("BAM_report\tValue");
+		outGZ.writestring(myLine);
+		outGZ.writeline("");
 
-  int directionality = oJuncCount.Directional(myLine);
-  outGZ.writeline("Directionality\tValue");
-  outGZ.writestring(myLine);
-  outGZ.writeline("");
+		int directionality = oJuncCount.Directional(myLine);
+		outGZ.writeline("Directionality\tValue");
+		outGZ.writestring(myLine);
+		outGZ.writeline("");
 
-	// Generate output but save this to strings:
-	std::string myLine_ROI;
-	std::string myLine_JC;
-	std::string myLine_SP;
-	std::string myLine_Chr;
-	std::string myLine_ND;
-	std::string myLine_Dir;
-	std::string myLine_QC;
+		// Generate output but save this to strings:
+		std::string myLine_ROI;
+		std::string myLine_JC;
+		std::string myLine_SP;
+		std::string myLine_Chr;
+		std::string myLine_ND;
+		std::string myLine_Dir;
+		std::string myLine_QC;
 
 		oFragmentsInROI.WriteOutput(myLine_ROI, myLine_QC);
 		oJuncCount.WriteOutput(myLine_JC, myLine_QC);

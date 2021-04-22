@@ -2,7 +2,7 @@
 % Please edit documentation in R/CollateData.R
 \name{MakeSE}
 \alias{MakeSE}
-\title{Constructs a SummarizedExperiment object from the collated data}
+\title{Constructs a NxtSE object from the collated data}
 \usage{
 MakeSE(collate_path, colData, RemoveOverlapping = TRUE)
 }
@@ -28,8 +28,16 @@ to make sure IR events are not 'double-counted'}
 A NxtIRF SummarizedExperiment (\code{NxtSE}) object
 }
 \description{
-MakeSE() creates a SummarizedExperiment object from the data collated
-from IRFinder output using CollateData().
+MakeSE() creates a NxtSE object from the data collated
+from IRFinder output using \code{\link[=CollateData]{CollateData()}}.
+}
+\details{
+NxtSE is a specialised class (inherited from the
+\linkS4class{SummarizedExperiment} class) used in NxtIRF
+for downstream analysis. It contains processed data collated from IRFinder
+output from multiple samples. Quantitation of included or excluded
+IR and alternative splicing events, as well as relevant QC parameters
+are included. See \link{NxtSE-methods} for further details.
 }
 \examples{
 se = MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
