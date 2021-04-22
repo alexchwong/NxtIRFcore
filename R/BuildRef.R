@@ -2000,7 +2000,8 @@ Get_GTF_file <- function(reference_path) {
         append = TRUE,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
-    gzip(filename = IRF_file, destname = paste0(IRF_file, ".gz"))
+    gzip(filename = IRF_file, destname = paste0(IRF_file, ".gz"),
+        overwrite = TRUE)
     if(file.exists(IRF_file) & file.exists(paste0(IRF_file, ".gz"))) {
         file.remove(IRF_file)
     }
