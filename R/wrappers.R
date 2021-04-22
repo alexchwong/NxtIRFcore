@@ -1,12 +1,13 @@
 # wrappers to R/C++
 
-run_IRFinder_multithreaded = function(
+.run_IRFinder = function(
         reference_path = "./Reference", 
         bamfiles = "Unsorted.bam", 
         output_files = "./Sample",
         max_threads = max(parallel::detectCores() - 2, 1),
         Use_OpenMP = TRUE,
-        run_featureCounts = FALSE
+        run_featureCounts = FALSE,
+        verbose = TRUE
     ) {
     .validate_reference(reference_path)
 
@@ -16,6 +17,8 @@ run_IRFinder_multithreaded = function(
     .irfinder_validate_args(s_bam, s_ref, max_threads, output_files)
     
     ref_file = normalizePath(file.path(s_ref, "IRFinder.ref.gz"))
+
+    message("Running IRFinder ", appendLF = FALSE)
 
     # OpenMP version currently causes C stack usage errors. Disable for now
     # if(Has_OpenMP() > 0 & Use_OpenMP) {
@@ -45,14 +48,30 @@ run_IRFinder_multithreaded = function(
                 min(length(s_bam), row_starts[i] + n_threads - 1)
             )
             BiocParallel::bplapply(selected_rows_subset,
-                function(i, IRF_main, s_bam, reference_file, output_files) {
-                    IRF_main(s_bam[i], reference_file, output_files[i])
+                function(i, IRF_main, 
+                        s_bam, reference_file, output_files, verbose) {
+                    IRF_main(s_bam[i], reference_file, output_files[i], verbose)
+                    # Check IRFinder returns all files successfully
+                    file_gz = paste0(output_files[i], ".txt.gz")
+                    file_cov = paste0(output_files[i], ".cov")
+                    if(!file.exists(file_gz)) {
+                        stop(paste(
+                            "IRFinder failed to produce", file_gz
+                        ), call. = FALSE)
+                    } else if(!file.exists(file_cov)) {
+                        stop(paste(
+                            "IRFinder failed to produce", file_cov
+                        ), call. = FALSE)
+                    } else {
+                        message(paste("IRFinder processed", basename(s_bam[i])))
+                    }
                 }, 
 
                 s_bam = s_bam,
                 output_files = output_files,
                 IRF_main = IRF_main, 
                 reference_file = ref_file,
+                verbose = verbose,
                 BPPARAM = BPPARAM_mod
             )
         }
@@ -138,12 +157,12 @@ run_IRFinder_multithreaded = function(
 
 .irfinder_validate_args <- function(s_bam, s_ref, max_threads, output_files) {
     if(max_threads != 1 && max_threads > parallel::detectCores() - 1) {
-        stop(paste("In run_IRFinder_multithreaded(), ",
+        stop(paste("In .run_IRFinder(), ",
             max_threads, " threads is not allowed for this system"
         ), call. = FALSE)
     }
     if(!all(file.exists(s_bam))) {
-        stop(paste("In run_IRFinder_multithreaded(), ",
+        stop(paste("In .run_IRFinder(), ",
             paste(
                 unique(s_bam[!file.exists(s_bam)]),
                 collapse = ""
@@ -153,7 +172,7 @@ run_IRFinder_multithreaded = function(
     }    
 
     if(!all(dir.exists(dirname(output_files)))) {
-        stop(paste("In run_IRFinder_multithreaded(), ",
+        stop(paste("In .run_IRFinder(), ",
             paste(
                 unique(dirname(
                     output_files[!dir.exists(dirname(output_files))])),
@@ -164,7 +183,7 @@ run_IRFinder_multithreaded = function(
     }
 
     if(!(length(s_bam) == length(output_files))) {
-        stop(paste("In run_IRFinder_multithreaded(), ",
+        stop(paste("In .run_IRFinder(), ",
             "Number of output files and bam files must be the same"
         ), call. = FALSE)
     }

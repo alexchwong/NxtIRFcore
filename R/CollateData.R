@@ -116,7 +116,7 @@ Find_IRFinder_Output <- function(sample_path, ...) {
 #' A wrapper function to call NxtIRF/IRFinder
 #'
 #' This function calls IRFinder on one or more BAM files.
-#' @param bamfiles The file names of 1 or more BAM files
+#' @param bamfiles A vector containing file paths of 1 or more BAM files
 #' @param sample_names The sample names of the given BAM files. Must
 #'   be a vector of the same length as `bamfiles`
 #' @param reference_path The directory of the NxtIRF reference
@@ -130,6 +130,8 @@ Find_IRFinder_Output <- function(sample_path, ...) {
 #' @param run_featureCounts Whether this function will run 
 #'   `Rsubread::featureCounts()` on the BAM files. If so, the output will be
 #'   saved to "main.FC.Rds" in the output directory as a list object
+#' @param verbose (default FALSE) Set to `TRUE` to allow IRFinder to output
+#'   progress bars and messages
 #' @return None. `IRFinder()` will save output to `output_path`. \cr\cr
 #'   sample.txt.gz: The main IRFinder output file containing the quantitation
 #'   of IR and splice junctions, as well as QC information\cr\cr
@@ -146,17 +148,23 @@ Find_IRFinder_Output <- function(sample_path, ...) {
 #' @md
 #' @export
 IRFinder <- function(
-        bamfiles = "Unsorted.bam", 
+        bamfiles = "./Unsorted.bam", 
         sample_names = "sample1",
         reference_path = "./Reference",
         output_path = "./IRFinder_Output",
         n_threads = 1,
         overwrite = FALSE,
-        run_featureCounts = FALSE
+        run_featureCounts = FALSE,
+        verbose = FALSE
         ) {
     if(length(bamfiles) != length(sample_names)) {
         stop(paste("In IRFinder,",
             "Number of BAM files and sample names must be the same"
+        ), call. = FALSE)
+    }
+    if(!all(file.exists(bamfiles))) {
+        stop(paste("In IRFinder,",
+            "some BAMs in bamfiles do not exist"
         ), call. = FALSE)
     }
     if(!dir.exists(dirname(output_path))) {
@@ -177,12 +185,13 @@ IRFinder <- function(
         already_exist = rep(FALSE, length(bamfiles))
     }
 
-    run_IRFinder_multithreaded(
+    .run_IRFinder(
         reference_path = reference_path,
         bamfiles = bamfiles[!already_exist],
         output_files = s_output[!already_exist],
         max_threads = n_threads,
-        run_featureCounts = run_featureCounts
+        run_featureCounts = run_featureCounts,
+        verbose = verbose
     )
 }
 
