@@ -41,7 +41,7 @@ islands are contiguous regions covered by exons from any transcript
 obligate intronic regions (genomic regions that are introns for all
 transcripts). Note for introns that are internal to a single exon island
 (i.e. akin to "known-exon" introns from IRFinder), \code{SpliceOverMax}
-uses \link[findOverlaps()]{GenomicRanges} to summate competing mapped
+uses \link[findOverlaps]{GenomicRanges} to summate competing mapped
 splice reads.}
 
 \item{samples_per_block}{How many samples to process per thread.}

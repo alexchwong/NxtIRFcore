@@ -77,7 +77,7 @@ res_url <- "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF"
 mock_genome <- function(destination_path = tempdir())
 {
     .cache_and_create_file(paste(res_url, "genome.fa", sep="/"),
-        destination_path, hub = AnnotationHub::AnnotationHub())
+        destination_path, hub = "AnnotationHub")
 }
 
 #' @describeIn example-NxtIRF-data Makes a copy of the NxtIRF mock gene 
@@ -86,7 +86,7 @@ mock_genome <- function(destination_path = tempdir())
 mock_gtf <- function(destination_path = tempdir())
 {
     .cache_and_create_file(paste(res_url, "transcripts.gtf", sep="/"),
-        destination_path, hub = AnnotationHub::AnnotationHub())
+        destination_path, hub = "AnnotationHub")
 }
 
 #' @describeIn example-NxtIRF-data Returns a copy of Mappability Exclusion 
@@ -99,19 +99,19 @@ get_mappability_exclusion <- function(
     if(genome_type == "hg38") {
         .cache_and_create_file(paste(res_url, 
             "Mappability_Regions_hg38_v94.txt.gz", sep="/"),
-            destination_path, hub = AnnotationHub::AnnotationHub())
+            destination_path, hub = "AnnotationHub")
     } else if(genome_type == "hg19") {
         .cache_and_create_file(paste(res_url, 
             "Mappability_Regions_hg19_v75.txt.gz", sep="/"),
-            destination_path, hub = AnnotationHub::AnnotationHub())    
+            destination_path, hub = "AnnotationHub")    
     } else if(genome_type == "mm10") {
         .cache_and_create_file(paste(res_url, 
             "Mappability_Regions_mm10_v94.txt.gz", sep="/"),     
-            destination_path, hub = AnnotationHub::AnnotationHub())    
+            destination_path, hub = "AnnotationHub")    
     } else if(genome_type == "mm9") {
         .cache_and_create_file(paste(res_url, 
             "Mappability_Regions_mm9_v67.txt.gz", sep="/"),    
-            destination_path, hub = AnnotationHub::AnnotationHub())    
+            destination_path, hub = "AnnotationHub")    
     } else {
         stop(paste("In get_mappability_exclusion():",
             "genome_type = ", genome_type, "is not recogised"
@@ -128,7 +128,7 @@ example_bams <- function(destination_path = tempdir())
         "02H033.bam", "02H043.bam", "02H046.bam")
     .cache_and_create_file(
         paste(res_url, bams, sep="/"),
-        destination_path, hub = ExperimentHub::ExperimentHub())
+        destination_path, hub = "ExperimentHub")
 }
 
 #' @describeIn example-NxtIRF-data Returns a 2-column data frame, containing 
@@ -201,11 +201,13 @@ NxtIRF_example_NxtSE <- function() {
     return(ret)
 }
 
-.fetch_files_from_urls <- function(urls, filenames, destination_path) {
+.fetch_files_from_urls <- function(urls, filenames, destination_path,
+        bfc_only = FALSE) {
     # No error checking
     cache <- tools::R_user_dir(package = "NxtIRF", which="cache")
     bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
     files = c()
+    paths = c()
     for(i in seq_len(length(urls))) {
         url = urls[i]
         file = filenames[i]
@@ -220,7 +222,7 @@ NxtIRF_example_NxtSE <- function() {
                 ), call. = FALSE)
             }
         }
-        if(length(test$rpath) < 1) {
+        if(!bfc_only && length(test$rpath) < 1) {
             if(.check_if_url_exists(url)) {
                 path <- tryCatch(BiocFileCache::bfcrpath(bfc, url),
                 error = function(e) {
@@ -233,29 +235,38 @@ NxtIRF_example_NxtSE <- function() {
                     "- please check connection"
                 ), call. = FALSE)
             }
-        } else {
+        } else if(length(test$rpath) == 1) {
             path <- test$rpath
-        }
-        
-        if(destination_path == "") {
-            files = c(files, path)
         } else {
-            dest = file.path(destination_path, file)
-            if(file.exists(dest) && 
-                    identical(openssl::md5(file(path)), 
-                        openssl::md5(file(dest)))) {
-                # if md5 identical, do nothing
-            } else {
-                file.copy(path, dest, overwrite = TRUE)
-            }
-            files = c(files, dest)
+            return(NULL)
         }
+        paths = c(paths, path)
     }
+    
+    if(length(paths) == length(filenames)) {
+        for(i in seq_len(length(paths))) {
+            path = paths[i]
+            file = filenames[i]
+            if(destination_path == "") {
+                files = c(files, path)
+            } else {
+                dest = file.path(destination_path, file)
+                if(file.exists(dest) && 
+                        identical(openssl::md5(file(path)), 
+                            openssl::md5(file(dest)))) {
+                    # if md5 identical, do nothing
+                } else {
+                    file.copy(path, dest, overwrite = TRUE)
+                }
+                files = c(files, dest)
+            }
+        }
+    }    
     return(normalizePath(files))
 }
 
 .cache_and_create_file <- function(urls, destination_path = "",
-        filenames = basename(urls), hub = NULL) {
+        filenames = basename(urls), hub = c("AnnotationHub", "ExperimentHub")) {
     if(destination_path != "" && !dir.exists(dirname(destination_path))) {
         warning(paste(destination_path, "- parent directory does not exist"))
         return("")
@@ -277,17 +288,28 @@ NxtIRF_example_NxtSE <- function() {
             }
         )
     }
-    if(!is.null(hub)) {
-        # AnnotationHub or ExperimentHub retrieval of source url (if record(s) exists)
-        if(all(urls %in% hub$sourceurl)) {
-            return(.cache_and_create_file_hub(urls, hub, 
-                destination_path, filenames))
-        }
+    # Check NxtIRF hub first:
+    files_from_own_hub <- .fetch_files_from_urls(
+        urls, filenames, destination_path, bfc_only = TRUE)
+    if(!is.null(files_from_own_hub)) return(files_from_own_hub)
+    # Check if in AnnotationHub / ExperimentHub:   
+    hub = match.arg(hub)
+    if(hub == "AnnotationHub") {
+        hub_obj <- AnnotationHub::AnnotationHub()
+    } else if(hub == "ExperimentHub") {
+        hub_obj <- ExperimentHub::ExperimentHub()    
     }
-    return(.fetch_files_from_urls(urls, filenames, destination_path))
+    hub_obj = hub_obj[match(urls, hub_obj$sourceurl)]
+    if(length(hub_obj) == length(urls)) {
+        return(.cache_and_create_file_hub(urls, hub_obj, 
+            destination_path, filenames))
+    } else {
+        return(.fetch_files_from_urls(urls, filenames, destination_path))
+    }
 }
 
-.cache_and_create_file_hub <- function(urls, hub = ExperimentHub::ExperimentHub(),
+.cache_and_create_file_hub <- function(urls, 
+        hub = ExperimentHub::ExperimentHub(),
         destination_path = "", filenames = basename(urls)) {
     hub = hub[match(urls, hub$sourceurl)]
     files = c()
@@ -306,6 +328,18 @@ NxtIRF_example_NxtSE <- function() {
                 file.copy(cache, dest, overwrite = TRUE)
             }
             files = c(files, dest)
+        }
+    }
+    # Make a copy to local hub for quicker access next time
+    # (as AnnotationHub and ExperimentHub are slow!)
+    cache <- tools::R_user_dir(package = "NxtIRF", which="cache")
+    bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
+    for(i in seq_len(length(urls))) {
+        url = urls[i]
+        file = files[i]
+        test <- BiocFileCache::bfcquery(bfc, url, field = "rname")
+        if(length(test$rpath) == 0) {
+            BiocFileCache::bfcadd(bfc, url, fpath = file)
         }
     }
     return(normalizePath(files))
