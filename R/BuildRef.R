@@ -1965,7 +1965,7 @@ Get_GTF_file <- function(reference_path) {
 }
 .gen_irf_final <- function(reference_path,
         ref.cover, readcons, ref.ROI, ref.sj) {
-    IRF_file <- file.path(reference_path, "IRFinder.ref.gz")
+    IRF_file <- file.path(reference_path, "IRFinder.ref")
     # Concatenate all 4 reference files into one file
     fwrite(list(">ref-cover.bed"), IRF_file,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
@@ -2000,7 +2000,10 @@ Get_GTF_file <- function(reference_path) {
         append = TRUE,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
-
+    gzip(filename = IRF_file, destname = paste0(IRF_file, ".gz"))
+    if(file.exists(IRF_file) & file.exists(paste0(IRF_file, ".gz"))) {
+        file.remove(IRF_file)
+    }
     # cleanup
     if (file.exists(file.path(reference_path, "tmpdir.IntronCover.bed"))) {
         file.remove(file.path(reference_path, "tmpdir.IntronCover.bed"))

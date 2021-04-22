@@ -624,8 +624,13 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
             junc.segment = NULL
             for(i in seq_len(length(work))) {
 
-                junc = suppressWarnings(as.data.table(
-                    fread(block$path[i], skip = "JC_seqname")))
+                # junc = suppressWarnings(as.data.table(
+                    # fread(block$path[i], skip = "JC_seqname")))
+
+                data.list = get_multi_DT_from_gz(
+                    normalizePath(block$path[i]), 
+                    c("JC_seqname")) 
+                junc = data.list[["JC_seqname"]]
 
                 setnames(junc, "JC_seqname", "seqnames")
                 if(is.null(junc.segment)) {
@@ -675,10 +680,14 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
             phrase = ifelse(runStranded, "Dir_Chr", "Nondir_Chr")
             for(i in seq_len(length(work))) {
 
-                irf = suppressWarnings(
-                    fread(block$path[i], skip = phrase)
-                )
-
+                # irf = suppressWarnings(
+                    # fread(block$path[i], skip = phrase)
+                # )
+                data.list = get_multi_DT_from_gz(
+                    normalizePath(block$path[i]), 
+                    phrase) 
+                irf = data.list[[phrase]]
+                
                 setnames(irf, c(phrase, "Start", "End", "Strand"), 
                     c("seqnames","start","end", "strand"))
                 irf.md5 = unique(c(irf.md5, 

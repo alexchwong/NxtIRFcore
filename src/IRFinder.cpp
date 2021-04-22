@@ -207,7 +207,8 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
   std::string myEntry;
   unsigned int q = 0;
   char delim = '\n';
-
+	bool check_line = true;
+	
   for(int z = 0; z < s_header_begin.size(); z++) {
     std::string header = string(s_header_begin(z));
     std::vector<std::string> columns;
@@ -215,18 +216,28 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
       gz_in.getline(myLine, delim); q++;
       myLine.erase( std::remove(myLine.begin(), myLine.end(), '\r'), myLine.end() ); // remove \r 
       
-      if(strncmp(myLine.c_str(), header.c_str(), header.size()) == 0) {
-        // read columns
-        std::istringstream column_iss;
-        column_iss.str(myLine);
-        
-        while(!column_iss.eof() && !column_iss.fail()) {
-          getline(column_iss, myEntry, '\t');
-          columns.push_back(myEntry);
-        }
-        
-        break;
-      }
+			if(check_line == true) {
+				if(strncmp(myLine.c_str(), header.c_str(), header.size()) == 0) {
+					// read columns
+					std::istringstream column_iss;
+					column_iss.str(myLine);
+					
+					while(!column_iss.eof() && !column_iss.fail()) {
+						getline(column_iss, myEntry, '\t');
+						columns.push_back(myEntry);
+					}
+					
+					break;
+				} else {
+					check_line = false;
+				}
+			} else {
+				// screen for empty lines - then reactivate check_line
+				if (myLine.length() == 0) {
+					check_line = true;
+				}
+			}
+
     }
 
     // use a map of string vectors
