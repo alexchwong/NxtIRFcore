@@ -137,7 +137,7 @@ IRFinder(
     sample_names = bams[,1],
     reference_path = "Reference_mock",
     output_path = "IRFinder_output",
-    n_threads = 2,
+    n_threads = 1,
     overwrite = FALSE,
     run_featureCounts = TRUE
 )
@@ -202,7 +202,7 @@ CollateData(
     reference_path = "Reference_mock",
     output_path = "NxtSE",
     IRMode = "SpliceOverMax",
-    n_threads = 2
+    n_threads = 1
 )
 ```
 
