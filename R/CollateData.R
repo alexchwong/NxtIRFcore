@@ -220,7 +220,7 @@ IRFinder <- function(
 #'   obligate intronic regions (genomic regions that are introns for all 
 #'   transcripts). Note for introns that are internal to a single exon island
 #'   (i.e. akin to "known-exon" introns from IRFinder), \code{SpliceOverMax} 
-#'   uses \link[findOverlaps()]{GenomicRanges} to summate competing mapped
+#'   uses \link[findOverlaps]{GenomicRanges} to summate competing mapped
 #'   splice reads.
 #' @param samples_per_block How many samples to process per thread. 
 #' @param n_threads The number of threads to use. On low
@@ -287,8 +287,8 @@ CollateData <- function(Experiment, reference_path, output_path,
     message("done\n")
     gc()
 
-    dash_progress("Generating NxtIRF FST files", N)
-    message("Generating NxtIRF FST files")
+    dash_progress("Generating NxtIRF assays", N)
+    message("Generating NxtIRF assays")
     agg.list <- suppressWarnings(BiocParallel::bplapply(seq_len(n_jobs),
         .collateData_compile_agglist, 
         jobs = jobs, df.internal = df.internal, 
@@ -759,7 +759,12 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     junc.common.unanno = junc.common[get("strand") == "*"]
     junc.common.anno = junc.common[get("strand") != "*"]
     
+    # make sure valid seqnames
+    junc.common.unanno = junc.common.unanno[!is.na(get("seqnames"))]
+    junc.common.unanno = junc.common.unanno[get("seqnames") != ""]
+
     if(nrow(junc.common.unanno) != 0) {
+
         left.gr = with(junc.common.unanno, 
             GRanges(seqnames = seqnames, 
             ranges = IRanges(start = start, end = start + 1), 
@@ -1067,8 +1072,10 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     ))
     work = jobs[[x]]
     block = df.internal[work]
-    assays <- .collateData_assays_init(rowEvent, junc_PSI)
-
+    # assays <- .collateData_assays_init(rowEvent, junc_PSI)
+    templates <- .collateData_assays_init(rowEvent, junc_PSI) # list of DT
+    assays <- NULL
+    
     for(i in seq_len(length(work))) {
         junc <- .collateData_process_junc(
             block$sample[i], block$strand[i], 
@@ -1080,15 +1087,21 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
                 irf.common, norm_output_path)                
         splice <- .collateData_process_splice_depth(
             splice, irf)
-        assays <- .collateData_process_assays(assays,
+        assays <- .collateData_process_assays(assays, .copy_DT(templates),
             block$sample[i], junc, irf, splice, IRMode)
         file.remove(file.path(norm_output_path, "temp", 
             paste(block$sample[i], "junc.fst.tmp", sep=".")))
         file.remove(file.path(norm_output_path, "temp", 
             paste(block$sample[i], "irf.fst.tmp", sep=".")))               
     } # end FOR loop
+    return(assays)
+    # return(.collateData_compile_agglist_final(assays))
+}
 
-    return(.collateData_compile_agglist_final(assays))
+.copy_DT <- function(templates) {
+    copy <- lapply(templates, copy)
+    names(copy) <- names(templates)
+    return(copy)
 }
 
 .collateData_compile_agglist_final <- function(assays) {
@@ -1369,23 +1382,23 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     return(splice)
 }
 
-.collateData_process_assays <- function(assays, 
+.collateData_process_assays <- function(assays, templates,
         sample, junc, irf, splice, IRMode) {
-    assays[["Included"]][, c(sample) := c(
+    templates[["Included"]][, c(sample) := c(
         irf$IntronDepth, 
         0.5 * (splice$count_Event1a[splice$EventType %in% c("SE", "MXE")] + 
             splice$count_Event2a[splice$EventType %in% c("SE", "MXE")]),
         splice$count_Event1a[!splice$EventType %in% c("SE", "MXE")]
     )]
     if(IRMode == "SpliceOverMax") {
-        assays[["Excluded"]][, c(sample) := c(
+        templates[["Excluded"]][, c(sample) := c(
             irf$SpliceOverMax,
             0.5 * (splice$count_Event1b[splice$EventType %in% c("MXE")] + 
                 splice$count_Event2b[splice$EventType %in% c("MXE")]),
             splice$count_Event1b[!splice$EventType %in% c("MXE")]
         )]
     } else {
-        assays[["Excluded"]][, c(sample) := c(
+        templates[["Excluded"]][, c(sample) := c(
             irf$SpliceMax,
             0.5 * (splice$count_Event1b[splice$EventType %in% c("MXE")] + 
                 splice$count_Event2b[splice$EventType %in% c("MXE")]),
@@ -1397,20 +1410,20 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     irf[get("strand") == "-", c("Up_Inc") := get("ExonToIntronReadsRight")]
     irf[get("strand") == "+", c("Down_Inc") := get("ExonToIntronReadsRight")]
     irf[get("strand") == "-", c("Down_Inc") := get("ExonToIntronReadsLeft")]   
-    assays[["Up_Inc"]][, c(sample) := 
+    templates[["Up_Inc"]][, c(sample) := 
         c(irf$Up_Inc, 
             splice$count_Event1a[splice$EventType %in% c("MXE", "SE")])]
-    assays[["Down_Inc"]][, c(sample) := 
+    templates[["Down_Inc"]][, c(sample) := 
         c(irf$Down_Inc, 
             splice$count_Event2a[splice$EventType %in% c("MXE", "SE")])]
-    assays[["Up_Exc"]][, c(sample) := 
+    templates[["Up_Exc"]][, c(sample) := 
         splice$count_Event1b[splice$EventType %in% c("MXE")]]
-    assays[["Down_Exc"]][, c(sample) := 
+    templates[["Down_Exc"]][, c(sample) := 
         splice$count_Event2b[splice$EventType %in% c("MXE")]]
     
-    assays[["Depth"]][, c(sample) := 
+    templates[["Depth"]][, c(sample) := 
         c(irf$TotalDepth, splice$TotalDepth)]
-    assays[["Coverage"]][, c(sample) := 
+    templates[["Coverage"]][, c(sample) := 
         c(irf$Coverage, splice$coverage)]
     
     splice[get("EventType") %in% c("MXE", "SE") & 
@@ -1423,21 +1436,57 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         c("minDepth") := get("count_JG_up")]
     splice[get("EventType") %in% c("AFE", "A5SS"), 
         c("minDepth") := get("count_JG_down")]   
-    assays[["minDepth"]][, c(sample) := c(
-        irf$IntronDepth,
-        splice$minDepth)]
+    templates[["minDepth"]][, c(sample) := c(
+        irf$IntronDepth, splice$minDepth)]
 
     junc[get("count") == 0, c("PSI") := 0]
     junc[get("SO_L") > get("SO_R"), 
         c("PSI") := get("count") / get("SO_L")]
     junc[get("SO_R") >= get("SO_L") & get("SO_R") > 0, 
         c("PSI") := get("count") / get("SO_R")]               
-    assays[["junc_PSI"]][junc, on = c("seqnames", "start", "end", "strand"),
+    templates[["junc_PSI"]][junc, on = c("seqnames", "start", "end", "strand"),
         c(sample) := get("i.PSI")]
-    assays[["junc_counts"]][junc, on = c("seqnames", "start", "end", "strand"),
+    templates[["junc_counts"]][junc, on = c("seqnames", "start", "end", "strand"),
         c(sample) := get("i.count")]
         
-    return(assays)
+    return(.collateData_package_assays_as_delayed(assays, templates))
+}
+
+.collateData_package_assays_as_delayed <- function(assays, templates) {
+    item.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth", 
+        "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc", "junc_PSI", "junc_counts")
+    assays_new <- list(
+        Included = DelayedArray(
+            templates[["Included"]][, -seq_len(3), with = FALSE]),
+        Excluded = DelayedArray(
+            templates[["Excluded"]][, -seq_len(3), with = FALSE]),
+        Depth = DelayedArray(
+            templates[["Depth"]][, -seq_len(3), with = FALSE]),
+        Coverage = DelayedArray(
+            templates[["Coverage"]][, -seq_len(3), with = FALSE]),
+        minDepth = DelayedArray(
+            templates[["minDepth"]][, -seq_len(3), with = FALSE]),
+        Up_Inc = DelayedArray(
+            templates[["Up_Inc"]][, -seq_len(3), with = FALSE]),
+        Down_Inc = DelayedArray(
+            templates[["Down_Inc"]][, -seq_len(3), with = FALSE]),
+        Up_Exc = DelayedArray(
+            templates[["Up_Exc"]][, -seq_len(3), with = FALSE]),
+        Down_Exc = DelayedArray(
+            templates[["Down_Exc"]][, -seq_len(3), with = FALSE]),
+        junc_PSI = DelayedArray(
+            templates[["junc_PSI"]][, -seq_len(4), with = FALSE]),
+        junc_counts = DelayedArray(
+            templates[["junc_counts"]][, -seq_len(4), with = FALSE])
+    )
+    if(is.null(assays)) {
+        return(assays_new)
+    } else {
+        for(item in item.todo) {
+            assays[[item]] = cbind(assays[[item]], assays_new[[item]])
+        }
+        return(assays)
+    }
 }
 
 ################################################################################
@@ -1459,21 +1508,25 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         paste0(seqnames, ":", start, "-", end, "/", strand))
     # Realize all the DelayedArrays as H5:
     assays = list()
-    if(n_jobs > 1) {
-        agg_t = transpose(agg.list)
-    } else {
-        agg_t = NULL
-    }
+    # if(n_jobs > 1) {
+        # agg_t = transpose(agg.list)
+    # } else {
+        # agg_t = NULL
+    # }
+    
     outfile = file.path(norm_output_path, paste("data", "h5", sep="."))
     if(file.exists(outfile)) file.remove(outfile)
     item.DTList = list()
+    
+    item.DTList <- do.call(Map, c(f = cbind, agg.list))
+    
     for(item in item.todo) {
 
-        if(n_jobs > 1) {
-            item.DTList[[item]] = do.call(cbind, agg_t[[item]])
-        } else {
-            item.DTList[[item]] = agg.list[[1]][[item]]
-        }
+        # if(n_jobs > 1) {
+            # item.DTList[[item]] = do.call(cbind, agg_t[[item]])
+        # } else {
+            # item.DTList[[item]] = agg.list[[1]][[item]]
+        # }
         if(grepl("junc", item) && length(junc_rownames) > 0) {
             rownames(item.DTList[[item]]) <- junc_rownames
         } else if(grepl("_Inc", item) && length(Inc_Events) > 0) {
