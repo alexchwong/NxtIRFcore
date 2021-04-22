@@ -368,13 +368,16 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     # se = readRDS(file.path(collate_path, "NxtSE.rds"))
     se = .collateData_load_NxtSE(file.path(collate_path, "NxtSE.rds"))
     # Encapsulate as NxtSE object
+    se = as(se, "NxtSE")
+
+    # Subset
     se = se[, colData$sample]
     if(ncol(colData) > 1) {
         colData_use <- colData[, -1, drop = FALSE]
         rownames(colData_use) <- colData$sample
         colData(se) <- as(colData_use, "DataFrame")    
     }
-    se = as(se, "NxtSE")
+    
     message("done\n")
     
     if(RemoveOverlapping == TRUE) {

@@ -472,11 +472,25 @@ setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
         S4_disableValidity(TRUE)
         on.exit(S4_disableValidity(old))
     }
+    if (!missing(i)) {
+        if (is.character(i)) {
+            fmt <- paste0("<", class(x), ">[i,] index out of bounds: %s")
+            i <- SE_charbound(i, rownames(x), fmt)
+        }
+        ii <- as.vector(i)
+    }
+    if (!missing(j)) {
+        if (is.character(j)) {
+            fmt <- paste0("<", class(x), ">[,j] index out of bounds: %s")
+            j <- SE_charbound(j, colnames(x), fmt)
+        }
+        jj <- as.vector(j)
+    }
     if(!missing(i) && !missing(j)) {
-        events <- rownames(x)[i]
+        events <- rownames(x)[ii]
         events_Inc = events[events %in% rownames(metadata(x)[["Up_Inc"]])]
         events_Exc = events[events %in% rownames(metadata(x)[["Up_Exc"]])]
-        samples = colnames(x)[j]
+        samples = colnames(x)[jj]
 
         up_inc(x, FALSE) <- 
             up_inc(x, FALSE)[events_Inc,samples,drop=FALSE]
@@ -489,7 +503,7 @@ setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
         covfile(x, FALSE) <- covfile(x, FALSE)[samples]
         sampleQC(x, FALSE) <- sampleQC(x, FALSE)[samples,,drop=FALSE]
     } else if (!missing(i)) {
-        events <- rownames(x)[i]
+        events <- rownames(x)[ii]
         events_Inc = events[events %in% rownames(metadata(x)[["Up_Inc"]])]
         events_Exc = events[events %in% rownames(metadata(x)[["Up_Exc"]])]
 
@@ -502,7 +516,7 @@ setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
         down_exc(x, FALSE) <- 
             down_exc(x, FALSE)[events_Exc,,drop=FALSE]
     } else if (!missing(j)) {
-        samples = colnames(x)[j]
+        samples = colnames(x)[jj]
 
         up_inc(x, FALSE) <- up_inc(x, FALSE)[,samples,drop=FALSE]
         down_inc(x, FALSE) <- down_inc(x, FALSE)[,samples,drop=FALSE]
