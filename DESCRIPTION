@@ -54,12 +54,8 @@ Imports:
 	XML
 LinkingTo: Rcpp, zlibbioc, RcppProgress
 Suggests: 
-    knitr,
-    rmarkdown,
-    DESeq2,
-    limma,
-    Rsubread,
-    testthat (>= 3.0.0)
+    knitr, rmarkdown, pheatmap,
+    DESeq2, limma, Rsubread, testthat (>= 3.0.0)
 VignetteBuilder: knitr
 biocViews: Software, Transcriptomics, RNASeq, AlternativeSplicing, Coverage, 
   DifferentialSplicing
