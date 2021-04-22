@@ -25,8 +25,8 @@ IRF_gunzip_DF <- function(s_in, s_header_begin) {
     .Call(`_NxtIRF_IRF_gunzip_DF`, s_in, s_header_begin)
 }
 
-IRF_main <- function(bam_file, reference_file, output_file) {
-    .Call(`_NxtIRF_IRF_main`, bam_file, reference_file, output_file)
+IRF_main <- function(bam_file, reference_file, output_file, verbose = TRUE) {
+    .Call(`_NxtIRF_IRF_main`, bam_file, reference_file, output_file, verbose)
 }
 
 IRF_main_multithreaded <- function(reference_file, bam_files, output_files, max_threads) {

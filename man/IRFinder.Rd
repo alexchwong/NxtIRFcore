@@ -5,17 +5,18 @@
 \title{A wrapper function to call NxtIRF/IRFinder}
 \usage{
 IRFinder(
-  bamfiles = "Unsorted.bam",
+  bamfiles = "./Unsorted.bam",
   sample_names = "sample1",
   reference_path = "./Reference",
   output_path = "./IRFinder_Output",
   n_threads = 1,
   overwrite = FALSE,
-  run_featureCounts = FALSE
+  run_featureCounts = FALSE,
+  verbose = FALSE
 )
 }
 \arguments{
-\item{bamfiles}{The file names of 1 or more BAM files}
+\item{bamfiles}{A vector containing file paths of 1 or more BAM files}
 
 \item{sample_names}{The sample names of the given BAM files. Must
 be a vector of the same length as \code{bamfiles}}
@@ -35,6 +36,9 @@ will not attempt to re-run.}
 \item{run_featureCounts}{Whether this function will run
 \code{Rsubread::featureCounts()} on the BAM files. If so, the output will be
 saved to "main.FC.Rds" in the output directory as a list object}
+
+\item{verbose}{(default FALSE) Set to \code{TRUE} to allow IRFinder to output
+progress bars and messages}
 }
 \value{
 None. \code{IRFinder()} will save output to \code{output_path}. \cr\cr

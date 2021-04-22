@@ -1,5 +1,7 @@
 globalVariables(c(":=","."))
 
+buildref_version <- "0.99.0"
+
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 
 is_valid <- function(x) {
