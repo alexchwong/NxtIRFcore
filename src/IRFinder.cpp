@@ -277,7 +277,7 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
     }
     Final_final_list.push_back(final_list, header);
   }
-
+	gz_in.closeGZ();
   return(Final_final_list);
 }
 
