@@ -46,6 +46,7 @@ Imports:
 	openssl,
 	parallel,
 	plotly,
+	rhdf5,
 	rtracklayer,
 	RColorBrewer,
 	stringr,
