@@ -67,7 +67,7 @@ NxtIRF.CheckPackageInstalled <- function(
     }
 }
 
-.validate_threads <- function(n_threads) {
+.validate_threads <- function(n_threads, ...) {
     n_threads_to_use = as.numeric(n_threads)
     if(is.na(n_threads_to_use)) {
         stop(paste(
@@ -83,10 +83,10 @@ NxtIRF.CheckPackageInstalled <- function(
         n_threads_to_use = max(1, parallel::detectCores() - 2)
     }
     if(Sys.info()["sysname"] == "Windows") {
-        BPPARAM_mod = BiocParallel::SnowParam(n_threads_to_use)
+        BPPARAM_mod = BiocParallel::SnowParam(n_threads_to_use, ...)
         message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
     } else {
-        BPPARAM_mod = BiocParallel::MulticoreParam(n_threads_to_use)
+        BPPARAM_mod = BiocParallel::MulticoreParam(n_threads_to_use, ...)
         message(paste("Using MulticoreParam", BPPARAM_mod$workers, "threads"))
     }
     return(BPPARAM_mod)

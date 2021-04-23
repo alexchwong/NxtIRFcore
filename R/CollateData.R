@@ -265,6 +265,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     dash_progress("Validating Experiment; checking COV files...", N)
     message("Validating Experiment; checking COV files...")
     BPPARAM_mod = .validate_threads(n_threads)
+    
     norm_output_path = .collateData_validate(Experiment, 
         reference_path, output_path)   
     coverage_files = .collateData_COV(Experiment)
@@ -301,11 +302,17 @@ CollateData <- function(Experiment, reference_path, output_path,
 
     dash_progress("Generating NxtIRF assays", N)
     message("Generating NxtIRF assays")
-    agg.list <- suppressWarnings(BiocParallel::bplapply(seq_len(n_jobs),
+    # Use 1 sample per job, with progress BPPARAM
+    jobs_2 <- NxtIRF.SplitVector(seq_len(nrow(df.internal)), 
+        nrow(df.internal))
+    BPPARAM_mod_progress = .validate_threads(n_threads, progressbar = TRUE,
+        tasks = nrow(df.internal))
+    agg.list <- suppressWarnings(BiocParallel::bplapply(
+        seq_len(nrow(df.internal)),
         .collateData_compile_agglist, 
-        jobs = jobs, df.internal = df.internal, 
+        jobs = jobs_2, df.internal = df.internal, 
         norm_output_path = norm_output_path, IRMode = IRMode,
-        BPPARAM = BPPARAM_mod
+        BPPARAM = BPPARAM_mod_progress
     ))
     gc()
 
@@ -478,6 +485,11 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     if(!all(vapply(Experiment$path, file.exists, logical(1)))) {
         stop(paste("In CollateData(),",
             "Some files in Experiment do not exist"
+        ), call. = FALSE)
+    }
+    if(length(Experiment$sample) != length(unique(Experiment$sample))) {
+        stop(paste("In CollateData(),",
+            "Repeated sample names are not allowed"
         ), call. = FALSE)
     }
 
@@ -678,7 +690,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         }
     }
     junc.common[, c("start") := get("start") + 1]
-    message("done\n")
+    message("done")
     return(junc.common)
 }
 
@@ -1730,7 +1742,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     for(i in seq_len(nrow(df.internal))) {
         setTxtProgressBar(pb, i)
         sample = df.internal$sample[i]
-        message(paste("Collating final assays for sample", sample))
+        # message(paste("Collating final assays for sample", sample))
         assayfile = file.path(norm_output_path, "temp", 
             paste("assays", sample, "fst.tmp", sep="."))
         for(assay in assay.todo) {
