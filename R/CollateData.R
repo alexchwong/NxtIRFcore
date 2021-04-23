@@ -322,7 +322,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     # assays <- .collateData_compile_assays(agg.list, df.internal,
         # norm_output_path, jobs, n_jobs)
     assays <- .collateData_compile_assays_from_fst(df.internal,
-        norm_output_path, jobs, n_jobs)
+        norm_output_path, samples_per_block)
         
     .collateData_write_stats(df.internal, norm_output_path)
     .collateData_write_colData(df.internal, coverage_files, norm_output_path)
@@ -1693,13 +1693,14 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
 }
 
 .collateData_compile_assays_from_fst <- function(df.internal,
-        norm_output_path, jobs, n_jobs) {
+        norm_output_path, samples_per_block) {
 
     assay.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth")
     inc.todo = c("Up_Inc", "Down_Inc")
     exc.todo = c("Up_Exc", "Down_Exc")
     junc.todo = c("junc_PSI", "junc_counts")
-        
+    stuff.todo = c(assay.todo, inc.todo, exc.todo, junc.todo)
+    
     rowData = as.data.table(
         read.fst(file.path(norm_output_path, "rowEvent.fst")))
     Inc_Events <- rowData$EventName[rowData$EventType %in% c("IR", "MXE", "SE")]
@@ -1711,109 +1712,134 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     junc_rownames <- with(junc_index, 
         paste0(seqnames, ":", start, "-", end, "/", strand))
 
-    assays = list()
-    h5filename_temp = file.path(norm_output_path, "data_temp.h5")
-    if(file.exists(h5filename_temp)) file.remove(h5filename_temp)
+    
+    # h5filename_temp = file.path(norm_output_path, "data_temp.h5")
+    # if(file.exists(h5filename_temp)) file.remove(h5filename_temp)
     h5filename = file.path(norm_output_path, "data.h5")
     if(file.exists(h5filename)) file.remove(h5filename)
-    h5createFile(h5filename_temp)
+    h5createFile(h5filename)
     for(assay in assay.todo) {
-        h5createDataset(file = h5filename_temp, 
-            dataset = paste(assay, "temp", sep="_"), 
+        h5createDataset(file = h5filename, 
+            dataset = assay, 
             dims = c(nrow(rowData), nrow(df.internal)),
             storage.mode = "double", chunk=c(nrow(rowData),1), level=6
         )
     }
     for(inc in inc.todo) {
-        h5createDataset(file = h5filename_temp, 
-            dataset = paste(inc, "temp", sep="_"), 
+        h5createDataset(file = h5filename, 
+            dataset = inc, 
             dims = c(length(Inc_Events), nrow(df.internal)),
             storage.mode = "double", chunk=c(length(Inc_Events),1), level=6
         )
     }
     for(exc in exc.todo) {
-        h5createDataset(file = h5filename_temp, dataset = paste(exc, "temp", sep="_"), 
+        h5createDataset(file = h5filename, dataset = exc, 
             dims = c(length(Exc_Events), nrow(df.internal)),
             storage.mode = "double", chunk=c(length(Exc_Events),1), level=6
         )
     }
     for(junc in junc.todo) {
-        h5createDataset(file = h5filename_temp, dataset = paste(junc, "temp", sep="_"), 
+        h5createDataset(file = h5filename, dataset = junc, 
             dims = c(length(junc_rownames), nrow(df.internal)),
             storage.mode = "double", chunk=c(length(junc_rownames),1), level=6
         )
     }
+    
+    matrices <- list()
+    for(stuff in stuff.todo) {
+        matrices[[stuff]] <- list()
+    }
+    buf_i = 0
     pb <- txtProgressBar(max = nrow(df.internal), style = 3)
     for(i in seq_len(nrow(df.internal))) {
         setTxtProgressBar(pb, i)
         sample = df.internal$sample[i]
-        # message(paste("Collating final assays for sample", sample))
-        assayfile = file.path(norm_output_path, "temp", 
-            paste("assays", sample, "fst.tmp", sep="."))
-        for(assay in assay.todo) {
-            h5write(as.matrix(fst::read.fst(assayfile, columns = assay)), 
-                file=h5filename_temp, name=paste(assay, "temp", sep="_"), 
-                index=list(NULL,i))
+        buf_i = buf_i + 1
+
+        mat = fst::read.fst(file.path(norm_output_path, "temp", 
+            paste("assays", sample, "fst.tmp", sep=".")))
+        for(stuff in assay.todo) {
+            matrices[[stuff]][[buf_i]] <- mat[, stuff, drop=FALSE]
         }
-        incfile = file.path(norm_output_path, "temp", 
-            paste("included", sample, "fst.tmp", sep="."))
-        for(inc in inc.todo) {
-            h5write(as.matrix(fst::read.fst(incfile, columns = inc)), 
-                file=h5filename_temp, name=paste(inc, "temp", sep="_"), 
-                index=list(NULL,i))
+        mat = fst::read.fst(file.path(norm_output_path, "temp", 
+            paste("included", sample, "fst.tmp", sep=".")))
+        for(stuff in inc.todo) {
+            matrices[[stuff]][[buf_i]] <- mat[, stuff, drop=FALSE]
         }
-        excfile = file.path(norm_output_path, "temp", 
-            paste("excluded", sample, "fst.tmp", sep="."))
-        for(exc in exc.todo) {
-            h5write(as.matrix(fst::read.fst(excfile, columns = exc)), 
-                file=h5filename_temp, name=paste(exc, "temp", sep="_"), 
-                index=list(NULL,i))
+        mat = fst::read.fst(file.path(norm_output_path, "temp", 
+            paste("excluded", sample, "fst.tmp", sep=".")))
+        for(stuff in exc.todo) {
+            matrices[[stuff]][[buf_i]] <- mat[, stuff, drop=FALSE]
         }
-        juncfile = file.path(norm_output_path, "temp", 
-            paste("junc_psi", sample, "fst.tmp", sep="."))
-        for(junc in junc.todo) {
-            h5write(as.matrix(fst::read.fst(juncfile, columns = junc)), 
-                file=h5filename_temp, name=paste(junc, "temp", sep="_"), 
-                index=list(NULL,i))
+        mat = fst::read.fst(file.path(norm_output_path, "temp", 
+            paste("junc_psi", sample, "fst.tmp", sep=".")))
+        for(stuff in junc.todo) {
+            matrices[[stuff]][[buf_i]] <- mat[, stuff, drop=FALSE]
+        }
+        if(buf_i >= samples_per_block | i == nrow(df.internal)) {
+            for(stuff in stuff.todo) {
+                # write
+                h5write(as.matrix(do.call(cbind, matrices[[stuff]])), 
+                    file=h5filename, name=stuff, 
+                    index=list(NULL,seq(i - buf_i + 1,i))
+                )
+                # reset
+                matrices[[stuff]] <- list()
+            }
+            buf_i = 0
+            gc()
         }
     }
     setTxtProgressBar(pb, i)
     close(pb)
     
     # Retrieve assays:
+    assays = list()
     for(assay in assay.todo) {
-        temp <- HDF5Array(h5filename_temp, paste(assay, "temp", sep="_"))
-        colnames(temp) <- df.internal$sample
-        rownames(temp) <- rowData$EventName
-        assays[[assay]] <- writeHDF5Array(temp, h5filename, assay, 
-            with.dimnames=TRUE)
+        # temp <- HDF5Array(h5filename_temp, paste(assay, "temp", sep="_"))
+        # colnames(temp) <- df.internal$sample
+        # rownames(temp) <- rowData$EventName
+        h5writeDimnames(list(rowData$EventName, df.internal$sample),
+            h5filename, assay)
+        assays[[assay]] <- HDF5Array(h5filename, assay)
+        # assays[[assay]] <- writeHDF5Array(temp, h5filename, assay, 
+            # with.dimnames=TRUE)
         # h5delete(h5filename, paste(assay, "temp", sep="_"))
     }
     for(inc in inc.todo) {
-        temp <- HDF5Array(h5filename_temp, paste(inc, "temp", sep="_"))
-        colnames(temp) <- df.internal$sample
-        rownames(temp) <- Inc_Events
-        assays[[inc]] <- writeHDF5Array(temp, h5filename, inc, 
-            with.dimnames=TRUE)
+        # temp <- HDF5Array(h5filename_temp, paste(inc, "temp", sep="_"))
+        # colnames(temp) <- df.internal$sample
+        # rownames(temp) <- Inc_Events
+        # assays[[inc]] <- writeHDF5Array(temp, h5filename, inc, 
+            # with.dimnames=TRUE)
         # h5delete(h5filename_temp, paste(inc, "temp", sep="_"))
+        h5writeDimnames(list(Inc_Events, df.internal$sample),
+            h5filename, inc)
+        assays[[inc]] <- HDF5Array(h5filename, inc)
     }
     for(exc in exc.todo) {
-        temp <- HDF5Array(h5filename_temp, paste(exc, "temp", sep="_"))
-        colnames(temp) <- df.internal$sample
-        rownames(temp) <- Exc_Events
-        assays[[exc]] <- writeHDF5Array(temp, h5filename, exc, 
-            with.dimnames=TRUE)
+        # temp <- HDF5Array(h5filename_temp, paste(exc, "temp", sep="_"))
+        # colnames(temp) <- df.internal$sample
+        # rownames(temp) <- Exc_Events
+        # assays[[exc]] <- writeHDF5Array(temp, h5filename, exc, 
+            # with.dimnames=TRUE)
         # h5delete(h5filename, paste(exc, "temp", sep="_"))
+        h5writeDimnames(list(Exc_Events, df.internal$sample),
+            h5filename, exc)
+        assays[[exc]] <- HDF5Array(h5filename, exc)
     }
     for(junc in junc.todo) {
-        temp <- HDF5Array(h5filename_temp, paste(junc, "temp", sep="_"))
-        colnames(temp) <- df.internal$sample
-        rownames(temp) <- junc_rownames
-        assays[[junc]] <- writeHDF5Array(temp, h5filename, junc, 
-            with.dimnames=TRUE)
+        # temp <- HDF5Array(h5filename_temp, paste(junc, "temp", sep="_"))
+        # colnames(temp) <- df.internal$sample
+        # rownames(temp) <- junc_rownames
+        # assays[[junc]] <- writeHDF5Array(temp, h5filename, junc, 
+            # with.dimnames=TRUE)
         # h5delete(h5filename, paste(junc, "temp", sep="_"))
+        h5writeDimnames(list(junc_rownames, df.internal$sample),
+            h5filename, junc)
+        assays[[junc]] <- HDF5Array(h5filename, junc)
     }
-    if(file.exists(h5filename_temp)) file.remove(h5filename_temp)
+    # if(file.exists(h5filename_temp)) file.remove(h5filename_temp)
     return(assays)
 }
 
