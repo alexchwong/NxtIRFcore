@@ -1127,22 +1127,22 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     for(i in seq_len(length(work))) {
         junc <- .collateData_process_junc(
             block$sample[i], block$strand[i], 
-                junc.common, norm_output_path)
+            junc.common, norm_output_path)
         splice <- .collateData_process_splice(
             junc, Splice.Anno)
         irf <- .collateData_process_irf(
             block$sample[i], block$strand[i], junc,
-                irf.common, norm_output_path)
+            irf.common, norm_output_path)
         splice <- .collateData_process_splice_depth(
             splice, irf)
         # assays <- .collateData_process_assays(assays, .copy_DT(templates),
             # block$sample[i], junc, irf, splice, IRMode)
         .collateData_process_assays_as_fst(.copy_DT(templates),
             block$sample[i], junc, irf, splice, IRMode, norm_output_path)
-        file.remove(file.path(norm_output_path, "temp", 
+        file.remove(file.path(norm_output_path, "temp",
             paste(block$sample[i], "junc.fst.tmp", sep=".")))
-        file.remove(file.path(norm_output_path, "temp", 
-            paste(block$sample[i], "irf.fst.tmp", sep=".")))               
+        file.remove(file.path(norm_output_path, "temp",
+            paste(block$sample[i], "irf.fst.tmp", sep=".")))
     } # end FOR loop
     # return(assays)
     return(NULL)
