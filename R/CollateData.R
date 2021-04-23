@@ -116,7 +116,7 @@ Find_IRFinder_Output <- function(sample_path, ...) {
 #' A wrapper function to call NxtIRF/IRFinder
 #'
 #' This function calls IRFinder on one or more BAM files.
-#' @param bamfiles The file names of 1 or more BAM files
+#' @param bamfiles A vector containing file paths of 1 or more BAM files
 #' @param sample_names The sample names of the given BAM files. Must
 #'   be a vector of the same length as `bamfiles`
 #' @param reference_path The directory of the NxtIRF reference
@@ -130,6 +130,8 @@ Find_IRFinder_Output <- function(sample_path, ...) {
 #' @param run_featureCounts Whether this function will run 
 #'   `Rsubread::featureCounts()` on the BAM files. If so, the output will be
 #'   saved to "main.FC.Rds" in the output directory as a list object
+#' @param verbose (default FALSE) Set to `TRUE` to allow IRFinder to output
+#'   progress bars and messages
 #' @return None. `IRFinder()` will save output to `output_path`. \cr\cr
 #'   sample.txt.gz: The main IRFinder output file containing the quantitation
 #'   of IR and splice junctions, as well as QC information\cr\cr
@@ -146,17 +148,23 @@ Find_IRFinder_Output <- function(sample_path, ...) {
 #' @md
 #' @export
 IRFinder <- function(
-        bamfiles = "Unsorted.bam", 
+        bamfiles = "./Unsorted.bam", 
         sample_names = "sample1",
         reference_path = "./Reference",
         output_path = "./IRFinder_Output",
         n_threads = 1,
         overwrite = FALSE,
-        run_featureCounts = FALSE
+        run_featureCounts = FALSE,
+        verbose = FALSE
         ) {
     if(length(bamfiles) != length(sample_names)) {
         stop(paste("In IRFinder,",
             "Number of BAM files and sample names must be the same"
+        ), call. = FALSE)
+    }
+    if(!all(file.exists(bamfiles))) {
+        stop(paste("In IRFinder,",
+            "some BAMs in bamfiles do not exist"
         ), call. = FALSE)
     }
     if(!dir.exists(dirname(output_path))) {
@@ -177,12 +185,14 @@ IRFinder <- function(
         already_exist = rep(FALSE, length(bamfiles))
     }
 
-    run_IRFinder_multithreaded(
+    .run_IRFinder(
         reference_path = reference_path,
         bamfiles = bamfiles[!already_exist],
         output_files = s_output[!already_exist],
         max_threads = n_threads,
-        run_featureCounts = run_featureCounts
+        run_featureCounts = run_featureCounts,
+        overwrite_IRFinder_output = overwrite,
+        verbose = verbose
     )
 }
 
@@ -220,7 +230,7 @@ IRFinder <- function(
 #'   obligate intronic regions (genomic regions that are introns for all 
 #'   transcripts). Note for introns that are internal to a single exon island
 #'   (i.e. akin to "known-exon" introns from IRFinder), \code{SpliceOverMax} 
-#'   uses \link[findOverlaps]{GenomicRanges} to summate competing mapped
+#'   uses \link[GenomicRanges]{findOverlaps} to summate competing mapped
 #'   splice reads.
 #' @param samples_per_block How many samples to process per thread. 
 #' @param n_threads The number of threads to use. On low
@@ -251,7 +261,9 @@ CollateData <- function(Experiment, reference_path, output_path,
             "IRMode must be either 'SpliceOverMax' (default) or 'SpliceMax'"
         ), call. = FALSE)
     }
-
+    N <- 8
+    dash_progress("Validating Experiment; checking COV files...", N)
+    message("Validating Experiment; checking COV files...")
     BPPARAM_mod = .validate_threads(n_threads)
     norm_output_path = .collateData_validate(Experiment, 
         reference_path, output_path)   
@@ -260,7 +272,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     df.internal <- .collateData_expr(Experiment)
     jobs = .collateData_jobs(nrow(df.internal), BPPARAM_mod, samples_per_block)
     n_jobs = length(jobs)
-    N <- 7
+
     dash_progress("Compiling Sample Stats", N)
     message("Compiling Sample Stats")
     df.internal = .collateData_stats(df.internal, jobs, BPPARAM_mod)
@@ -313,6 +325,9 @@ CollateData <- function(Experiment, reference_path, output_path,
     se <- .collateData_initialise_HDF5(norm_output_path, colData, assays)
     
     .collateData_save_NxtSE(se, file.path(norm_output_path, "NxtSE.rds"))
+    if(dir.exists(file.path(norm_output_path "temp"))) {
+        file.remove(file.path(norm_output_path "temp"))
+    }
     dash_progress("NxtIRF Collation Finished", N)
     message("NxtIRF Collation Finished")
 }
@@ -428,9 +443,9 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     if(!dir.exists(temp_output_path)) {
         dir.create(temp_output_path)
     }        
-    if(!dir.exists(file.path(norm_output_path, "samples"))) {
-        dir.create(file.path(norm_output_path, "samples"))
-    }
+    # if(!dir.exists(file.path(norm_output_path, "samples"))) {
+        # dir.create(file.path(norm_output_path, "samples"))
+    # }
     if(!dir.exists(file.path(norm_output_path, "annotation"))) {
         dir.create(file.path(norm_output_path, "annotation"))
     }

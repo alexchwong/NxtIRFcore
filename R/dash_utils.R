@@ -139,7 +139,7 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
             get("transcript_id") %in% selected_transcripts |
             get("transcript_name") %in% selected_transcripts]
     }
-    message(paste(nrow(transcripts.DT), " transcripts"))
+    # message(paste(nrow(transcripts.DT), " transcripts"))
 
     screen.DT = elems[
         get("transcript_id") %in% transcripts.DT$transcript_id &
@@ -374,7 +374,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
                         view_chr, view_start, view_end, view_strand))
                     # bin anything with cur_zoom > 5
                     df = bin_df(df, max(1, 3^(cur_zoom - 5)))
-                    message(paste("Group GetCoverage performed for", condition))
+                    # message(paste("Group GetCoverage performed for", condition))
                     for(todo in seq_len(length(samples))) {
                         df[, samples[todo]] = 
                             df[, samples[todo]] / event_norms[todo]
@@ -525,7 +525,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     if(t_test == TRUE && !is.null(fac) && length(unique(fac)) == 2) {
         fac = factor(fac)
         t_test = genefilter::rowttests(data.t_test[, -1], fac)
-        message(paste("rowttests performed for", condition))
+        # message(paste("rowttests performed for", condition))
 
         DT = data.table(x = data.t_test[, 1])
         DT[, c("t_stat") := -log10(t_test$p.value)]
@@ -612,7 +612,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     # ggplot equivalent: list of ggplots. 
     # Allows advanced end-users to apply final edits to ggplots
     
-    message("Cov Plot finished")
+    # message("Cov Plot finished")
     return(list(ggplot = gp_track, final_plot = final_plot))
 
 }
