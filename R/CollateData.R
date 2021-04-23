@@ -1726,8 +1726,9 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
             storage.mode = "double", chunk=c(length(junc_rownames),1), level=6
         )
     }
-        
+    pb <- txtProgressBar(max = nrow(df.internal), style = 3)
     for(i in seq_len(nrow(df.internal))) {
+        setTxtProgressBar(pb, i)
         sample = df.internal$sample[i]
         message(paste("Collating final assays for sample", sample))
         assayfile = file.path(norm_output_path, "temp", 
@@ -1759,6 +1760,8 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
                 index=list(NULL,i))
         }
     }
+    setTxtProgressBar(pb, i)
+    close(pb)
     
     # Retrieve assays:
     for(assay in assay.todo) {
