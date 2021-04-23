@@ -54,6 +54,7 @@
 #' @importFrom R.utils gzip
 #' @importFrom rtracklayer import export TwoBitFile track
 #' @importFrom RColorBrewer brewer.pal.info
+#' @importFrom rhdf5 h5createFile h5createDataset h5delete h5write h5createGroup
 #' @importFrom stringr str_locate
 #' @importFrom SummarizedExperiment SummarizedExperiment 
 #' @importFrom SummarizedExperiment rowData colData rowData<- colData<-
