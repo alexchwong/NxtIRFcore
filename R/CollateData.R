@@ -311,9 +311,11 @@ CollateData <- function(Experiment, reference_path, output_path,
 
     dash_progress("Building Final SummarizedExperiment Object", N)
     message("Building Final SummarizedExperiment Object")
-    assays <- .collateData_compile_assays(agg.list, df.internal,
+    # assays <- .collateData_compile_assays(agg.list, df.internal,
+        # norm_output_path, jobs, n_jobs)
+    assays <- .collateData_compile_assays_from_fst(df.internal,
         norm_output_path, jobs, n_jobs)
-
+        
     .collateData_write_stats(df.internal, norm_output_path)
     .collateData_write_colData(df.internal, coverage_files, norm_output_path)
     cov_data <- prepare_covplot_data(reference_path)
@@ -325,8 +327,8 @@ CollateData <- function(Experiment, reference_path, output_path,
     se <- .collateData_initialise_HDF5(norm_output_path, colData, assays)
     
     .collateData_save_NxtSE(se, file.path(norm_output_path, "NxtSE.rds"))
-    if(dir.exists(file.path(norm_output_path "temp"))) {
-        file.remove(file.path(norm_output_path "temp"))
+    if(dir.exists(file.path(norm_output_path, "temp"))) {
+        unlink(file.path(norm_output_path, "temp"), recursive=TRUE)
     }
     dash_progress("NxtIRF Collation Finished", N)
     message("NxtIRF Collation Finished")
@@ -382,6 +384,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         # dir = collate_path, prefix = "NxtSE_")
     # se = readRDS(file.path(collate_path, "NxtSE.rds"))
     se = .collateData_load_NxtSE(file.path(collate_path, "NxtSE.rds"))
+    
     # Encapsulate as NxtSE object
     se = as(se, "NxtSE")
 
@@ -744,6 +747,8 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     junc.common = .collateData_junc_annotate(junc.common, reference_path)
     message("...grouping splice junctions")
     junc.common = .collateData_junc_group(junc.common, reference_path)
+    # junc.common = junc.common[!grepl("NA_NA", get("JG_up")) |
+        # !grepl("NA_NA", get("JG_down"))]
     irf.common = .collateData_irf_group(irf.common, reference_path, runStranded)
     irf.common[, c("EventRegion") := 
         paste0(get("seqnames"), ":", get("start"), "-", 
@@ -861,6 +866,10 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     junc.common$gene_group_down = NULL
     junc.common$exon_group_up = NULL
     junc.common$exon_group_down = NULL
+
+    # junc.common = junc.common[!(grepl("NA_NA", get("JG_up")) &
+        # !grepl("NA_NA", get("JG_down")))]
+
     return(junc.common)
 }
 
@@ -1099,7 +1108,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     work = jobs[[x]]
     block = df.internal[work]
     # assays <- .collateData_assays_init(rowEvent, junc_PSI)
-    templates <- .collateData_assays_init(rowEvent, junc_PSI) # list of DT
+    templates <- .collateData_seed_init(rowEvent, junc_PSI) # list of DT
     assays <- NULL
     
     for(i in seq_len(length(work))) {
@@ -1113,14 +1122,17 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
                 irf.common, norm_output_path)
         splice <- .collateData_process_splice_depth(
             splice, irf)
-        assays <- .collateData_process_assays(assays, .copy_DT(templates),
-            block$sample[i], junc, irf, splice, IRMode)
+        # assays <- .collateData_process_assays(assays, .copy_DT(templates),
+            # block$sample[i], junc, irf, splice, IRMode)
+        .collateData_process_assays_as_fst(.copy_DT(templates),
+            block$sample[i], junc, irf, splice, IRMode, norm_output_path)
         file.remove(file.path(norm_output_path, "temp", 
             paste(block$sample[i], "junc.fst.tmp", sep=".")))
         file.remove(file.path(norm_output_path, "temp", 
             paste(block$sample[i], "irf.fst.tmp", sep=".")))               
     } # end FOR loop
-    return(assays)
+    # return(assays)
+    return(NULL)
     # return(.collateData_compile_agglist_final(assays))
 }
 
@@ -1175,6 +1187,16 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     return(assays)
 }
 
+.collateData_seed_init <- function(rowEvent, junc_PSI) {
+    templates <- list(
+        assay = copy(rowEvent),
+        inc = rowEvent[get("EventType") %in% c("IR", "MXE", "SE")],
+        exc = rowEvent[get("EventType") %in% c("MXE")],
+        junc = copy(junc_PSI)
+    )
+    return(templates)
+}
+
 .collateData_process_junc <- function(sample, strand, 
         junc.common, norm_output_path) {
     junc = as.data.table(
@@ -1211,6 +1233,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     junc[, c("SR") := sum(get("count")), 
         by = c("seqnames", "end", "strand")]
 
+
     # first overlap any junction that has non-same-island junctions
     junc[get("JG_up") != get("JG_down") & 
             get("JG_up") != "" & get("strand") == "+", 
@@ -1230,9 +1253,10 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     # Then use a simple overlap method to account for the remainder
     junc.subset = junc[get("JG_up") == get("JG_down") & 
         get("JG_up") != "" & get("JG_down") != ""]
-        
-    junc.subset = junc.subset[!grepl("NA", get("JG_up")) & !grepl("NA", get("JG_down"))]
-    
+
+    junc.subset = junc.subset[!(grepl("NA_NA", get("JG_up")) &
+        !grepl("NA_NA", get("JG_down")))]
+
     if(nrow(junc.subset) > 0) {
         junc.from = .grDT(junc.subset)
         junc.to = .grDT(junc)
@@ -1481,6 +1505,86 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     return(.collateData_package_assays_as_delayed(assays, templates))
 }
 
+.collateData_process_assays_as_fst <- function(templates,
+        sample, junc, irf, splice, IRMode, norm_output_path) {
+
+    assay.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth")
+    inc.todo = c("Up_Inc", "Down_Inc")
+    exc.todo = c("Up_Exc", "Down_Exc")
+    junc.todo = c("junc_PSI", "junc_counts")
+    
+    templates$assay[, c("Included") := c(
+        irf$IntronDepth, 
+        0.5 * (splice$count_Event1a[splice$EventType %in% c("SE", "MXE")] + 
+            splice$count_Event2a[splice$EventType %in% c("SE", "MXE")]),
+        splice$count_Event1a[!splice$EventType %in% c("SE", "MXE")]
+    )]
+    if(IRMode == "SpliceOverMax") {
+        templates$assay[, c("Excluded") := c(
+            irf$SpliceOverMax,
+            0.5 * (splice$count_Event1b[splice$EventType %in% c("MXE")] + 
+                splice$count_Event2b[splice$EventType %in% c("MXE")]),
+            splice$count_Event1b[!splice$EventType %in% c("MXE")]
+        )]
+    } else {
+        templates$assay[, c("Excluded") := c(
+            irf$SpliceMax,
+            0.5 * (splice$count_Event1b[splice$EventType %in% c("MXE")] + 
+                splice$count_Event2b[splice$EventType %in% c("MXE")]),
+            splice$count_Event1b[!splice$EventType %in% c("MXE")]
+        )]
+    }
+    # Validity checking for IR, MXE, SE
+    irf[get("strand") == "+", c("Up_Inc") := get("ExonToIntronReadsLeft")]
+    irf[get("strand") == "-", c("Up_Inc") := get("ExonToIntronReadsRight")]
+    irf[get("strand") == "+", c("Down_Inc") := get("ExonToIntronReadsRight")]
+    irf[get("strand") == "-", c("Down_Inc") := get("ExonToIntronReadsLeft")]   
+    templates$inc[, c("Up_Inc") := c(irf$Up_Inc, 
+            splice$count_Event1a[splice$EventType %in% c("MXE", "SE")])]
+    templates$inc[, c("Down_Inc") := c(irf$Down_Inc, 
+            splice$count_Event2a[splice$EventType %in% c("MXE", "SE")])]
+    templates$exc[, c("Up_Exc") := 
+        splice$count_Event1b[splice$EventType %in% c("MXE")]]
+    templates$exc[, c("Down_Exc") := 
+        splice$count_Event2b[splice$EventType %in% c("MXE")]]
+    
+    templates$assay[, c("Depth") := c(irf$TotalDepth, splice$TotalDepth)]
+    templates$assay[, c("Coverage") := c(irf$Coverage, splice$coverage)]
+    
+    splice[get("EventType") %in% c("MXE", "SE") & 
+        get("cov_up") < get("cov_down"), 
+        c("minDepth") := get("count_JG_up")]
+    splice[get("EventType") %in% c("MXE", "SE") & 
+        get("cov_up") >= get("cov_down"), 
+        c("minDepth") := get("count_JG_down")]
+    splice[get("EventType") %in% c("ALE", "A3SS"), 
+        c("minDepth") := get("count_JG_up")]
+    splice[get("EventType") %in% c("AFE", "A5SS"), 
+        c("minDepth") := get("count_JG_down")]   
+    templates$assay[, c("minDepth") := c(irf$IntronDepth, splice$minDepth)]
+
+    junc[get("count") == 0, c("PSI") := 0]
+    junc[get("SO_L") > get("SO_R"), 
+        c("PSI") := get("count") / get("SO_L")]
+    junc[get("SO_R") >= get("SO_L") & get("SO_R") > 0, 
+        c("PSI") := get("count") / get("SO_R")]               
+    templates$junc[junc, on = c("seqnames", "start", "end", "strand"),
+        c("junc_PSI", "junc_counts") := list(get("i.PSI"), get("i.count"))]
+    
+    fst::write.fst(as.data.frame(templates$assay[, assay.todo, with = FALSE]),
+        file.path(norm_output_path, "temp", 
+                paste("assays", sample, "fst.tmp", sep=".")))
+    fst::write.fst(as.data.frame(templates$inc[, inc.todo, with = FALSE]),
+        file.path(norm_output_path, "temp", 
+                paste("included", sample, "fst.tmp", sep=".")))
+    fst::write.fst(as.data.frame(templates$exc[, exc.todo, with = FALSE]),
+        file.path(norm_output_path, "temp", 
+                paste("excluded", sample, "fst.tmp", sep=".")))
+    fst::write.fst(as.data.frame(templates$junc[, junc.todo, with = FALSE]),
+        file.path(norm_output_path, "temp", 
+                paste("junc_psi", sample, "fst.tmp", sep=".")))
+}
+
 .collateData_package_assays_as_delayed <- function(assays, templates) {
     item.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth", 
         "Up_Inc", "Down_Inc", "Up_Exc", "Down_Exc", "junc_PSI", "junc_counts")
@@ -1571,6 +1675,123 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
             filepath = outfile,
             name = item, with.dimnames = TRUE
         )
+    }
+    return(assays)
+}
+
+.collateData_compile_assays_from_fst <- function(df.internal,
+        norm_output_path, jobs, n_jobs) {
+
+    assay.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth")
+    inc.todo = c("Up_Inc", "Down_Inc")
+    exc.todo = c("Up_Exc", "Down_Exc")
+    junc.todo = c("junc_PSI", "junc_counts")
+        
+    rowData = as.data.table(
+        read.fst(file.path(norm_output_path, "rowEvent.fst")))
+    Inc_Events <- rowData$EventName[rowData$EventType %in% c("IR", "MXE", "SE")]
+    Exc_Events <- rowData$EventName[rowData$EventType %in% "MXE"]
+
+    junc_index <- fst::read.fst(file.path(
+        norm_output_path, "junc_PSI_index.fst"
+    ))
+    junc_rownames <- with(junc_index, 
+        paste0(seqnames, ":", start, "-", end, "/", strand))
+
+    assays = list()
+    h5filename = file.path(norm_output_path, "data.h5")
+    if(file.exists(h5filename)) file.remove(h5filename)
+    h5createFile(h5filename)
+    for(assay in assay.todo) {
+        h5createDataset(file = h5filename, dataset = paste(assay, "temp", sep="_"), 
+            dims = c(nrow(rowData), nrow(df.internal)),
+            storage.mode = "double", chunk=c(nrow(rowData),1), level=6
+        )
+    }
+    for(inc in inc.todo) {
+        h5createDataset(file = h5filename, dataset = paste(inc, "temp", sep="_"), 
+            dims = c(length(Inc_Events), nrow(df.internal)),
+            storage.mode = "double", chunk=c(length(Inc_Events),1), level=6
+        )
+    }
+    for(exc in exc.todo) {
+        h5createDataset(file = h5filename, dataset = paste(exc, "temp", sep="_"), 
+            dims = c(length(Exc_Events), nrow(df.internal)),
+            storage.mode = "double", chunk=c(length(Exc_Events),1), level=6
+        )
+    }
+    for(junc in junc.todo) {
+        h5createDataset(file = h5filename, dataset = paste(junc, "temp", sep="_"), 
+            dims = c(length(junc_rownames), nrow(df.internal)),
+            storage.mode = "double", chunk=c(length(junc_rownames),1), level=6
+        )
+    }
+        
+    for(i in seq_len(nrow(df.internal))) {
+        sample = df.internal$sample[i]
+        message(paste("Collating final assays for sample", sample))
+        assayfile = file.path(norm_output_path, "temp", 
+            paste("assays", sample, "fst.tmp", sep="."))
+        for(assay in assay.todo) {
+            h5write(as.matrix(fst::read.fst(assayfile, columns = assay)), 
+                file=h5filename, name=paste(assay, "temp", sep="_"), 
+                index=list(NULL,i))
+        }
+        incfile = file.path(norm_output_path, "temp", 
+            paste("included", sample, "fst.tmp", sep="."))
+        for(inc in inc.todo) {
+            h5write(as.matrix(fst::read.fst(incfile, columns = inc)), 
+                file=h5filename, name=paste(inc, "temp", sep="_"), 
+                index=list(NULL,i))
+        }
+        excfile = file.path(norm_output_path, "temp", 
+            paste("excluded", sample, "fst.tmp", sep="."))
+        for(exc in exc.todo) {
+            h5write(as.matrix(fst::read.fst(excfile, columns = exc)), 
+                file=h5filename, name=paste(exc, "temp", sep="_"), 
+                index=list(NULL,i))
+        }
+        juncfile = file.path(norm_output_path, "temp", 
+            paste("junc_psi", sample, "fst.tmp", sep="."))
+        for(junc in junc.todo) {
+            h5write(as.matrix(fst::read.fst(juncfile, columns = junc)), 
+                file=h5filename, name=paste(junc, "temp", sep="_"), 
+                index=list(NULL,i))
+        }
+    }
+    
+    # Retrieve assays:
+    for(assay in assay.todo) {
+        temp <- HDF5Array(h5filename, paste(assay, "temp", sep="_"))
+        colnames(temp) <- df.internal$sample
+        rownames(temp) <- rowData$EventName
+        assays[[assay]] <- writeHDF5Array(temp, h5filename, assay, 
+            with.dimnames=TRUE)
+        h5delete(h5filename, paste(assay, "temp", sep="_"))
+    }
+    for(inc in inc.todo) {
+        temp <- HDF5Array(h5filename, paste(inc, "temp", sep="_"))
+        colnames(temp) <- df.internal$sample
+        rownames(temp) <- Inc_Events
+        assays[[inc]] <- writeHDF5Array(temp, h5filename, inc, 
+            with.dimnames=TRUE)
+        h5delete(h5filename, paste(inc, "temp", sep="_"))
+    }
+    for(exc in exc.todo) {
+        temp <- HDF5Array(h5filename, paste(exc, "temp", sep="_"))
+        colnames(temp) <- df.internal$sample
+        rownames(temp) <- Exc_Events
+        assays[[exc]] <- writeHDF5Array(temp, h5filename, exc, 
+            with.dimnames=TRUE)
+        h5delete(h5filename, paste(exc, "temp", sep="_"))
+    }
+    for(junc in junc.todo) {
+        temp <- HDF5Array(h5filename, paste(junc, "temp", sep="_"))
+        colnames(temp) <- df.internal$sample
+        rownames(temp) <- junc_rownames
+        assays[[junc]] <- writeHDF5Array(temp, h5filename, junc, 
+            with.dimnames=TRUE)
+        h5delete(h5filename, paste(junc, "temp", sep="_"))
     }
     return(assays)
 }
