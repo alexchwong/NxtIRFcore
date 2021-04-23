@@ -7,10 +7,10 @@
         max_threads = max(parallel::detectCores() - 2, 1),
         Use_OpenMP = TRUE,
         run_featureCounts = FALSE,
+        overwrite_IRFinder_output = FALSE,
         verbose = TRUE
     ) {
     .validate_reference(reference_path)
-
     s_bam = normalizePath(bamfiles)
     s_ref = normalizePath(reference_path)
     
@@ -19,140 +19,130 @@
     ref_file = normalizePath(file.path(s_ref, "IRFinder.ref.gz"))
 
     message("Running IRFinder ", appendLF = FALSE)
-
+    n_threads = floor(max_threads)
+    
     # OpenMP version currently causes C stack usage errors. Disable for now
     # if(Has_OpenMP() > 0 & Use_OpenMP) {
-        # n_threads = floor(max_threads)
         # n_threads = min(n_threads, length(s_bam))
         # IRF_main_multithreaded(ref_file, s_bam, output_files, n_threads)
     # } else {
         # Use BiocParallel
-        n_rounds = ceiling(length(s_bam) / floor(max_threads))
-        n_threads = ceiling(length(s_bam) / n_rounds)
+    n_rounds = ceiling(length(s_bam) / floor(max_threads))
+    n_threads = ceiling(length(s_bam) / n_rounds)
 
-        BPPARAM = BiocParallel::bpparam()
-        if(Sys.info()["sysname"] == "Windows") {
-            BPPARAM_mod = BiocParallel::SnowParam(n_threads)
-            message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
-        } else {
-            BPPARAM_mod = BiocParallel::MulticoreParam(n_threads)
-            message(paste("Using MulticoreParam", BPPARAM_mod$workers, 
-                "threads"))
-        }
+    BPPARAM = BiocParallel::bpparam()
+    if(Sys.info()["sysname"] == "Windows") {
+        BPPARAM_mod = BiocParallel::SnowParam(n_threads)
+        message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
+    } else {
+        BPPARAM_mod = BiocParallel::MulticoreParam(n_threads)
+        message(paste("Using MulticoreParam", BPPARAM_mod$workers, 
+            "threads"))
+    }
 
-        row_starts = seq(1, by = n_threads,
-            length.out = n_rounds)
-            
-        for(i in seq_len(n_rounds)) {
-            selected_rows_subset = seq(row_starts[i], 
-                min(length(s_bam), row_starts[i] + n_threads - 1)
-            )
-            BiocParallel::bplapply(selected_rows_subset,
-                function(i, IRF_main, 
-                        s_bam, reference_file, output_files, verbose) {
-                    IRF_main(s_bam[i], reference_file, output_files[i], verbose)
-                    # Check IRFinder returns all files successfully
-                    file_gz = paste0(output_files[i], ".txt.gz")
-                    file_cov = paste0(output_files[i], ".cov")
-                    if(!file.exists(file_gz)) {
-                        stop(paste(
-                            "IRFinder failed to produce", file_gz
-                        ), call. = FALSE)
-                    } else if(!file.exists(file_cov)) {
-                        stop(paste(
-                            "IRFinder failed to produce", file_cov
-                        ), call. = FALSE)
-                    } else {
-                        message(paste("IRFinder processed", basename(s_bam[i])))
-                    }
-                }, 
-
-                s_bam = s_bam,
-                output_files = output_files,
-                IRF_main = IRF_main, 
-                reference_file = ref_file,
-                verbose = verbose,
-                BPPARAM = BPPARAM_mod
-            )
-        }
+    row_starts = seq(1, by = n_threads, length.out = n_rounds)
+    for(i in seq_len(n_rounds)) {
+        selected_rows_subset = seq(row_starts[i], 
+            min(length(s_bam), row_starts[i] + n_threads - 1)
+        )
+        BiocParallel::bplapply(selected_rows_subset,
+            function(i, s_bam, reference_file, output_files, verbose, overwrite) {
+                .irfinder_run_single(s_bam[i], reference_file, output_files[i], 
+                    verbose, overwrite)
+            }, 
+            s_bam = s_bam,
+            reference_file = ref_file,
+            output_files = output_files,
+            verbose = verbose,
+            overwrite = overwrite_IRFinder_output,
+            BPPARAM = BPPARAM_mod
+        )
+    }
     # }
-    
     if(run_featureCounts == TRUE) {
+        .irfinder_run_featureCounts(reference_path, output_files, 
+            s_bam, n_threads)
+    }
+}
 
-        NxtIRF.CheckPackageInstalled("Rsubread", "2.4.0")
-        gtf_file <- Get_GTF_file(reference_path)
-        
-        # determine paired_ness, strandedness, assume all BAMS are the same
-        data.list = get_multi_DT_from_gz(
-            normalizePath(paste0(output_files[1], ".txt.gz")), 
-            c("BAM", "Directionality")
-        )
-        stats = data.list$BAM
-        direct = data.list$Directionality
+.irfinder_run_single <- function(bam, ref, out, verbose, overwrite) {
+    file_gz = paste0(out, ".txt.gz")
+    file_cov = paste0(out, ".cov")
+    bam_short = file.path(basename(dirname(bam)), basename(bam))
+    if(overwrite ||
+        !(file.exists(file_gz) | file.exists(file_cov))) {
+        IRF_main(bam, ref, out, verbose)
+        # Check IRFinder returns all files successfully
 
-        if(stats$Value[3] == 0 & stats$Value[4] > 0) {
-            paired = TRUE
-        } else if(stats$Value[3] > 0 && 
-                stats$Value[4] / stats$Value[3] / 1000) {
-            paired = TRUE
+        if(!file.exists(file_gz)) {
+            stop(paste(
+                "IRFinder failed to produce", file_gz
+            ), call. = FALSE)
+        } else if(!file.exists(file_cov)) {
+            stop(paste(
+                "IRFinder failed to produce", file_cov
+            ), call. = FALSE)
         } else {
-            paired = FALSE
+            message(paste("IRFinder processed", bam_short))
         }
-        strand = direct$Value[9]
-        if(strand == -1) strand = 2
-        
-        res = Rsubread::featureCounts(
-            s_bam,
-            annot.ext = gtf_file,
-            isGTFAnnotationFile = TRUE,
-            strandSpecific = strand,
-            isPairedEnd = paired,
-            requireBothEndsMapped = paired,
-            nthreads = n_threads
-        )
+    } else {
+        message(paste("IRFinder output for", 
+            bam_short, "already exists, skipping..."))
+    }
+}
 
-        # Append to existing main.FC.Rds if exists:
-        
-        if(file.exists(file.path(dirname(output_files[1]), "main.FC.Rds"))) {
-            res.old = readRDS(
-                file.path(dirname(output_files[1]), "main.FC.Rds"))
+.irfinder_run_featureCounts <- function(reference_path, output_files, 
+        s_bam, n_threads) {
+    NxtIRF.CheckPackageInstalled("Rsubread", "2.4.0")
+    gtf_file <- Get_GTF_file(reference_path)
+    
+    # determine paired_ness, strandedness, assume all BAMS are the same
+    data.list = get_multi_DT_from_gz(
+        normalizePath(paste0(output_files[1], ".txt.gz")), 
+        c("BAM", "Directionality")
+    )
+    stats = data.list$BAM
+    direct = data.list$Directionality
 
-            # Check md5 of annotation to show same reference was used
-            md5.old = openssl::md5(paste(
-                res.old$annotation$GeneID, res.old$annotation$Chr,
-                res.old$annotation$Start, res.old$annotation$End, 
-                res.old$annotation$Strand, collapse=" "
-                ))
-            md5 = openssl::md5(paste(
-                res$annotation$GeneID, res$annotation$Chr,
-                res$annotation$Start, res$annotation$End, 
-                res$annotation$Strand, collapse=" "
-                ))
-            md5.old.stat = openssl::md5(paste(
-                res.old$stat$Status, collapse=" "
-                ))
-            md5.stat = openssl::md5(paste(
-                res$stat$Status, collapse=" "
-                ))
-            if(md5 == md5.old & md5.stat == md5.old.stat) {
-                # cbind stats
-                new_samples = res$targets[!(res$targets %in% res.old$targets)]
-                res$targets = c(res.old$targets, new_samples)
+    paired = (stats$Value[3] == 0 & stats$Value[4] > 0) || 
+        (stats$Value[3] > 0 && stats$Value[4] / stats$Value[3] / 1000)
+    strand = direct$Value[9]
+    if(strand == -1) strand = 2
+    
+    res = Rsubread::featureCounts(
+        s_bam,
+        annot.ext = gtf_file,
+        isGTFAnnotationFile = TRUE,
+        strandSpecific = strand,
+        isPairedEnd = paired,
+        requireBothEndsMapped = paired,
+        nthreads = n_threads
+    )
+    # Append to existing main.FC.Rds if exists:
+    if(file.exists(file.path(dirname(output_files[1]), "main.FC.Rds"))) {
+        res.old = readRDS(
+            file.path(dirname(output_files[1]), "main.FC.Rds"))
 
-                res$stat = cbind(res.old$stat, res$stat[,new_samples])
-                # cbind counts            
-                res$counts = cbind(res.old$counts, res$counts[,new_samples])
-            }
+        # Check md5 of annotation to show same reference was used
+        md5.old = with(res.old$annotation, openssl::md5(paste(
+            GeneID, Chr, Start, End, Strand, collapse=" ")))
+        md5 = with(res$annotation, openssl::md5(paste(
+            GeneID, Chr, Start, End, Strand, collapse=" ")))
+        md5.old.stat = openssl::md5(paste(res.old$stat$Status, collapse=" "))
+        md5.stat = openssl::md5(paste(res$stat$Status, collapse=" "))
+        if(md5 == md5.old & md5.stat == md5.old.stat) {
+            new_samples = res$targets[!(res$targets %in% res.old$targets)]
+            res$targets = c(res.old$targets, new_samples)
+            res$stat = cbind(res.old$stat, res$stat[,new_samples])        
+            res$counts = cbind(res.old$counts, res$counts[,new_samples])
         }
-        
-        if(all(c("counts", "annotation", "targets", "stat") %in% names(res))) {
-            saveRDS(res, file.path(dirname(output_files[1]), "main.FC.Rds"))
-        }
-        
     }   
-
-}    
-
+    if(all(c("counts", "annotation", "targets", "stat") %in% names(res))) {
+        saveRDS(res, file.path(dirname(output_files[1]), "main.FC.Rds"))
+    }
+    message(paste("featureCounts ran succesfully; saved to",
+        file.path(dirname(output_files[1]), "main.FC.Rds")))
+}
 
 
 .irfinder_validate_args <- function(s_bam, s_ref, max_threads, output_files) {

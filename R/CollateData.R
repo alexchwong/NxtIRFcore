@@ -191,6 +191,7 @@ IRFinder <- function(
         output_files = s_output[!already_exist],
         max_threads = n_threads,
         run_featureCounts = run_featureCounts,
+        overwrite_IRFinder_output = overwrite,
         verbose = verbose
     )
 }
@@ -229,7 +230,7 @@ IRFinder <- function(
 #'   obligate intronic regions (genomic regions that are introns for all 
 #'   transcripts). Note for introns that are internal to a single exon island
 #'   (i.e. akin to "known-exon" introns from IRFinder), \code{SpliceOverMax} 
-#'   uses \link[findOverlaps]{GenomicRanges} to summate competing mapped
+#'   uses \link[GenomicRanges]{findOverlaps} to summate competing mapped
 #'   splice reads.
 #' @param samples_per_block How many samples to process per thread. 
 #' @param n_threads The number of threads to use. On low
