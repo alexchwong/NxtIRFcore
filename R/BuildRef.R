@@ -352,6 +352,9 @@ BuildReference <- function(
     settings.list$MappabilityRef = MappabilityRef
     settings.list$BlacklistRef = BlacklistRef
     settings.list$UseExtendedTranscripts = UseExtendedTranscripts
+    
+    settings.list$BuildVersion = buildref_version
+    
     saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
 }
 
@@ -483,23 +486,37 @@ Get_GTF_file <- function(reference_path) {
     }
 }
 
-.validate_reference <- function(reference_path) {
+.validate_reference <- function(reference_path, from = "") {
     ref <- normalizePath(reference_path)
+    from_str = ifelse(from == "", "", 
+        paste("In function", from, ":"))
     if (!dir.exists(ref)) {
-        stop(paste("in reference_path =", reference_path,
+        stop(paste(from_str,
+                "in reference_path =", reference_path,
                 ": this path does not exist"
         ), call. = FALSE)
     }
     if (!file.exists(file.path(ref, "settings.Rds"))) {
-        stop(paste("in reference_path =", reference_path,
+        stop(paste(from_str,
+                "in reference_path =", reference_path,
                 ": settings.Rds not found"
         ), call. = FALSE)
     }    
     if (!file.exists(file.path(ref, "IRFinder.ref.gz"))) {
-        stop(paste("in reference_path =", reference_path,
+        stop(paste(from_str,
+                "in reference_path =", reference_path,
                 ": IRFinder.ref.gz not found"
         ), call. = FALSE)
     }
+    settings.list <- readRDS(file.path(ref, "settings.Rds"))
+    if (!("BuildVersion" %in% names(settings.list)) ||
+            settings.list[["BuildVersion"]] < buildref_version) {
+        stop(paste(from_str,
+                "in reference_path =", reference_path,
+                "NxtIRF reference is earlier than current version",
+                buildref_version
+        ), call. = FALSE)
+    }     
 }
 
 .fetch_genome_defaults <- function(genome_type, nonPolyARef = "", 
@@ -1967,14 +1984,14 @@ Get_GTF_file <- function(reference_path) {
         ref.cover, readcons, ref.ROI, ref.sj) {
     IRF_file <- file.path(reference_path, "IRFinder.ref")
     # Concatenate all 4 reference files into one file
-    fwrite(list(">ref-cover.bed"), IRF_file,
+    fwrite(list("# ref-cover.bed"), IRF_file,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
     fwrite(ref.cover, IRF_file,
         append = TRUE,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
-    fwrite(list(">ref-read-continues.ref"), IRF_file,
+    fwrite(list("# ref-read-continues.ref"), IRF_file,
         append = TRUE,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
@@ -1982,7 +1999,7 @@ Get_GTF_file <- function(reference_path) {
         append = TRUE,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
-    fwrite(list(">ref-ROI.bed"), IRF_file,
+    fwrite(list("# ref-ROI.bed"), IRF_file,
         append = TRUE,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
@@ -1992,7 +2009,7 @@ Get_GTF_file <- function(reference_path) {
             sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
         )
     }
-    fwrite(list(">ref-sj.ref"), IRF_file,
+    fwrite(list("# ref-sj.ref"), IRF_file,
         append = TRUE,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
@@ -2000,6 +2017,13 @@ Get_GTF_file <- function(reference_path) {
         append = TRUE,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
+
+    # Add EOF (to avoid undefined behaviour when there is no termination char)
+    fwrite(list("# EOF"), IRF_file,
+        append = TRUE,
+        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
+    )
+    
     gzip(filename = IRF_file, destname = paste0(IRF_file, ".gz"),
         overwrite = TRUE)
     if(file.exists(IRF_file) & file.exists(paste0(IRF_file, ".gz"))) {

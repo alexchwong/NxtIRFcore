@@ -21,6 +21,9 @@ int Has_OpenMP() {
 #endif
 }
 
+const char refEOF[5] =
+		"\x20\x45\x4f\x46";
+
 // [[Rcpp::export]]
 bool IRF_Check_Cov(std::string s_in) {
 	// Checks if given file is a valid COV file
@@ -284,22 +287,26 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
 
 #ifndef GALAXY
 // [[Rcpp::export]]
-int IRF_main(std::string bam_file, std::string reference_file, std::string output_file){
+int IRF_main(std::string bam_file, std::string reference_file, std::string output_file, bool verbose = true){
   
   std::string s_output_txt = output_file + ".txt.gz";
   std::string s_output_cov = output_file + ".cov";
 #else
 int IRF_main(std::string bam_file, std::string reference_file, std::string s_output_txt, std::string s_output_cov){	
+	bool verbose = true;
 #endif
 
   std::string s_bam = bam_file;
   
   std::string s_ref = reference_file;
-  
-    Rcout << "Running IRFinder on " << s_bam << "\nReference: " << reference_file << "\n";
-    Rcout << "Output file: " << s_output_txt << "\t" << s_output_cov << "\n\n";
+		
+		if(verbose) {
+			Rcout << "Running IRFinder on " << s_bam << "\nReference: " << reference_file << "\n";
+			Rcout << "Output file: " << s_output_txt << "\t" << s_output_cov << "\n\n";
 
-    Rcout << "Reading reference file\n";
+			Rcout << "Reading reference file\n";
+		}
+
     
     GZReader gz_in;
     int ret = gz_in.LoadGZ(reference_file, true);
@@ -308,9 +315,10 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
     std::string myLine;
     std::string myBuffer;
     
-    getline(gz_in.iss, myLine, '>');    // discard first >
+    getline(gz_in.iss, myLine, '#');    // discard first >
     getline(gz_in.iss, myLine, '\n');   // ignore file names for now
-    getline(gz_in.iss, myBuffer, '>');  // this is the data block for ref-cover.bed
+		
+    getline(gz_in.iss, myBuffer, '#');  // this is the data block for ref-cover.bed
 
   CoverageBlocksIRFinder oCoverageBlocks;
   std::istringstream inCoverageBlocks;
@@ -318,7 +326,7 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   oCoverageBlocks.loadRef(inCoverageBlocks);
 
     getline(gz_in.iss, myLine, '\n');
-    getline(gz_in.iss, myBuffer, '>');
+    getline(gz_in.iss, myBuffer, '#');
 
   SpansPoint oSpansPoint;
   oSpansPoint.setSpanLength(5,4);
@@ -327,7 +335,7 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   oSpansPoint.loadRef(inSpansPoint);
 
     getline(gz_in.iss, myLine, '\n');
-    getline(gz_in.iss, myBuffer, '>');
+    getline(gz_in.iss, myBuffer, '#');
   
   FragmentsInROI oFragmentsInROI;
   FragmentsInChr oFragmentsInChr;
@@ -337,12 +345,19 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
     oFragmentsInROI.loadRef(inFragmentsInROI);
 
     getline(gz_in.iss, myLine, '\n');
-    getline(gz_in.iss, myBuffer, '>');
+    getline(gz_in.iss, myBuffer, '#');
 
   JunctionCount oJuncCount;
   std::istringstream inJuncCount;
   inJuncCount.str(myBuffer);
   oJuncCount.loadRef(inJuncCount);
+
+	// Ensure valid reference termination:
+		getline(gz_in.iss, myLine, '\n');    
+		if(strncmp(myLine.c_str(), refEOF, 4) != 0) {
+			Rcout << "Invalid IRFinder reference detected\n";
+			return(0);
+		}
   
   FragmentsMap oFragMap;
   
@@ -365,20 +380,22 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
 
   BB.registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &oFragMap, std::placeholders::_1) );
   BB.registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &oFragMap, std::placeholders::_1) );
-  
-  Rcout << "Processing BAM file\n";
-    
+
+	if(verbose) {  
+		Rcout << "Processing BAM file\n";
+  }  
   BAMReader inbam;
   std::ifstream inbam_stream;
   inbam_stream.open(s_bam, std::ios::in | std::ios::binary);
   inbam.SetInputHandle(&inbam_stream);
   
   BB.openFile(&inbam); // This file needs to be a decompressed BAM. (setup via fifo / or expect already decompressed via stdin).
-  BB.processAll(myLine);
+  BB.processAll(myLine, verbose);
 
 // Write output to file:  
-  Rcout << "Writing output file\n";
-
+	if(verbose) {  
+		Rcout << "Writing output file\n";
+	}
   std::ofstream out;
   out.open(s_output_txt, std::ios::binary);
 
@@ -584,7 +601,7 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		Rcout << "Processing " << s_bam << "\n";
 		
 		BB.openFile(&inbam); // This file needs to be a decompressed BAM. (setup via fifo / or expect already decompressed via stdin).
-		BB.processAll(myLine, true);
+		BB.processAll(myLine, false);
 
 		std::ofstream out;
 		out.open(s_output_txt, std::ios::binary);
