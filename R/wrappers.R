@@ -124,13 +124,17 @@
             file.path(dirname(output_files[1]), "main.FC.Rds"))
 
         # Check md5 of annotation to show same reference was used
-        md5.old = with(res.old$annotation, openssl::md5(paste(
-            GeneID, Chr, Start, End, Strand, collapse=" ")))
-        md5 = with(res$annotation, openssl::md5(paste(
-            GeneID, Chr, Start, End, Strand, collapse=" ")))
+        anno.old = res.old$annotation[, 
+            c("GeneID", "Chr", "Start", "End", "Strand")]
+        anno.new = res$annotation[, 
+            c("GeneID", "Chr", "Start", "End", "Strand")]
+        # md5.old = with(res.old$annotation, openssl::md5(paste(
+            # GeneID, Chr, Start, End, Strand, collapse=" ")))
+        # md5 = with(res$annotation, openssl::md5(paste(
+            # GeneID, Chr, Start, End, Strand, collapse=" ")))
         md5.old.stat = openssl::md5(paste(res.old$stat$Status, collapse=" "))
         md5.stat = openssl::md5(paste(res$stat$Status, collapse=" "))
-        if(md5 == md5.old & md5.stat == md5.old.stat) {
+        if(identical(anno.old, anno.new) & md5.stat == md5.old.stat) {
             new_samples = res$targets[!(res$targets %in% res.old$targets)]
             res$targets = c(res.old$targets, new_samples)
             res$stat = cbind(res.old$stat, res$stat[,new_samples])        
