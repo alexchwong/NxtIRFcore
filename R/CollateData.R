@@ -279,7 +279,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     runStranded = !any(df.internal$strand == 0)
     
     dash_progress("Compiling Junction List", N)
-    message("Compiling Junction List")       
+    message("Compiling Junction List...", appendLF = FALSE)       
     junc.common <- .collateData_junc_merge(df.internal, jobs, BPPARAM_mod, 
         output_path)
     gc()
@@ -664,6 +664,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         }, jobs = jobs, df.internal = df.internal, 
             temp_output_path = temp_output_path, BPPARAM = BPPARAM_mod
     ))
+    message("merging...", appendLF = FALSE)
     junc.common = NULL
     for(i in seq_len(length(junc.list))) {
         if(is.null(junc.common)) {
@@ -674,6 +675,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         }
     }
     junc.common[, c("start") := get("start") + 1]
+    message("done\n")
     return(junc.common)
 }
 
@@ -1108,7 +1110,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
             junc, Splice.Anno)
         irf <- .collateData_process_irf(
             block$sample[i], block$strand[i], junc,
-                irf.common, norm_output_path)                
+                irf.common, norm_output_path)
         splice <- .collateData_process_splice_depth(
             splice, irf)
         assays <- .collateData_process_assays(assays, .copy_DT(templates),
@@ -1228,6 +1230,9 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     # Then use a simple overlap method to account for the remainder
     junc.subset = junc[get("JG_up") == get("JG_down") & 
         get("JG_up") != "" & get("JG_down") != ""]
+        
+    junc.subset = junc.subset[!grepl("NA", get("JG_up")) & !grepl("NA", get("JG_down"))]
+    
     if(nrow(junc.subset) > 0) {
         junc.from = .grDT(junc.subset)
         junc.to = .grDT(junc)
