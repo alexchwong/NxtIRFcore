@@ -298,6 +298,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     .collateData_annotate(reference_path, norm_output_path,
         junc.common, irf.common, runStranded)
     message("done\n")
+    rm(junc.common, irf.common)
     gc()
 
     dash_progress("Generating NxtIRF assays", N)
