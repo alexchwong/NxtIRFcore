@@ -149,3 +149,8 @@ void GZReader::ignore(const unsigned long len) {
 bool GZReader::eof() {
   return(gzeof(gz_in) && bufferPos == bufferLen);
 }
+
+int GZReader::closeGZ() {
+	gzclose(gz_in);
+	return(0);
+}
