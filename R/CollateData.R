@@ -261,7 +261,9 @@ CollateData <- function(Experiment, reference_path, output_path,
             "IRMode must be either 'SpliceOverMax' (default) or 'SpliceMax'"
         ), call. = FALSE)
     }
-
+    N <- 8
+    dash_progress("Validating Experiment; checking COV files...", N)
+    message("Validating Experiment; checking COV files...")
     BPPARAM_mod = .validate_threads(n_threads)
     norm_output_path = .collateData_validate(Experiment, 
         reference_path, output_path)   
@@ -270,7 +272,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     df.internal <- .collateData_expr(Experiment)
     jobs = .collateData_jobs(nrow(df.internal), BPPARAM_mod, samples_per_block)
     n_jobs = length(jobs)
-    N <- 7
+
     dash_progress("Compiling Sample Stats", N)
     message("Compiling Sample Stats")
     df.internal = .collateData_stats(df.internal, jobs, BPPARAM_mod)
@@ -323,6 +325,9 @@ CollateData <- function(Experiment, reference_path, output_path,
     se <- .collateData_initialise_HDF5(norm_output_path, colData, assays)
     
     .collateData_save_NxtSE(se, file.path(norm_output_path, "NxtSE.rds"))
+    if(dir.exists(file.path(norm_output_path "temp"))) {
+        file.remove(file.path(norm_output_path "temp"))
+    }
     dash_progress("NxtIRF Collation Finished", N)
     message("NxtIRF Collation Finished")
 }
@@ -438,9 +443,9 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     if(!dir.exists(temp_output_path)) {
         dir.create(temp_output_path)
     }        
-    if(!dir.exists(file.path(norm_output_path, "samples"))) {
-        dir.create(file.path(norm_output_path, "samples"))
-    }
+    # if(!dir.exists(file.path(norm_output_path, "samples"))) {
+        # dir.create(file.path(norm_output_path, "samples"))
+    # }
     if(!dir.exists(file.path(norm_output_path, "annotation"))) {
         dir.create(file.path(norm_output_path, "annotation"))
     }
