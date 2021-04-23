@@ -42,7 +42,7 @@
 #' @importFrom GenomicRanges makeGRangesListFromDataFrame mcols split strand 
 #' @importFrom GenomicRanges flank setdiff seqnames psetdiff disjoin mcols<- 
 #' @importFrom GenomicRanges strand<- seqnames<-
-#' @importFrom HDF5Array HDF5Array writeHDF5Array
+#' @importFrom HDF5Array HDF5Array writeHDF5Array h5writeDimnames 
 #' @importFrom heatmaply heatmaply
 #' @importFrom httr HEAD GET status_code
 #' @importFrom IRanges IRanges Views RleList
