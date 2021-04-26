@@ -402,29 +402,13 @@ GetMappabilityRef <- function(genome_type) {
     return(mapfile)
 }
 
-#' Gets a genome object from NxtIRF reference.
-#' @param reference_path The directory to the NxtIRF reference
-#' @return A TwoBitFile object containing the genome sequence
-#' @examples
-#' genome = Get_Genome(file.path(tempdir(), "Reference"))
-#' @export
-Get_Genome <- function(reference_path) {
-    .validate_reference(reference_path)
+Get_Genome <- function(reference_path, validate = TRUE) {
+    if(validate) .validate_reference(reference_path)
     if(file.exists(file.path(reference_path, "resource", "genome.2bit"))) {
         return(rtracklayer::TwoBitFile(
             file.path(reference_path, "resource", "genome.2bit")))
     } else if(file.exists(file.path(reference_path, "settings.Rds"))){
         settings = readRDS(file.path(reference_path, "settings.Rds"))
-        # tryCatch(
-            # genome = .fetch_AH(settings$ah_genome, 
-                # rdataclass = "TwoBitFile"),
-            # error = function(e) {
-                # stop(paste("In Get_Genome()",
-                    # settings$ah_genome,
-                    # "is an invalid AnnotationHub resource"
-                # ), call. = FALSE)
-            # }
-        # )
         genome = .fetch_AH(settings$ah_genome, 
             rdataclass = "TwoBitFile")
     } else {
@@ -460,7 +444,7 @@ Get_GTF_file <- function(reference_path) {
     ), call. = FALSE)
 }
 
-.validate_reference_path <- function(reference_path) {
+.validate_reference_path <- function(reference_path, subdirs = "fst") {
     if({
         reference_path != "" &&
         tryCatch(
@@ -481,8 +465,10 @@ Get_GTF_file <- function(reference_path) {
     if (!dir.exists(file.path(base, basename(reference_path)))) {
         dir.create(file.path(base, basename(reference_path)))
     }
-    if (!dir.exists(file.path(base, basename(reference_path), "fst"))) {
-        dir.create(file.path(base, basename(reference_path), "fst"))
+    for(subdir in subdirs) {
+        if (!dir.exists(file.path(base, basename(reference_path), subdirs))) {
+            dir.create(file.path(base, basename(reference_path), subdirs))
+        }
     }
 }
 
@@ -634,34 +620,65 @@ Get_GTF_file <- function(reference_path) {
 
 .fetch_fasta <- function(reference_path = "./Reference",
         fasta = "", ah_genome = "", verbose = TRUE,
-        convert_chromosome_names = NULL) {
-    genome <- NULL
+        convert_chromosome_names = NULL,
+        exclude_scaffolds = TRUE,
+        overwrite = FALSE) {
     if (ah_genome != "") {
-        if(substr(ah_genome, 1, 2) != "AH") {
-            stop("Given genome AnnotationHub reference is incorrect",
-                call. = FALSE)
-        }
-        genome <- .fetch_AH(ah_genome, verbose = verbose, 
-                rdataclass = "TwoBitFile")
         fasta_file = ""
+        genome <- .fetch_fasta_ah(ah_genome)
     } else {
-        fasta_file = .parse_valid_file(fasta)
-        if(!file.exists(fasta_file)) {
-            stop(paste(
-                "Given genome fasta file", fasta_file,
-                "not found"
-            ),call. = FALSE)
-        }
+        fasta_file <- .fetch_fasta_file_validate(fasta)
+        genome <- .fetch_fasta_file(fasta_file)
     }
-    if(fasta_file == "" && is.null(convert_chromosome_names)) {
-        return(genome)
+    # Exclude scaffold chromosomes in FASTA files from Ensembl
+    if(exclude_scaffolds) {
+        genome = genome[!grepl("scaffold", names(genome))]
     }
-    
-    if(fasta_file != "") {
-        genome <- Biostrings::readDNAStringSet(fasta_file)
-    } else {
+    # Convert chromosome names to appropriate
+    genome <- .fetch_fasta_convert_chrom(genome, convert_chromosome_names)
+
+    # Save local copy of FASTA
+    .fetch_fasta_save_fasta(genome, reference_path, overwrite)
+    .fetch_fasta_save_2bit(genome, reference_path, overwrite)    
+    gc()
+    message("Connecting to genome TwoBitFile...", appendLF = FALSE)
+        genome_2bit <- Get_Genome(reference_path, validate = FALSE)
+    message("done\n")
+    return(genome_2bit)
+}
+
+.fetch_fasta_ah <- function(ah_genome) {
+    if(substr(ah_genome, 1, 2) != "AH") {
+        stop("Given genome AnnotationHub reference is incorrect",
+            call. = FALSE)
+    }
+    genome <- .fetch_AH(ah_genome, verbose = verbose, 
+            rdataclass = "TwoBitFile")
+    message("Importing genome into memory...")
         genome = rtracklayer::import(genome)
+    message("done")
+    return(genome)
+}
+
+.fetch_fasta_file_validate <- function(fasta) {
+    fasta_file = .parse_valid_file(fasta)
+    if(!file.exists(fasta_file)) {
+        stop(paste(
+            "Given genome fasta file", fasta_file,
+            "not found"
+        ),call. = FALSE)
     }
+    return(fasta_file)
+}
+
+.fetch_fasta_file <- function(fasta_file) {
+    message("Importing genome into memory...", appendLF = FALSE)
+        genome <- Biostrings::readDNAStringSet(fasta_file)
+    message("done")
+    return(genome)
+}
+
+.fetch_fasta_convert_chrom <- function(genome, convert_chromosome_names) {
     if(!is.null(convert_chromosome_names)) {
         converter = data.table(Original = 
                 tstrsplit(names(genome), split=" ")[[1]])
@@ -670,21 +687,47 @@ Get_GTF_file <- function(reference_path) {
         converter[is.na(get("NewName")), c("NewName") := get("Original")]
         chrOrder = converter$NewName
         names(genome) <- chrOrder
+    } else {
+        # Extract names to what is before the first space:
+        names(genome) = tstrsplit(names(genome), split = " ")[[1]]
     }
-    # Convert to local 2bit for better memory management
+    return(genome)
+}
+
+.fetch_fasta_save_fasta <- function(genome, reference_path, overwrite) {
     if (!dir.exists(file.path(reference_path, "resource"))) {
         dir.create(file.path(reference_path, "resource"))
     }
-    message("Saving genome as TwoBitFile...", appendLF = FALSE)
-    genome.2bit = file.path(reference_path, "resource", "genome.2bit")
-    rtracklayer::export(genome, genome.2bit, "2bit")
-    message("done\n")
-    message("Connecting to genome TwoBitFile...", appendLF = FALSE)
-    genome <- rtracklayer::TwoBitFile(genome.2bit)
-    gc()
-    message("done\n")
-    return(genome)
+    genome.fa = file.path(reference_path, "resource", "genome.fa")
+    if(overwrite || !file.exists(paste0(genome.fa, ".gz"))) {
+        message("Saving local copy as FASTA...", appendLF = FALSE)
+            if(overwrite && file.exists(paste0(genome.fa, ".gz"))) {
+                file.remove(file.exists(paste0(genome.fa, ".gz")))
+            }
+            rtracklayer::export(genome, genome.fa, "fasta")
+            R.utils::gzip(genome.fa)
+        message("done")
+    }
 }
+
+.fetch_fasta_save_2bit <- function(genome, reference_path, overwrite) {
+    if (!dir.exists(file.path(reference_path, "resource"))) {
+        dir.create(file.path(reference_path, "resource"))
+    }
+    genome.2bit = file.path(reference_path, "resource", "genome.2bit")
+    if(overwrite || !file.exists(paste0(genome.2bit, ".2bit"))) {
+    # Convert to local 2bit for better memory management
+        message("Saving genome as TwoBitFile...", appendLF = FALSE)
+            if(overwrite && file.exists(genome.2bit)) {
+                file.remove(file.exists(genome.2bit))
+            }
+            rtracklayer::export(genome, genome.2bit, "2bit")
+        message("done\n")
+    }
+}
+
+
+################################################################################
 
 .fetch_gtf <- function(reference_path = "./Reference",
         gtf = "", ah_transcriptome = "",  verbose = TRUE,
