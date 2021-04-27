@@ -470,6 +470,7 @@ Get_GTF_file <- function(reference_path) {
             dir.create(file.path(base, basename(reference_path), subdirs))
         }
     }
+    return(file.path(base, basename(reference_path)))
 }
 
 .validate_reference <- function(reference_path, from = "") {

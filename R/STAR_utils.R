@@ -26,7 +26,7 @@ STAR_buildRef <- function(reference_path,
 
 #' @export
 STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
-        fastq_1 <- c("./sample_1.fq"), fastq_2 <- NULL,
+        fastq_1 = c("./sample_1.fq"), fastq_2 = NULL,
         trim_adaptor = "AGATCGGAAG",
         memory_mode = "NoSharedMemory",
         
