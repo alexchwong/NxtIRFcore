@@ -25,6 +25,62 @@ STAR_buildRef <- function(reference_path,
 }
 
 #' @export
+STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
+        trim_adaptor = "AGATCGGAAG") {
+    .validate_STAR_version()
+    STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
+    BAM_output_path = .validate_path(BAM_output_path)
+    
+    # Dissect Experiment:
+    if(ncol(Experiment) < 2 || ncol(Experiment) > 3) {
+        stop(paste("Experiment must be a 2- or 3- column data frame,",
+        "with the columns denoting sample name, fastq file (forward),",
+        "and (optionally) fastq file (reverse)"), call. = FALSE))
+    } else if(ncol(Experiment) == 2) {
+        colnames(Experiment) = c("sample", "forward")
+        fastq_1 = Experiment[, "forward"]
+        fastq_2 = NULL
+        .validate_STAR_fastq_samples(fastq_1)
+        paired = FALSE
+    } else if(ncol(Experiment) == 3) {
+        colnames(Experiment) = c("sample", "forward", "reverse")
+        fastq_1 = Experiment[, "forward"]
+        fastq_2 = Experiment[, "reverse"]
+        .validate_STAR_fastq_samples(fastq_1, fastq_2)
+        paired = TRUE
+    }
+    gzipped = all(grepl(paste0("\\", ".gz", "$"), fastq_1)) &&
+        (!paired || all(grepl(paste0("\\", ".gz", "$"), fastq_2)))
+    if(is_valid(trim_adaptor)) .validate_STAR_trim_sequence(trim_adaptor)
+    
+    system2(command = "STAR", args = c(
+        "--genomeLoad", "LoadAndExit", "--genomeDir", STAR_ref_path
+    ))
+    
+    samples = unique(Experiment[, "sample"])
+    for(i in seq_len(length(samples))) {
+        sample = samples[i]
+        Expr_sample = Experiment[Experiment[, "sample"] == sample,]
+        if(paired) {
+            fastq_1 = Expr_sample[, "forward"]
+            fastq_2 = NULL        
+        } else {
+            fastq_1 = Experiment[, "forward"]
+            fastq_2 = Experiment[, "reverse"]
+        }
+        STAR_align_fastq(STAR_ref_path, 
+            BAM_output_path = file.path(BAM_output_path, sample),
+            fastq_1 = fastq_1, fastq_2 = fastq_2, 
+            trim_adaptor = trim_adaptor,
+            memory_mode = "LoadAndKeep")
+    }
+
+    system2(command = "STAR", args = c(
+        "--genomeLoad", "Remove", "--genomeDir", STAR_ref_path
+    ))
+}
+
+#' @export
 STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         fastq_1 = c("./sample_1.fq"), fastq_2 = NULL,
         trim_adaptor = "AGATCGGAAG",
@@ -41,7 +97,8 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
     if(is_valid(trim_adaptor)) .validate_STAR_trim_sequence(trim_adaptor)
 
     BAM_output_path = .validate_path(BAM_output_path)
-    # Run STAR 
+    # Load STAR reference
+    
     args = c(
         "--genomeLoad", memory_mode,
         "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE),
@@ -70,9 +127,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         args = c(args, "--clip3pAdapterSeq", trim_adaptor)
     }
     
-    res = system2(command = "STAR", args = args, stdout = TRUE)
-    
-    print(res)
+    system2(command = "STAR", args = args)
 }
 
 .validate_STAR_version <- function() {
