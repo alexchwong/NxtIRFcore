@@ -33,9 +33,11 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
     
     # Dissect Experiment:
     if(ncol(Experiment) < 2 || ncol(Experiment) > 3) {
-        stop(paste("Experiment must be a 2- or 3- column data frame,",
-        "with the columns denoting sample name, fastq file (forward),",
-        "and (optionally) fastq file (reverse)"), call. = FALSE))
+        stop(paste(
+            "Experiment must be a 2- or 3- column data frame,",
+            "with the columns denoting sample name, fastq file (forward),",
+            "and (optionally) fastq file (reverse)"
+        ), call. = FALSE)
     } else if(ncol(Experiment) == 2) {
         colnames(Experiment) = c("sample", "forward")
         fastq_1 = Experiment[, "forward"]
