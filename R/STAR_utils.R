@@ -50,7 +50,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         "--outFileNamePrefix", paste0(BAM_output_path, "/"),
         "--outStd", "Log",      # Not Bam_Unsorted
         
-        "--outSAMtype", shQuote("BAM Unsorted"), 
+        "--outSAMtype", "BAM", "Unsorted", 
         "--outSAMstrandField", "intronMotif",
         "--outSAMunmapped", "None",
 
