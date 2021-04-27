@@ -54,7 +54,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         "--outSAMstrandField", "intronMotif",
         "--outSAMunmapped", "None",
 
-        "--outFilterMultimapNmax", "1",
+        "--outFilterMultimapNmax", "1"
     )
     args = c(args,
         "--readFilesIn",
@@ -64,7 +64,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         args = c(args, paste(fastq_2, collapse = ","))
     }
     if(gzipped) {
-        args = c(args, "--readFilesCommand gzip -dc")
+        args = c(args, "--readFilesCommand", shQuote("gzip -dc"))
     }
     if(is_valid(trim_adaptor)) {
         args = c(args, "--clip3pAdapterSeq", trim_adaptor)
