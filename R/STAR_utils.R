@@ -133,6 +133,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
             stop(paste("Some fastq files were not found"), call. = FALSE)
         }
     }
+    paired = (length(fastq_1) == length(fastq_2))
     gzipped = all(grepl(paste0("\\", ".gz", "$"), fastq_1)) &&
         (!paired || all(grepl(paste0("\\", ".gz", "$"), fastq_2)))
     if(!gzipped && 
