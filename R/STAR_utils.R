@@ -47,7 +47,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE),
         "--genomeDir", STAR_ref_path,
 
-        "--outFileNamePrefix", file.path(BAM_output_path, "/"),
+        "--outFileNamePrefix", paste0(BAM_output_path, "/"),
         "--outStd", "Log",      # Not Bam_Unsorted
         
         "--outSAMtype", shQuote("BAM Unsorted"), 
