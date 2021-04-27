@@ -270,7 +270,7 @@ GetReferenceResource <- function(
     if(missing(gtf_file)) gtf_file = ""
     if(missing(ah_genome)) ah_genome = ""
     if(missing(ah_transcriptome)) ah_transcriptome = ""
-    .validate_reference_path(reference_path)
+    .validate_path(reference_path)
 
     chromosomes = .convert_chromosomes(convert_chromosome_names)
     reference_data = .get_reference_data(
@@ -296,7 +296,7 @@ BuildReference <- function(
     if(missing(gtf_file)) gtf_file = ""
     if(missing(ah_genome)) ah_genome = ""
     if(missing(ah_transcriptome)) ah_transcriptome = ""
-    .validate_reference_path(reference_path)
+    .validate_path(reference_path)
     extra_files <- .fetch_genome_defaults(
         genome_type, nonPolyARef, MappabilityRef, BlacklistRef
     )
@@ -444,7 +444,7 @@ Get_GTF_file <- function(reference_path) {
     ), call. = FALSE)
 }
 
-.validate_reference_path <- function(reference_path, subdirs = "fst") {
+.validate_path <- function(reference_path, subdirs = "fst") {
     if({
         reference_path != "" &&
         tryCatch(
@@ -456,7 +456,7 @@ Get_GTF_file <- function(reference_path) {
     }) {
         # continue
     } else {
-        stop(paste("In BuildReference(),", "error in 'reference_path',",
+        stop(paste("Error in 'reference_path',",
             paste0("base path of '", reference_path, "' does not exist")
         ), call. = FALSE)
     }
