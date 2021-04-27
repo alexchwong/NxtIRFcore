@@ -270,7 +270,7 @@ GetReferenceResource <- function(
     if(missing(gtf_file)) gtf_file = ""
     if(missing(ah_genome)) ah_genome = ""
     if(missing(ah_transcriptome)) ah_transcriptome = ""
-    .validate_path(reference_path)
+    .validate_path(reference_path, subdirs = "fst")
 
     chromosomes = .convert_chromosomes(convert_chromosome_names)
     reference_data = .get_reference_data(
@@ -296,7 +296,7 @@ BuildReference <- function(
     if(missing(gtf_file)) gtf_file = ""
     if(missing(ah_genome)) ah_genome = ""
     if(missing(ah_transcriptome)) ah_transcriptome = ""
-    .validate_path(reference_path)
+    .validate_path(reference_path, subdirs = "fst")
     extra_files <- .fetch_genome_defaults(
         genome_type, nonPolyARef, MappabilityRef, BlacklistRef
     )
@@ -465,11 +465,14 @@ Get_GTF_file <- function(reference_path) {
     if (!dir.exists(file.path(base, basename(reference_path)))) {
         dir.create(file.path(base, basename(reference_path)))
     }
-    for(subdir in subdirs) {
-        if (!dir.exists(file.path(base, basename(reference_path), subdirs))) {
-            dir.create(file.path(base, basename(reference_path), subdirs))
+    if(!is.null(subdirs)) {
+        for(subdir in subdirs) {
+            if (!dir.exists(file.path(base, basename(reference_path), subdirs))) {
+                dir.create(file.path(base, basename(reference_path), subdirs))
+            }
         }
     }
+
     return(file.path(base, basename(reference_path)))
 }
 
