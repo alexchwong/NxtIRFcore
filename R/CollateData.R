@@ -1,70 +1,96 @@
-#' Searches a specified path for files of a particular file pattern
-#'
-#' This convenience function identifies files with the specified suffix.
-#' The sample name is assumed to be the name of the file minus its suffix
-#' (`use_subdir = FALSE`), but can also be changed to be the names 
-#' of the parent directory (`use_subdir = TRUE`). See example below.
-#'
+#' Convenience Function to (recursively) find all files in a folder.
+#' 
+#' Often, output files (whether it be raw sequencing files, aligned sequences)
+#' in BAM files, or IRFinder output files, are stored in a single folder.
+#' Sometimes, these are named according to the samples they represent. Other
+#' times, they have generic names but are partitioned in sub-folders named
+#' by sample names. This function (recursively) finds all files and extracts
+#' sample names assuming the files are named by sample names 
+#' (`use_subdir = FALSE`). Alternately, the names can be derived from the
+#' subfolders one level higher (`use_subdir = TRUE`)
+#' 
 #' @param sample_path The path in which to recursively search for files
 #'   that match the given `suffix`
 #' @param suffix A vector of or or more strings that specifies the file suffix 
 #'   (e.g. '.bam' denotes BAM files, whereas ".txt.gz" denotes gzipped txt 
 #'   files).
-#' @param suffix_type A vector of string that determines the column
+#' @param suffix_type A string vector that determines the column
 #'   names of the files retrieved by `suffix`. Must be the same length as 
 #'   `suffix`
 #' @param use_subdir Whether to assume the directory name containing
 #'   the found files denote the sample name. If `FALSE`, the base name
 #'   of the file is assumed to be the sample name. See below example.
-#' @return A 2-column data frame with the first column containing
-#'   the sample name, and the second column being the file path.
+#' @param paired Whether to expect single FASTQ files (of the format
+#'   "sample.fastq"), or
+#'   paired files (of the format "sample_1.fastq", "sample_2.fastq")
+#' @param ... Additional parameters to be passed into Find_Samples
+#' @return A multi-column data frame with the first column containing
+#'   the sample name, and subsequent columns being the file paths with suffix
+#'   as determined by `suffix`.
 #' @examples
-#' # Return all BAM files using file names as sample names
+#' # Retrieve all BAM files in a given folder, named by sample names
 #' bam_path = dirname(example_bams())[1]
-#' df = FindSamples(sample_path = bam_path, 
-#'   suffix = ".bam", suffix_type = "bam_file", use_subdir = FALSE)
+#' df.bams = Find_Samples(sample_path = bam_path, 
+#'   suffix = ".bam", suffix_type = "BAM", use_subdir = FALSE)
+#' # equivalent to:
+#' df.bams = Find_Bams(bam_path)
+#'
+#' # Retrieve all IRFinder output files in a given folder, 
+#' # named by sample names
+#'
+#' expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
+#' # equivalent to:
+#' expr = Find_Samples(file.path(tempdir(), "IRFinder_output"),
+#'     c(".txt.gz", ".cov"), 
+#'     c("irf_file", "cov_file")
+#' )
+#' @name Find_Samples
 #' @md
 #' @export
-FindSamples <- function(sample_path, suffix = ".txt.gz", 
+Find_Samples <- function(sample_path, suffix = ".txt.gz", 
             suffix_type = "path", use_subdir = FALSE) {
     if(!dir.exists(sample_path)) {
-        stop(paste("In FindSamples(),",
+        stop(paste("In Find_Samples(),",
             sample_path, "- given path does not exist"
         ), call. = FALSE)
     }
     if(length(suffix) == 0 || length(suffix) != length(suffix_type)) {
-        stop(paste("In FindSamples(),",
+        stop(paste("In Find_Samples(),",
             "suffix must be of length greater than zero",
             "and same length as suffix_type"
         ), call. = FALSE)
     }
     DT.list = list()
     for(i in seq_len(length(suffix))) {
-        files_found = list.files(pattern = paste0("\\", suffix[i], "$"),
-        path = normalizePath(sample_path), full.names = TRUE, recursive = TRUE)
+        pattern = paste0("\\", suffix[i], "$")
+        files_found = list.files(pattern = pattern,
+            path = normalizePath(sample_path), 
+            full.names = TRUE, recursive = TRUE)
         if(length(files_found) > 0) {
-            DT = data.table(sample = "", path = files_found)
+            DT = data.table(sample = gsub(pattern,"",
+                    files_found), 
+                path = files_found)
             if(use_subdir) {
-                DT$sample = basename(dirname(DT$path))
+                DT$sample = basename(dirname(DT$sample))
             } else {
-                DT$sample = sub(suffix[i],"",basename(DT$path))
+                DT$sample = basename(DT$sample)
             }
             colnames(DT)[2] = suffix_type[i]
+            setkeyv(DT, "sample")
             DT.list[[i]] = DT
         } else {
             DT.list[[i]] = NULL
         }
     }
     if(length(DT.list) <= 1) return(as.data.frame(DT.list))
-    final = c()
+    final = DT.list[[1]]
     if(length(suffix) > 1) {
-        for(i in seq_len(length(suffix))) {
-            if(!is.null(DT.list[[i]])) {
-                if(is.null(final)) {
-                    final = DT.list[[i]]
-                } else {
-                    final = DT.list[[i]][final, on = "sample"]
-                }
+        # Check identity of sorted sample names
+        samples = DT.list[[1]]$sample
+        for(i in seq(2, length(suffix))) {
+            if(!is.null(DT.list[[i]]) && 
+                    identical(samples, DT.list[[i]]$sample)) {
+                final = cbind(final, DT.list[[i]][, 2, with = FALSE])
             }
         }
     }
@@ -72,41 +98,24 @@ FindSamples <- function(sample_path, suffix = ".txt.gz",
     return(as.data.frame(final[, cols, with = FALSE]))
 }
 
-#' Convenience Function to find BAM files in a certain folder
-#' 
-#' Runs FindSamples to find BAM files. Assumes file names are names of samples.
-#' 
-#' @param sample_path The path in which to recursively search for BAM files
-#' @param ... Additional parameters to pass into `FindSamples()`
-#' @return A 2-column data frame with the first column containing
-#'   the sample name, and the second column being the BAM file path.
-#' @seealso [FindSamples]
-#' @examples
-#' bam_path = dirname(example_bams())[1]
-#' bams = Find_Bams(bam_path)
-#' @md
+#' @describeIn Find_Samples Returns all FASTQ files in a given folder
 #' @export
-Find_Bams <- function(sample_path, ...) {
-    return(FindSamples(sample_path, ".bam", "BAM", ...))
+Find_FASTQ <- function(sample_path, paired = TRUE, ...) {
+    return(Find_Samples(sample_path, 
+        c("_1.fastq", "_2.fastq"),
+        c("forward", "reverse"), ...))
 }
 
-#' Convenience Function to find IRFinder output and COV files
-#' 
-#' Runs FindSamples to find IRFinder .txt.gz and .cov files. 
-#' Assumes file names are names of samples.
-#' 
-#' @param sample_path The path in which to recursively search for BAM files
-#' @param ... Additional parameters to pass into `FindSamples()`
-#' @return A 3-column data frame with the first column containing
-#'   the sample name, and the second column being the IRFinder main output path,
-#'   and the third column being the COV file path.
-#' @seealso [FindSamples]
-#' @examples
-#' expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
-#' @md
+#' @describeIn Find_Samples Returns all BAM files in a given folder
+#' @export
+Find_Bams <- function(sample_path, ...) {
+    return(Find_Samples(sample_path, ".bam", "BAM", ...))
+}
+
+#' @describeIn Find_Samples Returns all IRFinder output files in a given folder
 #' @export
 Find_IRFinder_Output <- function(sample_path, ...) {
-    return(FindSamples(sample_path, 
+    return(Find_Samples(sample_path, 
         c(".txt.gz", ".cov"), 
         c("irf_file", "cov_file"), 
         ...)
@@ -206,7 +215,7 @@ IRFinder <- function(
 #' QC information is extracted, and data is organised for quick
 #' downstream access such as [MakeSE()].
 #'
-#' @param Experiment A 2-column data frame (generated by [FindSamples()]),
+#' @param Experiment A 2-column data frame (generated by [Find_Samples()]),
 #'   with the first column designating the sample names, and the 2nd column 
 #'   containing the primary IRFinder output file (of type \code{.txt.gz}). A 
 #'   third optional column can contain the coverage files of the corresponding 
