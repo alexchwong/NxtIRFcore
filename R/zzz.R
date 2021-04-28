@@ -144,7 +144,7 @@ NxtIRF_example_bams <- function() {
 NxtIRF_example_NxtSE <- function() {
     se = readRDS(system.file("extdata", 
         "example_NxtSE.Rds", package = "NxtIRF"))
-    covs = FindSamples(system.file("extdata", package = "NxtIRF"), ".cov")
+    covs = Find_Samples(system.file("extdata", package = "NxtIRF"), ".cov")
     covfile(se) <- covs$path
     se
 }
