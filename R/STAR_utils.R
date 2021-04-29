@@ -26,7 +26,7 @@ STAR_buildRef <- function(reference_path,
 
 #' @export
 STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
-        trim_adaptor = "AGATCGGAAG", n_threads = 4) {
+        trim_adaptor = "AGATCGGAAG", two_pass = FALSE, n_threads = 4) {
     .validate_STAR_version()
     STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
     BAM_output_path = .validate_path(BAM_output_path)
@@ -55,40 +55,78 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
         (!paired || all(grepl(paste0("\\", ".gz", "$"), fastq_2)))
     if(is_valid(trim_adaptor)) .validate_STAR_trim_sequence(trim_adaptor)
     
-    system2(command = "STAR", args = c(
-        "--genomeLoad", "LoadAndExit", "--genomeDir", STAR_ref_path
-    ))
+    # system2(command = "STAR", args = c(
+        # "--genomeLoad", "LoadAndExit", "--genomeDir", STAR_ref_path
+    # ))
     
     samples = unique(Experiment[, "sample"])
-    for(i in seq_len(length(samples))) {
-        sample = samples[i]
-        Expr_sample = Experiment[Experiment[, "sample"] == sample,]
-        if(paired) {
-            fastq_1 = Expr_sample[, "forward"]
-            fastq_2 = NULL        
-        } else {
-            fastq_1 = Experiment[, "forward"]
-            fastq_2 = Experiment[, "reverse"]
+    SJ.files = NULL
+    two_pass_genome = NULL
+    for(pass in seq_len(ifelse(two_pass, 2, 1))) {
+        if(two_pass && pass == 1) message("STAR - first pass")
+        if(two_pass && pass == 2) message("STAR - second pass")
+        for(i in seq_len(length(samples))) {
+            sample = samples[i]
+            Expr_sample = Experiment[Experiment[, "sample"] == sample,]
+            if(paired) {
+                fastq_1 = Expr_sample[, "forward"]
+                fastq_2 = NULL        
+            } else {
+                fastq_1 = Experiment[, "forward"]
+                fastq_2 = Experiment[, "reverse"]
+            }
+            ref = STAR_ref_path
+            memory_mode = "LoadAndKeep"
+            if(two_pass && pass == 1) {
+                additional_args = c("--outSAMtype", "None")
+            } else if(two_pass && pass == 2 && !is.null(SJ.files)) {
+                additional_args = c("--sjdbFileChrStartEnd",
+                    paste(SJ.files, collapse = " "),
+                    "--sjdbInsertSave", "All"
+                )
+                two_pass_genome = file.path(BAM_output_path, sample, 
+                    "_STARgenome")
+                SJ.files = NULL
+                memory_mode = "LoadAndRemove"
+            } else if(two_pass && pass == 2 && !is.null(two_pass_genome)) {
+                ref = two_pass_genome
+                additional_args = NULL
+            } else {
+                additional_args = NULL
+            }
+
+            message(paste("Aligning", sample, "using STAR"))
+            STAR_align_fastq(ref, 
+                BAM_output_path = file.path(BAM_output_path, sample),
+                fastq_1 = fastq_1, fastq_2 = fastq_2, 
+                trim_adaptor = trim_adaptor,
+                memory_mode = memory_mode,
+                n_threads = n_threads)
         }
-        STAR_align_fastq(STAR_ref_path, 
-            BAM_output_path = file.path(BAM_output_path, sample),
-            fastq_1 = fastq_1, fastq_2 = fastq_2, 
-            trim_adaptor = trim_adaptor,
-            memory_mode = "LoadAndKeep",
-            n_threads = n_threads)
+        if(two_pass && pass == 1) {
+            SJ.files = Find_Samples(BAM_output_path, suffix = ".out.tab")
+            if(nrow(SJ.files) == 0) {
+                stop(paste("In STAR two-pass,",
+                    "no SJ.out.tab files were found"
+                ), call. = FALSE)
+            }
+        }
     }
 
     system2(command = "STAR", args = c(
-        "--genomeLoad", "Remove", "--genomeDir", STAR_ref_path
+        "--genomeLoad", "Remove", "--genomeDir", ref
     ))
 }
 
 #' @export
 STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         fastq_1 = c("./sample_1.fq"), fastq_2 = NULL,
+        two_pass = FALSE,
         trim_adaptor = "AGATCGGAAG",
         memory_mode = "NoSharedMemory",
+        additional_args = NULL,
         n_threads = 4) {
+        
     .validate_STAR_version()
     STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
     .validate_STAR_fastq_samples(fastq_1, fastq_2)
@@ -115,6 +153,10 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
 
         "--outFilterMultimapNmax", "1"
     )
+    if(two_pass) {
+        args = c(args, "--twopassMode", "Basic")
+    }
+    
     args = c(args,
         "--readFilesIn",
         paste(fastq_1, collapse = ",")
@@ -128,7 +170,9 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
     if(is_valid(trim_adaptor)) {
         args = c(args, "--clip3pAdapterSeq", trim_adaptor)
     }
-    
+    if(!is.null(additional_args) && all(is.character(additional_args))) {
+        args = c(args, additional_args)
+    }
     system2(command = "STAR", args = args)
 }
 
