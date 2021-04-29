@@ -87,7 +87,7 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                 two_pass_genome = file.path(BAM_output_path, sample, 
                     "_STARgenome")
                 SJ.files = NULL
-                memory_mode = "LoadAndRemove"
+                memory_mode = "NoSharedMemory"
             } else if(two_pass && pass == 2 && !is.null(two_pass_genome)) {
                 ref = two_pass_genome
                 additional_args = NULL
@@ -112,6 +112,9 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                 ), call. = FALSE)
             }
         }
+        system2(command = "STAR", args = c(
+            "--genomeLoad", "Remove", "--genomeDir", ref
+        ))
     }
 
     system2(command = "STAR", args = c(
