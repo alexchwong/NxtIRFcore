@@ -635,7 +635,8 @@ Get_GTF_file <- function(reference_path) {
     if (ah_genome != "") {
         fasta_file = ""
         genome <- .fetch_fasta_ah(ah_genome, 
-            exclude_scaffolds = exclude_scaffolds)
+            exclude_scaffolds = exclude_scaffolds,
+            verbose = TRUE)
     } else {
         fasta_file <- .fetch_fasta_file_validate(fasta)
         genome <- .fetch_fasta_file(fasta_file)
@@ -656,7 +657,8 @@ Get_GTF_file <- function(reference_path) {
     return(genome_2bit)
 }
 
-.fetch_fasta_ah <- function(ah_genome, exclude_scaffolds = TRUE) {
+.fetch_fasta_ah <- function(ah_genome, exclude_scaffolds = TRUE, 
+        verbose = verbose) {
     if(substr(ah_genome, 1, 2) != "AH") {
         .log("Given genome AnnotationHub reference is incorrect")
     }
