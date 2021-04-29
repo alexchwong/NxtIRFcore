@@ -33,11 +33,9 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
     
     # Dissect Experiment:
     if(ncol(Experiment) < 2 || ncol(Experiment) > 3) {
-        stop(paste(
-            "Experiment must be a 2- or 3- column data frame,",
+        .log(paste("Experiment must be a 2- or 3- column data frame,",
             "with the columns denoting sample name, fastq file (forward),",
-            "and (optionally) fastq file (reverse)"
-        ), call. = FALSE)
+            "and (optionally) fastq file (reverse)"))
     } else if(ncol(Experiment) == 2) {
         colnames(Experiment) = c("sample", "forward")
         fastq_1 = Experiment[, "forward"]
@@ -117,9 +115,8 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
         if(two_pass && pass == 1) {
             SJ.files = Find_Samples(BAM_output_path, suffix = ".out.tab")
             if(nrow(SJ.files) == 0) {
-                stop(paste("In STAR two-pass,",
-                    "no SJ.out.tab files were found"
-                ), call. = FALSE)
+                .log(paste("In STAR two-pass,",
+                    "no SJ.out.tab files were found"))
             }
         }
         message(paste("Unloading STAR reference:", loaded_ref))
@@ -184,7 +181,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
 
 .validate_STAR_version <- function() {
     if(Sys.info()["sysname"] != "Linux") {
-        stop(paste("STAR only works on Linux"), call. = FALSE)
+        .log("STAR wrappers are only supported on Linux")
     }
     star_version = NULL
     tryCatch({
@@ -193,12 +190,11 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         star_version = NULL
     })
     if(is.null(star_version)) {
-        stop(paste("STAR is not installed"), call. = FALSE)
+        .log("STAR is not installed")
     }
     if(star_version < "2.5.0") {
-        stop(paste("STAR version < 2.5.0 is not supported;",
-            "current version:", star_version
-        ), call. = FALSE)
+        .log(paste("STAR version < 2.5.0 is not supported;",
+            "current version:", star_version))
     }
 }
 
@@ -209,7 +205,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
 .STAR_get_FASTA <- function(reference_path) {
     genome.fa = file.path(reference_path, "resource", "genome.fa")
     if(!file.exists(paste0(genome.fa, ".gz"))) {
-        stop(paste(paste0(genome.fa, ".gz"), "not found"), call. = FALSE)
+        .log(paste(paste0(genome.fa, ".gz"), "not found"))
     }
     gunzip(paste0(genome.fa, ".gz"), remove = FALSE)
     return(genome.fa)
@@ -218,7 +214,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
 .STAR_get_GTF <- function(reference_path) {
     transcripts.gtf = file.path(reference_path, "resource", "transcripts.gtf")
     if(!file.exists(paste0(transcripts.gtf, ".gz"))) {
-        stop(paste(paste0(transcripts.gtf, ".gz"), "not found"), call. = FALSE)
+        .log(paste(paste0(transcripts.gtf, ".gz"), "not found"))
     }
     gunzip(paste0(transcripts.gtf, ".gz"), remove = FALSE)
     return(transcripts.gtf)
@@ -228,16 +224,15 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
     if(!is_valid(fastq_2)) {
         # assume single
         if(!all(file.exists(fastq_1))) {
-            stop(paste("Some fastq files were not found"), call. = FALSE)
+            .log("Some fastq files were not found")
         }
     } else {
         if(length(fastq_2) != length(fastq_1)) {
-            stop(paste("There must be equal numbers of",
-                "forward and reverse fastq samples"
-            ), call. = FALSE)
+            .log(paste("There must be equal numbers of",
+                "forward and reverse fastq samples"))
         }
         if(!all(file.exists(fastq_1)) || !all(file.exists(fastq_2))) {
-            stop(paste("Some fastq files were not found"), call. = FALSE)
+            .log("Some fastq files were not found")
         }
     }
     paired = (length(fastq_1) == length(fastq_2))
@@ -249,16 +244,15 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
             (paired && any(grepl(paste0("\\", ".gz", "$"), fastq_2)))
         )
     ) {
-        stop(paste("A mixture of gzipped and uncompressed",
+        .log(paste("A mixture of gzipped and uncompressed",
             "fastq files found.", "You must supply either all",
-            "gzipped or all uncompressed fastq files"), call. = FALSE)
+            "gzipped or all uncompressed fastq files"))
     }
 }
 
 .validate_STAR_trim_sequence <- function(sequence) {
     if(length(sequence) != 1) {
-        stop(paste("Multiple adaptor sequences are not supported"),
-        call. = FALSE)
+        .log("Multiple adaptor sequences are not supported")
     }
     tryCatch({
         ACGT_sum = sum(Biostrings::letterFrequency(
@@ -266,7 +260,6 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
             letters = "AGCT", OR = 0))
     }, error = function(e) ACGT_sum = 0)
     if(nchar(sequence) != ACGT_sum) {
-        stop(paste("Adaptor sequence can only contain A, C, G or T"),
-        call. = FALSE)
+        .log("Adaptor sequence can only contain A, C, G or T")
     }
 }

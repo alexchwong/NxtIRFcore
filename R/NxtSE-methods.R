@@ -279,7 +279,7 @@ vector_withDimnames <- function(x, vector) {
         return(vector)
     }
     if (is.null(x_dimnames) || any(is.na(x_dimnames))) {
-        stop("Some sample names in NxtSE have null values")
+        .log("Some sample names in NxtSE have null values")
     }
     vector[x_dimnames]
 }
@@ -291,7 +291,7 @@ sampleQC_withDimnames <- function(x, df) {
         return(df)
     }
     if (is.null(x_dimnames) || any(is.na(x_dimnames))) {
-        stop("Some sample names in NxtSE have null values")
+        .log("Some sample names in NxtSE have null values")
     }
     df[x_dimnames,,drop=FALSE]
 }
@@ -389,7 +389,7 @@ setMethod("realize_NxtSE", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
 #' @export
 setReplaceMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
-        stop("replacement 'up_inc' value must be a matrix or DelayedMatrix")
+        .log("replacement 'up_inc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -403,7 +403,7 @@ setReplaceMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
 #' @export
 setReplaceMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
-        stop("replacement 'down_inc' value must be a matrix or DelayedMatrix")
+        .log("replacement 'down_inc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -416,7 +416,7 @@ setReplaceMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
 #' @export
 setReplaceMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
-        stop("replacement 'up_exc' value must be a matrix or DelayedMatrix")
+        .log("replacement 'up_exc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)
@@ -429,7 +429,7 @@ setReplaceMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
 #' @export
 setReplaceMethod("down_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
-        stop("replacement 'down_exc' value must be a matrix or DelayedMatrix")
+        .log("replacement 'down_exc' value must be a matrix or DelayedMatrix")
     }
     if(withDimnames) {
         value <- assay_withDimnames(x, value)

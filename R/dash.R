@@ -20,9 +20,8 @@
 nxtIRF <- function(mode = c("dialog", "browser"), 
         width = 1600, height = 900) {
     if(!interactive()) {
-        stop(paste("In nxtIRF(),",
-            "NxtIRF App can only be run in interactive mode (i.e. RStudio)."
-        ), call. = FALSE)
+        .log(paste("In nxtIRF(),",
+            "NxtIRF App can only be run in interactive mode (i.e. RStudio)."))
     }
     mode = match.arg(mode)
     ui_dash <- dashboardPage(

@@ -75,13 +75,11 @@
         # Check IRFinder returns all files successfully
 
         if(!file.exists(file_gz)) {
-            stop(paste(
-                "IRFinder failed to produce", file_gz
-            ), call. = FALSE)
+            .log(paste(
+                "IRFinder failed to produce", file_gz))
         } else if(!file.exists(file_cov)) {
-            stop(paste(
-                "IRFinder failed to produce", file_cov
-            ), call. = FALSE)
+            .log(paste(
+                "IRFinder failed to produce", file_cov))
         } else {
             message(paste("IRFinder processed", bam_short))
         }
@@ -151,35 +149,27 @@
 
 .irfinder_validate_args <- function(s_bam, s_ref, max_threads, output_files) {
     if(max_threads != 1 && max_threads > parallel::detectCores() - 1) {
-        stop(paste("In .run_IRFinder(), ",
-            max_threads, " threads is not allowed for this system"
-        ), call. = FALSE)
+        .log(paste("In .run_IRFinder(), ",
+            max_threads, " threads is not allowed for this system"))
     }
     if(!all(file.exists(s_bam))) {
-        stop(paste("In .run_IRFinder(), ",
-            paste(
-                unique(s_bam[!file.exists(s_bam)]),
-                collapse = ""
-            ),
-            " - files not found"
-        ), call. = FALSE)
+        .log(paste("In .run_IRFinder(), ",
+            paste(unique(s_bam[!file.exists(s_bam)]),
+                collapse = ""),
+            " - files not found"))
     }    
 
     if(!all(dir.exists(dirname(output_files)))) {
-        stop(paste("In .run_IRFinder(), ",
-            paste(
-                unique(dirname(
+        .log(paste("In .run_IRFinder(), ",
+            paste(unique(dirname(
                     output_files[!dir.exists(dirname(output_files))])),
-                collapse = ""
-            ),
-            " - directories not found"
-        ), call. = FALSE)
+                collapse = ""),
+            " - directories not found"))
     }
 
     if(!(length(s_bam) == length(output_files))) {
-        stop(paste("In .run_IRFinder(), ",
-            "Number of output files and bam files must be the same"
-        ), call. = FALSE)
+        .log(paste("In .run_IRFinder(), ",
+            "Number of output files and bam files must be the same"))
     }
     return(TRUE)
 }
@@ -199,9 +189,8 @@ run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file,
         threshold = 4, includeCov = FALSE) {
     s_bam = normalizePath(bamfile)
     if(!file.exists(s_bam)) {
-        stop(paste("In run_IRFinder_MapExclusionRegions(),",
-            s_bam, "does not exist"
-        ), call. = FALSE)
+        .log(paste("In run_IRFinder_MapExclusionRegions(),",
+            s_bam, "does not exist"))
     }
     return(
         IRF_GenerateMappabilityRegions(s_bam, 
@@ -214,14 +203,12 @@ run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file,
 run_Gunzip = function(infile = "", outfile) {
     file_to_read = normalizePath(infile)
     if(!file.exists(file_to_read)) {
-        stop(paste("In run_Gunzip(),",
-            file_to_read, "does not exist"
-        ), call. = FALSE)
+        .log(paste("In run_Gunzip(),",
+            file_to_read, "does not exist"))
     }
     if(!dir.exists(dirname(outfile))) {
-        stop(paste("In run_Gunzip(),",
-            dirname(outfile), "does not exist"
-        ), call. = FALSE)
+        .log(paste("In run_Gunzip(),",
+            dirname(outfile), "does not exist"))
     }
     IRF_gunzip(file_to_read, outfile)
 }
@@ -230,9 +217,8 @@ get_multi_DT_from_gz = function(infile = "",
         block_headers = c("Header1", "Header2")) {
     file_to_read = normalizePath(infile)
     if(!file.exists(file_to_read)) {
-        stop(paste("In get_multi_DT_from_gz(),",
-            file_to_read, "does not exist"
-        ))
+        .log(paste("In get_multi_DT_from_gz(),",
+            file_to_read, "does not exist"))
     }
     df.list = IRF_gunzip_DF(file_to_read, block_headers)
     for(i in seq_len(length(df.list))) {
@@ -274,16 +260,14 @@ get_multi_DT_from_gz = function(infile = "",
 #' @export
 GetCoverage <- function(file, seqname = "", start = 0, end = 0, strand = 2) {
     if(!(as.numeric(strand) %in% c(0,1,2))) {
-        stop(paste("In GetCoverage(),",
-            "Invalid strand. Must be either 0 (+), 1 (-) or 2(*)"
-        ), call. = FALSE)
+        .log(paste("In GetCoverage(),",
+            "Invalid strand. Must be either 0 (+), 1 (-) or 2(*)"))
     }
     if(!is.numeric(start) || !is.numeric(end) || 
             (as.numeric(start) > as.numeric(end)) || 
             as.numeric(end) == 0) {
-        stop(paste("In GetCoverage(),",
-            "Null or negative regions not allowed"
-        ), call. = FALSE)
+        .log(paste("In GetCoverage(),",
+            "Null or negative regions not allowed"))
     }
 
     if(seqname == "") {

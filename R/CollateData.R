@@ -50,15 +50,13 @@
 Find_Samples <- function(sample_path, suffix = ".txt.gz", 
             suffix_type = "path", use_subdir = FALSE) {
     if(!dir.exists(sample_path)) {
-        stop(paste("In Find_Samples(),",
-            sample_path, "- given path does not exist"
-        ), call. = FALSE)
+        .log(paste("In Find_Samples(),",
+            sample_path, "- given path does not exist"))
     }
     if(length(suffix) == 0 || length(suffix) != length(suffix_type)) {
-        stop(paste("In Find_Samples(),",
+        .log(paste("In Find_Samples(),",
             "suffix must be of length greater than zero",
-            "and same length as suffix_type"
-        ), call. = FALSE)
+            "and same length as suffix_type"))
     }
     DT.list = list()
     for(i in seq_len(length(suffix))) {
@@ -167,19 +165,16 @@ IRFinder <- function(
         verbose = FALSE
         ) {
     if(length(bamfiles) != length(sample_names)) {
-        stop(paste("In IRFinder,",
-            "Number of BAM files and sample names must be the same"
-        ), call. = FALSE)
+        .log(paste("In IRFinder,",
+            "Number of BAM files and sample names must be the same"))
     }
     if(!all(file.exists(bamfiles))) {
-        stop(paste("In IRFinder,",
-            "some BAMs in bamfiles do not exist"
-        ), call. = FALSE)
+        .log(paste("In IRFinder,",
+            "some BAMs in bamfiles do not exist"))
     }
     if(!dir.exists(dirname(output_path))) {
-        stop(paste("In IRFinder,",
-            dirname(output_path), " - path does not exist"
-        ), call. = FALSE)
+        .log(paste("In IRFinder,",
+            dirname(output_path), " - path does not exist"))
     }
     if(!dir.exists(output_path)) dir.create(output_path)
 
@@ -266,9 +261,8 @@ CollateData <- function(Experiment, reference_path, output_path,
 
     IRMode = match.arg(IRMode)
     if(IRMode == "") {
-        stop(paste("In CollateData(),",
-            "IRMode must be either 'SpliceOverMax' (default) or 'SpliceMax'"
-        ), call. = FALSE)
+        .log(paste("In CollateData(),",
+            "IRMode must be either 'SpliceOverMax' (default) or 'SpliceMax'"))
     }
     N <- 8
     dash_progress("Validating Experiment; checking COV files...", N)
@@ -436,23 +430,20 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
 
 .collateData_validate <- function(Experiment, reference_path, output_path) {
     if(!is(Experiment, "data.frame")) {
-        stop(paste("In CollateData(),",
-            "Experiment object needs to be a data frame"
-        ), call. = FALSE)
+        .log(paste("In CollateData(),",
+            "Experiment object needs to be a data frame"))
     }
     if(ncol(Experiment) < 2) {
-        stop(paste("In CollateData(),",
+        .log(paste("In CollateData(),",
             "Experiment needs to contain at least two columns,",
             "with the first 2 columns containing",
-            "(1) sample name and (2) IRFinder output"
-        ), call. = FALSE)
+            "(1) sample name and (2) IRFinder output"))
     }
     .validate_reference(reference_path)
     if(!dir.exists(dirname(output_path))) {
-        stop(paste("In CollateData(),",
+        .log(paste("In CollateData(),",
             "Parent directory of output path:", 
-            dirname(output_path), "needs to exist"
-        ), call. = FALSE)
+            dirname(output_path), "needs to exist"))
     }
     base_output_path = normalizePath(dirname(output_path)) 
     norm_output_path = file.path(base_output_path, basename(output_path))
@@ -493,14 +484,12 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     Experiment = as.data.frame(Experiment)
     colnames(Experiment)[c(1,2)] = c("sample", "path")
     if(!all(vapply(Experiment$path, file.exists, logical(1)))) {
-        stop(paste("In CollateData(),",
-            "Some files in Experiment do not exist"
-        ), call. = FALSE)
+        .log(paste("In CollateData(),",
+            "Some files in Experiment do not exist"))
     }
     if(length(Experiment$sample) != length(unique(Experiment$sample))) {
-        stop(paste("In CollateData(),",
-            "Repeated sample names are not allowed"
-        ), call. = FALSE)
+        .log(paste("In CollateData(),",
+            "Repeated sample names are not allowed"))
     }
 
     df.internal = as.data.table(Experiment[,c(1,2)])
@@ -745,11 +734,10 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     ))
     irf.md5.check = unique(unlist(irf.list))
     if(length(irf.md5.check) > 1) {
-        stop(paste(
+        .log(paste(
             "MD5 check of IRFinder introns are not the same.",
             "Perhaps some samples were processed by a different reference.",
-            "NxtIRF needs all samples to be processed by the same reference"
-        ), call. = FALSE)
+            "NxtIRF needs all samples to be processed by the same reference"))
     }
     irf = fst::read.fst(file.path(temp_output_path, 
         paste(df.internal$sample[1], "irf.fst.tmp", sep=".")),
@@ -2078,31 +2066,27 @@ loadTranscripts <- function(reference_path) {
         # ), call. = FALSE)
     # }
     if(!file.exists(file.path(collate_path, "colData.Rds"))) {
-        stop(paste("In MakeSE():",
+        .log(paste("In MakeSE():",
             file.path(collate_path, "colData.Rds"),
-            "was not found"
-        ), call. = FALSE)
+            "was not found"))
     }
     colData.Rds = readRDS(file.path(collate_path, "colData.Rds"))
     if(!("df.anno" %in% names(colData.Rds))) {
-        stop(paste("In MakeSE():",
+        .log(paste("In MakeSE():",
             file.path(collate_path, "colData.Rds"),
-            "must contain df.anno containing annotations"
-        ), call. = FALSE)
+            "must contain df.anno containing annotations"))
     }
     if(missing(colData)) {    
         colData = colData.Rds$df.anno
     } else {
         if(!("sample" %in% colnames(colData))) {
-            stop(paste("In MakeSE():",
+            .log(paste("In MakeSE():",
                 "'sample' must be the name of the first column",
-                "in colData, containing sample names"
-            ), call. = FALSE)
+                "in colData, containing sample names"))
         }
         if(!all(colData$sample %in% colData.Rds$df.anno$sample)) {
-            stop(paste("In MakeSE():",
-                "some samples in colData were not found in given path"
-            ), call. = FALSE)
+            .log(paste("In MakeSE():",
+                "some samples in colData were not found in given path"))
         }
     }
     colData = as.data.frame(colData)
@@ -2611,31 +2595,26 @@ apply_filters <- function(se, filters) {
     # a filtered se can be made using:
     #       se.filtered = se[apply_filters(se, filters),]
     if(!is(filters, "list")) {
-        stop(paste("In apply_filters(),",
-            "filters must be a list"
-        ), call. = FALSE)
+        .log(paste("In apply_filters(),",
+            "filters must be a list"))
     }
     for(i in seq_len(length(filters))) {
         if(!("filterVars" %in% names(filters[[i]]))) {
-            stop(paste("In apply_filters(),",
-                "filterVars is missing from filters @ index #", i
-            ), call. = FALSE)
+            .log(paste("In apply_filters(),",
+                "filterVars is missing from filters @ index #", i))
         }
         if(!("filterClass" %in% names(filters[[i]]))) {
-            stop(paste("In apply_filters(),",
-                "filterClass is missing from filters @ index #", i
-            ), call. = FALSE)
+            .log(paste("In apply_filters(),",
+                "filterClass is missing from filters @ index #", i))
         }
         if(!("filterType" %in% names(filters[[i]]))) {
-            stop(paste("In apply_filters(),",
-                "filterType is missing from filters @ index #", i
-            ), call. = FALSE)
+            .log(paste("In apply_filters(),",
+                "filterType is missing from filters @ index #", i))
         }
     }
     if(!is(se, "NxtSE")) {
-        stop(paste("In apply_filters(),",
-            "se must be a NxtSE object"
-        ), call. = FALSE)
+        .log(paste("In apply_filters(),",
+            "se must be a NxtSE object"))
     }
     filterSummary = rep(TRUE, nrow(se))
     for(i in seq_len(length(filters))) {
