@@ -101,6 +101,7 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                 fastq_1 = fastq_1, fastq_2 = fastq_2, 
                 trim_adaptor = trim_adaptor,
                 memory_mode = memory_mode,
+                additional_args = additional_args,
                 n_threads = n_threads)
         }
         if(two_pass && pass == 1) {
