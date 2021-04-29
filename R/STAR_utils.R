@@ -55,17 +55,29 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
         (!paired || all(grepl(paste0("\\", ".gz", "$"), fastq_2)))
     if(is_valid(trim_adaptor)) .validate_STAR_trim_sequence(trim_adaptor)
     
-    # system2(command = "STAR", args = c(
-        # "--genomeLoad", "LoadAndExit", "--genomeDir", STAR_ref_path
-    # ))
-    
     samples = unique(Experiment[, "sample"])
     SJ.files = NULL
     two_pass_genome = NULL
+    loaded_ref = NULL
     for(pass in seq_len(ifelse(two_pass, 2, 1))) {
         if(two_pass && pass == 1) message("STAR - first pass")
         if(two_pass && pass == 2) message("STAR - second pass")
+        if(pass == 1) {
+            ref = STAR_ref_path
+            system2(command = "STAR", args = c(
+                "--genomeLoad", "LoadAndExit", "--genomeDir", ref
+            ))
+            loaded_ref = ref
+        }
         for(i in seq_len(length(samples))) {
+            if(pass == 2 && !is.null(two_pass_genome) && is.null(loaded_ref)) {
+                ref = two_pass_genome
+                system2(command = "STAR", args = c(
+                    "--genomeLoad", "LoadAndExit", "--genomeDir", ref
+                ))
+                loaded_ref = ref        
+            }
+
             sample = samples[i]
             Expr_sample = Experiment[Experiment[, "sample"] == sample,]
             if(paired) {
@@ -75,7 +87,6 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                 fastq_1 = Experiment[, "forward"]
                 fastq_2 = Experiment[, "reverse"]
             }
-            ref = STAR_ref_path
             memory_mode = "LoadAndKeep"
             if(two_pass && pass == 1) {
                 additional_args = c("--outSAMtype", "None")
@@ -88,9 +99,6 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                     "_STARgenome")
                 SJ.files = NULL
                 memory_mode = "NoSharedMemory"
-            } else if(two_pass && pass == 2 && !is.null(two_pass_genome)) {
-                ref = two_pass_genome
-                additional_args = NULL
             } else {
                 additional_args = NULL
             }
@@ -103,7 +111,9 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                 memory_mode = memory_mode,
                 additional_args = additional_args,
                 n_threads = n_threads)
-        }
+                
+        } # end of FOR loop
+        
         if(two_pass && pass == 1) {
             SJ.files = Find_Samples(BAM_output_path, suffix = ".out.tab")
             if(nrow(SJ.files) == 0) {
@@ -113,13 +123,10 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
             }
         }
         system2(command = "STAR", args = c(
-            "--genomeLoad", "Remove", "--genomeDir", ref
+            "--genomeLoad", "Remove", "--genomeDir", loaded_ref
         ))
+        loaded_ref = NULL
     }
-
-    system2(command = "STAR", args = c(
-        "--genomeLoad", "Remove", "--genomeDir", ref
-    ))
 }
 
 #' @export
