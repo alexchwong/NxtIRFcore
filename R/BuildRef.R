@@ -273,9 +273,10 @@ GetReferenceResource <- function(
     .validate_path(reference_path, subdirs = "fst")
 
     chromosomes = .convert_chromosomes(convert_chromosome_names)
-    reference_data = .get_reference_data(
-        fasta_file, gtf_file, ah_genome, ah_transcriptome, 
-        reference_path, chromosomes)
+    reference_data = .get_reference_data(reference_path = reference_path,
+        fasta = fasta_file, gtf = gtf_file, 
+        ah_genome = ah_genome, ah_transcriptome = ah_transcriptome, 
+        chromosomes = chromosomes, overwrite_resource = overwrite_resource)
 }
 
 #' @describeIn BuildReference First calls \code{GetReferenceResource()}
@@ -303,10 +304,10 @@ BuildReference <- function(
     N <- 8
     dash_progress("Reading Reference Files", N)
     chromosomes = .convert_chromosomes(convert_chromosome_names)
-    reference_data = .get_reference_data(
-        fasta_file, gtf_file, ah_genome, ah_transcriptome, 
-        reference_path, chromosomes,
-        overwrite_resource)
+    reference_data = .get_reference_data(reference_path = reference_path,
+        fasta = fasta_file, gtf = gtf_file, 
+        ah_genome = ah_genome, ah_transcriptome = ah_transcriptome, 
+        chromosomes = chromosomes, overwrite_resource = overwrite_resource)
 
     dash_progress("Processing gtf file", N)
     reference_data$gtf_gr = .validate_gtf(reference_data$genome, 
@@ -537,13 +538,69 @@ Get_GTF_file <- function(reference_path) {
 ################################################################################
 # Sub
 
-.get_reference_data <- function(
+.get_reference_data <- function(reference_path,
+        fasta, gtf, ah_genome, ah_transcriptome,  
+        chromosomes = NULL, overwrite_resource = FALSE) {
+    # Validate arguments:
+    .get_reference_data_validate(fasta, gtf, ah_genome, 
+        ah_transcriptome, reference_path, 
+        chromosomes = NULL, overwrite_resource = FALSE)
+    # If resources already exist in 'resource', then recall these:
+    if(     !(is_valid(fasta) | is_valid(ah_genome) | 
+            is_valid(gtf) | is_valid(ah_transcriptome)) & 
+            !overwrite_resource) {
+        resource_path <- file.path(reference_path, "resource")
+        settings.file <- file.path(reference_path, "settings.Rds")
+        settings.list <- readRDS(settings.file)
+        if(!file.exists(file.path(resource_path, "genome.2bit"))) {
+            genome <- .fetch_fasta(reference_path = reference_path,
+                ah_genome = settings.list[["ah_genome"]], 
+                convert_chromosome_names = chromosomes)
+        } else {
+            genome <- TwoBitFile(file.path(resource_path, "genome.2bit"))
+        }
+        gtf_gr <- .fetch_gtf(
+            gtf = file.path(resource_path, "transcripts.gtf.gz"),
+            reference_path = reference_path, 
+            convert_chromosome_names = chromosomes
+        )
+        settings.list$chromosomes = chromosomes
+        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
+    } else {
+        genome <- .fetch_fasta(
+            reference_path = reference_path,
+            fasta = fasta, ah_genome = ah_genome,
+            convert_chromosome_names = chromosomes
+        )
+        gtf_gr <- .fetch_gtf(
+            gtf = gtf, ah_transcriptome = ah_transcriptome,
+            reference_path = reference_path, 
+            convert_chromosome_names = chromosomes
+        )
+        # Save Resource details to settings.Rds:
+        settings.list <- list(fasta_file = fasta, gtf_file = gtf,
+            ah_genome = ah_genome, ah_transcriptome = ah_transcriptome,
+            chromosomes = chromosomes, reference_path = reference_path
+        )
+        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
+    }
+    settings.list = readRDS(file.path(reference_path, "settings.Rds"))
+    final = list(
+        genome = genome, gtf_gr = gtf_gr,
+        fasta_file = settings.list$fasta_file,        
+        gtf_file = settings.list$gtf_file
+    )
+    return(final)
+}
+
+################################################################################
+.get_reference_data_validate <- function(
         fasta, gtf, ah_genome, ah_transcriptome, reference_path, 
         chromosomes = NULL, overwrite_resource = FALSE) {
 
-    # If resources already exist in 'resource', then recall these:
-    if(!(is_valid(fasta) | is_valid(ah_genome) | is_valid(gtf) | 
-            is_valid(ah_transcriptome)) & !overwrite_resource) {
+    if(     !(is_valid(fasta) | is_valid(ah_genome) | 
+            is_valid(gtf) | is_valid(ah_transcriptome)) & 
+            !overwrite_resource) {
         resource_path <- file.path(reference_path, "resource")
         settings.file <- file.path(reference_path, "settings.Rds")
         if(!file.exists(settings.file)) {
@@ -554,58 +611,18 @@ Get_GTF_file <- function(reference_path) {
             if(!is_valid(settings.list[["ah_genome"]])) {
                 .log(paste("Genome could not be found inside", reference_path))
             }
-            genome <- .fetch_fasta(reference_path = reference_path,
-                ah_genome = settings.list[["ah_genome"]], 
-                convert_chromosome_names = chromosomes)
-        } else {
-            genome <- TwoBitFile(file.path(resource_path, "genome.2bit"))
         }
         if(!file.exists(file.path(resource_path, "transcripts.gtf.gz"))) {
             .log(paste("Gene annotations (GTF) could not be found inside", 
                 reference_path))
         }
-        gtf_gr <- .fetch_gtf(
-            gtf = file.path(resource_path, "transcripts.gtf.gz"),
-            reference_path = reference_path, 
-            convert_chromosome_names = chromosomes
-        )
-        settings.list$chromosomes = chromosomes
-        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
     } else {
         if(!is_valid(fasta) & !is_valid(ah_genome)) {
             .log("At least one of fasta_file or ah_genome is required")
         } else if(!is_valid(gtf) & !is_valid(ah_transcriptome)) {
             .log("At least one of gtf_file or ah_transcriptome is required")        
         }
-        genome <- .fetch_fasta(
-            reference_path = reference_path,
-            fasta = fasta,
-            ah_genome = ah_genome,
-            convert_chromosome_names = chromosomes
-        )
-        gtf_gr <- .fetch_gtf(
-            gtf = gtf, ah_transcriptome = ah_transcriptome,
-            reference_path = reference_path, 
-            convert_chromosome_names = chromosomes
-        )
-        # Save Resource details to settings.Rds:
-        settings.list <- list(
-            fasta_file = fasta, 
-            gtf_file = gtf,
-            ah_genome = ah_genome, ah_transcriptome = ah_transcriptome,
-            chromosomes = chromosomes,
-            reference_path = reference_path
-        )
-        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
     }
-    settings.list = readRDS(file.path(reference_path, "settings.Rds"))
-    final = list(
-        genome = genome,
-        fasta_file = settings.list$fasta_file,
-        gtf_gr = gtf_gr,
-        gtf_file = settings.list$gtf_file
-    )
-    return(final)
 }
 
 ################################################################################
@@ -617,14 +634,14 @@ Get_GTF_file <- function(reference_path) {
         overwrite = FALSE) {
     if (ah_genome != "") {
         fasta_file = ""
-        genome <- .fetch_fasta_ah(ah_genome)
+        genome <- .fetch_fasta_ah(ah_genome, 
+            exclude_scaffolds = exclude_scaffolds)
     } else {
         fasta_file <- .fetch_fasta_file_validate(fasta)
         genome <- .fetch_fasta_file(fasta_file)
-    }
-    # Exclude scaffold chromosomes in FASTA files from Ensembl
-    if(exclude_scaffolds) {
-        genome = genome[!grepl("scaffold", names(genome))]
+        if(exclude_scaffolds) {
+            genome = genome[!grepl("scaffold", names(genome))]
+        }
     }
     # Convert chromosome names to appropriate
     genome <- .fetch_fasta_convert_chrom(genome, convert_chromosome_names)
@@ -639,13 +656,13 @@ Get_GTF_file <- function(reference_path) {
     return(genome_2bit)
 }
 
-.fetch_fasta_ah <- function(ah_genome) {
+.fetch_fasta_ah <- function(ah_genome, exclude_scaffolds = TRUE) {
     if(substr(ah_genome, 1, 2) != "AH") {
         .log("Given genome AnnotationHub reference is incorrect")
     }
     genome <- .fetch_AH(ah_genome, verbose = verbose, 
-            rdataclass = "TwoBitFile")
-    message("Importing genome into memory...")
+        rdataclass = "TwoBitFile", exclude_scaffolds = exclude_scaffolds)
+    message("Importing genome into memory...", appendLF = FALSE)
         genome = rtracklayer::import(genome)
     message("done")
     return(genome)
@@ -680,6 +697,29 @@ Get_GTF_file <- function(reference_path) {
         names(genome) = tstrsplit(names(genome), split = " ")[[1]]
     }
     return(genome)
+}
+
+.fetch_fasta_convert_chrom_species <- function(genome, species) {
+    db = GenomeInfoDb::genomeStyles("Homo sapiens")
+    use_species = NULL
+    for(test_species in sub("_", " ", names(db))) {
+        if(grepl(test_species, species, ignore.case = TRUE)) 
+            use_species = test_species
+    }
+    if(is.null(use_species)) return(genome)
+
+    infer_style <- GenomeInfoDb::seqlevelsStyle(genome)
+    if(length(infer_style) >= 1) {
+        infer_style = infer_style[1]
+        return(.fetch_fasta_convert_chrom(genome,
+            .convert_chromosomes(data.frame(
+                old = db[, infer_style],
+                new = db[, infer_style]
+            ))
+        ))
+    } else {
+        return(genome)
+    }
 }
 
 .fetch_fasta_save_fasta <- function(genome, reference_path, overwrite) {
@@ -795,7 +835,7 @@ Get_GTF_file <- function(reference_path) {
 
 .fetch_AH <- function(ah_record_name, rdataclass = c("GRanges", "TwoBitFile"),
         localHub = FALSE, ah = AnnotationHub(localHub = localHub), 
-        verbose = FALSE) {
+        exclude_scaffolds = TRUE, verbose = FALSE) {
     rdataclass = match.arg(rdataclass)
     if(!substr(ah_record_name, 1, 2) == "AH") {
         .log(paste(ah_record_name,
@@ -839,6 +879,10 @@ Get_GTF_file <- function(reference_path) {
         }
         twobit <- rtracklayer::TwoBitFile(cache_loc)
         if (verbose) message("done\n")
+        if(exclude_scaffolds) {
+            twobit <- .fetch_fasta_convert_chrom_species(
+                twobit, ah_record$species)
+        }
         return(twobit)
     }
 }
@@ -3446,37 +3490,24 @@ GenerateMappabilityReads <- function(fasta_file, reference_path,
         read_len = 70, read_stride = 10, error_pos = 35,
         verbose = TRUE) {
     .gmr_check_params(read_len, read_stride, error_pos)
-    if(missing(fasta_file)) fasta_file <- ""
-    ah_genome = .genmapreads_validate(fasta_file, reference_path)
-    genome <- NULL
-    if(!is_valid(fasta_file)) {
-        if (ah_genome != "") {
-            genome <- .fetch_AH(ah_genome, verbose = verbose, 
-                    rdataclass = "TwoBitFile")
-            fasta_file <- file.path(
-                reference_path, "resource",
-                paste(ah_genome, "fa", sep = "."))
-        } else if(file.exists(
-                file.path(reference_path, "resource", "genome.2bit"))){
-            genome <- rtracklayer::TwoBitFile(
-                file.path(reference_path, "resource", "genome.2bit"))
-            fasta_file <- file.path(
-                reference_path, "resource",
-                paste("genome", "fa", sep = "."))
+    if(missing(fasta_file)) {
+        if(!file.exists(file.path(reference_path,
+            "resource", "genome.fa.gz"))) {
+            .log(paste("Invalid NxtIRF resource", reference_path))
         }
-        if (verbose) message(paste("Preparing to export as", fasta_file))
-        # Write fasta to file
-        genome.DNA <- rtracklayer::import(genome)
-        gc()
-        genome.DNA <- Biostrings::replaceAmbiguities(genome.DNA)
-        gc()
-        rtracklayer::export(genome.DNA, fasta_file, "fasta")
-        if (verbose) message(paste("Successful export of", fasta_file))
-    }
-    if(!file.exists(fasta_file)) {
+        R.utils::gunzip(file.path(reference_path,
+            "resource", "genome.fa.gz"), overwrite=TRUE, remove=FALSE)
+        fasta_file = file.path(reference_path,
+            "resource", "genome.fa")
+        if(!file.exists(fasta_file)) {
+            .log(paste("In GenerateMappabilityReads,",
+                "failed to generate genome fasta file from given reference"))
+        }
+    } else if(!file.exists(fasta_file)) {
         .log(paste("In GenerateMappabilityReads,",
-            "failed to generate genome fasta file from given reference"))
+            "given fasta file", fasta_file, "not found"))
     }
+
     # Run map read generator:
     run_IRFinder_GenerateMapReads(
         normalizePath(fasta_file),
