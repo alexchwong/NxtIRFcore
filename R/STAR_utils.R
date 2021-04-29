@@ -207,7 +207,7 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
     if(!file.exists(paste0(genome.fa, ".gz"))) {
         .log(paste(paste0(genome.fa, ".gz"), "not found"))
     }
-    gunzip(paste0(genome.fa, ".gz"), remove = FALSE)
+    gunzip(paste0(genome.fa, ".gz"), remove = FALSE, overwrite = TRUE)
     return(genome.fa)
 }
 
