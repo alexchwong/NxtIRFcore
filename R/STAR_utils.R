@@ -141,11 +141,12 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
     # Load STAR reference
     
     # Remove duplication:
+    args = NULL
     if(!("--genomeLoad" %in% additional_args)) args = c("--genomeLoad", memory_mode)
     if(!("--runThreadN" %in% additional_args)) args = c(args,
         "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
     if(!("--genomeDir" %in% additional_args)) args = c(args, "--genomeDir", STAR_ref_path)
-    if(!("--outFileNamePrefix" %in% additional_args)) args = c("--outFileNamePrefix", 
+    if(!("--outFileNamePrefix" %in% additional_args)) args = c(args, "--outFileNamePrefix", 
         paste0(BAM_output_path, "/"))
     if(!("--outStd" %in% additional_args)) args = c(args, "--outStd", "Log")
     if(!("--outSAMstrandField" %in% additional_args)) args = c(args, "--outSAMstrandField", 
@@ -164,9 +165,9 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
     if(paired) args = c(args, paste(fastq_2, collapse = ","))
     if(gzipped) args = c(args, "--readFilesCommand", shQuote("gzip -dc"))
     if(is_valid(trim_adaptor)) args = c(args, "--clip3pAdapterSeq", trim_adaptor)
-    if(!is.null(additional_args) && all(is.character(additional_args))) {
-        args = c(args, additional_args)
-    }
+    if(!is.null(additional_args) && all(is.character(additional_args))) args = c(args, 
+        additional_args)
+
     system2(command = "STAR", args = args)
 }
 
