@@ -122,6 +122,7 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                 ), call. = FALSE)
             }
         }
+        message(paste("Unloading STAR reference:", loaded_ref))
         system2(command = "STAR", args = c(
             "--genomeLoad", "Remove", "--genomeDir", loaded_ref
         ))
