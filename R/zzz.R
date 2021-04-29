@@ -113,9 +113,8 @@ get_mappability_exclusion <- function(
             "Mappability_Regions_mm9_v67.txt.gz", sep="/"),    
             destination_path, hub = "AnnotationHub")    
     } else {
-        stop(paste("In get_mappability_exclusion():",
-            "genome_type = ", genome_type, "is not recogised"
-        ), call. = FALSE)
+        .log(paste("In get_mappability_exclusion():",
+            "genome_type = ", genome_type, "is not recogised"))
     }
 }
 
@@ -217,23 +216,20 @@ NxtIRF_example_NxtSE <- function() {
             BiocFileCache::bfcremove(bfc, test$rid)
             test <- BiocFileCache::bfcquery(bfc, url, field = "rname")
             if(length(test$rpath) > 0) {
-                stop(paste("Corrupt BiocFileCache for NxtIRF:",
-                    url, "multiple records exist and undeletable"
-                ), call. = FALSE)
+                .log(paste("Corrupt BiocFileCache for NxtIRF:",
+                    url, "multiple records exist and undeletable"))
             }
         }
         if(!bfc_only && length(test$rpath) < 1) {
             if(.check_if_url_exists(url)) {
                 path <- tryCatch(BiocFileCache::bfcrpath(bfc, url),
                 error = function(e) {
-                    stop(paste("Download from url failed:", url, 
-                        "- please check connection"
-                    ), call. = FALSE)
+                    .log(paste("Download from url failed:", url, 
+                        "- please check connection"))
                 })
             } else {
-                stop(paste("url not found:", url, 
-                    "- please check connection"
-                ), call. = FALSE)
+                .log(paste("url not found:", url, 
+                    "- please check connection"))
             }
         } else if(length(test$rpath) == 1) {
             path <- test$rpath

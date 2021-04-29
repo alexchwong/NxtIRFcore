@@ -412,9 +412,7 @@ Get_Genome <- function(reference_path, validate = TRUE) {
         genome = .fetch_AH(settings$ah_genome, 
             rdataclass = "TwoBitFile")
     } else {
-        stop(paste("In Get_Genome,",
-            "invalid reference_path supplied"
-        ), call. = FALSE)
+        .log("In Get_Genome, invalid reference_path supplied")
     }
     return(genome)
 }
@@ -425,9 +423,7 @@ Get_GTF_file <- function(reference_path) {
             "resource", "transcripts.gtf.gz"))) {
         return(file.path(reference_path, "resource", "transcripts.gtf.gz"))
     } else {
-        stop(paste("In Get_GTF_file,",
-            "invalid reference_path supplied"
-        ), call. = FALSE)
+        .log("In Get_GTF_file, invalid reference_path supplied")
     }
 }
 
@@ -436,12 +432,12 @@ Get_GTF_file <- function(reference_path) {
 
 .validate_genome_type <- function(genome_type) {
     if(genome_type != "") return(TRUE)
-    stop(paste("In BuildReference(),",
+    .log(paste("In BuildReference(),",
         "genome_type not specified.",
         "This should be either one of 'hg38', 'hg19', 'mm10', 'mm9', or",
         "'other'. If 'other', please provide a nonPolyARef file or leave",
         "blank to omit polyA profiling."
-    ), call. = FALSE)
+    ))
 }
 
 .validate_path <- function(reference_path, subdirs = NULL) {
@@ -456,9 +452,9 @@ Get_GTF_file <- function(reference_path) {
     }) {
         # continue
     } else {
-        stop(paste("Error in 'reference_path',",
+        .log(paste("Error in 'reference_path',",
             paste0("base path of '", reference_path, "' does not exist")
-        ), call. = FALSE)
+        ))
     }
 
     base <- normalizePath(dirname(reference_path))
@@ -481,31 +477,27 @@ Get_GTF_file <- function(reference_path) {
     from_str = ifelse(from == "", "", 
         paste("In function", from, ":"))
     if (!dir.exists(ref)) {
-        stop(paste(from_str,
-                "in reference_path =", reference_path,
-                ": this path does not exist"
-        ), call. = FALSE)
+        .log(paste(from_str,
+            "in reference_path =", reference_path,
+            ": this path does not exist"))
     }
     if (!file.exists(file.path(ref, "settings.Rds"))) {
-        stop(paste(from_str,
-                "in reference_path =", reference_path,
-                ": settings.Rds not found"
-        ), call. = FALSE)
+        .log(paste(from_str,
+            "in reference_path =", reference_path,
+            ": settings.Rds not found"))
     }    
     if (!file.exists(file.path(ref, "IRFinder.ref.gz"))) {
-        stop(paste(from_str,
-                "in reference_path =", reference_path,
-                ": IRFinder.ref.gz not found"
-        ), call. = FALSE)
+        .log(paste(from_str,
+            "in reference_path =", reference_path,
+            ": IRFinder.ref.gz not found"))
     }
     settings.list <- readRDS(file.path(ref, "settings.Rds"))
     if (!("BuildVersion" %in% names(settings.list)) ||
             settings.list[["BuildVersion"]] < buildref_version) {
-        stop(paste(from_str,
-                "in reference_path =", reference_path,
-                "NxtIRF reference is earlier than current version",
-                buildref_version
-        ), call. = FALSE)
+        .log(paste(from_str,
+            "in reference_path =", reference_path,
+            "NxtIRF reference is earlier than current version",
+            buildref_version))
     }     
 }
 
@@ -555,14 +547,12 @@ Get_GTF_file <- function(reference_path) {
         resource_path <- file.path(reference_path, "resource")
         settings.file <- file.path(reference_path, "settings.Rds")
         if(!file.exists(settings.file)) {
-            stop(paste("Invalid reference path:", reference_path),
-                call. = FALSE)        
+            .log(paste("Invalid reference path:", reference_path))     
         }
         settings.list <- readRDS(settings.file)
         if(!file.exists(file.path(resource_path, "genome.2bit"))) {
             if(!is_valid(settings.list[["ah_genome"]])) {
-                stop(paste("Genome could not be found inside", reference_path),
-                    call. = FALSE)
+                .log(paste("Genome could not be found inside", reference_path))
             }
             genome <- .fetch_fasta(reference_path = reference_path,
                 ah_genome = settings.list[["ah_genome"]], 
@@ -571,8 +561,8 @@ Get_GTF_file <- function(reference_path) {
             genome <- TwoBitFile(file.path(resource_path, "genome.2bit"))
         }
         if(!file.exists(file.path(resource_path, "transcripts.gtf.gz"))) {
-            stop(paste("Gene annotations (GTF) could not be found inside", 
-                reference_path), call. = FALSE)
+            .log(paste("Gene annotations (GTF) could not be found inside", 
+                reference_path))
         }
         gtf_gr <- .fetch_gtf(
             gtf = file.path(resource_path, "transcripts.gtf.gz"),
@@ -583,11 +573,9 @@ Get_GTF_file <- function(reference_path) {
         saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
     } else {
         if(!is_valid(fasta) & !is_valid(ah_genome)) {
-            stop("At least one of fasta_file or ah_genome is required",
-                call. = FALSE)
+            .log("At least one of fasta_file or ah_genome is required")
         } else if(!is_valid(gtf) & !is_valid(ah_transcriptome)) {
-            stop("At least one of gtf_file or ah_transcriptome is required",
-                call. = FALSE)        
+            .log("At least one of gtf_file or ah_transcriptome is required")        
         }
         genome <- .fetch_fasta(
             reference_path = reference_path,
@@ -653,8 +641,7 @@ Get_GTF_file <- function(reference_path) {
 
 .fetch_fasta_ah <- function(ah_genome) {
     if(substr(ah_genome, 1, 2) != "AH") {
-        stop("Given genome AnnotationHub reference is incorrect",
-            call. = FALSE)
+        .log("Given genome AnnotationHub reference is incorrect")
     }
     genome <- .fetch_AH(ah_genome, verbose = verbose, 
             rdataclass = "TwoBitFile")
@@ -667,10 +654,7 @@ Get_GTF_file <- function(reference_path) {
 .fetch_fasta_file_validate <- function(fasta) {
     fasta_file = .parse_valid_file(fasta)
     if(!file.exists(fasta_file)) {
-        stop(paste(
-            "Given genome fasta file", fasta_file,
-            "not found"
-        ),call. = FALSE)
+        .log(paste("Given genome fasta file", fasta_file, "not found"))
     }
     return(fasta_file)
 }
@@ -739,17 +723,15 @@ Get_GTF_file <- function(reference_path) {
     gtf_gr <- NULL
     if (ah_transcriptome != "") {
         if(substr(ah_transcriptome, 1, 2) != "AH") {
-            stop(paste("In .fetch_gtf(),",
-                "Given transcriptome AnnotationHub reference is incorrect"
-            ), call. = FALSE)
+            .log(paste("In .fetch_gtf(),",
+                "Given transcriptome AnnotationHub reference is incorrect"))
         }
         gtf_gr <- .fetch_AH(ah_transcriptome, verbose = verbose)
     } else {
         gtf_file = .parse_valid_file(gtf)
         if(!file.exists(gtf_file)) {
-            stop(paste("In .fetch_gtf(),",
-                "Given transcriptome gtf file", gtf, "not found"
-            ), call. = FALSE)
+            .log(paste("In .fetch_gtf(),",
+                "Given transcriptome gtf file", gtf, "not found"))
         }
         message("Reading source GTF file...", appendLF = FALSE)
         gtf_gr <- rtracklayer::import(gtf_file, "gtf")
@@ -767,9 +749,8 @@ Get_GTF_file <- function(reference_path) {
     r_path = file.path(reference_path, "resource")
     rtracklayer::export(gtf_gr, file.path(r_path, "transcripts.gtf"), "gtf")
     if(!file.exists(file.path(r_path, "transcripts.gtf"))) {
-        stop(paste("In .fetch_gtf(),",
-            "Unable to save local copy of gene annotations"
-        ), call. = FALSE)
+        .log(paste("In .fetch_gtf(),",
+            "Unable to save local copy of gene annotations"))
     }
     if(!file.exists(file.path(r_path, "transcripts.gtf.gz"))) {
         message("Compressing GTF file...", appendLF = FALSE)
@@ -788,10 +769,9 @@ Get_GTF_file <- function(reference_path) {
 .validate_gtf <- function(genome, gtf_gr) {
     chrOrder <- names(seqinfo(genome))
     if(!any(as.character(GenomicRanges::seqnames(gtf_gr)) %in% chrOrder)) {
-        stop(paste("In .validate_gtf(),",
+        .log(paste("In .validate_gtf(),",
             "Chromosomes in genome and gene annotation does not match",
-            "likely incompatible FASTA and GTF file"
-        ), call. = FALSE)
+            "likely incompatible FASTA and GTF file"))
     }
     seqlevels(gtf_gr, pruning.mode = "tidy") <- chrOrder
     return(gtf_gr)
@@ -818,22 +798,19 @@ Get_GTF_file <- function(reference_path) {
         verbose = FALSE) {
     rdataclass = match.arg(rdataclass)
     if(!substr(ah_record_name, 1, 2) == "AH") {
-        stop(paste(ah_record_name,
-            "does not appear to be a valid AnnotationHub record name"
-        ), call. = FALSE)
+        .log(paste(ah_record_name,
+            "does not appear to be a valid AnnotationHub record name"))
     }
     if(!(ah_record_name %in% names(ah))) {
-        stop(paste(ah_record_name,
+        .log(paste(ah_record_name,
             "is not found in AnnotationHub index.",
-            "Perhaps check online connection or record name"
-        ), call. = FALSE)
+            "Perhaps check online connection or record name"))
     }
     ah_record <- ah[names(ah) == ah_record_name]
     if(ah_record$rdataclass != rdataclass) {
-        stop(paste(ah_record_name,
+        .log(paste(ah_record_name,
             "is of type", ah_record$rdataclass,
-            "and not of expected:", rdataclass
-        ), call. = FALSE)
+            "and not of expected:", rdataclass))
     }
     if (verbose) {
         message("Downloading asset from AnnotationHub, if required...",
@@ -843,9 +820,7 @@ Get_GTF_file <- function(reference_path) {
     cache_loc <- AnnotationHub::cache(ah_record)
     if (verbose) message("done")
     if(!file.exists(cache_loc)) {
-        stop(paste(
-            "AnnotationHub cache error - asset not found"
-        ), call. = FALSE)
+        .log("AnnotationHub cache error - asset not found")
     }   
     if (ah_record$rdataclass == "GRanges") {
         if (verbose) {
@@ -954,7 +929,7 @@ Get_GTF_file <- function(reference_path) {
         Genes$type = "gene"
         Genes = .grDT(Genes, keep.extra.columns = TRUE)
         if(length(Genes) == 0) {
-            stop("No genes detected in reference!")
+            .log("No genes detected in reference!")
         }
     }
     Genes <- GenomeInfoDb::sortSeqlevels(Genes)
@@ -1013,7 +988,7 @@ Get_GTF_file <- function(reference_path) {
         Transcripts$type = "transcript"
         Transcripts = .grDT(Transcripts, keep.extra.columns = TRUE)
         if(length(Transcripts) == 0) {
-            stop("No transcripts detected in reference!")
+            .log("No transcripts detected in reference!")
         }
     }
     Transcripts <- GenomeInfoDb::sortSeqlevels(Transcripts)
@@ -1051,7 +1026,7 @@ Get_GTF_file <- function(reference_path) {
     # Proteins
     Proteins <- gtf_gr[gtf_gr$type == "CDS"]
     if(length(Proteins) == 0) {
-        stop("No CDS (proteins) detected in reference!")
+        .log("No CDS (proteins) detected in reference!")
     }
     Proteins <- GenomeInfoDb::sortSeqlevels(Proteins)
     Proteins <- sort(Proteins)
@@ -1062,7 +1037,7 @@ Get_GTF_file <- function(reference_path) {
     # Misc
     gtf.misc <- gtf_gr[!gtf_gr$type %in% c("gene", "transcript", "exon", "CDS")]
     if(length(gtf.misc) == 0) {
-        stop("No start / stop codons detected in reference!")
+        .log("No start / stop codons detected in reference!")
     }
     gtf.misc <- GenomeInfoDb::sortSeqlevels(gtf.misc)
     gtf.misc <- sort(gtf.misc)
@@ -1075,7 +1050,7 @@ Get_GTF_file <- function(reference_path) {
 .process_gtf_exons <- function(gtf_gr, reference_path, Genes_group) {
     Exons <- gtf_gr[gtf_gr$type == "exon"]
     if(length(Exons) == 0) {
-        stop("No exons detected in reference!")
+        .log("No exons detected in reference!")
     }
     Exons <- GenomeInfoDb::sortSeqlevels(Exons)
     Exons <- sort(Exons)
@@ -3499,9 +3474,8 @@ GenerateMappabilityReads <- function(fasta_file, reference_path,
         if (verbose) message(paste("Successful export of", fasta_file))
     }
     if(!file.exists(fasta_file)) {
-        stop(paste("In GenerateMappabilityReads,",
-            "failed to generate genome fasta file from given reference"
-        ), call. = FALSE)
+        .log(paste("In GenerateMappabilityReads,",
+            "failed to generate genome fasta file from given reference"))
     }
     # Run map read generator:
     run_IRFinder_GenerateMapReads(
@@ -3513,29 +3487,24 @@ GenerateMappabilityReads <- function(fasta_file, reference_path,
 
 .gmr_check_params <- function(read_len, read_stride, error_pos) {
     if(!is.numeric(read_len) || read_len < 30) {
-        stop(paste("In GenerateMappabilityReads,",
-            "read_len must be numerical and at least 30"
-        ), call. = FALSE)
+        .log(paste("In GenerateMappabilityReads,",
+            "read_len must be numerical and at least 30"))
     }
     if(!is.numeric(read_stride) || read_stride > read_len) {
-        stop(paste("In GenerateMappabilityReads,",
-            "read_stride must be numerical and less than read_len"
-        ), call. = FALSE)
+        .log(paste("In GenerateMappabilityReads,",
+            "read_stride must be numerical and less than read_len"))
     }
     if(!is.numeric(error_pos) || error_pos > read_len) {
-        stop(paste("In GenerateMappabilityReads,",
-            "error_pos must be numerical and less than read_len"
-        ), call. = FALSE)
+        .log(paste("In GenerateMappabilityReads,",
+            "error_pos must be numerical and less than read_len"))
     }
 }
 
 .genmapreads_validate <- function(fasta, reference_path) {
     ah_genome = ""
     if (!dir.exists(dirname(reference_path))) {
-        stop(paste("In GenerateMappabilityReads",
-            dirname(reference_path),
-            "does not exist"
-        ), call. = FALSE)
+        .log(paste("In GenerateMappabilityReads",
+            dirname(reference_path), "does not exist"))
     }
     if(file.exists(fasta)) {
         if({
@@ -3544,31 +3513,26 @@ GenerateMappabilityReads <- function(fasta_file, reference_path,
                 FALSE
             }, error = function(e) TRUE)
         }) {
-            stop(paste("In GenerateMappabilityReads",
-                fasta,
-                "does not appear to be a valid FASTA file"
-            ), call. = FALSE)
+            .log(paste("In GenerateMappabilityReads",
+                fasta, "does not appear to be a valid FASTA file"))
         }
     } else {
         if (!file.exists(file.path(reference_path, "settings.Rds"))) {
-            stop(paste("In GenerateMappabilityReads",
+            .log(paste("In GenerateMappabilityReads",
                 "settings.Rds is not found.",
-                "Run GetReferenceResource() first or supply a FASTA file"
-            ), call. = FALSE)
+                "Run GetReferenceResource() first or supply a FASTA file"))
         }
         settings.Rds = readRDS(file.path(reference_path, "settings.Rds"))
         ah_genome = settings.Rds[["ah_genome"]]
         if (ah_genome != "" && substr(ah_genome, 1, 2) != "AH") {
-            stop(paste("In GenerateMappabilityReads",
-                ah_genome, "is not a valid AnnotationHub record name"
-            ), call. = FALSE)
+            .log(paste("In GenerateMappabilityReads",
+                ah_genome, "is not a valid AnnotationHub record name"))
         } else if(ah_genome == "" && !file.exists(
                 file.path(reference_path, "resource", "genome.2bit"))) {
-            stop(paste("In GenerateMappabilityReads",
+            .log(paste("In GenerateMappabilityReads",
                 "resource/genome.2bit", "was not found in", reference_path,
                 ". Perhaps run GetReferenceResource() again or supply",
-                "a FASTA file"
-            ), call. = FALSE)
+                "a FASTA file"))
         }
     }
     if (!dir.exists(file.path(reference_path))) {
@@ -3587,14 +3551,12 @@ GenerateMappabilityReads <- function(fasta_file, reference_path,
 GenerateMappabilityBED <- function(aligned_bam = "", 
         output_file, threshold = 4) {
     if(!file.exists(aligned_bam)) {
-        stop(paste("In GenerateMappabilityBED(),",
-            aligned_bam, "BAM file does not exist"
-        ), call. = FALSE)
+        .log(paste("In GenerateMappabilityBED(),",
+            aligned_bam, "BAM file does not exist"))
     }
     if(!dir.exists(dirname(output_file))) {
-        stop(paste("In GenerateMappabilityBED(),",
-            dirname(output_file), "directory does not exist"
-        ), call. = FALSE)
+        .log(paste("In GenerateMappabilityBED(),",
+            dirname(output_file), "directory does not exist"))
     }
     return(
         run_IRFinder_MapExclusionRegions(

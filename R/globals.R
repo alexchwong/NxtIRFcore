@@ -11,6 +11,17 @@ is_valid <- function(x) {
         (!is.character(x) || (x != "" && x != "(none)"))
 }
 
+.log <- function(msg = "", type = c("error", "warning", "silent", "message")) {
+    type = match.arg(type)
+    if(type == "error") {
+        stop(msg, call. = FALSE)
+    } else if(type == "warning") {
+        warning(msg)
+    } else {
+        message(msg)
+    }
+}
+
 #' Converts an IGV-style coordinate to a GenomicRanges object
 #'
 #' IGV-style coordinates typically have the syntax 
@@ -48,36 +59,16 @@ NxtIRF.CheckPackageInstalled <- function(
         error = function(e) FALSE)
     if(!res) {
         returntype = match.arg(returntype)
-        if(returntype == "error") {
-            stop(paste(
-                package, "version", version, "is not installed;",
-                "and is required for this function"
-            ), call. = FALSE)
-        } else if(returntype == "warning") {
-            warning(paste(
-                package, "version", version, "is not installed;",
-                "and is required for this function"
-            ))
-            return(FALSE)
-        } else {
-            return(FALSE)
-        }
-    } else {
-        return(TRUE)
+        .log(paste(package, "version", version, "is not installed;",
+            "and is required for this function"), type = returntype)
     }
+    return(res)
 }
 
 .validate_threads <- function(n_threads, as_BPPARAM = TRUE, ...) {
     n_threads_to_use = as.numeric(n_threads)
     if(is.na(n_threads_to_use)) {
-        stop(paste(
-            "n_threads must be a numeric value"
-        ), call. = FALSE)
-    }
-    if(is.na(n_threads_to_use)) {
-        stop(paste(
-            "n_threads must be a numeric value"
-        ), call. = FALSE)
+        .log("n_threads must be a numeric value")
     }
     if(n_threads_to_use > (parallel::detectCores() - 2) ) {
         n_threads_to_use = max(1, parallel::detectCores() - 2)
@@ -99,15 +90,11 @@ NxtIRF.CheckPackageInstalled <- function(
 
 NxtIRF.SplitVector <- function(vector = "", n_workers = 1) {
     if(!is.numeric(n_workers) || n_workers < 1) {
-        stop(paste(
-            "n_workers must be at least 1"
-        ), call. = FALSE)
+        .log("n_workers must be at least 1")
     }
     n_workers_use = as.integer(n_workers)
     if(length(vector) < 1) {
-        stop(paste(
-            "vector to split must be of length at least 1"
-        ), call. = FALSE)
+        .log("vector to split must be of length at least 1")
     }
     
     if(n_workers_use > length(vector)) n_workers_use = length(vector)
@@ -197,9 +184,7 @@ theme_white_legend = theme(axis.line.x = element_line(colour = "black"),
 
 dash_progress <- function(message = "", total_items = 1, add_msg = FALSE) {
     if(total_items != round(total_items) | total_items < 1) {
-        stop(paste(
-            "dash_progress needs at least 1 item"
-        ), call. = FALSE)
+        .log("dash_progress needs at least 1 item")
     }
     if(add_msg) {
         message(message)
