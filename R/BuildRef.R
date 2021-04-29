@@ -444,7 +444,7 @@ Get_GTF_file <- function(reference_path) {
     ), call. = FALSE)
 }
 
-.validate_path <- function(reference_path, subdirs = "fst") {
+.validate_path <- function(reference_path, subdirs = NULL) {
     if({
         reference_path != "" &&
         tryCatch(
