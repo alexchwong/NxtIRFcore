@@ -148,12 +148,14 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         "--outFileNamePrefix", paste0(BAM_output_path, "/"),
         "--outStd", "Log",      # Not Bam_Unsorted
         
-        "--outSAMtype", "BAM", "Unsorted", 
         "--outSAMstrandField", "intronMotif",
         "--outSAMunmapped", "None",
 
         "--outFilterMultimapNmax", "1"
     )
+    if(!("--outSAMtype" %in% additional_args)) {
+        args = c(args, "--outSAMtype", "BAM", "Unsorted")
+    }
     if(two_pass) {
         args = c(args, "--twopassMode", "Basic")
     }
