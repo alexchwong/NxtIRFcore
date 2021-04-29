@@ -81,7 +81,7 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                 additional_args = c("--outSAMtype", "None")
             } else if(two_pass && pass == 2 && !is.null(SJ.files)) {
                 additional_args = c("--sjdbFileChrStartEnd",
-                    paste(SJ.files, collapse = " "),
+                    paste(SJ.files$path, collapse = " "),
                     "--sjdbInsertSave", "All"
                 )
                 two_pass_genome = file.path(BAM_output_path, sample, 
