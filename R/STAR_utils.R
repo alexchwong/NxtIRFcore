@@ -26,7 +26,7 @@ STAR_buildRef <- function(reference_path,
 
 #' @export
 STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
-        trim_adaptor = "AGATCGGAAG") {
+        trim_adaptor = "AGATCGGAAG", n_threads = 4) {
     .validate_STAR_version()
     STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
     BAM_output_path = .validate_path(BAM_output_path)
@@ -74,7 +74,8 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
             BAM_output_path = file.path(BAM_output_path, sample),
             fastq_1 = fastq_1, fastq_2 = fastq_2, 
             trim_adaptor = trim_adaptor,
-            memory_mode = "LoadAndKeep")
+            memory_mode = "LoadAndKeep",
+            n_threads = n_threads)
     }
 
     system2(command = "STAR", args = c(
@@ -87,7 +88,6 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
         fastq_1 = c("./sample_1.fq"), fastq_2 = NULL,
         trim_adaptor = "AGATCGGAAG",
         memory_mode = "NoSharedMemory",
-        
         n_threads = 4) {
     .validate_STAR_version()
     STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
