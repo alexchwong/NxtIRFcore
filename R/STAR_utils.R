@@ -140,39 +140,30 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
     BAM_output_path = .validate_path(BAM_output_path)
     # Load STAR reference
     
-    args = c(
-        "--genomeLoad", memory_mode,
-        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE),
-        "--genomeDir", STAR_ref_path,
+    # Remove duplication:
+    if(!("--genomeLoad" %in% additional_args)) args = c("--genomeLoad", memory_mode)
+    if(!("--runThreadN" %in% additional_args)) args = c(args,
+        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
+    if(!("--genomeDir" %in% additional_args)) args = c(args, "--genomeDir", STAR_ref_path)
+    if(!("--outFileNamePrefix" %in% additional_args)) args = c("--outFileNamePrefix", 
+        paste0(BAM_output_path, "/"))
+    if(!("--outStd" %in% additional_args)) args = c(args, "--outStd", "Log")
+    if(!("--outSAMstrandField" %in% additional_args)) args = c(args, "--outSAMstrandField", 
+        "intronMotif")
+    if(!("--outSAMunmapped" %in% additional_args)) args = c(args, "--outSAMunmapped", "None")
+    if(!("--outFilterMultimapNmax" %in% additional_args)) args = c(args, "--outFilterMultimapNmax", 
+        "1")
+    if(!("--outSAMtype" %in% additional_args)) args = c(args, "--outSAMtype", "BAM", "Unsorted")
 
-        "--outFileNamePrefix", paste0(BAM_output_path, "/"),
-        "--outStd", "Log",      # Not Bam_Unsorted
-        
-        "--outSAMstrandField", "intronMotif",
-        "--outSAMunmapped", "None",
-
-        "--outFilterMultimapNmax", "1"
-    )
-    if(!("--outSAMtype" %in% additional_args)) {
-        args = c(args, "--outSAMtype", "BAM", "Unsorted")
-    }
-    if(two_pass) {
-        args = c(args, "--twopassMode", "Basic")
-    }
+    if(two_pass) args = c(args, "--twopassMode", "Basic")
     
     args = c(args,
         "--readFilesIn",
         paste(fastq_1, collapse = ",")
     )
-    if(paired) {
-        args = c(args, paste(fastq_2, collapse = ","))
-    }
-    if(gzipped) {
-        args = c(args, "--readFilesCommand", shQuote("gzip -dc"))
-    }
-    if(is_valid(trim_adaptor)) {
-        args = c(args, "--clip3pAdapterSeq", trim_adaptor)
-    }
+    if(paired) args = c(args, paste(fastq_2, collapse = ","))
+    if(gzipped) args = c(args, "--readFilesCommand", shQuote("gzip -dc"))
+    if(is_valid(trim_adaptor)) args = c(args, "--clip3pAdapterSeq", trim_adaptor)
     if(!is.null(additional_args) && all(is.character(additional_args))) {
         args = c(args, additional_args)
     }
