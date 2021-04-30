@@ -182,17 +182,16 @@ NxtIRF_example_NxtSE <- function() {
             if (is.null(res$result)) {
                 if (!quiet) warning("Invalid web link")
                 ret = c(ret, FALSE)
-            }
-            # or whatever you want to return on "hard" errors
-            if (((httr::status_code(res$result) %/% 200) != 1)) {
+            } else if (((httr::status_code(res$result) %/% 200) != 1)) {
                 if (!quiet) warning(
                     sprintf(paste(
                         "Requests for [%s] responded but without an",
                         "HTTP status code in the 200-299 range"
                     ), url))
                 ret = c(ret, non_2xx_return_value)
+            } else {
+                ret = c(ret, TRUE)
             }
-            ret = c(ret, TRUE)
         } else {
             ret = c(ret, TRUE)
         }

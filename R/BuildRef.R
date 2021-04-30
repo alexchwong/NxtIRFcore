@@ -592,6 +592,21 @@ Get_GTF_file <- function(reference_path) {
         settings.list$BuildVersion = buildref_version
         saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
     } else {
+        # Check web links are valid
+        if(is_valid(fasta) && any(startsWith(fasta, c("http", "ftp")))) {
+            ret = .check_if_url_exists(fasta)
+            if(!ret) {
+                .log(paste(fasta, "is not accessible at this time.",
+                "Please try again later"))
+            }
+        }
+        if(is_valid(gtf) && any(startsWith(gtf, c("http", "ftp")))) {
+            ret = .check_if_url_exists(gtf)
+            if(!ret) {
+                .log(paste(gtf, "is not accessible at this time.",
+                "Please try again later"))
+            }
+        }
         genome <- .fetch_fasta(
             reference_path = reference_path,
             fasta = fasta, ah_genome = ah_genome,

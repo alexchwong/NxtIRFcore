@@ -10,18 +10,14 @@ STAR_buildRef <- function(reference_path,
     genome.fa <- .STAR_get_FASTA(reference_path)
     transcripts.gtf <- .STAR_get_GTF(reference_path)
     # Build STAR using defaults
-    res = system2(command = "STAR", args = c(
+    system2(command = "STAR", args = c(
         "--runMode", "genomeGenerate",
         "--genomeDir", STAR_ref_path,
         "--genomeFastaFiles", genome.fa,
         "--sjdbGTFfile", transcripts.gtf,
         "--sjdbOverhang", sjdbOverlap,
-        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE),
-        "&>>", file.path(reference_path, "STAR", "log-star-build-ref.log")
-    ), stdout = TRUE)
-    if(res > 0) {
-        warning("STAR Build Reference appears to have failed")
-    }
+        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE)
+    ))
 }
 
 #' @export
