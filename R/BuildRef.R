@@ -529,7 +529,7 @@ Get_GTF_file <- function(reference_path) {
 .fetch_genome_defaults <- function(genome_type, nonPolyARef = "", 
         MappabilityRef = "", BlacklistRef = "") {
     nonPolyAFile <- GetNonPolyARef(genome_type)
-    nonPolyAFile <- .parse_valid_file(nonPolyARef, "non-polyA reference")    
+    nonPolyAFile <- .parse_valid_file(nonPolyAFile, "non-polyA reference")    
 
     if(MappabilityRef == "" &
             genome_type %in% c("hg38", "hg19", "mm9", "mm10")) {
@@ -586,7 +586,8 @@ Get_GTF_file <- function(reference_path) {
         gtf_gr <- .fetch_gtf(
             gtf = file.path(resource_path, "transcripts.gtf.gz"),
             reference_path = reference_path, 
-            convert_chromosome_names = chromosomes
+            convert_chromosome_names = chromosomes,
+            overwrite = overwrite_resource
         )
         settings.list$chromosomes = chromosomes
         settings.list$BuildVersion = buildref_version
@@ -615,7 +616,8 @@ Get_GTF_file <- function(reference_path) {
         gtf_gr <- .fetch_gtf(
             gtf = gtf, ah_transcriptome = ah_transcriptome,
             reference_path = reference_path, 
-            convert_chromosome_names = chromosomes
+            convert_chromosome_names = chromosomes,
+            overwrite = overwrite_resource
         )
         # Save Resource details to settings.Rds:
         settings.list <- list(fasta_file = fasta, gtf_file = gtf,
@@ -807,7 +809,8 @@ Get_GTF_file <- function(reference_path) {
 
 .fetch_gtf <- function(reference_path = "./Reference",
         gtf = "", ah_transcriptome = "",  verbose = TRUE,
-        convert_chromosome_names = NULL) {
+        convert_chromosome_names = NULL,
+        overwrite = FALSE) {
     gtf_gr <- NULL
     if (ah_transcriptome != "") {
         if(substr(ah_transcriptome, 1, 2) != "AH") {
@@ -833,22 +836,28 @@ Get_GTF_file <- function(reference_path) {
     if (!dir.exists(file.path(reference_path, "resource"))) {
         dir.create(file.path(reference_path, "resource"))
     }
-    message("Saving local copy of GTF file...", appendLF = FALSE)
-    r_path = file.path(reference_path, "resource")
-    rtracklayer::export(gtf_gr, file.path(r_path, "transcripts.gtf"), "gtf")
-    if(!file.exists(file.path(r_path, "transcripts.gtf"))) {
-        .log(paste("In .fetch_gtf(),",
-            "Unable to save local copy of gene annotations"))
-    }
-    if(!file.exists(file.path(r_path, "transcripts.gtf.gz"))) {
+    if(overwrite || !file.exists(file.path(r_path, "transcripts.gtf.gz"))) {
+        message("Saving local copy of GTF file...", appendLF = FALSE)
+        r_path = file.path(reference_path, "resource")
+        if(file.exists(file.path(r_path, "transcripts.gtf"))) {
+            file.remove(file.path(r_path, "transcripts.gtf"))
+        }
+        rtracklayer::export(gtf_gr, file.path(r_path, "transcripts.gtf"), "gtf")
+        if(!file.exists(file.path(r_path, "transcripts.gtf"))) {
+            .log(paste("In .fetch_gtf(),",
+                "Unable to save local copy of gene annotations"))
+        }
         message("Compressing GTF file...", appendLF = FALSE)
+        if(file.exists(file.path(r_path, "transcripts.gtf.gz"))) {
+            file.remove(file.path(r_path, "transcripts.gtf.gz"))
+        }
         gzip(filename = file.path(r_path, "transcripts.gtf"),
             destname = file.path(r_path, "transcripts.gtf.gz")
         )
-    }
-    if(file.exists(file.path(r_path, "transcripts.gtf.gz")) &
-            file.exists(file.path(r_path, "transcripts.gtf"))) {
-        file.remove(file.path(r_path, "transcripts.gtf"))
+        if(file.exists(file.path(r_path, "transcripts.gtf.gz")) &
+                file.exists(file.path(r_path, "transcripts.gtf"))) {
+            file.remove(file.path(r_path, "transcripts.gtf"))
+        }
     }
     message("done\n")    
     return(gtf_gr)
