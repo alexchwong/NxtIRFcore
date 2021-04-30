@@ -887,7 +887,7 @@ Get_GTF_file <- function(reference_path) {
         if (verbose) message("done\n")
         if(as_DNAStringSet) {
             message("Importing genome into memory...", appendLF = FALSE)
-                genome = rtracklayer::import(genome)
+                genome = rtracklayer::import(twobit)
             message("done")
             if(exclude_scaffolds) {
                 genome <- .fetch_fasta_convert_chrom_species(
