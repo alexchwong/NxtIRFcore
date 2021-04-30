@@ -703,8 +703,8 @@ Get_GTF_file <- function(reference_path) {
 .fetch_fasta_convert_chrom_species <- function(genome, species) {
     db = GenomeInfoDb::genomeStyles()
     use_species = NULL
-    for(test_species in sub("_", " ", names(db))) {
-        if(grepl(test_species, species, ignore.case = TRUE)) 
+    for(test_species in names(db)) {
+        if(grepl(sub("_", " ", test_species), species, ignore.case = TRUE)) 
             use_species = test_species
     }
     if(is.null(use_species)) return(genome)
@@ -719,7 +719,8 @@ Get_GTF_file <- function(reference_path) {
         return(.fetch_fasta_convert_chrom(genome,
             .convert_chromosomes(data.frame(
                 old = df[, infer_style],
-                new = df[, infer_style]
+                new = df[, infer_style],
+                stringsAsFactors = FALSE
             ))
         ))
     } else {
