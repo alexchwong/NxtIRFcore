@@ -144,9 +144,12 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
     chr = inFA.seqname;
     char * buffer = new char[sequence.length() + 1];
     std::strcpy (buffer, sequence.c_str());
-    
-		Progress p(sequence.length(), true);
 		Rcout << "Processing chromosome: " << chr << '\n';
+    if(is_stdout == 0) {
+			Progress p(sequence.length(), true);
+		} else {
+			Progress p(sequence.length(), false);
+		}
 		unsigned int bufferPos_prev = 1;
     for(unsigned int bufferPos = 1; (bufferPos < sequence.length() - read_len - 1); bufferPos += read_stride) {
       memcpy(read, &buffer[bufferPos - 1], read_len);
