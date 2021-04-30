@@ -473,6 +473,30 @@ Get_GTF_file <- function(reference_path) {
     return(file.path(base, basename(reference_path)))
 }
 
+.validate_reference_resource <- function(reference_path, from = "") {
+    ref <- normalizePath(reference_path)
+    from_str = ifelse(from == "", "", 
+        paste("In function", from, ":"))
+    if (!dir.exists(ref)) {
+        .log(paste(from_str,
+            "in reference_path =", reference_path,
+            ": this path does not exist"))
+    }
+    if (!file.exists(file.path(ref, "settings.Rds"))) {
+        .log(paste(from_str,
+            "in reference_path =", reference_path,
+            ": settings.Rds not found"))
+    }    
+    settings.list <- readRDS(file.path(ref, "settings.Rds"))
+    if (!("BuildVersion" %in% names(settings.list)) ||
+            settings.list[["BuildVersion"]] < buildref_version) {
+        .log(paste(from_str,
+            "in reference_path =", reference_path,
+            "NxtIRF reference is earlier than current version",
+            buildref_version))
+    }     
+}
+
 .validate_reference <- function(reference_path, from = "") {
     ref <- normalizePath(reference_path)
     from_str = ifelse(from == "", "", 
@@ -565,6 +589,7 @@ Get_GTF_file <- function(reference_path) {
             convert_chromosome_names = chromosomes
         )
         settings.list$chromosomes = chromosomes
+        settings.list$BuildVersion = buildref_version
         saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
     } else {
         genome <- .fetch_fasta(
@@ -582,6 +607,7 @@ Get_GTF_file <- function(reference_path) {
             ah_genome = ah_genome, ah_transcriptome = ah_transcriptome,
             chromosomes = chromosomes, reference_path = reference_path
         )
+        settings.list$BuildVersion = buildref_version
         saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
     }
     settings.list = readRDS(file.path(reference_path, "settings.Rds"))

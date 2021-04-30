@@ -3,7 +3,7 @@ STAR_buildRef <- function(reference_path,
         STAR_ref_path = file.path(reference_path, "STAR"),
         sjdbOverlap = 150,
         n_threads = 4) {
-    .validate_reference(reference_path)
+    .validate_reference_resource(reference_path)
     .validate_STAR_version()
     .validate_path(STAR_ref_path)
     # Unzip reference files
@@ -204,19 +204,23 @@ STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
 
 .STAR_get_FASTA <- function(reference_path) {
     genome.fa = file.path(reference_path, "resource", "genome.fa")
-    if(!file.exists(paste0(genome.fa, ".gz"))) {
-        .log(paste(paste0(genome.fa, ".gz"), "not found"))
+    if(!file.exists(genome.fa)) {
+        if(!file.exists(paste0(genome.fa, ".gz"))) {
+            .log(paste(paste0(genome.fa, ".gz"), "not found"))
+        }
+        gunzip(paste0(genome.fa, ".gz"), remove = FALSE, overwrite = TRUE)    
     }
-    gunzip(paste0(genome.fa, ".gz"), remove = FALSE, overwrite = TRUE)
     return(genome.fa)
 }
 
 .STAR_get_GTF <- function(reference_path) {
     transcripts.gtf = file.path(reference_path, "resource", "transcripts.gtf")
-    if(!file.exists(paste0(transcripts.gtf, ".gz"))) {
-        .log(paste(paste0(transcripts.gtf, ".gz"), "not found"))
+    if(!file.exists(transcripts.gtf)) {
+        if(!file.exists(paste0(transcripts.gtf, ".gz"))) {
+            .log(paste(paste0(transcripts.gtf, ".gz"), "not found"))
+        }
+        gunzip(paste0(transcripts.gtf, ".gz"), remove = FALSE, overwrite = TRUE)
     }
-    gunzip(paste0(transcripts.gtf, ".gz"), remove = FALSE)
     return(transcripts.gtf)
 }
 
