@@ -715,10 +715,11 @@ Get_GTF_file <- function(reference_path) {
     if(length(infer_style) >= 1) {
         infer_style = infer_style[1]
         message(paste("Chrom style detected", infer_style))
+        df = db[[use_species]]
         return(.fetch_fasta_convert_chrom(genome,
             .convert_chromosomes(data.frame(
-                old = db[, infer_style],
-                new = db[, infer_style]
+                old = df[, infer_style],
+                new = df[, infer_style]
             ))
         ))
     } else {
