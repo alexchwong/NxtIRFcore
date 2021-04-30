@@ -663,11 +663,10 @@ Get_GTF_file <- function(reference_path) {
         .log("Given genome AnnotationHub reference is incorrect")
     }
     genome <- .fetch_AH(ah_genome, verbose = verbose, 
-        rdataclass = "TwoBitFile", exclude_scaffolds = exclude_scaffolds)
-    message("Importing genome into memory...", appendLF = FALSE)
-        genome = rtracklayer::import(genome)
-    message("done")
-    return(genome)
+        rdataclass = "TwoBitFile", 
+        as_DNAStringSet = exclude_scaffolds, 
+        exclude_scaffolds = exclude_scaffolds)
+
 }
 
 .fetch_fasta_file_validate <- function(fasta) {
@@ -686,23 +685,23 @@ Get_GTF_file <- function(reference_path) {
 }
 
 .fetch_fasta_convert_chrom <- function(genome, convert_chromosome_names) {
+    names(genome) = tstrsplit(names(genome), split = " ")[[1]]
     if(!is.null(convert_chromosome_names)) {
         converter = data.table(Original = 
                 tstrsplit(names(genome), split=" ")[[1]])
         converter[convert_chromosome_names,
             on = "Original", c("NewName") := get("i.New")]
-        converter[is.na(get("NewName")), c("NewName") := get("Original")]
+        # converter[is.na(get("NewName")), c("NewName") := get("Original")]
+        converter = converter[!is.na(get("NewName"))]
         chrOrder = converter$NewName
+        genome = genome[converter$Original]
         names(genome) <- chrOrder
-    } else {
-        # Extract names to what is before the first space:
-        names(genome) = tstrsplit(names(genome), split = " ")[[1]]
     }
     return(genome)
 }
 
 .fetch_fasta_convert_chrom_species <- function(genome, species) {
-    db = GenomeInfoDb::genomeStyles("Homo sapiens")
+    db = GenomeInfoDb::genomeStyles()
     use_species = NULL
     for(test_species in sub("_", " ", names(db))) {
         if(grepl(test_species, species, ignore.case = TRUE)) 
@@ -710,9 +709,12 @@ Get_GTF_file <- function(reference_path) {
     }
     if(is.null(use_species)) return(genome)
 
+    message(paste("Species detected", use_species))
+
     infer_style <- GenomeInfoDb::seqlevelsStyle(genome)
     if(length(infer_style) >= 1) {
         infer_style = infer_style[1]
+        message(paste("Chrom style detected", infer_style))
         return(.fetch_fasta_convert_chrom(genome,
             .convert_chromosomes(data.frame(
                 old = db[, infer_style],
@@ -735,6 +737,7 @@ Get_GTF_file <- function(reference_path) {
                 file.remove(file.exists(paste0(genome.fa, ".gz")))
             }
             rtracklayer::export(genome, genome.fa, "fasta")
+        message("Compressing FASTA", appendLF = FALSE)
             R.utils::gzip(genome.fa)
         message("done")
     }
@@ -837,7 +840,8 @@ Get_GTF_file <- function(reference_path) {
 
 .fetch_AH <- function(ah_record_name, rdataclass = c("GRanges", "TwoBitFile"),
         localHub = FALSE, ah = AnnotationHub(localHub = localHub), 
-        exclude_scaffolds = TRUE, verbose = FALSE) {
+        as_DNAStringSet = TRUE, exclude_scaffolds = TRUE, 
+        verbose = FALSE) {
     rdataclass = match.arg(rdataclass)
     if(!substr(ah_record_name, 1, 2) == "AH") {
         .log(paste(ah_record_name,
@@ -881,11 +885,18 @@ Get_GTF_file <- function(reference_path) {
         }
         twobit <- rtracklayer::TwoBitFile(cache_loc)
         if (verbose) message("done\n")
-        if(exclude_scaffolds) {
-            twobit <- .fetch_fasta_convert_chrom_species(
-                twobit, ah_record$species)
+        if(as_DNAStringSet) {
+            message("Importing genome into memory...", appendLF = FALSE)
+                genome = rtracklayer::import(genome)
+            message("done")
+            if(exclude_scaffolds) {
+                genome <- .fetch_fasta_convert_chrom_species(
+                    genome, ah_record$species)
+            }
+            return(genome)
+        } else {
+            return(twobit)
         }
-        return(twobit)
     }
 }
 
@@ -3493,12 +3504,16 @@ GenerateMappabilityReads <- function(fasta_file, reference_path,
         verbose = TRUE) {
     .gmr_check_params(read_len, read_stride, error_pos)
     if(missing(fasta_file)) {
-        if(!file.exists(file.path(reference_path,
+        if(file.exists(file.path(reference_path,
+                "resource", "genome.fa"))) {
+            # do nothing
+        } else if(!file.exists(file.path(reference_path,
             "resource", "genome.fa.gz"))) {
             .log(paste("Invalid NxtIRF resource", reference_path))
+        } else {
+            R.utils::gunzip(file.path(reference_path,
+                "resource", "genome.fa.gz"), overwrite=TRUE, remove=FALSE)        
         }
-        R.utils::gunzip(file.path(reference_path,
-            "resource", "genome.fa.gz"), overwrite=TRUE, remove=FALSE)
         fasta_file = file.path(reference_path,
             "resource", "genome.fa")
         if(!file.exists(fasta_file)) {
