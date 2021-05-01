@@ -2599,32 +2599,27 @@ Get_GTF_file <- function(reference_path) {
     setorderv(introns.skipcoord, 
         c("gene_id", "transcript_name", "intron_number"))
 
+    introns.skipcoord[, c("skip_coord") := ""]    
     introns.skipcoord[get("strand") == "+",
-        c("skip_coord") := ifelse(
-            get("intron_number") == max(get("intron_number")), NA,
-            paste0(
+        c("skip_coord") := paste0(
                 get("seqnames"), ":", get("intron_start"),
                 "-", data.table::shift(get("intron_end"), 1, NA, "lead"),
                 "/", get("strand")
-            )
         ),
         by = "transcript_id"
     ]
     introns.skipcoord[get("strand") == "-",
-        c("skip_coord") := ifelse(
-            get("intron_number") == max(get("intron_number")), NA,
-            paste0(
+        c("skip_coord") := paste0(
                 get("seqnames"), ":",
                 data.table::shift(get("intron_start"), 1, NA, "lead"),
                 "-", get("intron_end"), "/", get("strand")
-            )
         ),
         by = "transcript_id"
     ]
-    introns.skipcoord[
-        ,
-        c("skip_coord_2") := data.table::shift(get("skip_coord"), 1, NA, "lag")
-    ]
+    introns.skipcoord[grepl("NA", get("skip_coord")), c("skip_coord") := NA]    
+
+    introns.skipcoord[, c("skip_coord_2") := 
+        data.table::shift(get("skip_coord"), 1, NA, "lag")    ]
     return(introns.skipcoord)
 }
 
