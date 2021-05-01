@@ -836,9 +836,9 @@ Get_GTF_file <- function(reference_path) {
     if (!dir.exists(file.path(reference_path, "resource"))) {
         dir.create(file.path(reference_path, "resource"))
     }
+    r_path = file.path(reference_path, "resource")
     if(overwrite || !file.exists(file.path(r_path, "transcripts.gtf.gz"))) {
         message("Saving local copy of GTF file...", appendLF = FALSE)
-        r_path = file.path(reference_path, "resource")
         if(file.exists(file.path(r_path, "transcripts.gtf"))) {
             file.remove(file.path(r_path, "transcripts.gtf"))
         }
