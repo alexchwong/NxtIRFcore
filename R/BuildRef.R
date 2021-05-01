@@ -2540,28 +2540,26 @@ Get_GTF_file <- function(reference_path) {
         appendLF = FALSE
     )
     introns_found_MXE <- .gen_splice_MXE(introns.skipcoord)
-    message("done\n")
+    message("done")
 
     # annotate skipped junctions with two included junctions
     message("Annotating Skipped-Exon Splice Events...", appendLF = FALSE)
     introns_found_SE <- .gen_splice_SE(introns.skipcoord, candidate.introns)
-    message("done\n")
+    message("done")
 
     message("Annotating Alternate First / Last Exon Splice Events...",
-        appendLF = FALSE
-    )
+        appendLF = FALSE)
     # AFE/ALE
     introns_found_AFE = .gen_splice_AFE(candidate.introns)
     introns_found_ALE = .gen_splice_ALE(candidate.introns)
-    message("done\n")
+    message("done")
 
     message("Annotating Alternate 5' / 3' Splice Site Splice Events...",
-        appendLF = FALSE
-    )
+        appendLF = FALSE)
 
     introns_found_A5SS = .gen_splice_A5SS(candidate.introns, introns_found_AFE)
     introns_found_A3SS = .gen_splice_A3SS(candidate.introns, introns_found_ALE)
-    message("done\n")
+    message("done")
     gc()
 
 ################################################################################
@@ -2578,9 +2576,9 @@ Get_GTF_file <- function(reference_path) {
 
     if (nrow(AS_Table) > 0) {
         .gen_splice_save(AS_Table, candidate.introns, reference_path)
-        message("done\n")
+        message("Splice Annotations Filtered\n")
     } else {
-        message("no splice events found\n")
+        message("No splice events found\n")
     }
 }
 
