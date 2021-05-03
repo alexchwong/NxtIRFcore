@@ -1,8 +1,13 @@
 #' @export
 STAR_buildRef <- function(reference_path, 
         STAR_ref_path = file.path(reference_path, "STAR"),
+        also_generate_mappability = TRUE, 
+        mappability_reads_fasta = file.path(reference_path, 
+                "Mappability", "Reads.fa"),
+        mappability_depth_threshold = 4,
         sjdbOverlap = 150,
-        n_threads = 4) {
+        n_threads = 4,
+        ...) {
     .validate_reference_resource(reference_path)
     .validate_STAR_version()
     .validate_path(STAR_ref_path)
@@ -10,6 +15,7 @@ STAR_buildRef <- function(reference_path,
     genome.fa <- .STAR_get_FASTA(reference_path)
     transcripts.gtf <- .STAR_get_GTF(reference_path)
     # Build STAR using defaults
+    .log(paste("Building STAR genome from", reference_path), type = "message")
     system2(command = "STAR", args = c(
         "--runMode", "genomeGenerate",
         "--genomeDir", STAR_ref_path,
@@ -18,6 +24,30 @@ STAR_buildRef <- function(reference_path,
         "--sjdbOverhang", sjdbOverlap,
         "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE)
     ))
+
+    if(also_generate_mappability) {
+        if(!file.exists(mappability_reads_fasta)) {
+            .log(paste(mappability_reads_fasta, "not found"))
+        }
+        .log(paste("Aligning mappability reads:", mappability_reads_fasta), 
+            type = "message")
+        aligned_bam = file.path(reference_path, "Mappability", 
+            "Aligned.out.bam")
+        STAR_align_fastq(STAR_ref_path, dirname(aligned_bam), 
+            fastq_1 = mappability_reads_fasta, n_threads = n_threads, ...)
+        if(file.exists(aligned_bam)) {
+            .log(paste("Calculating Mappability from:", aligned_bam),
+                type = "message")
+            GenerateMappabilityBED(reference_path, aligned_bam,
+                threshold = mappability_depth_threshold)
+        } else {
+            warning("STAR failed to align mappability reads")
+        }
+        if(file.exists(file.path(reference_path, "Mappability",
+                "MappabilityExclusion.bed"))) {
+            message("Mappability Exclusion calculations complete")
+        }
+    }
 }
 
 #' @export
