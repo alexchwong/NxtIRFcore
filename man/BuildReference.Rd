@@ -8,13 +8,15 @@
 \title{Builds reference files used by IRFinder / NxtIRF.}
 \usage{
 GetReferenceResource(
+  reference_path = "./Reference",
   fasta_file,
   gtf_file,
   ah_genome,
   ah_transcriptome,
-  reference_path = "./Reference",
+  generate_mappability_reads = FALSE,
   convert_chromosome_names = NULL,
-  overwrite_resource = FALSE
+  overwrite_resource = FALSE,
+  ...
 )
 
 BuildReference(
@@ -37,6 +39,8 @@ GetNonPolyARef(genome_type)
 GetMappabilityRef(genome_type)
 }
 \arguments{
+\item{reference_path}{(REQUIRED) The directory to store the reference files}
+
 \item{fasta_file}{The file path or web link to the user-supplied genome
 FASTA file.}
 
@@ -49,7 +53,9 @@ FASTA resource (Ensembl - TwoBit file resource).}
 \item{ah_transcriptome}{The name of the AnnotationHub record containing the
 transcript GTF file.}
 
-\item{reference_path}{(REQUIRED) The directory to store the reference files}
+\item{generate_mappability_reads}{(default FALSE) Whether reads should be
+generated for the purpose of Mappability calculations. See
+\code{\link{Mappability-methods}}}
 
 \item{convert_chromosome_names}{(Optional) A 2-column data frame containing
 chromosome name conversions. The first column lists the chromosome names

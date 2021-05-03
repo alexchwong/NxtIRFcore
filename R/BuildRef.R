@@ -3609,14 +3609,10 @@ GenerateMappabilityBED <- function(reference_path,
         .log(paste("In GenerateMappabilityBED(),",
             aligned_bam, "BAM file does not exist"))
     }
-    if(!dir.exists(dirname(output_file))) {
-        .log(paste("In GenerateMappabilityBED(),",
-            dirname(output_file), "directory does not exist"))
-    }
+
     .validate_path(file.path(normalizePath(reference_path), "Mappability"))
     output_file = file.path(normalizePath(reference_path), "Mappability",
         "MappabilityExclusion.bed")
-
     run_IRFinder_MapExclusionRegions(
         normalizePath(aligned_bam),
         output_file,
