@@ -109,6 +109,8 @@ NULL
 #'   `GetReferenceResource()`) are found in the "resource" subdirectory, 
 #'   `BuildReference()` will use these resources (and not overwrite these),
 #'   unless `overwrite_resource` is set to TRUE.
+#' @param ... In GetReferenceResource(), if `generate_mappability_reads` is set
+#'   to `TRUE`, additional arguments to parse to `GenerateMappabilityReads()`
 #' @param genome_type Allows `BuildReference()` to select default 
 #'   `nonPolyARef` and `MappabilityRef` for selected genomes. Allowed options 
 #'   include: 'hg38', 'hg19', 'mm9', 'mm10'.
@@ -775,12 +777,12 @@ Get_GTF_file <- function(reference_path) {
     }
     if(is.null(use_species)) return(genome)
 
-    message(paste("Species detected", use_species))
+    .log(paste("Species detected", use_species), type = "message")
 
     infer_style <- GenomeInfoDb::seqlevelsStyle(genome)
     if(length(infer_style) >= 1) {
         infer_style = infer_style[1]
-        message(paste("Chrom style detected", infer_style))
+        .log(paste("Chrom style detected", infer_style), type = "message")
         df = db[[use_species]]
         return(.fetch_fasta_convert_chrom(genome,
             .convert_chromosomes(data.frame(
@@ -977,9 +979,7 @@ Get_GTF_file <- function(reference_path) {
 
 .parse_valid_file <- function(file, msg = "") {
     if (!is_valid(file)) {
-        message(paste(
-            "Reference generated without", msg
-        ))
+        .log(paste("Reference generated without", msg), type = "message")
         return("")
     } else if ( any(startsWith(file, c("http", "ftp")))) {
         url <- file
@@ -989,17 +989,13 @@ Get_GTF_file <- function(reference_path) {
         path <- BiocFileCache::bfcrpath(bfc, url)
         return(unname(path))
     } else if (!file.exists(file)) {
-        message(paste(
-            file, "not found.",
-            "Reference generated without", msg
-        ))
+        .log(paste(file, "not found.", "Reference generated without", msg),
+            type = "message")
         return("")
     } else if (file.exists(file)) {
         return(file)
     } else {
-        message(paste(
-            "Reference generated without", msg
-        ))
+        .log(paste("Reference generated without", msg), type = "message")
         return("")
     }
 }
@@ -3525,35 +3521,44 @@ Get_GTF_file <- function(reference_path) {
 #' # the NxtIRF mock genome:
 #' 
 #' GetReferenceResource(
-#'     fasta = mock_genome(), gtf = mock_gtf(),
-#'     reference_path = file.path(tempdir(), "Reference")
+#'     reference_path = file.path(tempdir(), "Reference"),
+#'     fasta = mock_genome(), gtf = mock_gtf()
 #' )
-#'
 #' GenerateMappabilityReads(
 #'     reference_path = file.path(tempdir(), "Reference"),
 #' )
 #' 
-#' # NB BELOW NOT RUN (by R CMD CHECK):
+#' \dontrun{
+#' # Setting generate_mappability_reads = TRUE to GetReferenceResource() will
+#' # run GenerateMappabilityReads after resource retrieval. The following code
+#' is equivalent to that of above:
+#' 
+#' GetReferenceResource(
+#'     reference_path = file.path(tempdir(), "Reference"),
+#'     fasta = mock_genome(), gtf = mock_gtf(),
+#'     generate_mappability_reads = TRUE
+#' )
 #' 
 #' # (2) Align the generated reads using Rsubread:
 #' 
-#' # setwd(file.path(tempdir(), "Reference"))
-#' # Rsubread::buildindex(basename = "./reference_index", 
-#' #     reference = mock_genome())
-#' # Rsubread::subjunc(
-#' #     index = "./reference_index", 
-#' #     readfile1 = "MappabilityReads.fa", 
-#' #     output_file = "MappabilityReads.bam", 
-#' #     useAnnotation = TRUE, 
-#' #     annot.ext = mock_gtf(), 
-#' #     isGTF = TRUE
-#' # )
+#' setwd(file.path(tempdir(), "Reference"))
+#' Rsubread::buildindex(basename = "./reference_index", 
+#'     reference = mock_genome())
+#' Rsubread::subjunc(
+#'     index = "./reference_index", 
+#'     readfile1 = "MappabilityReads.fa", 
+#'     output_file = "MappabilityReads.bam", 
+#'     useAnnotation = TRUE, 
+#'     annot.ext = mock_gtf(), 
+#'     isGTF = TRUE
+#' )
 #' 
 #' # (3) Analyse the aligned reads for low-mappability regions:
 #' 
-#' # GenerateMappabilityBED(aligned_bam = "MappabilityReads.bam",
-#' #     output_file = file.path(tempdir(), "Reference", "Mappability.bed")
-#' # )
+#' GenerateMappabilityBED(aligned_bam = "MappabilityReads.bam",
+#'     output_file = file.path(tempdir(), "Reference", "Mappability.bed")
+#' )
+#' }
 #' @name Mappability-methods
 #' @aliases 
 #' GenerateMappabilityReads

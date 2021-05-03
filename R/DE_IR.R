@@ -339,7 +339,7 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     mode(countData) = "integer"
     dds = DESeq2::DESeqDataSetFromMatrix(
         countData = round(countData),
-        colData = colData,
+        colData = .DESeq_colData_sanitise(colData),
         design = as.formula(dds_formula)
     )
     message("DESeq_ASE: Profiling expression of Included and Excluded counts")
@@ -388,7 +388,7 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     mode(countData) = "integer"
     dds = DESeq2::DESeqDataSetFromMatrix(
         countData = countData,
-        colData = colData,
+        colData = .DESeq_colData_sanitise(colData),
         design = as.formula(dds_formula)
     )
     message("DESeq_ASE: Profiling differential ASE")
@@ -423,3 +423,11 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     return(res)
 }
 
+.DESeq_colData_sanitise <- function(colData) {
+    for(i in seq_len(ncol(colData))) {
+        if(is(colData[,i], "character")) {
+            colData[, i] <- factor(colData[, i])
+        }
+    }
+    colData
+}

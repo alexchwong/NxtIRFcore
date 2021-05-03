@@ -23,7 +23,7 @@
 #' @param paired Whether to expect single FASTQ files (of the format
 #'   "sample.fastq"), or
 #'   paired files (of the format "sample_1.fastq", "sample_2.fastq")
-#' @param ... Additional parameters to be passed into Find_Samples
+#' @param ... Additional parameters to be passed to Find_Samples
 #' @return A multi-column data frame with the first column containing
 #'   the sample name, and subsequent columns being the file paths with suffix
 #'   as determined by `suffix`.
@@ -2129,9 +2129,8 @@ loadTranscripts <- function(reference_path) {
         rowData(se.IR)$EventRegion %in% rownames(junc_PSI)]
     
     if(length(se.coords) > 0) {
-        message(paste(
-            "Iterating through IR events to determine introns",
-            "of main isoforms"))
+        .log(paste("Iterating through IR events to determine introns",
+            "of main isoforms"), type = "message")
         include <- .makeSE_iterate_IR_select_events(se.coords, junc_PSI)
         se.coords.final = se.coords[include]
         se.coords.excluded = se.coords[!include]
@@ -2142,7 +2141,7 @@ loadTranscripts <- function(reference_path) {
         iteration = 0
         while(length(include) > 0 & length(se.coords.final) > 0) {
             iteration = iteration + 1
-            message(paste("Iteration", iteration))
+            .log(paste("Iteration", iteration), type = "message")
             dash_progress(paste("Iteration", iteration), 8)
             se.coords.excluded = se.coords.excluded[include]
 

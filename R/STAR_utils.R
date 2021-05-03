@@ -44,9 +44,9 @@
 #'   \code{_STARgenome}) subdirectory within that of the first sample), using
 #'   these junctions to improve novel junction detection. In 
 #'   \code{STAR_align_fastq()}, STAR will run \code{--twopassMode Basic}
-#' @param fastq_1,fastq_2 Character vectors giving the path(s) of one or more
-#'   FASTQ (or FASTA) files to be aligned. If single reads are to be aligned,
-#'   omit \code{fastq_2}
+#' @param fastq_1,fastq_2 In STAR_align_fastq: character vectors giving the 
+#'   path(s) of one or more FASTQ (or FASTA) files to be aligned. 
+#'   If single reads are to be aligned, omit \code{fastq_2}
 #' @param memory_mode The parameter to be parsed to \code{--genomeLoad}; either
 #'   \code{NoSharedMemory} or \code{LoadAndKeep} are used.
 #' @param additional_args A character vector of additional arguments to be
@@ -127,8 +127,7 @@ STAR_buildRef <- function(reference_path,
                 "Mappability", "Reads.fa"),
         mappability_depth_threshold = 4,
         sjdbOverhang = 150,
-        n_threads = 4,
-        ...) {
+        n_threads = 4) {
     .validate_reference_resource(reference_path)
     .validate_STAR_version()
     .validate_path(STAR_ref_path)
@@ -155,7 +154,7 @@ STAR_buildRef <- function(reference_path,
         aligned_bam = file.path(reference_path, "Mappability", 
             "Aligned.out.bam")
         STAR_align_fastq(STAR_ref_path, dirname(aligned_bam), 
-            fastq_1 = mappability_reads_fasta, n_threads = n_threads, ...)
+            fastq_1 = mappability_reads_fasta, n_threads = n_threads)
         if(file.exists(aligned_bam)) {
             .log(paste("Calculating Mappability from:", aligned_bam),
                 type = "message")
@@ -279,13 +278,15 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
 #' @describeIn STAR-methods Aligns a single sample (with single or paired FASTQ
 #'   or FASTA files)
 #' @export
-STAR_align_fastq <- function(STAR_ref_path, BAM_output_path,
-        fastq_1 = c("./sample_1.fq"), fastq_2 = NULL,
+STAR_align_fastq <- function(
+        fastq_1 = c("./sample_1.fastq"), fastq_2 = NULL,
+        STAR_ref_path, BAM_output_path,
         two_pass = FALSE,
         trim_adaptor = "AGATCGGAAG",
         memory_mode = "NoSharedMemory",
         additional_args = NULL,
-        n_threads = 4) {
+        n_threads = 4
+) {
         
     .validate_STAR_version()
     STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
