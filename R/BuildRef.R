@@ -82,6 +82,7 @@ NULL
 #'    the genome sequence `ah_genome` and gene annotations 
 #'    `ah_transcriptome` \cr\cr
 #'
+#' @param reference_path (REQUIRED) The directory to store the reference files
 #' @param fasta_file The file path or web link to the user-supplied genome
 #'   FASTA file.
 #' @param gtf_file The file path or web link  to the user-supplied transcript 
@@ -90,7 +91,9 @@ NULL
 #'   FASTA resource (Ensembl - TwoBit file resource).
 #' @param ah_transcriptome The name of the AnnotationHub record containing the 
 #'   transcript GTF file.
-#' @param reference_path (REQUIRED) The directory to store the reference files
+#' @param generate_mappability_reads (default FALSE) Whether reads should be
+#'   generated for the purpose of Mappability calculations. See 
+#'   \code{\link{Mappability-methods}}
 #' @param convert_chromosome_names (Optional) A 2-column data frame containing 
 #'   chromosome name conversions. The first column lists the chromosome names 
 #'   of the source reference files, and the second column gives the desired 
@@ -259,12 +262,13 @@ NULL
 #' and gene annotations and stores this in the "resource" subdirectory
 #' of the given reference path
 #' @export
-GetReferenceResource <- function(
+GetReferenceResource <- function(reference_path = "./Reference",
         fasta_file, gtf_file,
         ah_genome, ah_transcriptome, 
-        reference_path = "./Reference",
+        generate_mappability_reads = FALSE,
         convert_chromosome_names = NULL,
-        overwrite_resource = FALSE
+        overwrite_resource = FALSE,
+        ...
 ) {
     if(missing(fasta_file)) fasta_file = ""
     if(missing(gtf_file)) gtf_file = ""
@@ -277,6 +281,12 @@ GetReferenceResource <- function(
         fasta = fasta_file, gtf = gtf_file, 
         ah_genome = ah_genome, ah_transcriptome = ah_transcriptome, 
         chromosomes = chromosomes, overwrite_resource = overwrite_resource)
+    map_reads = file.path(normalizePath(reference_path), 
+        "Mappability", "Reads.fa")
+    if(generate_mappability_reads &&
+            (overwrite_resource || !file.exists(map_reads))) {
+        GenerateMappabilityReads(reference_path, ...)
+    }
 }
 
 #' @describeIn BuildReference First calls \code{GetReferenceResource()}
@@ -298,7 +308,7 @@ BuildReference <- function(
     if(missing(ah_genome)) ah_genome = ""
     if(missing(ah_transcriptome)) ah_transcriptome = ""
     .validate_path(reference_path, subdirs = "fst")
-    extra_files <- .fetch_genome_defaults(
+    extra_files <- .fetch_genome_defaults(reference_path,
         genome_type, nonPolyARef, MappabilityRef, BlacklistRef
     )
     N <- 8
@@ -526,14 +536,23 @@ Get_GTF_file <- function(reference_path) {
     }     
 }
 
-.fetch_genome_defaults <- function(genome_type, nonPolyARef = "", 
+.fetch_genome_defaults <- function(reference_path, 
+        genome_type, nonPolyARef = "", 
         MappabilityRef = "", BlacklistRef = "") {
-    nonPolyAFile <- GetNonPolyARef(genome_type)
-    nonPolyAFile <- .parse_valid_file(nonPolyAFile, "non-polyA reference")    
-
-    if(MappabilityRef == "" &
-            genome_type %in% c("hg38", "hg19", "mm9", "mm10")) {
-        MappabilityFile <- GetMappabilityRef(genome_type)
+    if(!is_valid(nonPolyARef)) {
+        nonPolyAFile <- GetNonPolyARef(genome_type)
+        nonPolyAFile <- .parse_valid_file(nonPolyAFile, "non-polyA reference")        
+    } else {
+        nonPolyAFile <- .parse_valid_file(nonPolyARef, "non-polyA reference") 
+    }
+    map_file = file.path(normalizePath(reference_path), "Mappability",
+        "MappabilityExclusion.bed.txt")
+    if(is_valid(MappabilityRef)) {
+        MappabilityFile <- .parse_valid_file(MappabilityRef)
+    } else if(file.exists(map_file)) {
+        MappabilityFile <- .parse_valid_file(map_file)
+    } else if(genome_type %in% c("hg38", "hg19", "mm9", "mm10")) {
+        MappabilityFile <- .parse_valid_file(GetMappabilityRef(genome_type))
     } else {
         MappabilityFile <-
             .parse_valid_file(MappabilityRef, "Mappability reference")        
@@ -3544,7 +3563,7 @@ NULL
 #' genome FASTA file. This function replicates the functionality of 
 #' generateReadsError.pl in vanilla IRFinder.
 #' @export
-GenerateMappabilityReads <- function(fasta_file, reference_path, 
+GenerateMappabilityReads <- function(reference_path, fasta_file,
         read_len = 70, read_stride = 10, error_pos = 35,
         verbose = TRUE) {
     .gmr_check_params(read_len, read_stride, error_pos)
@@ -3569,12 +3588,39 @@ GenerateMappabilityReads <- function(fasta_file, reference_path,
         .log(paste("In GenerateMappabilityReads,",
             "given fasta file", fasta_file, "not found"))
     }
-
+    .validate_path(file.path(normalizePath(reference_path), "Mappability"))
     # Run map read generator:
     run_IRFinder_GenerateMapReads(
         normalizePath(fasta_file),
-        file.path(normalizePath(reference_path), "MappabilityReads.fa"),
+        file.path(normalizePath(reference_path), "Mappability", "Reads.fa"),
         read_len, read_stride, error_pos
+    )
+}
+
+#' @describeIn Mappability-methods Generate a BED file defining 
+#' low mappability regions, using reads generated by 
+#' \code{GenerateMappabilityReads()}, aligned to the genome.
+#' @export
+GenerateMappabilityBED <- function(reference_path, 
+        aligned_bam = file.path(reference_path, "Mappability", 
+            "Aligned.out.bam"), 
+        threshold = 4) {
+    if(!file.exists(aligned_bam)) {
+        .log(paste("In GenerateMappabilityBED(),",
+            aligned_bam, "BAM file does not exist"))
+    }
+    if(!dir.exists(dirname(output_file))) {
+        .log(paste("In GenerateMappabilityBED(),",
+            dirname(output_file), "directory does not exist"))
+    }
+    .validate_path(file.path(normalizePath(reference_path), "Mappability"))
+    output_file = file.path(normalizePath(reference_path), "Mappability",
+        "MappabilityExclusion.bed")
+
+    run_IRFinder_MapExclusionRegions(
+        normalizePath(aligned_bam),
+        output_file,
+        threshold = threshold
     )
 }
 
@@ -3637,28 +3683,6 @@ GenerateMappabilityReads <- function(fasta_file, reference_path,
     return(ah_genome)
 }
 
-#' @describeIn Mappability-methods Generate a BED file defining 
-#' low mappability regions, using reads generated by 
-#' \code{GenerateMappabilityReads()}, aligned to the genome.
-#' @export
-GenerateMappabilityBED <- function(aligned_bam = "", 
-        output_file, threshold = 4) {
-    if(!file.exists(aligned_bam)) {
-        .log(paste("In GenerateMappabilityBED(),",
-            aligned_bam, "BAM file does not exist"))
-    }
-    if(!dir.exists(dirname(output_file))) {
-        .log(paste("In GenerateMappabilityBED(),",
-            dirname(output_file), "directory does not exist"))
-    }
-    return(
-        run_IRFinder_MapExclusionRegions(
-            normalizePath(aligned_bam),
-            file.path(normalizePath(dirname(output_file)), 
-                basename(output_file)),
-            threshold = threshold
-        )
-    )
-}
+
 
 
