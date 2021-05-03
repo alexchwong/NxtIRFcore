@@ -40,7 +40,7 @@ of the file is assumed to be the sample name. See below example.}
 "sample.fastq"), or
 paired files (of the format "sample_1.fastq", "sample_2.fastq")}
 
-\item{...}{Additional parameters to be passed into Find_Samples}
+\item{...}{Additional parameters to be passed to Find_Samples}
 }
 \value{
 A multi-column data frame with the first column containing

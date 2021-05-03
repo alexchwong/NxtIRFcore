@@ -15,8 +15,7 @@ STAR_buildRef(
   mappability_reads_fasta = file.path(reference_path, "Mappability", "Reads.fa"),
   mappability_depth_threshold = 4,
   sjdbOverhang = 150,
-  n_threads = 4,
-  ...
+  n_threads = 4
 )
 
 STAR_align_experiment(
@@ -29,10 +28,10 @@ STAR_align_experiment(
 )
 
 STAR_align_fastq(
+  fastq_1 = c("./sample_1.fastq"),
+  fastq_2 = NULL,
   STAR_ref_path,
   BAM_output_path,
-  fastq_1 = c("./sample_1.fq"),
-  fastq_2 = NULL,
   two_pass = FALSE,
   trim_adaptor = "AGATCGGAAG",
   memory_mode = "NoSharedMemory",
@@ -89,9 +88,9 @@ are then given to STAR to generate a temporary genome (contained within
 these junctions to improve novel junction detection. In 
 \code{STAR_align_fastq()}, STAR will run \code{--twopassMode Basic}}
 
-\item{fastq_1, fastq_2}{Character vectors giving the path(s) of one or more
-FASTQ (or FASTA) files to be aligned. If single reads are to be aligned,
-omit \code{fastq_2}}
+\item{fastq_1, fastq_2}{In STAR_align_fastq: character vectors giving the 
+path(s) of one or more FASTQ (or FASTA) files to be aligned. 
+If single reads are to be aligned, omit \code{fastq_2}}
 
 \item{memory_mode}{The parameter to be parsed to \code{--genomeLoad}; either
 \code{NoSharedMemory} or \code{LoadAndKeep} are used.}
