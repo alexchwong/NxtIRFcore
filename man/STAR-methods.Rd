@@ -106,7 +106,8 @@ None. STAR will output files into the given output directories.
 These functions run the STAR aligner to build a STAR genome reference,
 (optionally) calculate mappability exclusion regions, and align one or more
 FASTQ files (single or paired) to the generated genome. These functions only
-work on Linux-based systems with STAR installed (and accessible via $PATH)
+work on Linux-based systems with STAR installed (and must be
+accessible via $PATH)
 }
 \section{Functions}{
 \itemize{
@@ -119,6 +120,64 @@ sample names
 or FASTA files)
 }}
 
+\examples{
+\dontrun{
+# The below workflow illustrates
+# 1) Getting the Reference Resource, including Mappability Reads generation
+# 2) Building the STAR Reference, including Mappability calculation
+# 3) Building the NxtIRF Reference, using the de-novo Mappability calculation
+# 4) Aligning (a) one or (b) multiple raw sequencing samples.
+
+# 1) Reference generation from Ensembl's FTP links
+# Additionally generates reads for Mappability exclusion calculations
+
+FTP = "ftp://ftp.ensembl.org/pub/release-94/"
+GetReferenceResource(
+    reference_path = "./Reference_FTP",
+    fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
+        "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
+    gtf = paste0(FTP, "gtf/homo_sapiens/",
+        "Homo_sapiens.GRCh38.94.chr.gtf.gz"), 
+    generate_mappability_reads = TRUE
+)
+
+# 2) Generates STAR genome within the NxtIRF reference. Also generates
+#     mappability exclusion BED file
+
+STAR_buildRef(reference_path = "Reference_FTP", n_threads = 32,
+    also_generate_mappability = TRUE)
+
+# 3) Build NxtIRF reference using the newly-generated Mappability exclusions
+
+BuildReference(reference_path = "Reference_FTP")
+
+# 4a) Align a single sample using the STAR reference
+
+STAR_align_fastq(
+    STAR_ref_path = file.path("Reference_FTP", "STAR"),
+    BAM_output_path = "./bams/sample1",
+    fastq_1 = "sample1_1.fastq", fastq_2 = "sample1_2.fastq",
+    n_threads = 8
+)
+
+# 4b) Align multiple samples, using two-pass alignment
+
+Experiment = data.frame(
+    sample = c("sample_A", "sample_B"),
+    forward = file.path("raw_data", c("sample_A", "sample_B"),
+        c("sample_A_1.fastq", "sample_B_1.fastq")),
+    reverse = file.path("raw_data", c("sample_A", "sample_B"),
+        c("sample_A_2.fastq", "sample_B_2.fastq"))
+)
+
+STAR_align_experiment(
+    Experiment = Experiment,
+    STAR_ref_path = file.path("Reference_FTP", "STAR"),
+    BAM_output_path = "./bams",
+    two_pass = TRUE, n_threads = 8
+)
+}
+}
 \seealso{
 \link{BuildReference} for \code{GetReferenceResource()}\cr\cr
 \link{Find_Samples} for \code{Find_FASTQ()}\cr\cr
