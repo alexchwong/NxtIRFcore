@@ -123,13 +123,13 @@ or FASTA files)
 \examples{
 \dontrun{
 # The below workflow illustrates
-# 1) Getting the Reference Resource, including Mappability Reads generation
-# 2) Building the STAR Reference, including Mappability calculation
-# 3) Building the NxtIRF Reference, using the de-novo Mappability calculation
+# 1) Getting the reference resource, including Mappability reads generation
+# 2) Building the STAR Reference, including Mappability Exclusion calculation
+# 3) Building the NxtIRF Reference, using the Mappability Exclusion file
 # 4) Aligning (a) one or (b) multiple raw sequencing samples.
 
 # 1) Reference generation from Ensembl's FTP links
-# Additionally generates reads for Mappability exclusion calculations
+#     Additionally generates reads for Mappability calculation
 
 FTP = "ftp://ftp.ensembl.org/pub/release-94/"
 GetReferenceResource(
