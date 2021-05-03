@@ -159,8 +159,8 @@ NULL
 #' # Reference generation from NxtIRF's example mock genome
 #' 
 #' GetReferenceResource(
-#'     fasta = mock_genome(), gtf = mock_gtf(),
-#'     reference_path = file.path(tempdir(), "Reference")
+#'     reference_path = file.path(tempdir(), "Reference"),
+#'     fasta = mock_genome(), gtf = mock_gtf()
 #' )
 #' BuildReference(
 #'     reference_path = file.path(tempdir(), "Reference")
@@ -178,10 +178,11 @@ NULL
 #' # Reference generation from user supplied FASTA and GTF files
 #' 
 #' GetReferenceResource(
-#'     fasta = "genome.fa", gtf = "transcripts.gtf",
-#'     reference_path = "./Reference_user"
+#'     reference_path = "./Reference_user",
+#'     fasta = "genome.fa", gtf = "transcripts.gtf"
 #' )
-#' BuildReference(reference_path = "./Reference_user",
+#' BuildReference(
+#'     reference_path = "./Reference_user",
 #'     genome_type = "hg38" 
 #' )
 #'
@@ -189,11 +190,11 @@ NULL
 #' 
 #' FTP = "ftp://ftp.ensembl.org/pub/release-94/"
 #' GetReferenceResource(
+#'     reference_path = "./Reference_FTP",
 #'     fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
 #'         "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
 #'     gtf = paste0(FTP, "gtf/homo_sapiens/",
-#'         "Homo_sapiens.GRCh38.94.chr.gtf.gz"), 
-#'     reference_path = "./Reference_FTP"
+#'         "Homo_sapiens.GRCh38.94.chr.gtf.gz")
 #' )
 #' BuildReference(reference_path = "./Reference_FTP",
 #'     genome_type = "hg38" 
@@ -228,11 +229,12 @@ NULL
 #' # Reference generation from AnnotationHub's Ensembl release-94:
 #' 
 #' GetReferenceResource(
+#'     reference_path = "./Reference_AH",
 #'     ah_genome = "AH65745", 
-#'     ah_transcriptome = "AH64631",
-#'     reference_path = "./Reference_AH"
+#'     ah_transcriptome = "AH64631"
 #' )
-#' BuildReference(reference_path = "./Reference_AH",
+#' BuildReference(
+#'     reference_path = "./Reference_AH",
 #'     genome_type = "hg38" 
 #' )
 #' 
@@ -242,12 +244,13 @@ NULL
 #' chrom.df = GenomeInfoDb::genomeStyles()$Homo_sapiens
 #' 
 #' GetReferenceResource(
+#'     reference_path = "./Reference_UCSC",
 #'     ah_genome = "AH65745", 
 #'     ah_transcriptome = "AH64631",
-#'     reference_path = "./Reference_UCSC",
 #'     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
 #' )
-#' BuildReference(reference_path = "./Reference_UCSC",
+#' BuildReference(
+#'     reference_path = "./Reference_UCSC",
 #'     genome_type = "hg38", 
 #'     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
 #' )
@@ -262,7 +265,8 @@ NULL
 #' and gene annotations and stores this in the "resource" subdirectory
 #' of the given reference path
 #' @export
-GetReferenceResource <- function(reference_path = "./Reference",
+GetReferenceResource <- function(
+        reference_path = "./Reference",
         fasta_file, gtf_file,
         ah_genome, ah_transcriptome, 
         generate_mappability_reads = FALSE,
