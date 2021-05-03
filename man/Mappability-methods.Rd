@@ -7,20 +7,24 @@
 \title{Creates a custom Mappability Exclusion BED file}
 \usage{
 GenerateMappabilityReads(
-  fasta_file,
   reference_path,
+  fasta_file,
   read_len = 70,
   read_stride = 10,
   error_pos = 35,
   verbose = TRUE
 )
 
-GenerateMappabilityBED(aligned_bam = "", output_file, threshold = 4)
+GenerateMappabilityBED(
+  reference_path,
+  aligned_bam = file.path(reference_path, "Mappability", "Aligned.out.bam"),
+  threshold = 4
+)
 }
 \arguments{
-\item{fasta_file}{The path to the user-supplied genome fasta file}
-
 \item{reference_path}{The directory to store the reference files}
+
+\item{fasta_file}{The path to the user-supplied genome fasta file}
 
 \item{read_len}{The nucleotide length of the generated reads}
 
@@ -35,12 +39,12 @@ reads}
 \code{GenerateMappabilityReads()}), aligned by the user using their
 aligner of choice.}
 
+\item{threshold}{Regions with this read depth (or below) are defined as low
+mappability regions.}
+
 \item{output_file}{The output file name of the Mappability Exclusion
 BED file. The function will automatically append the ".txt" suffix to
 the file}
-
-\item{threshold}{Regions with this read depth (or below) are defined as low
-mappability regions.}
 }
 \value{
 None. \code{GenerateMappabilityReads()} writes \code{MappabilityReads.fa}
