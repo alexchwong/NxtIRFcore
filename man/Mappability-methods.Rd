@@ -41,10 +41,6 @@ aligner of choice.}
 
 \item{threshold}{Regions with this read depth (or below) are defined as low
 mappability regions.}
-
-\item{output_file}{The output file name of the Mappability Exclusion
-BED file. The function will automatically append the ".txt" suffix to
-the file}
 }
 \value{
 None. \code{GenerateMappabilityReads()} writes \code{MappabilityReads.fa}
