@@ -8,7 +8,7 @@
 *.Rproj.user
 *.Rhistory
 *.Rapp.history
-.Rbuildignore
+# .Rbuildignore
 
 # Session Data files
 *.RData
@@ -46,6 +46,7 @@ vignettes/*.R
 
 # Rcpp compiled code and DLLs
 src/*.o
+src/*.so
 src/*.dll
 src-i386/*
 src-x64/*
