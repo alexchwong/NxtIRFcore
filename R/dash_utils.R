@@ -42,9 +42,8 @@ get_psi <- function(se_path,
     junc_fst = file.path(se_path, "se", "junc_PSI.fst")
     junc_fst_index = file.path(se_path, "se", "junc_PSI_index.fst")
     if(!all(file.exists(c(junc_fst, junc_fst_index)))) {
-        stop(paste("In get_psi(),",
-            "Some junction fst files do not exist"
-        ), call. = FALSE)
+        .log(paste("In get_psi(),",
+            "Some junction fst files do not exist"))
     }
         
     junc_index = as.data.table(fst::read.fst(junc_fst_index)) 
@@ -831,46 +830,41 @@ Plot_Coverage <- function(se, Event, cov_data,
 ) {
     # Requires all cov files in the SE to be present
     if(!all(colnames(se) %in% names(covfile(se)))) {
-        stop(paste("In Plot_Coverage,",
+        .log(paste("In Plot_Coverage,",
             "Some samples do not have COV files.",
             "Make sure metadata(se)$cov_file is a named vector",
             "containing COV file paths,",
-            "and names(metadata(se)$cov_file) correspond to sample names"
-        ), call. = FALSE)
+            "and names(metadata(se)$cov_file) correspond to sample names"))
     }
     if(!all(c("seqInfo", "gene_list", "elem.DT", "transcripts.DT") %in% 
             names(cov_data))) {
-        stop(paste("In Plot_Coverage,",
-            "cov_data must be a valid object created by prepare_covplot_data()"
-        ), call. = FALSE)
+        .log(paste("In Plot_Coverage,",
+            "cov_data must be a valid object",
+            "created by prepare_covplot_data()"))
     }
     # Check condition and tracks
     if(!missing(condition)) {
         if(!(condition %in% names(colData(se)))) {
-            stop(paste("In Plot_Coverage,",
-                "condition must be a valid column name in colData(se)"
-            ), call. = FALSE)
+            .log(paste("In Plot_Coverage,",
+                "condition must be a valid column name in colData(se)"))
         }
         condition_options = unique(colData(se)[, condition])
         if(!all(tracks %in% condition_options)) {
-            stop(paste("In Plot_Coverage,",
-                "some tracks do not match valid condition names in", condition
-            ), call. = FALSE)
+            .log(paste("In Plot_Coverage,",
+                "some tracks do not match valid condition names in", condition))
         }   
     } else {
         if(!all(tracks %in% colnames(se))) {
-            stop(paste("In Plot_Coverage,",
-                "some tracks do not match valid sample names in se"
-            ), call. = FALSE)
+            .log(paste("In Plot_Coverage,",
+                "some tracks do not match valid sample names in se"))
         }
     }
     # Check we know where to plot
     if(missing(Event) & missing(Gene) & 
             (missing(seqnames) | missing(start) | missing(end))
     ) {
-        stop(paste("In Plot_Coverage,",
-            "Event or Gene cannot be empty, unless coordinates are provided"
-        ), call. = FALSE)
+        .log(paste("In Plot_Coverage,",
+            "Event or Gene cannot be empty, unless coordinates are provided"))
     } else if((!missing(seqnames) & !missing(start) & !missing(end))) {
         view_chr = as.character(seqnames)
         view_start = start
@@ -878,18 +872,16 @@ Plot_Coverage <- function(se, Event, cov_data,
     } else if(!missing(Gene)) {
         if(!(Gene %in% cov_data$gene_list$gene_id) & 
                 !(Gene %in% cov_data$gene_list$gene_name)) {
-            stop(paste("In Plot_Coverage,",
-                Gene, "is not a valid gene symbol or Ensembl gene id"
-            ), call. = FALSE)
+            .log(paste("In Plot_Coverage,",
+                Gene, "is not a valid gene symbol or Ensembl gene id"))
         }       
         if(!(Gene %in% cov_data$gene_list$gene_id)) {
             gene.df = as.data.frame(
                 cov_data$gene_list[get("gene_name") == get("Gene")])
             if(nrow(gene.df) != 1) {
-                stop(paste("In Plot_Coverage,",
+                .log(paste("In Plot_Coverage,",
                     Gene, "is an ambiguous name referring to 2 or more genes.",
-                    "Please provide its gene_id instead"
-                ), call. = FALSE)
+                    "Please provide its gene_id instead"))
             }
         } else {
             gene.df = as.data.frame(
@@ -901,10 +893,9 @@ Plot_Coverage <- function(se, Event, cov_data,
     } else {
         rowData = as.data.frame(rowData(se))
         if(!(Event %in% rownames(rowData))) {
-            stop(paste("In Plot_Coverage,",
+            .log(paste("In Plot_Coverage,",
                 Event, "is not a valid IR or alternate splicing event",
-                "in rowData(se)"
-            ), call. = FALSE)
+                "in rowData(se)"))
         }
         rowData = rowData[Event,]
         view_chr = tstrsplit(rowData$EventRegion, split=":")[[1]]
@@ -917,24 +908,20 @@ Plot_Coverage <- function(se, Event, cov_data,
     view_length = view_end - view_start    
     
     if(!(view_chr %in% names(cov_data$seqInfo))) {
-        stop(paste("In Plot_Coverage,", view_chr, 
-            "is not a valid chromosome reference name in the given genome"
-        ), call. = FALSE)
+        .log(paste("In Plot_Coverage,", view_chr, 
+            "is not a valid chromosome reference name in the given genome"))
     }
     if(!is.numeric(zoom_factor) || zoom_factor < 0) {
-        stop(paste("In Plot_Coverage,",
-            "zoom_factor must be a non-negative number"
-        ), call. = FALSE)
+        .log(paste("In Plot_Coverage,",
+            "zoom_factor must be a non-negative number"))
     }
     if(!is.numeric(bases_flanking) || bases_flanking < 0) {
-        stop(paste("In Plot_Coverage,",
-            "bases_flanking must be a non-negative number"
-        ), call. = FALSE)
+        .log(paste("In Plot_Coverage,",
+            "bases_flanking must be a non-negative number"))
     }
     if(!is.numeric(view_length) || view_length < 0) {
-        stop(paste("In Plot_Coverage,",
-            "view_length must be a non-negative number"
-        ), call. = FALSE)
+        .log(paste("In Plot_Coverage,",
+            "view_length must be a non-negative number"))
     }
 }
 
@@ -1207,15 +1194,14 @@ NxtIRF.SpliceCurve = function(xstart,xend,ystart,yend,y_height,info) {
 Plot_Junctions <- function(fst_path, 
         seqnames, start, end, strand, sample_name) {
     if(!file.exists(file.path(fst_path, "junc_counts.fst"))) {
-        stop(paste("In Plot_Junctions(),",
-            "The file", file.path(fst_path, "junc_counts.fst"), "was not found"
-        ), call. = FALSE)
+        .log(paste("In Plot_Junctions(),",
+            "The file", file.path(fst_path, "junc_counts.fst"), 
+            "was not found"))
     }
     data = fst::read.fst(file.path(fst_path, "junc_counts.fst"))
     if(!(sample_name %in% colnames(data))) {
-        stop(paste("In Plot_Junctions(),",
-            sample_name, "was not a sample in the given data set"
-        ), call. = FALSE)
+        .log(paste("In Plot_Junctions(),",
+            sample_name, "was not a sample in the given data set"))
     }
     
     rownames(data) = data$rownames

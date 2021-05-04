@@ -113,9 +113,8 @@ get_mappability_exclusion <- function(
             "Mappability_Regions_mm9_v67.txt.gz", sep="/"),    
             destination_path, hub = "AnnotationHub")    
     } else {
-        stop(paste("In get_mappability_exclusion():",
-            "genome_type = ", genome_type, "is not recogised"
-        ), call. = FALSE)
+        .log(paste("In get_mappability_exclusion():",
+            "genome_type = ", genome_type, "is not recogised"))
     }
 }
 
@@ -144,7 +143,7 @@ NxtIRF_example_bams <- function() {
 NxtIRF_example_NxtSE <- function() {
     se = readRDS(system.file("extdata", 
         "example_NxtSE.Rds", package = "NxtIRF"))
-    covs = FindSamples(system.file("extdata", package = "NxtIRF"), ".cov")
+    covs = Find_Samples(system.file("extdata", package = "NxtIRF"), ".cov")
     covfile(se) <- covs$path
     se
 }
@@ -183,17 +182,16 @@ NxtIRF_example_NxtSE <- function() {
             if (is.null(res$result)) {
                 if (!quiet) warning("Invalid web link")
                 ret = c(ret, FALSE)
-            }
-            # or whatever you want to return on "hard" errors
-            if (((httr::status_code(res$result) %/% 200) != 1)) {
+            } else if (((httr::status_code(res$result) %/% 200) != 1)) {
                 if (!quiet) warning(
                     sprintf(paste(
                         "Requests for [%s] responded but without an",
                         "HTTP status code in the 200-299 range"
                     ), url))
                 ret = c(ret, non_2xx_return_value)
+            } else {
+                ret = c(ret, TRUE)
             }
-            ret = c(ret, TRUE)
         } else {
             ret = c(ret, TRUE)
         }
@@ -217,23 +215,20 @@ NxtIRF_example_NxtSE <- function() {
             BiocFileCache::bfcremove(bfc, test$rid)
             test <- BiocFileCache::bfcquery(bfc, url, field = "rname")
             if(length(test$rpath) > 0) {
-                stop(paste("Corrupt BiocFileCache for NxtIRF:",
-                    url, "multiple records exist and undeletable"
-                ), call. = FALSE)
+                .log(paste("Corrupt BiocFileCache for NxtIRF:",
+                    url, "multiple records exist and undeletable"))
             }
         }
         if(!bfc_only && length(test$rpath) < 1) {
             if(.check_if_url_exists(url)) {
                 path <- tryCatch(BiocFileCache::bfcrpath(bfc, url),
                 error = function(e) {
-                    stop(paste("Download from url failed:", url, 
-                        "- please check connection"
-                    ), call. = FALSE)
+                    .log(paste("Download from url failed:", url, 
+                        "- please check connection"))
                 })
             } else {
-                stop(paste("url not found:", url, 
-                    "- please check connection"
-                ), call. = FALSE)
+                .log(paste("url not found:", url, 
+                    "- please check connection"))
             }
         } else if(length(test$rpath) == 1) {
             path <- test$rpath

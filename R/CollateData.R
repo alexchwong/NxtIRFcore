@@ -1,70 +1,94 @@
-#' Searches a specified path for files of a particular file pattern
-#'
-#' This convenience function identifies files with the specified suffix.
-#' The sample name is assumed to be the name of the file minus its suffix
-#' (`use_subdir = FALSE`), but can also be changed to be the names 
-#' of the parent directory (`use_subdir = TRUE`). See example below.
-#'
+#' Convenience Function to (recursively) find all files in a folder.
+#' 
+#' Often, output files (whether it be raw sequencing files, aligned sequences)
+#' in BAM files, or IRFinder output files, are stored in a single folder.
+#' Sometimes, these are named according to the samples they represent. Other
+#' times, they have generic names but are partitioned in sub-folders named
+#' by sample names. This function (recursively) finds all files and extracts
+#' sample names assuming the files are named by sample names 
+#' (`use_subdir = FALSE`). Alternately, the names can be derived from the
+#' subfolders one level higher (`use_subdir = TRUE`)
+#' 
 #' @param sample_path The path in which to recursively search for files
 #'   that match the given `suffix`
 #' @param suffix A vector of or or more strings that specifies the file suffix 
 #'   (e.g. '.bam' denotes BAM files, whereas ".txt.gz" denotes gzipped txt 
 #'   files).
-#' @param suffix_type A vector of string that determines the column
+#' @param suffix_type A string vector that determines the column
 #'   names of the files retrieved by `suffix`. Must be the same length as 
 #'   `suffix`
 #' @param use_subdir Whether to assume the directory name containing
 #'   the found files denote the sample name. If `FALSE`, the base name
 #'   of the file is assumed to be the sample name. See below example.
-#' @return A 2-column data frame with the first column containing
-#'   the sample name, and the second column being the file path.
+#' @param paired Whether to expect single FASTQ files (of the format
+#'   "sample.fastq"), or
+#'   paired files (of the format "sample_1.fastq", "sample_2.fastq")
+#' @param ... Additional parameters to be passed to Find_Samples
+#' @return A multi-column data frame with the first column containing
+#'   the sample name, and subsequent columns being the file paths with suffix
+#'   as determined by `suffix`.
 #' @examples
-#' # Return all BAM files using file names as sample names
+#' # Retrieve all BAM files in a given folder, named by sample names
 #' bam_path = dirname(example_bams())[1]
-#' df = FindSamples(sample_path = bam_path, 
-#'   suffix = ".bam", suffix_type = "bam_file", use_subdir = FALSE)
+#' df.bams = Find_Samples(sample_path = bam_path, 
+#'   suffix = ".bam", suffix_type = "BAM", use_subdir = FALSE)
+#' # equivalent to:
+#' df.bams = Find_Bams(bam_path)
+#'
+#' # Retrieve all IRFinder output files in a given folder, 
+#' # named by sample names
+#'
+#' expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
+#' # equivalent to:
+#' expr = Find_Samples(file.path(tempdir(), "IRFinder_output"),
+#'     c(".txt.gz", ".cov"), 
+#'     c("irf_file", "cov_file")
+#' )
+#' @name Find_Samples
 #' @md
 #' @export
-FindSamples <- function(sample_path, suffix = ".txt.gz", 
+Find_Samples <- function(sample_path, suffix = ".txt.gz", 
             suffix_type = "path", use_subdir = FALSE) {
     if(!dir.exists(sample_path)) {
-        stop(paste("In FindSamples(),",
-            sample_path, "- given path does not exist"
-        ), call. = FALSE)
+        .log(paste("In Find_Samples(),",
+            sample_path, "- given path does not exist"))
     }
     if(length(suffix) == 0 || length(suffix) != length(suffix_type)) {
-        stop(paste("In FindSamples(),",
+        .log(paste("In Find_Samples(),",
             "suffix must be of length greater than zero",
-            "and same length as suffix_type"
-        ), call. = FALSE)
+            "and same length as suffix_type"))
     }
     DT.list = list()
     for(i in seq_len(length(suffix))) {
-        files_found = list.files(pattern = paste0("\\", suffix[i], "$"),
-        path = normalizePath(sample_path), full.names = TRUE, recursive = TRUE)
+        pattern = paste0("\\", suffix[i], "$")
+        files_found = list.files(pattern = pattern,
+            path = normalizePath(sample_path), 
+            full.names = TRUE, recursive = TRUE)
         if(length(files_found) > 0) {
-            DT = data.table(sample = "", path = files_found)
+            DT = data.table(sample = gsub(pattern,"",
+                    files_found), 
+                path = files_found)
             if(use_subdir) {
-                DT$sample = basename(dirname(DT$path))
+                DT$sample = basename(dirname(DT$sample))
             } else {
-                DT$sample = sub(suffix[i],"",basename(DT$path))
+                DT$sample = basename(DT$sample)
             }
             colnames(DT)[2] = suffix_type[i]
+            setkeyv(DT, "sample")
             DT.list[[i]] = DT
         } else {
             DT.list[[i]] = NULL
         }
     }
     if(length(DT.list) <= 1) return(as.data.frame(DT.list))
-    final = c()
+    final = DT.list[[1]]
     if(length(suffix) > 1) {
-        for(i in seq_len(length(suffix))) {
-            if(!is.null(DT.list[[i]])) {
-                if(is.null(final)) {
-                    final = DT.list[[i]]
-                } else {
-                    final = DT.list[[i]][final, on = "sample"]
-                }
+        # Check identity of sorted sample names
+        samples = DT.list[[1]]$sample
+        for(i in seq(2, length(suffix))) {
+            if(!is.null(DT.list[[i]]) && 
+                    identical(samples, DT.list[[i]]$sample)) {
+                final = cbind(final, DT.list[[i]][, 2, with = FALSE])
             }
         }
     }
@@ -72,41 +96,24 @@ FindSamples <- function(sample_path, suffix = ".txt.gz",
     return(as.data.frame(final[, cols, with = FALSE]))
 }
 
-#' Convenience Function to find BAM files in a certain folder
-#' 
-#' Runs FindSamples to find BAM files. Assumes file names are names of samples.
-#' 
-#' @param sample_path The path in which to recursively search for BAM files
-#' @param ... Additional parameters to pass into `FindSamples()`
-#' @return A 2-column data frame with the first column containing
-#'   the sample name, and the second column being the BAM file path.
-#' @seealso [FindSamples]
-#' @examples
-#' bam_path = dirname(example_bams())[1]
-#' bams = Find_Bams(bam_path)
-#' @md
+#' @describeIn Find_Samples Returns all FASTQ files in a given folder
 #' @export
-Find_Bams <- function(sample_path, ...) {
-    return(FindSamples(sample_path, ".bam", "BAM", ...))
+Find_FASTQ <- function(sample_path, paired = TRUE, ...) {
+    return(Find_Samples(sample_path, 
+        c("_1.fastq", "_2.fastq"),
+        c("forward", "reverse"), ...))
 }
 
-#' Convenience Function to find IRFinder output and COV files
-#' 
-#' Runs FindSamples to find IRFinder .txt.gz and .cov files. 
-#' Assumes file names are names of samples.
-#' 
-#' @param sample_path The path in which to recursively search for BAM files
-#' @param ... Additional parameters to pass into `FindSamples()`
-#' @return A 3-column data frame with the first column containing
-#'   the sample name, and the second column being the IRFinder main output path,
-#'   and the third column being the COV file path.
-#' @seealso [FindSamples]
-#' @examples
-#' expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
-#' @md
+#' @describeIn Find_Samples Returns all BAM files in a given folder
+#' @export
+Find_Bams <- function(sample_path, ...) {
+    return(Find_Samples(sample_path, ".bam", "BAM", ...))
+}
+
+#' @describeIn Find_Samples Returns all IRFinder output files in a given folder
 #' @export
 Find_IRFinder_Output <- function(sample_path, ...) {
-    return(FindSamples(sample_path, 
+    return(Find_Samples(sample_path, 
         c(".txt.gz", ".cov"), 
         c("irf_file", "cov_file"), 
         ...)
@@ -158,19 +165,16 @@ IRFinder <- function(
         verbose = FALSE
         ) {
     if(length(bamfiles) != length(sample_names)) {
-        stop(paste("In IRFinder,",
-            "Number of BAM files and sample names must be the same"
-        ), call. = FALSE)
+        .log(paste("In IRFinder,",
+            "Number of BAM files and sample names must be the same"))
     }
     if(!all(file.exists(bamfiles))) {
-        stop(paste("In IRFinder,",
-            "some BAMs in bamfiles do not exist"
-        ), call. = FALSE)
+        .log(paste("In IRFinder,",
+            "some BAMs in bamfiles do not exist"))
     }
     if(!dir.exists(dirname(output_path))) {
-        stop(paste("In IRFinder,",
-            dirname(output_path), " - path does not exist"
-        ), call. = FALSE)
+        .log(paste("In IRFinder,",
+            dirname(output_path), " - path does not exist"))
     }
     if(!dir.exists(output_path)) dir.create(output_path)
 
@@ -206,7 +210,7 @@ IRFinder <- function(
 #' QC information is extracted, and data is organised for quick
 #' downstream access such as [MakeSE()].
 #'
-#' @param Experiment A 2-column data frame (generated by [FindSamples()]),
+#' @param Experiment A 2-column data frame (generated by [Find_Samples()]),
 #'   with the first column designating the sample names, and the 2nd column 
 #'   containing the primary IRFinder output file (of type \code{.txt.gz}). A 
 #'   third optional column can contain the coverage files of the corresponding 
@@ -257,9 +261,8 @@ CollateData <- function(Experiment, reference_path, output_path,
 
     IRMode = match.arg(IRMode)
     if(IRMode == "") {
-        stop(paste("In CollateData(),",
-            "IRMode must be either 'SpliceOverMax' (default) or 'SpliceMax'"
-        ), call. = FALSE)
+        .log(paste("In CollateData(),",
+            "IRMode must be either 'SpliceOverMax' (default) or 'SpliceMax'"))
     }
     N <- 8
     dash_progress("Validating Experiment; checking COV files...", N)
@@ -427,23 +430,20 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
 
 .collateData_validate <- function(Experiment, reference_path, output_path) {
     if(!is(Experiment, "data.frame")) {
-        stop(paste("In CollateData(),",
-            "Experiment object needs to be a data frame"
-        ), call. = FALSE)
+        .log(paste("In CollateData(),",
+            "Experiment object needs to be a data frame"))
     }
     if(ncol(Experiment) < 2) {
-        stop(paste("In CollateData(),",
+        .log(paste("In CollateData(),",
             "Experiment needs to contain at least two columns,",
             "with the first 2 columns containing",
-            "(1) sample name and (2) IRFinder output"
-        ), call. = FALSE)
+            "(1) sample name and (2) IRFinder output"))
     }
     .validate_reference(reference_path)
     if(!dir.exists(dirname(output_path))) {
-        stop(paste("In CollateData(),",
+        .log(paste("In CollateData(),",
             "Parent directory of output path:", 
-            dirname(output_path), "needs to exist"
-        ), call. = FALSE)
+            dirname(output_path), "needs to exist"))
     }
     base_output_path = normalizePath(dirname(output_path)) 
     norm_output_path = file.path(base_output_path, basename(output_path))
@@ -484,14 +484,12 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     Experiment = as.data.frame(Experiment)
     colnames(Experiment)[c(1,2)] = c("sample", "path")
     if(!all(vapply(Experiment$path, file.exists, logical(1)))) {
-        stop(paste("In CollateData(),",
-            "Some files in Experiment do not exist"
-        ), call. = FALSE)
+        .log(paste("In CollateData(),",
+            "Some files in Experiment do not exist"))
     }
     if(length(Experiment$sample) != length(unique(Experiment$sample))) {
-        stop(paste("In CollateData(),",
-            "Repeated sample names are not allowed"
-        ), call. = FALSE)
+        .log(paste("In CollateData(),",
+            "Repeated sample names are not allowed"))
     }
 
     df.internal = as.data.table(Experiment[,c(1,2)])
@@ -736,11 +734,10 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
     ))
     irf.md5.check = unique(unlist(irf.list))
     if(length(irf.md5.check) > 1) {
-        stop(paste(
+        .log(paste(
             "MD5 check of IRFinder introns are not the same.",
             "Perhaps some samples were processed by a different reference.",
-            "NxtIRF needs all samples to be processed by the same reference"
-        ), call. = FALSE)
+            "NxtIRF needs all samples to be processed by the same reference"))
     }
     irf = fst::read.fst(file.path(temp_output_path, 
         paste(df.internal$sample[1], "irf.fst.tmp", sep=".")),
@@ -2069,31 +2066,27 @@ loadTranscripts <- function(reference_path) {
         # ), call. = FALSE)
     # }
     if(!file.exists(file.path(collate_path, "colData.Rds"))) {
-        stop(paste("In MakeSE():",
+        .log(paste("In MakeSE():",
             file.path(collate_path, "colData.Rds"),
-            "was not found"
-        ), call. = FALSE)
+            "was not found"))
     }
     colData.Rds = readRDS(file.path(collate_path, "colData.Rds"))
     if(!("df.anno" %in% names(colData.Rds))) {
-        stop(paste("In MakeSE():",
+        .log(paste("In MakeSE():",
             file.path(collate_path, "colData.Rds"),
-            "must contain df.anno containing annotations"
-        ), call. = FALSE)
+            "must contain df.anno containing annotations"))
     }
     if(missing(colData)) {    
         colData = colData.Rds$df.anno
     } else {
         if(!("sample" %in% colnames(colData))) {
-            stop(paste("In MakeSE():",
+            .log(paste("In MakeSE():",
                 "'sample' must be the name of the first column",
-                "in colData, containing sample names"
-            ), call. = FALSE)
+                "in colData, containing sample names"))
         }
         if(!all(colData$sample %in% colData.Rds$df.anno$sample)) {
-            stop(paste("In MakeSE():",
-                "some samples in colData were not found in given path"
-            ), call. = FALSE)
+            .log(paste("In MakeSE():",
+                "some samples in colData were not found in given path"))
         }
     }
     colData = as.data.frame(colData)
@@ -2136,9 +2129,8 @@ loadTranscripts <- function(reference_path) {
         rowData(se.IR)$EventRegion %in% rownames(junc_PSI)]
     
     if(length(se.coords) > 0) {
-        message(paste(
-            "Iterating through IR events to determine introns",
-            "of main isoforms"))
+        .log(paste("Iterating through IR events to determine introns",
+            "of main isoforms"), type = "message")
         include <- .makeSE_iterate_IR_select_events(se.coords, junc_PSI)
         se.coords.final = se.coords[include]
         se.coords.excluded = se.coords[!include]
@@ -2149,7 +2141,7 @@ loadTranscripts <- function(reference_path) {
         iteration = 0
         while(length(include) > 0 & length(se.coords.final) > 0) {
             iteration = iteration + 1
-            message(paste("Iteration", iteration))
+            .log(paste("Iteration", iteration), type = "message")
             dash_progress(paste("Iteration", iteration), 8)
             se.coords.excluded = se.coords.excluded[include]
 
@@ -2602,31 +2594,26 @@ apply_filters <- function(se, filters) {
     # a filtered se can be made using:
     #       se.filtered = se[apply_filters(se, filters),]
     if(!is(filters, "list")) {
-        stop(paste("In apply_filters(),",
-            "filters must be a list"
-        ), call. = FALSE)
+        .log(paste("In apply_filters(),",
+            "filters must be a list"))
     }
     for(i in seq_len(length(filters))) {
         if(!("filterVars" %in% names(filters[[i]]))) {
-            stop(paste("In apply_filters(),",
-                "filterVars is missing from filters @ index #", i
-            ), call. = FALSE)
+            .log(paste("In apply_filters(),",
+                "filterVars is missing from filters @ index #", i))
         }
         if(!("filterClass" %in% names(filters[[i]]))) {
-            stop(paste("In apply_filters(),",
-                "filterClass is missing from filters @ index #", i
-            ), call. = FALSE)
+            .log(paste("In apply_filters(),",
+                "filterClass is missing from filters @ index #", i))
         }
         if(!("filterType" %in% names(filters[[i]]))) {
-            stop(paste("In apply_filters(),",
-                "filterType is missing from filters @ index #", i
-            ), call. = FALSE)
+            .log(paste("In apply_filters(),",
+                "filterType is missing from filters @ index #", i))
         }
     }
     if(!is(se, "NxtSE")) {
-        stop(paste("In apply_filters(),",
-            "se must be a NxtSE object"
-        ), call. = FALSE)
+        .log(paste("In apply_filters(),",
+            "se must be a NxtSE object"))
     }
     filterSummary = rep(TRUE, nrow(se))
     for(i in seq_len(length(filters))) {
