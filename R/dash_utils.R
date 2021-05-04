@@ -627,12 +627,21 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
 #' 
 #' @param se A SummarizedExperiment object. It must contain the Event to be 
 #'   displayed
+#' @param cov_data A list containing all the data required by this function. 
+#'   By default, is set as `ref(se)` and does not need to be changed
 #' @param Event The `EventName` or the IR / alternative splicing event to be 
 #'   normalised. Valid names are all entries within rownames(se)
-#' @param cov_data A list containing all the data required by this function. 
-#'   Generate this data using prepare_covplot_data()
+#' @param Gene Whether to use the range for the given Gene. If given and valid,
+#'   overrides Event (but `Event` or `norm_event` will be used to normalise by
+#'  condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name
+#'  (Gene Symbol)
+#' @param seqname,start,end The chromosome (as a single character) and genomic 
+#'   coordinates (numeric) of the region to display. If present, overrides both
+#'   `Event` and `Gene`
 #' @param strand Whether to show coverage of both strands "*" (default), or
 #'   from the "+" or "-" strand only.
+#' @param zoom_factor Zoom out from event. Each level of zoom zooms out by a
+#'   factor of 3.
 #' @param tracks The names of individual samples (if condition is not set),
 #'   or the names of the different conditions to be plotted.
 #' @param track_names The names of the tracks to be displayed. Defaults to 
@@ -651,24 +660,11 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
 #'   TWO condition tracks.
 #' @param norm_event Whether to normalise by an event different to that given
 #'   in "Event". The difference between this and Event is that the genomic
-#'   coordinates are only centered around Event. norm_event overrides Event
-#'   if both are given.
-#' @param stack_tracks Whether to graph all the conditions on a single coverage
-#'   track. If set to true, each condition
-#' @param zoom_factor Zoom out from event. Each level of zoom zooms out by a
-#'   factor of 3.
+#'   coordinates are only centered around Event. If `norm_event` is different to
+#'   `Event`, `norm_event` will be used for normalisation and `Event` will be
+#'   used to define the genomic coordinates of the viewing window.
 #' @param bases_flanking How many bases flanking the zoomed window. Useful when
 #'    used in conjunction with zoom_factor == 0
-#' @param Gene Whether to use the range for the given Gene. If given and valid,
-#'   overrides Event (but `Event` or `norm_event` will be used to normalise by
-#'  condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name
-#'  (Gene Symbol)
-#' @param seqnames Use chromosome. Only used if `seqnames`, `start` and `end`
-#'   are also given and valid.
-#'   If these coordinates are set, they will override Event and Gene, although
-#'   Event / norm_event is still required for normalising by condition
-#' @param start Overrides with given start coordinate. See `seqnames`
-#' @param end Overrides with given end coordinate. See `seqnames`
 #' 
 #' @return A list containing two objects. final_plot is the plotly object. 
 #'   ggplot is a list of ggplot tracks.\cr\cr
@@ -685,34 +681,47 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
 #'   cov_data = ref(se), tracks = colnames(se)[1:2])
 #' @md
 #' @export
-Plot_Coverage <- function(se, Event, cov_data,
-    strand = c("*", "+", "-"),
-    tracks,                 
-    track_names = tracks,
-    condition,              
-    selected_transcripts,   
-    condense_tracks = FALSE,
-    stack_tracks = TRUE,  
-    t_test = TRUE,  
-    norm_event,
-    zoom_factor = 1,        
-    bases_flanking = 100,   
-    Gene,
-    seqnames, start, end   # Optional
-    ) {
+Plot_Coverage <- function(
+        se,
+        Event, Gene,
+        seqname, start, end,   # Optional
+        strand = c("*", "+", "-"),
+        zoom_factor,
+        tracks,
+        track_names = tracks,
+        condition,              
+        selected_transcripts,   
+        condense_tracks = FALSE,
+        stack_tracks = TRUE,  
+        t_test = TRUE,  
+        norm_event,
+        bases_flanking = 100
+) {
 
 # Assertions
     args = as.list(match.call())
-    do.call(.plot_cov_validate_args, args)
-
+    .plot_cov_validate_args(se, tracks, condition, 
+        Event, Gene,
+        seqname, start, end, bases_flanking)
+    
+    cov_data = ref(se)
+    
     strand = match.arg(strand)
     if(strand == "") strand <- "*"
 
+    if(!missing(zoom_factor)) {
+        tryCatch({
+            zoom_factor = as.numeric(zoom_factor)
+        }, error = function(e) {
+            zoom_factor = NULL
+        })
+    }
     # Prepare zoom window
-    if((!missing(seqnames) & !missing(start) & !missing(end))) {
-        view_chr = as.character(seqnames)
+    if((!missing(seqname) & !missing(start) & !missing(end))) {
+        view_chr = as.character(seqname)
         view_start = start
         view_end = end
+        if(!is_valid(zoom_factor)) zoom_factor = 0
     } else if(!missing(Gene)) {        
         if(Gene %in% cov_data$gene_list$gene_id) {
             gene.df = as.data.frame(
@@ -724,6 +733,7 @@ Plot_Coverage <- function(se, Event, cov_data,
         view_chr = as.character(gene.df$seqnames)
         view_start = gene.df$start
         view_end = gene.df$end        
+        if(!is_valid(zoom_factor)) zoom_factor = 0
     } else {
         rowData = as.data.frame(rowData(se))
         rowData = rowData[Event,]
@@ -732,8 +742,10 @@ Plot_Coverage <- function(se, Event, cov_data,
         temp2 = tstrsplit(temp1[[1]], split=":")[[2]]
         view_start = as.numeric(tstrsplit(temp2, split="-")[[1]])
         view_end = as.numeric(tstrsplit(temp2, split="-")[[2]])
+        if(!is_valid(zoom_factor)) zoom_factor = 1
     }
-
+    if(zoom_factor < 0) zoom_factor = 0
+    
     view_center = (view_start + view_end) / 2
     view_length = view_end - view_start
 
@@ -782,7 +794,7 @@ Plot_Coverage <- function(se, Event, cov_data,
     )
     if(norm_event != "") {
         events_to_highlight = list()
-        rowData = as.data.frame(SummarizedExperiment::rowData(se))
+        rowData = as.data.frame(rowData(se))
 
         if(rowData$EventType[match(norm_event, rowData$EventName)] 
             %in% c("MXE", "SE")) {
@@ -813,28 +825,21 @@ Plot_Coverage <- function(se, Event, cov_data,
     )
 }
 
-.plot_cov_validate_args <- function(se, Event, cov_data,
-    strand = c("*", "+", "-"),
-    tracks,                 
-    track_names = tracks,
-    condition,              
-    selected_transcripts,   
-    condense_tracks = FALSE,
-    stack_tracks = TRUE,  
-    t_test = TRUE,  
-    norm_event,
-    zoom_factor = 1,        
-    bases_flanking = 100,   
-    Gene,
-    seqnames, start, end
-) {
+.plot_cov_validate_args <- function(se, tracks, condition, 
+        Event, Gene,
+        seqname, start, end, bases_flanking
+        ) {
     # Requires all cov files in the SE to be present
-    if(!all(colnames(se) %in% names(covfile(se)))) {
+    if(missing(se)) {
+        .log("In Plot_Coverage, se is required")
+    }
+    cov_data = ref(se)
+    
+    if(!all(file.exists(covfile(se)))) {
         .log(paste("In Plot_Coverage,",
-            "Some samples do not have COV files.",
-            "Make sure metadata(se)$cov_file is a named vector",
-            "containing COV file paths,",
-            "and names(metadata(se)$cov_file) correspond to sample names"))
+            "COV files are not defined in se.",
+            "Please supply the correct paths of the COV files",
+            "using covfile(se) <- vector_of_correct_COVfile_paths"))
     }
     if(!all(c("seqInfo", "gene_list", "elem.DT", "transcripts.DT") %in% 
             names(cov_data))) {
@@ -843,7 +848,15 @@ Plot_Coverage <- function(se, Event, cov_data,
             "created by prepare_covplot_data()"))
     }
     # Check condition and tracks
+    if(length(tracks) < 1 | length(tracks) > 4) {
+        .log(paste("In Plot_Coverage,",
+            "tracks must be of length 1-4"))
+    }
     if(!missing(condition)) {
+        if(length(condition) != 1) {
+            .log(paste("In Plot_Coverage,",
+                "condition must be of length 1"))
+        }
         if(!(condition %in% names(colData(se)))) {
             .log(paste("In Plot_Coverage,",
                 "condition must be a valid column name in colData(se)"))
@@ -851,7 +864,8 @@ Plot_Coverage <- function(se, Event, cov_data,
         condition_options = unique(colData(se)[, condition])
         if(!all(tracks %in% condition_options)) {
             .log(paste("In Plot_Coverage,",
-                "some tracks do not match valid condition names in", condition))
+                "some tracks do not match valid condition names in", 
+                args[["condition"]]))
         }   
     } else {
         if(!all(tracks %in% colnames(se))) {
@@ -861,15 +875,17 @@ Plot_Coverage <- function(se, Event, cov_data,
     }
     # Check we know where to plot
     if(missing(Event) & missing(Gene) & 
-            (missing(seqnames) | missing(start) | missing(end))
+            (missing(seqname) | 
+            missing(start) | missing(end))
     ) {
         .log(paste("In Plot_Coverage,",
             "Event or Gene cannot be empty, unless coordinates are provided"))
-    } else if((!missing(seqnames) & !missing(start) & !missing(end))) {
-        view_chr = as.character(seqnames)
+    } else if((is_valid(seqname) & 
+            is_valid(start) & is_valid(end))) {
+        view_chr = as.character(seqname)
         view_start = start
         view_end = end
-    } else if(!missing(Gene)) {
+    } else if(is_valid(Gene)) {
         if(!(Gene %in% cov_data$gene_list$gene_id) & 
                 !(Gene %in% cov_data$gene_list$gene_name)) {
             .log(paste("In Plot_Coverage,",
@@ -880,7 +896,8 @@ Plot_Coverage <- function(se, Event, cov_data,
                 cov_data$gene_list[get("gene_name") == get("Gene")])
             if(nrow(gene.df) != 1) {
                 .log(paste("In Plot_Coverage,",
-                    Gene, "is an ambiguous name referring to 2 or more genes.",
+                    Gene, 
+                    "is an ambiguous name referring to 2 or more genes.",
                     "Please provide its gene_id instead"))
             }
         } else {
@@ -894,8 +911,8 @@ Plot_Coverage <- function(se, Event, cov_data,
         rowData = as.data.frame(rowData(se))
         if(!(Event %in% rownames(rowData))) {
             .log(paste("In Plot_Coverage,",
-                Event, "is not a valid IR or alternate splicing event",
-                "in rowData(se)"))
+                Event, 
+                "is not a valid IR or alternate splicing event in rowData(se)"))
         }
         rowData = rowData[Event,]
         view_chr = tstrsplit(rowData$EventRegion, split=":")[[1]]
@@ -911,11 +928,8 @@ Plot_Coverage <- function(se, Event, cov_data,
         .log(paste("In Plot_Coverage,", view_chr, 
             "is not a valid chromosome reference name in the given genome"))
     }
-    if(!is.numeric(zoom_factor) || zoom_factor < 0) {
-        .log(paste("In Plot_Coverage,",
-            "zoom_factor must be a non-negative number"))
-    }
-    if(!is.numeric(bases_flanking) || bases_flanking < 0) {
+    if(is_valid(bases_flanking) && (
+            !is.numeric(bases_flanking) || bases_flanking < 0)) {
         .log(paste("In Plot_Coverage,",
             "bases_flanking must be a non-negative number"))
     }
