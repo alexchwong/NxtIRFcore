@@ -1,54 +1,36 @@
 .ASE_check_args <- function(colData, test_factor, 
         test_nom, test_denom, batch1, batch2, n_threads) {
     if(!is_valid(test_factor) | !is_valid(test_nom) | !is_valid(test_denom)) {
-        stop(paste(
-            "test_factor, test_nom, test_denom must be defined"
-        ), call. = FALSE)
+        .log("test_factor, test_nom, test_denom must be defined")
     }
     if(!(test_factor %in% colnames(colData))) {
-        stop(paste(
-            "test_factor is not a condition in colData"
-        ), call. = FALSE)
+        .log("test_factor is not a condition in colData")
     }
     if(!any(colData[, test_factor] == test_nom)) {
-        stop(paste(
-            "test_nom is not found in any samples"
-        ), call. = FALSE)
+        .log("test_nom is not found in any samples")
     }
     if(!any(colData[, test_factor] == test_denom)) {
-        stop(paste(
-            "test_denom is not found in any samples"
-        ), call. = FALSE)
+        .log("test_denom is not found in any samples")
     }
     if(batch1 != "") {
         if(!(batch1 %in% colnames(colData))) {
-            stop(paste(
-                "batch1 is not a condition in colData"
-            ), call. = FALSE)
+            .log("batch1 is not a condition in colData")
         }
         if(test_factor == batch1) {
-            stop(paste(
-                "batch1 and test_factor are the same"
-            ), call. = FALSE)
+            .log("batch1 and test_factor are the same")
         }
     }
     if(batch2 != "") {
         if(!(batch2 %in% colnames(colData))) {
-            stop(paste(
-                "batch2 is not a condition in colData"
-            ), call. = FALSE)
+            .log("batch2 is not a condition in colData")
         }
         if(test_factor == batch2) {
-            stop(paste(
-                "batch2 and test_factor are the same"
-            ), call. = FALSE)
+            .log("batch2 and test_factor are the same")
         }
     }
     if(batch1 != "" & batch2 != "") {
         if(batch1 == batch2) {
-            stop(paste(
-                "batch1 and batch2 are the same"
-            ), call. = FALSE)
+            .log("batch1 and batch2 are the same")
         }
     }
     return(TRUE)
@@ -357,7 +339,7 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     mode(countData) = "integer"
     dds = DESeq2::DESeqDataSetFromMatrix(
         countData = round(countData),
-        colData = colData,
+        colData = .DESeq_colData_sanitise(colData),
         design = as.formula(dds_formula)
     )
     message("DESeq_ASE: Profiling expression of Included and Excluded counts")
@@ -406,7 +388,7 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     mode(countData) = "integer"
     dds = DESeq2::DESeqDataSetFromMatrix(
         countData = countData,
-        colData = colData,
+        colData = .DESeq_colData_sanitise(colData),
         design = as.formula(dds_formula)
     )
     message("DESeq_ASE: Profiling differential ASE")
@@ -441,3 +423,11 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     return(res)
 }
 
+.DESeq_colData_sanitise <- function(colData) {
+    for(i in seq_len(ncol(colData))) {
+        if(is(colData[,i], "character")) {
+            colData[, i] <- factor(colData[, i])
+        }
+    }
+    colData
+}
