@@ -6,7 +6,6 @@
 \usage{
 Plot_Coverage(
   se,
-  cov_data = ref(se),
   Event,
   Gene,
   seqname,
@@ -28,9 +27,6 @@ Plot_Coverage(
 \arguments{
 \item{se}{A SummarizedExperiment object. It must contain the Event to be
 displayed}
-
-\item{cov_data}{A list containing all the data required by this function.
-By default, is set as \code{ref(se)} and does not need to be changed}
 
 \item{Event}{The \code{EventName} or the IR / alternative splicing event to be
 normalised. Valid names are all entries within rownames(se)}
@@ -81,6 +77,9 @@ used to define the genomic coordinates of the viewing window.}
 
 \item{bases_flanking}{How many bases flanking the zoomed window. Useful when
 used in conjunction with zoom_factor == 0}
+
+\item{cov_data}{A list containing all the data required by this function.
+By default, is set as \code{ref(se)} and does not need to be changed}
 }
 \value{
 A list containing two objects. final_plot is the plotly object.
@@ -101,6 +100,9 @@ se = NxtIRF_example_NxtSE()
 
 colData(se)$treatment = rep(c("A", "B"), each = 3)
 
-Plot_Coverage(se, Event = rowData(se)$EventName[1], 
-  cov_data = ref(se), tracks = colnames(se)[1:2])
+Plot_Coverage(
+    se = se, 
+    Event = rowData(se)$EventName[1], 
+    tracks = colnames(se)[1:2]
+)
 }

@@ -627,8 +627,6 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
 #' 
 #' @param se A SummarizedExperiment object. It must contain the Event to be 
 #'   displayed
-#' @param cov_data A list containing all the data required by this function. 
-#'   By default, is set as `ref(se)` and does not need to be changed
 #' @param Event The `EventName` or the IR / alternative splicing event to be 
 #'   normalised. Valid names are all entries within rownames(se)
 #' @param Gene Whether to use the range for the given Gene. If given and valid,
@@ -677,8 +675,11 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
 #' 
 #' colData(se)$treatment = rep(c("A", "B"), each = 3)
 #'
-#' Plot_Coverage(se, Event = rowData(se)$EventName[1], 
-#'   cov_data = ref(se), tracks = colnames(se)[1:2])
+#' Plot_Coverage(
+#'     se = se, 
+#'     Event = rowData(se)$EventName[1], 
+#'     tracks = colnames(se)[1:2]
+#' )
 #' @md
 #' @export
 Plot_Coverage <- function(
