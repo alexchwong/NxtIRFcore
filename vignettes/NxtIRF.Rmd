@@ -1,39 +1,40 @@
 ---
-title: 'NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis'
+title: 'NxtIRF: Interactive Differential Alternative Splicing and Intron 
+    Retention analysis'
 author: "Alex Chit Hei Wong"
 date: "`r format(Sys.Date(), '%m/%d/%Y')`"
+abstract: >
+    Intron Retention (IR) is a form of alternative splicing whereby the intron 
+    is retained (i.e. not spliced) in final messenger RNA. Although many 
+    bioinformatics tools are available to quantitate other forms of alternative
+    splicing, dedicated tools to quantify Intron Retention are limited. 
+    Quantifying IR requires not only measurement of spliced transcripts (often 
+    using mapped splice junction reads), but also measurement of the coverage of
+    the putative retained intron. The latter requires adjustment for the fact 
+    that many introns contain repetitive regions as well as other RNA expressing
+    elements. IRFinder corrects for many of these complexities; however its 
+    dependencies on Linux and STAR limits its wider usage. Also, IRFinder does
+    not calculate other forms of splicings besides IR. Finally, IRFinder 
+    produces text-based output, requiring an established understanding of the
+    data produced in order to interpret its results.
+    
+    NxtIRF overcomes the above limitations. Firstly, NxtIRF incorporates the
+    IRFinder C++ routines, allowing users to run the IRFinder algorithm in the
+    R/Bioconductor environment on multiple platforms. NxtIRF is a full pipeline
+    that quantifies IR (and other alternative splicing) events, organises the
+    data and produces relevant visualisation. Additionally, NxtIRF offers an
+    interactive graphical interface that allows users to explore the data.
 output:
-    rmarkdown::html_vignette:
+    rmarkdown::html_document:
         toc: true
 vignette: >
-    %\VignetteIndexEntry{NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis}
+    %\VignetteIndexEntry{NxtIRF: Interactive Differential Alternative Splicing 
+        and Intron Retention analysis}
     %\VignetteEngine{knitr::rmarkdown}
     %\usepackage[utf8]{inputenc}
 ---
 
-# Introduction
-
-Intron Retention (IR) is a form of alternative splicing whereby the intron is
-retained (i.e. not spliced) in final messenger RNA. Although many bioinformatics
-tools are available to quantitate other forms of alternative splicing, dedicated
-tools to quantify Intron Retention are limited. Quantifying IR requires not only
-measurement of spliced transcripts (often using mapped splice junction reads),
-but also measurement of the coverage of the putative retained intron. The latter
-requires adjustment for the fact that many introns contain repetitive regions
-as well as other RNA expressing elements. IRFinder corrects for many of these
-complexities; however its dependencies on Linux and STAR limits its wider
-usage. Also, IRFinder does not calculate other forms of splicings besides IR.
-Finally, IRFinder produces text-based output, requiring an established
-understanding of the data produced in order to interpret its results.
-
-NxtIRF overcomes the above limitations. Firstly, NxtIRF incorporates the
-IRFinder C++ routines, allowing users to run the IRFinder algorithm in the
-R/Bioconductor environment on multiple platforms. NxtIRF is a full pipeline
-that quantifies IR (and other alternative splicing) events, organises the data
-and produces relevant visualisation. Additionally, NxtIRF offers an
-interactive graphical interface that allows users to explore the data.
-
-# An example pipeline for NxtIRF
+# The NxtIRF Workflow
 
 This vignette includes a working example to demonstrate how to use NxtIRF.
 
