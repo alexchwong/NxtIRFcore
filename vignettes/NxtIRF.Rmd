@@ -512,3 +512,22 @@ res = Plot_Coverage(
 )
 res$final_plot
 ```
+
+Although NSUN5 intron 3 is the most differentially retained in the analysis, the
+difference isn't very apparent. This is because the difference between the
+absolute values is very small. In contrast, intron 2 looks more prominently
+different in the heatmap, so we can explore this as well:
+
+```{r, fig.width = 7, fig.height = 5}
+res = Plot_Coverage(
+    se = se.filtered, 
+    Event = "NSUN5/ENST00000252594_Intron2/clean",
+    condition = "NSUN5_IR",
+    tracks = c("High", "Low"),
+)
+res$final_plot
+```
+
+There are more complex customisation options with NxtIRF's Plot_Coverage tool
+which will be explored in subsequent tutorials (TODO).
+
