@@ -269,8 +269,7 @@ NULL
 #' @export
 GetReferenceResource <- function(
         reference_path = "./Reference",
-        fasta_file, gtf_file,
-        ah_genome, ah_transcriptome, 
+        fasta, gtf,
         generate_mappability_reads = FALSE,
         convert_chromosome_names = NULL,
         overwrite_resource = FALSE,
@@ -283,10 +282,11 @@ GetReferenceResource <- function(
     .validate_path(reference_path, subdirs = "fst")
 
     chromosomes = .convert_chromosomes(convert_chromosome_names)
-    reference_data = .get_reference_data(reference_path = reference_path,
-        fasta = fasta_file, gtf = gtf_file, 
-        ah_genome = ah_genome, ah_transcriptome = ah_transcriptome, 
-        chromosomes = chromosomes, overwrite_resource = overwrite_resource)
+    reference_data = ..get_reference_data_new(reference_path = reference_path,
+        fasta = fasta, gtf = gtf, 
+        chromosomes = chromosomes, 
+        overwrite_resource = overwrite_resource
+    )
     map_reads = file.path(normalizePath(reference_path), 
         "Mappability", "Reads.fa")
     if(generate_mappability_reads &&
@@ -636,7 +636,8 @@ Get_GTF_file <- function(reference_path) {
         genome <- .fetch_fasta(
             reference_path = reference_path,
             fasta = fasta, ah_genome = ah_genome,
-            convert_chromosome_names = chromosomes
+            convert_chromosome_names = chromosomes,
+            overwrite = overwrite_resource
         )
         gtf_gr <- .fetch_gtf(
             gtf = gtf, ah_transcriptome = ah_transcriptome,
@@ -659,6 +660,85 @@ Get_GTF_file <- function(reference_path) {
         gtf_file = settings.list$gtf_file
     )
     return(final)
+}
+
+.get_reference_data_new <- function(reference_path, fasta, gtf, 
+        chromosomes = NULL, overwrite_resource = FALSE) {
+    # Validate arguments:
+    .get_reference_data_validate_new(fasta, gtf, reference_path, 
+        chromosomes = NULL, overwrite_resource = FALSE)
+    # If resources already exist in 'resource', then recall these:
+    if(     !( is_valid(fasta) | is_valid(gtf) ) & 
+            !overwrite_resource) {
+        resource_path <- file.path(reference_path, "resource")
+        settings.file <- file.path(reference_path, "settings.Rds")
+        settings.list <- readRDS(settings.file)
+        genome <- .fetch_fasta(reference_path = reference_path,
+            ah_genome = settings.list[["ah_genome"]], 
+            convert_chromosome_names = chromosomes)
+        gtf_gr <- .fetch_gtf(
+            gtf = file.path(resource_path, "transcripts.gtf.gz"),
+            reference_path = reference_path, 
+            convert_chromosome_names = chromosomes,
+            overwrite = overwrite_resource
+        )
+        # settings.list$chromosomes = chromosomes
+        # settings.list$BuildVersion = buildref_version
+        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
+    } else {
+        fasta_use <- gtf_use <- ""
+        ah_genome_use <- ah_gtf_use <- ""
+        if(.is_AH_pattern(fasta)) {
+            ah_genome_use <- fasta
+        } else {
+            fasta_use <- fasta
+        }
+        if(.is_AH_pattern(gtf)) {
+            ah_gtf_use <- gtf
+        } else {
+            gtf_use <- gtf
+        }
+        # Check web links are valid
+        test_urls <- c(fasta, gtf)
+        for(url in test_urls) {
+            if(any(startsWith(url, c("http", "ftp")))) {
+                ret = .check_if_url_exists(url)
+                if(!ret) {
+                    .log(paste(url, "is not accessible at this time.",
+                    "Please try again later"))
+                }
+            }
+        }
+        genome <- .fetch_fasta(
+            reference_path = reference_path,
+            fasta = fasta_use, ah_genome = ah_genome_use,
+            convert_chromosome_names = chromosomes,
+            overwrite = overwrite_resource
+        )
+        gtf_gr <- .fetch_gtf(
+            gtf = gtf_use, ah_transcriptome = ah_gtf_use,
+            reference_path = reference_path, 
+            convert_chromosome_names = chromosomes,
+            overwrite = overwrite_resource
+        )
+        # Save Resource details to settings.Rds:
+        settings.list <- list(fasta_file = fasta_use, gtf_file = gtf_use,
+            ah_genome = ah_genome_use, ah_transcriptome = ah_gtf_use,
+            chromosomes = chromosomes, reference_path = reference_path
+        )
+        settings.list$BuildVersion = buildref_version
+        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
+    }
+    settings.list = readRDS(file.path(reference_path, "settings.Rds"))
+    final = list(
+        genome = genome, gtf_gr = gtf_gr
+    )
+    return(final)
+}
+
+.is_AH_pattern <- function(word) {
+    if(substr(word, 1, 2) == "AH" && !file.exists(word)) return(TRUE)
+    return(FALSE)
 }
 
 ################################################################################
@@ -689,6 +769,32 @@ Get_GTF_file <- function(reference_path) {
             .log("At least one of fasta_file or ah_genome is required")
         } else if(!is_valid(gtf) & !is_valid(ah_transcriptome)) {
             .log("At least one of gtf_file or ah_transcriptome is required")        
+        }
+    }
+}
+
+.get_reference_data_validate_new <- function(
+        fasta, gtf, reference_path, 
+        chromosomes = NULL, overwrite_resource = FALSE) {
+
+    if(     !( is_valid(fasta) | is_valid(gtf) ) & 
+            !overwrite_resource) {
+        resource_path <- file.path(reference_path, "resource")
+        settings.file <- file.path(reference_path, "settings.Rds")
+        if(!file.exists(settings.file)) {
+            .log(paste("Invalid reference path:", reference_path))     
+        }
+        settings.list <- readRDS(settings.file)
+        if(!file.exists(file.path(resource_path, "genome.2bit"))) {
+            .log(paste("Genome could not be found inside", reference_path))
+        }
+        if(!file.exists(file.path(resource_path, "transcripts.gtf.gz"))) {
+            .log(paste("Gene annotations (GTF) could not be found inside", 
+                reference_path))
+        }
+    } else {
+        if(!is_valid(fasta) | !is_valid(gtf)) {
+            .log("Both fasta and gtf are required")      
         }
     }
 }
