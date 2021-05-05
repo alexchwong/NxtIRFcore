@@ -118,6 +118,34 @@
 #' \link{Mappability-methods} for \code{GenerateMappabilityReads()}\cr\cr
 NULL
 
+#' @export
+BuildReference_Full <- function(
+        reference_path,
+        fasta_file, gtf_file,
+        ah_genome, ah_transcriptome, 
+        convert_chromosome_names = NULL,
+        overwrite_resource = FALSE,
+        nonPolyARef = "", MappabilityRef = "", BlacklistRef = "", 
+        UseExtendedTranscripts = TRUE,
+        n_threads = 4
+) {
+    GetReferenceResource(reference_path = reference_path,
+        fasta_file = fasta_file, gtf_file = gtf_file,
+        ah_genome = ah_genome, ah_transcriptome = ah_transcriptome, 
+        generate_mappability_reads = FALSE,
+        convert_chromosome_names = convert_chromosome_names,
+        overwrite_resource = overwrite_resource)
+    
+    STAR_buildRef(reference_path = reference_path, n_threads = n_threads)
+
+    BuildReference(reference_path = reference_path,
+        genome_type = genome_type,
+        nonPolyARef = nonPolyARef, 
+        MappabilityRef = MappabilityRef, 
+        BlacklistRef = BlacklistRef, 
+        UseExtendedTranscripts = UseExtendedTranscripts)
+}
+
 #' @describeIn STAR-methods Creates a STAR genome reference
 #' @export
 STAR_buildRef <- function(reference_path, 
