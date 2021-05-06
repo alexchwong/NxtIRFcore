@@ -71,26 +71,22 @@ NULL
 #' `BuildReference()` runs `GetReferenceResource()` if resources are not 
 #' saved locally (i.e. `GetReferenceResource()` is not already run). Then,
 #' it creates the NxtIRF / IRFinder references.\cr\cr
-#' NB: the parameters `fasta_file`, `gtf_file`, `ah_genome` and 
-#' `ah_transcriptome` can be omitted in `BuildReference()` if 
+#' NB: the parameters `fasta` and `gtf` can be omitted in `BuildReference()` if
 #' `GetReferenceResource()` is already run. See examples below.\cr\cr
 #' The NxtIRF reference can be created using either:\cr\cr
 #' 1. User-supplied FASTA and GTF file. This can be a file path, or a web link
 #'   (e.g. 'http://', 'https://' or 'ftp://'). Use `fasta_file` and `gtf_file`
 #'    to specify the files or web paths to use.\cr\cr
 #' 2. AnnotationHub genome and gene annotation (Ensembl): supply the names of
-#'    the genome sequence `ah_genome` and gene annotations 
-#'    `ah_transcriptome` \cr\cr
+#'    the genome sequence and gene annotations  \cr\cr
 #'
 #' @param reference_path (REQUIRED) The directory to store the reference files
-#' @param fasta_file The file path or web link to the user-supplied genome
-#'   FASTA file.
-#' @param gtf_file The file path or web link  to the user-supplied transcript 
-#'   GTF file (or gzipped GTF file).
-#' @param ah_genome The name of the AnnotationHub record containing the genome 
-#'   FASTA resource (Ensembl - TwoBit file resource).
-#' @param ah_transcriptome The name of the AnnotationHub record containing the 
-#'   transcript GTF file.
+#' @param fasta The file path or web link to the user-supplied genome
+#'   FASTA file. Alternatively, the name of the AnnotationHub record containing
+#'   the genome FASTA resource (Ensembl - TwoBit file resource).
+#' @param gtf The file path or web link  to the user-supplied transcript 
+#'   GTF file (or gzipped GTF file). Alternatively, the name of the
+#'   AnnotationHub record containing the transcript GTF file
 #' @param generate_mappability_reads (default FALSE) Whether reads should be
 #'   generated for the purpose of Mappability calculations. See 
 #'   \code{\link{Mappability-methods}}
@@ -232,8 +228,8 @@ NULL
 #' 
 #' GetReferenceResource(
 #'     reference_path = "./Reference_AH",
-#'     ah_genome = "AH65745", 
-#'     ah_transcriptome = "AH64631"
+#'     fasta = "AH65745", 
+#'     gtf = "AH64631"
 #' )
 #' BuildReference(
 #'     reference_path = "./Reference_AH",
@@ -247,8 +243,8 @@ NULL
 #' 
 #' GetReferenceResource(
 #'     reference_path = "./Reference_UCSC",
-#'     ah_genome = "AH65745", 
-#'     ah_transcriptome = "AH64631",
+#'     fasta = "AH65745", 
+#'     gtf = "AH64631",
 #'     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
 #' )
 #' BuildReference(
@@ -275,14 +271,10 @@ GetReferenceResource <- function(
         overwrite_resource = FALSE,
         ...
 ) {
-    if(missing(fasta_file)) fasta_file = ""
-    if(missing(gtf_file)) gtf_file = ""
-    if(missing(ah_genome)) ah_genome = ""
-    if(missing(ah_transcriptome)) ah_transcriptome = ""
     .validate_path(reference_path, subdirs = "fst")
 
     chromosomes = .convert_chromosomes(convert_chromosome_names)
-    reference_data = ..get_reference_data_new(reference_path = reference_path,
+    reference_data = .get_reference_data(reference_path = reference_path,
         fasta = fasta, gtf = gtf, 
         chromosomes = chromosomes, 
         overwrite_resource = overwrite_resource
@@ -300,8 +292,7 @@ GetReferenceResource <- function(
 #' given reference path
 #' @export
 BuildReference <- function(
-        fasta_file, gtf_file,
-        ah_genome, ah_transcriptome, 
+        fasta, gtf,
         reference_path = "./Reference",
         convert_chromosome_names = NULL,
         overwrite_resource = FALSE, genome_type, 
@@ -309,10 +300,6 @@ BuildReference <- function(
         UseExtendedTranscripts = TRUE
     ) {
     if(missing(genome_type)) genome_type = ""
-    if(missing(fasta_file)) fasta_file = ""
-    if(missing(gtf_file)) gtf_file = ""
-    if(missing(ah_genome)) ah_genome = ""
-    if(missing(ah_transcriptome)) ah_transcriptome = ""
     .validate_path(reference_path, subdirs = "fst")
     extra_files <- .fetch_genome_defaults(reference_path,
         genome_type, nonPolyARef, MappabilityRef, BlacklistRef
@@ -321,10 +308,10 @@ BuildReference <- function(
     dash_progress("Reading Reference Files", N)
     chromosomes = .convert_chromosomes(convert_chromosome_names)
     reference_data = .get_reference_data(reference_path = reference_path,
-        fasta = fasta_file, gtf = gtf_file, 
-        ah_genome = ah_genome, ah_transcriptome = ah_transcriptome, 
-        chromosomes = chromosomes, overwrite_resource = overwrite_resource)
-
+        fasta = fasta, gtf = gtf, 
+        chromosomes = chromosomes, 
+        overwrite_resource = overwrite_resource
+    )
     dash_progress("Processing gtf file", N)
     reference_data$gtf_gr = .validate_gtf(reference_data$genome, 
         reference_data$gtf_gr)
@@ -587,85 +574,10 @@ Get_GTF_file <- function(reference_path) {
 ################################################################################
 # Sub
 
-.get_reference_data <- function(reference_path,
-        fasta, gtf, ah_genome, ah_transcriptome,  
+.get_reference_data <- function(reference_path, fasta, gtf, 
         chromosomes = NULL, overwrite_resource = FALSE) {
     # Validate arguments:
-    .get_reference_data_validate(fasta, gtf, ah_genome, 
-        ah_transcriptome, reference_path, 
-        chromosomes = NULL, overwrite_resource = FALSE)
-    # If resources already exist in 'resource', then recall these:
-    if(     !(is_valid(fasta) | is_valid(ah_genome) | 
-            is_valid(gtf) | is_valid(ah_transcriptome)) & 
-            !overwrite_resource) {
-        resource_path <- file.path(reference_path, "resource")
-        settings.file <- file.path(reference_path, "settings.Rds")
-        settings.list <- readRDS(settings.file)
-        if(!file.exists(file.path(resource_path, "genome.2bit"))) {
-            genome <- .fetch_fasta(reference_path = reference_path,
-                ah_genome = settings.list[["ah_genome"]], 
-                convert_chromosome_names = chromosomes)
-        } else {
-            genome <- TwoBitFile(file.path(resource_path, "genome.2bit"))
-        }
-        gtf_gr <- .fetch_gtf(
-            gtf = file.path(resource_path, "transcripts.gtf.gz"),
-            reference_path = reference_path, 
-            convert_chromosome_names = chromosomes,
-            overwrite = overwrite_resource
-        )
-        settings.list$chromosomes = chromosomes
-        settings.list$BuildVersion = buildref_version
-        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
-    } else {
-        # Check web links are valid
-        if(is_valid(fasta) && any(startsWith(fasta, c("http", "ftp")))) {
-            ret = .check_if_url_exists(fasta)
-            if(!ret) {
-                .log(paste(fasta, "is not accessible at this time.",
-                "Please try again later"))
-            }
-        }
-        if(is_valid(gtf) && any(startsWith(gtf, c("http", "ftp")))) {
-            ret = .check_if_url_exists(gtf)
-            if(!ret) {
-                .log(paste(gtf, "is not accessible at this time.",
-                "Please try again later"))
-            }
-        }
-        genome <- .fetch_fasta(
-            reference_path = reference_path,
-            fasta = fasta, ah_genome = ah_genome,
-            convert_chromosome_names = chromosomes,
-            overwrite = overwrite_resource
-        )
-        gtf_gr <- .fetch_gtf(
-            gtf = gtf, ah_transcriptome = ah_transcriptome,
-            reference_path = reference_path, 
-            convert_chromosome_names = chromosomes,
-            overwrite = overwrite_resource
-        )
-        # Save Resource details to settings.Rds:
-        settings.list <- list(fasta_file = fasta, gtf_file = gtf,
-            ah_genome = ah_genome, ah_transcriptome = ah_transcriptome,
-            chromosomes = chromosomes, reference_path = reference_path
-        )
-        settings.list$BuildVersion = buildref_version
-        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
-    }
-    settings.list = readRDS(file.path(reference_path, "settings.Rds"))
-    final = list(
-        genome = genome, gtf_gr = gtf_gr,
-        fasta_file = settings.list$fasta_file,        
-        gtf_file = settings.list$gtf_file
-    )
-    return(final)
-}
-
-.get_reference_data_new <- function(reference_path, fasta, gtf, 
-        chromosomes = NULL, overwrite_resource = FALSE) {
-    # Validate arguments:
-    .get_reference_data_validate_new(fasta, gtf, reference_path, 
+    .get_reference_data_validate(fasta, gtf, reference_path, 
         chromosomes = NULL, overwrite_resource = FALSE)
     # If resources already exist in 'resource', then recall these:
     if(     !( is_valid(fasta) | is_valid(gtf) ) & 
@@ -685,6 +597,8 @@ Get_GTF_file <- function(reference_path) {
         # settings.list$chromosomes = chromosomes
         # settings.list$BuildVersion = buildref_version
         saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
+    } else if(!( is_valid(fasta) | is_valid(gtf) )){
+        .log("Both fasta and gtf are required if overwrite_resource = TRUE")
     } else {
         fasta_use <- gtf_use <- ""
         ah_genome_use <- ah_gtf_use <- ""
@@ -742,38 +656,8 @@ Get_GTF_file <- function(reference_path) {
 }
 
 ################################################################################
+
 .get_reference_data_validate <- function(
-        fasta, gtf, ah_genome, ah_transcriptome, reference_path, 
-        chromosomes = NULL, overwrite_resource = FALSE) {
-
-    if(     !(is_valid(fasta) | is_valid(ah_genome) | 
-            is_valid(gtf) | is_valid(ah_transcriptome)) & 
-            !overwrite_resource) {
-        resource_path <- file.path(reference_path, "resource")
-        settings.file <- file.path(reference_path, "settings.Rds")
-        if(!file.exists(settings.file)) {
-            .log(paste("Invalid reference path:", reference_path))     
-        }
-        settings.list <- readRDS(settings.file)
-        if(!file.exists(file.path(resource_path, "genome.2bit"))) {
-            if(!is_valid(settings.list[["ah_genome"]])) {
-                .log(paste("Genome could not be found inside", reference_path))
-            }
-        }
-        if(!file.exists(file.path(resource_path, "transcripts.gtf.gz"))) {
-            .log(paste("Gene annotations (GTF) could not be found inside", 
-                reference_path))
-        }
-    } else {
-        if(!is_valid(fasta) & !is_valid(ah_genome)) {
-            .log("At least one of fasta_file or ah_genome is required")
-        } else if(!is_valid(gtf) & !is_valid(ah_transcriptome)) {
-            .log("At least one of gtf_file or ah_transcriptome is required")        
-        }
-    }
-}
-
-.get_reference_data_validate_new <- function(
         fasta, gtf, reference_path, 
         chromosomes = NULL, overwrite_resource = FALSE) {
 
@@ -822,7 +706,7 @@ Get_GTF_file <- function(reference_path) {
     genome <- .fetch_fasta_convert_chrom(genome, convert_chromosome_names)
 
     # Save local copy of FASTA
-    .fetch_fasta_save_fasta(genome, reference_path, overwrite)
+    # .fetch_fasta_save_fasta(genome, reference_path, overwrite)
     .fetch_fasta_save_2bit(genome, reference_path, overwrite)    
     gc()
     message("Connecting to genome TwoBitFile...", appendLF = FALSE)
@@ -1042,7 +926,8 @@ Get_GTF_file <- function(reference_path) {
             "and not of expected:", rdataclass))
     }
     if (verbose) {
-        message("Downloading asset from AnnotationHub, if required...",
+        message(paste("Downloading", rdataclass,
+            "from AnnotationHub, if required..."),
             appendLF = FALSE
         )
     }
