@@ -114,8 +114,15 @@ class FragmentsInROI : public ReadBlockProcessor {
 class FragmentsMap : public ReadBlockProcessor {
   // Counts mappability.
 private:
-  std::map<string, std::map<unsigned int, int> > chrName_count[3];  // 0 = +, 1 = -, 2 = both
+  // 0 = +, 1 = -, 2 = both
+/*	
+	// nested map
+  std::map<string, std::map<unsigned int, int> > chrName_count[3];
   std::vector<std::map<unsigned int, int>*> chrID_count[3];
+*/
+	// vector pair
+  std::map<string, std::vector< std::pair<unsigned int, int> > > chrName_vec[3];
+  std::vector< std::vector< std::pair<unsigned int, int> >* > chrID_vec[3];
   
   union stream_uint32 {
     char c[4];
@@ -125,7 +132,10 @@ private:
     char c[4];
     int32_t i;
   };
-  
+	
+	int chr_count = 0;
+  uint32_t frag_count = 0;
+	void sort_and_collapse();
 public:
   ~FragmentsMap();
   void ProcessBlocks(const FragmentBlocks &blocks);
