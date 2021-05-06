@@ -121,8 +121,7 @@ NULL
 #' @export
 BuildReference_Full <- function(
         reference_path,
-        fasta_file, gtf_file,
-        ah_genome, ah_transcriptome, 
+        fasta, gtf,
         convert_chromosome_names = NULL,
         overwrite_resource = FALSE,
         nonPolyARef = "", MappabilityRef = "", BlacklistRef = "", 
@@ -130,8 +129,7 @@ BuildReference_Full <- function(
         n_threads = 4
 ) {
     GetReferenceResource(reference_path = reference_path,
-        fasta_file = fasta_file, gtf_file = gtf_file,
-        ah_genome = ah_genome, ah_transcriptome = ah_transcriptome, 
+        fasta = fasta, gtf = gtf,
         generate_mappability_reads = FALSE,
         convert_chromosome_names = convert_chromosome_names,
         overwrite_resource = overwrite_resource)
@@ -385,11 +383,21 @@ STAR_align_fastq <- function(
 .STAR_get_FASTA <- function(reference_path) {
     genome.fa = file.path(reference_path, "resource", "genome.fa")
     if(!file.exists(genome.fa)) {
-        if(!file.exists(paste0(genome.fa, ".gz"))) {
-            .log(paste(paste0(genome.fa, ".gz"), "not found"))
+        # Extract from 2bit:
+        # if(!file.exists(paste0(genome.fa, ".gz"))) {
+            # .log(paste(paste0(genome.fa, ".gz"), "not found"))
+        # }
+        # R.utils::gunzip(paste0(genome.fa, ".gz"), remove = FALSE, 
+            # overwrite = TRUE)
+        genome.2bit = file.path(reference_path, "resource", "genome.2bit")
+        if(!file.exists(genome.2bit)) {
+            .log(paste(genome.2bit, "not found"))
         }
-        R.utils::gunzip(paste0(genome.fa, ".gz"), remove = FALSE, 
-            overwrite = TRUE)    
+        rtracklayer::export(
+            rtracklayer::import(TwoBitFile(genome.2bit)),
+            genome.fa,
+            "fasta"
+        )
     }
     return(genome.fa)
 }
