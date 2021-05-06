@@ -183,6 +183,7 @@ STAR_buildRef <- function(reference_path,
             reference_path = reference_path,
             STAR_ref_path = STAR_ref_path,
             mappability_reads_fasta = mappability_reads_fasta,
+            mappability_depth_threshold = mappability_depth_threshold,
             n_threads = n_threads,
             ...
         )
@@ -197,6 +198,7 @@ STAR_Mappability <- function(
         STAR_ref_path = file.path(reference_path, "STAR"),
         mappability_reads_fasta = file.path(
             reference_path, "Mappability", "Reads.fa"),
+        mappability_depth_threshold = 4,
         n_threads = 4,
         ...
 ) {
@@ -212,8 +214,8 @@ STAR_Mappability <- function(
             ...
         )
     }
-    .log(paste("Aligning mappability reads:", mappability_reads_fasta), 
-        type = "message")
+    .log(paste("Aligning genome fragments back to the genome, from:", 
+        mappability_reads_fasta), type = "message")
     aligned_bam = file.path(reference_path, "Mappability", 
         "Aligned.out.bam")
     STAR_align_fastq(
