@@ -23,7 +23,8 @@ STAR_buildRef(
 STAR_Mappability(
   reference_path,
   STAR_ref_path = file.path(reference_path, "STAR"),
-  mappability_reads_fasta,
+  mappability_reads_fasta = file.path(reference_path, "Mappability", "Reads.fa"),
+  mappability_depth_threshold = 4,
   n_threads = 4,
   ...
 )
