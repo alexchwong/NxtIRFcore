@@ -77,9 +77,6 @@ used to define the genomic coordinates of the viewing window.}
 
 \item{bases_flanking}{How many bases flanking the zoomed window. Useful when
 used in conjunction with zoom_factor == 0}
-
-\item{cov_data}{A list containing all the data required by this function.
-By default, is set as \code{ref(se)} and does not need to be changed}
 }
 \value{
 A list containing two objects. final_plot is the plotly object.
