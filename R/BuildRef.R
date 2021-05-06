@@ -3565,18 +3565,7 @@ Mappability_GenReads <- function(reference_path, fasta_file,
         verbose = TRUE) {
     .gmr_check_params(read_len, read_stride, error_pos)
     if(missing(fasta_file)) {
-        if(file.exists(file.path(reference_path,
-                "resource", "genome.fa"))) {
-            # do nothing
-        } else if(!file.exists(file.path(reference_path,
-            "resource", "genome.fa.gz"))) {
-            .log(paste("Invalid NxtIRF resource", reference_path))
-        } else {
-            R.utils::gunzip(file.path(reference_path,
-                "resource", "genome.fa.gz"), overwrite=TRUE, remove=FALSE)        
-        }
-        fasta_file = file.path(reference_path,
-            "resource", "genome.fa")
+        fasta_file = .STAR_get_FASTA(reference_path)
         if(!file.exists(fasta_file)) {
             .log(paste("In Mappability_GenReads,",
                 "failed to generate genome fasta file from given reference"))
