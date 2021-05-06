@@ -136,18 +136,21 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
 
   FastaReader inFA;
   inFA.SetInputHandle(&inGenome);
+  inFA.Profile();
+  
+  Progress p(inFA.chr_names.size(), (is_stdout == 0));
   
   while(!inGenome.eof() && !inGenome.fail()) {
-
+    p.increment(1);
     inFA.ReadSeq();
     sequence = inFA.sequence;
     chr = inFA.seqname;
     char * buffer = new char[sequence.length() + 1];
     std::strcpy (buffer, sequence.c_str());
-		Rcout << "Processing chromosome: " << chr << '\n';
-		Progress p(sequence.length(), (is_stdout == 0));
+		// Rcout << "Processing chromosome: " << chr << '\n';
+		// Progress p(sequence.length(), (is_stdout == 0));
 
-		unsigned int bufferPos_prev = 1;
+		// unsigned int bufferPos_prev = 1;
     for(unsigned int bufferPos = 1; (bufferPos < sequence.length() - read_len - 1); bufferPos += read_stride) {
       memcpy(read, &buffer[bufferPos - 1], read_len);
       if(checkDNA(read, read_len)) {       
@@ -165,13 +168,13 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
         seed += 1;
         direction = (direction == 0 ? 1 : 0);
       }
-      if((seed % 100000 == 0) & (seed > 0)) {
-        if(is_stdout == 0) {
+      // if((seed % 100000 == 0) & (seed > 0)) {
+        // if(is_stdout == 0) {
           // Rcout << "Processed " << bufferPos << " coord of chrom:" << chr << '\n';
-					p.increment((unsigned long)(bufferPos - bufferPos_prev));	
-					bufferPos_prev = bufferPos;
-				}
-      }
+					// p.increment((unsigned long)(bufferPos - bufferPos_prev));	
+					// bufferPos_prev = bufferPos;
+				// }
+      // }
     }
     delete[] buffer;
   }
