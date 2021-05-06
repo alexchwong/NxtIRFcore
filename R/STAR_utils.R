@@ -195,7 +195,8 @@ STAR_buildRef <- function(reference_path,
 STAR_Mappability <- function(
         reference_path,
         STAR_ref_path = file.path(reference_path, "STAR"),
-        mappability_reads_fasta,
+        mappability_reads_fasta = file.path(
+            reference_path, "Mappability", "Reads.fa"),
         n_threads = 4,
         ...
 ) {
