@@ -18,7 +18,7 @@ is_valid <- function(x) {
 ) {
     type = match.arg(type)
     if(use_system_time) {
-        msg = paste(format(Sys.time(), "%a %b %d %X"), msg)
+        msg = paste(format(Sys.time(), "%b %d %X"), msg)
     }
     if(type == "error") {
         stop(msg, call. = FALSE)
