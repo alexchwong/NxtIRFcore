@@ -131,11 +131,13 @@ BuildReference_Full <- function(
 ) {
     GetReferenceResource(reference_path = reference_path,
         fasta = fasta, gtf = gtf,
-        generate_mappability_reads = FALSE,
+        generate_mappability_reads = TRUE,
         convert_chromosome_names = convert_chromosome_names,
         overwrite_resource = overwrite_resource)
     
-    STAR_buildRef(reference_path = reference_path, n_threads = n_threads)
+    STAR_buildRef(reference_path = reference_path, 
+        also_generate_mappability = TRUE, 
+        n_threads = n_threads)
 
     BuildReference(reference_path = reference_path,
         genome_type = genome_type,
@@ -180,8 +182,10 @@ STAR_buildRef <- function(reference_path,
             type = "message")
         aligned_bam = file.path(reference_path, "Mappability", 
             "Aligned.out.bam")
-        STAR_align_fastq(STAR_ref_path, dirname(aligned_bam), 
-            fastq_1 = mappability_reads_fasta, n_threads = n_threads)
+        STAR_align_fastq(fastq_1 = mappability_reads_fasta, 
+            STAR_ref_path = STAR_ref_path,
+            BAM_output_path = dirname(aligned_bam), 
+            n_threads = n_threads)
         if(file.exists(aligned_bam)) {
             .log(paste("Calculating Mappability from:", aligned_bam),
                 type = "message")
