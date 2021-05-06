@@ -5,6 +5,21 @@ void FastaReader::SetInputHandle(std::istream *in_stream) {
   FirstSeq = true;
 }
 
+void FastaReader::Profile() {
+  // Profiles the FASTQ file to know the chr_names and chr_lens
+  chr_names.clear();
+  chr_lens.clear();
+  IN->seekg (0, std::ios_base::beg);
+  
+  while(!IN->eof() && !IN->fail()) {
+    ReadSeq();
+    chr_names.push_back(seqname);
+    chr_lens.push_back((int32_t)sequence.length());
+  }
+  IN->clear();
+  IN->seekg (0, std::ios_base::beg);
+}
+
 bool FastaReader::ReadSeq() {
   std::string myLine;
   std::string sequence_raw;
