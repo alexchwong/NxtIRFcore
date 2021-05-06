@@ -209,7 +209,6 @@ STAR_Mappability <- function(
         ), type = "message")
         Mappability_GenReads(
             reference_path, 
-            fasta_file = mappability_reads_fasta,
             ...
         )
     }
