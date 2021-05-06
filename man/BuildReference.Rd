@@ -9,10 +9,8 @@
 \usage{
 GetReferenceResource(
   reference_path = "./Reference",
-  fasta_file,
-  gtf_file,
-  ah_genome,
-  ah_transcriptome,
+  fasta,
+  gtf,
   generate_mappability_reads = FALSE,
   convert_chromosome_names = NULL,
   overwrite_resource = FALSE,
@@ -20,10 +18,8 @@ GetReferenceResource(
 )
 
 BuildReference(
-  fasta_file,
-  gtf_file,
-  ah_genome,
-  ah_transcriptome,
+  fasta,
+  gtf,
   reference_path = "./Reference",
   convert_chromosome_names = NULL,
   overwrite_resource = FALSE,
@@ -41,17 +37,13 @@ GetMappabilityRef(genome_type)
 \arguments{
 \item{reference_path}{(REQUIRED) The directory to store the reference files}
 
-\item{fasta_file}{The file path or web link to the user-supplied genome
-FASTA file.}
+\item{fasta}{The file path or web link to the user-supplied genome
+FASTA file. Alternatively, the name of the AnnotationHub record containing
+the genome FASTA resource (Ensembl - TwoBit file resource).}
 
-\item{gtf_file}{The file path or web link  to the user-supplied transcript
-GTF file (or gzipped GTF file).}
-
-\item{ah_genome}{The name of the AnnotationHub record containing the genome
-FASTA resource (Ensembl - TwoBit file resource).}
-
-\item{ah_transcriptome}{The name of the AnnotationHub record containing the
-transcript GTF file.}
+\item{gtf}{The file path or web link  to the user-supplied transcript
+GTF file (or gzipped GTF file). Alternatively, the name of the
+AnnotationHub record containing the transcript GTF file}
 
 \item{generate_mappability_reads}{(default FALSE) Whether reads should be
 generated for the purpose of Mappability calculations. See
@@ -143,8 +135,7 @@ subdirectory within the given \code{reference_path}\cr\cr
 \code{BuildReference()} runs \code{GetReferenceResource()} if resources are not
 saved locally (i.e. \code{GetReferenceResource()} is not already run). Then,
 it creates the NxtIRF / IRFinder references.\cr\cr
-NB: the parameters \code{fasta_file}, \code{gtf_file}, \code{ah_genome} and
-\code{ah_transcriptome} can be omitted in \code{BuildReference()} if
+NB: the parameters \code{fasta} and \code{gtf} can be omitted in \code{BuildReference()} if
 \code{GetReferenceResource()} is already run. See examples below.\cr\cr
 The NxtIRF reference can be created using either:\cr\cr
 \enumerate{
@@ -152,8 +143,7 @@ The NxtIRF reference can be created using either:\cr\cr
 (e.g. 'http://', 'https://' or 'ftp://'). Use \code{fasta_file} and \code{gtf_file}
 to specify the files or web paths to use.\cr\cr
 \item AnnotationHub genome and gene annotation (Ensembl): supply the names of
-the genome sequence \code{ah_genome} and gene annotations
-\code{ah_transcriptome} \cr\cr
+the genome sequence and gene annotations  \cr\cr
 }
 }
 \section{Functions}{
@@ -250,8 +240,8 @@ ah_r94
 
 GetReferenceResource(
     reference_path = "./Reference_AH",
-    ah_genome = "AH65745", 
-    ah_transcriptome = "AH64631"
+    fasta = "AH65745", 
+    gtf = "AH64631"
 )
 BuildReference(
     reference_path = "./Reference_AH",
@@ -265,8 +255,8 @@ chrom.df = GenomeInfoDb::genomeStyles()$Homo_sapiens
 
 GetReferenceResource(
     reference_path = "./Reference_UCSC",
-    ah_genome = "AH65745", 
-    ah_transcriptome = "AH64631",
+    fasta = "AH65745", 
+    gtf = "AH64631",
     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
 )
 BuildReference(
