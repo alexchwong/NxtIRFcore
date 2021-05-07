@@ -610,7 +610,6 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
     }
   }
 */
-
   for (int index = 0; index < blocks.readCount; index ++) {
     //Walk each block within each read.
     for (unsigned int j = 0; j < blocks.rLens[index].size(); j++) {
@@ -625,6 +624,7 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
   }
 	frag_count += 1;
 	if(frag_count % 1000000 == 0) {
+		Rcout << "Sorting fragment maps at frag_count = " << frag_count << '\n';
 		sort_and_collapse();
 	}
 }
