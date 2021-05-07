@@ -93,6 +93,10 @@ void JunctionCount::ProcessBlocks(const FragmentBlocks &blocks) {
 			}
 		}
 	}
+	reads_processed += 1;
+	if(reads_processed % 1000000 == 0) {
+		Clean();
+	}
 }
 
 int JunctionCount::WriteOutput(std::string& output, std::string& QC) const {
@@ -233,7 +237,28 @@ unsigned int JunctionCount::lookupRight(std::string ChrName, unsigned int right)
 	return 0;
 }
 
-
+int JunctionCount::Clean() {
+	
+	for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
+		new_map_junc = new std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>;
+		new_map_junc->insert(itChr->second.begin(), itChr->second.end());
+		itChr->second.swap(*new_map_junc);
+		delete new_map_junc;
+	}
+	for (auto itChr=chrName_juncLeft_count->begin(); itChr!=chrName_juncLeft_count->end(); itChr++) {
+		new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
+		new_map_junc_arm->insert(itChr->second.begin(), itChr->second.end());
+		itChr->second.swap(*new_map_junc_arm);
+		delete new_map_junc_arm;
+	}
+	for (auto itChr=chrName_juncRight_count->begin(); itChr!=chrName_juncRight_count->end(); itChr++) {
+		new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
+		new_map_junc_arm->insert(itChr->second.begin(), itChr->second.end());
+		itChr->second.swap(*new_map_junc_arm);
+		delete new_map_junc_arm;
+	}
+	return(0);
+}
 
 
 
