@@ -979,6 +979,24 @@ JunctionCount::~JunctionCount() {
     // chrName_junc_count->clear();
     // chrName_juncLeft_count->clear();
     // chrName_juncRight_count->clear();
+		for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
+			new_map_junc = new std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>;
+			// new_map_junc->insert(itChr->second.begin(), itChr->second.end());
+			itChr->second.swap(*new_map_junc);
+			delete new_map_junc;
+		}
+		for (auto itChr=chrName_juncLeft_count->begin(); itChr!=chrName_juncLeft_count->end(); itChr++) {
+			new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
+			// new_map_junc_arm->insert(itChr->second.begin(), itChr->second.end());
+			itChr->second.swap(*new_map_junc_arm);
+			delete new_map_junc_arm;
+		}
+		for (auto itChr=chrName_juncRight_count->begin(); itChr!=chrName_juncRight_count->end(); itChr++) {
+			new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
+			// new_map_junc_arm->insert(itChr->second.begin(), itChr->second.end());
+			itChr->second.swap(*new_map_junc_arm);
+			delete new_map_junc_arm;
+		}
 		delete chrName_junc_count;
 		delete chrName_juncLeft_count;
 		delete chrName_juncRight_count;
