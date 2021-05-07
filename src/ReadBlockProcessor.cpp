@@ -615,12 +615,12 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
     //Walk each block within each read.
     for (unsigned int j = 0; j < blocks.rLens[index].size(); j++) {
       // Stranded 
-			(*chrID_count[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1))
-			(*chrID_count[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1))
+			(*chrID_vec[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1));
+			(*chrID_vec[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1));
 
       // Unstranded 
-			(*chrID_count[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1))
-			(*chrID_count[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1))
+			(*chrID_vec[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1));
+			(*chrID_vec[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1));
     }
   }
 	frag_count += 1;
@@ -630,12 +630,30 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
 }
 
 void FragmentsMap::sort_and_collapse() {
-	for(int i = 0; i < 3; i++) {
-		for(int j = 0; j < chr_count + 1; j++) {
-			sort(
-				(*chrID_count[blocks.direction].at(blocks.chr_id)).begin,
-				(*chrID_count[blocks.direction].at(blocks.chr_id)).end
+	for(unsigned int j = 0; j < 3; j++) {
+    for (auto itChr=chrName_vec[j].begin(); itChr!=chrName_vec[j].end(); itChr++) {
+			// sort
+			std::sort(
+				itChr->second.begin(),
+				itChr->second.end()
 			);
+			// assign temp vector
+			std::vector< std::pair<unsigned int, int> > temp_vec;
+			unsigned int loci = 0;
+			int accum = 0;
+      for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
+				if(it_pos->first == 0) {
+					accum += it_pos->second;
+				} else {
+					temp_vec.push_back( std::make_pair(loci, accum) );
+					loci = it_pos->first;
+					accum = it_pos->second;
+				}
+			}
+			// final push
+			temp_vec.push_back( std::make_pair(loci, accum) );
+			// swap vector
+			itChr->second.swap(temp_vec);
 		}
 	}
 }
@@ -728,7 +746,7 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
       unsigned int coordpos = 0;
       unsigned int coorddepth = 0;
       bool writefirst = true;
-            
+      
       for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
         if(writefirst) {
           writefirst = false;
