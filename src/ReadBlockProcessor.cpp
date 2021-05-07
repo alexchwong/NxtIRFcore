@@ -645,7 +645,7 @@ void FragmentsMap::sort_and_collapse() {
 				if(it_pos->first == 0) {
 					accum += it_pos->second;
 				} else {
-					temp_vec.push_back( std::make_pair(loci, accum) );
+					if(accum != 0) temp_vec.push_back( std::make_pair(loci, accum) );
 					loci = it_pos->first;
 					accum = it_pos->second;
 				}
