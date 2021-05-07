@@ -292,8 +292,8 @@ GetReferenceResource <- function(
 #' given reference path
 #' @export
 BuildReference <- function(
-        fasta, gtf,
         reference_path = "./Reference",
+        fasta, gtf,
         convert_chromosome_names = NULL,
         overwrite_resource = FALSE, genome_type, 
         nonPolyARef = "", MappabilityRef = "", BlacklistRef = "", 
@@ -583,11 +583,11 @@ Get_GTF_file <- function(reference_path) {
     if(     !( is_valid(fasta) | is_valid(gtf) ) & 
             !overwrite_resource) {
         resource_path <- file.path(reference_path, "resource")
-        settings.file <- file.path(reference_path, "settings.Rds")
-        settings.list <- readRDS(settings.file)
-        genome <- .fetch_fasta(reference_path = reference_path,
-            ah_genome = settings.list[["ah_genome"]], 
-            convert_chromosome_names = chromosomes)
+        # settings.file <- file.path(reference_path, "settings.Rds")
+        # settings.list <- readRDS(settings.file)
+        genome <- .fetch_fasta(reference_path,
+            convert_chromosome_names = chromosomes,
+            overwrite = overwrite_resource)
         gtf_gr <- .fetch_gtf(
             gtf = file.path(resource_path, "transcripts.gtf.gz"),
             reference_path = reference_path, 
@@ -596,7 +596,7 @@ Get_GTF_file <- function(reference_path) {
         )
         # settings.list$chromosomes = chromosomes
         # settings.list$BuildVersion = buildref_version
-        saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
+        # saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
     } else if(!( is_valid(fasta) | is_valid(gtf) )){
         .log("Both fasta and gtf are required if overwrite_resource = TRUE")
     } else {
@@ -695,6 +695,13 @@ Get_GTF_file <- function(reference_path) {
         genome <- .fetch_fasta_ah(ah_genome, 
             exclude_scaffolds = exclude_scaffolds,
             verbose = TRUE)
+    } else if(fasta == "") {
+        file.2bit = file.path(reference_path, "resource", "genome.2bit")
+        if(!file.exists(file.2bit)) {
+            .log(paste("Could not find", file.2bit))
+        }
+        genome <- TwoBitFile(file.2bit)
+        return(genome)
     } else {
         fasta_file <- .fetch_fasta_file_validate(fasta)
         genome <- .fetch_fasta_file(fasta_file)
@@ -3599,6 +3606,9 @@ Mappability_CalculateExclusions <- function(reference_path,
     .validate_path(file.path(normalizePath(reference_path), "Mappability"))
     output_file = file.path(normalizePath(reference_path), "Mappability",
         "MappabilityExclusion.bed")
+        
+    .log(paste("Calculating Mappability Exclusion regions from:",
+        aligned_bam), type = "message")
     run_IRFinder_MapExclusionRegions(
         normalizePath(aligned_bam),
         output_file,
