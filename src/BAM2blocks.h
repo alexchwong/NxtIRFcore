@@ -78,7 +78,7 @@ class BAM2blocks {
 
 	bam_read_core reads[2];
 
-    std::map< std::string, bam_read_core* > spare_reads;
+  std::map< std::string, bam_read_core* > * spare_reads;
 
 	BAMReader * IN;
 
@@ -89,6 +89,7 @@ class BAM2blocks {
 
 public:
   	BAM2blocks();
+		~BAM2blocks();
   	void openFile(BAMReader * _IN);
   	void readBamHeader();  // implied by openFile. So perhaps should be private.
   	int processAll(std::string& output, bool threaded = false);
