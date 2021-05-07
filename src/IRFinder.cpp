@@ -678,7 +678,7 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		covFile outCOV;
 		outCOV.SetOutputHandle(&ofCOV);
 		
-		oFragMap.sort_and_collapse_final(verbose);
+		oFragMap.sort_and_collapse_final(false);
 		oFragMap.WriteBinary(&outCOV, BB.chr_names, BB.chr_lens);
 		ofCOV.close();		
 	}
