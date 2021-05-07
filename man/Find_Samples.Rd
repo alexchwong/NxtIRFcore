@@ -14,7 +14,12 @@ Find_Samples(
   use_subdir = FALSE
 )
 
-Find_FASTQ(sample_path, paired = TRUE, ...)
+Find_FASTQ(
+  sample_path,
+  paired = TRUE,
+  fastq_suffix_type = c("fastq", "fq", "fastq.gz", "fq.gz"),
+  ...
+)
 
 Find_Bams(sample_path, ...)
 
@@ -39,6 +44,9 @@ of the file is assumed to be the sample name. See below example.}
 \item{paired}{Whether to expect single FASTQ files (of the format
 "sample.fastq"), or
 paired files (of the format "sample_1.fastq", "sample_2.fastq")}
+
+\item{fastq_suffix_type}{The name of the FASTQ suffix. Options are:
+"fastq", "fastq.gz", "fq", or "fq.gz"}
 
 \item{...}{Additional parameters to be passed to Find_Samples}
 }
