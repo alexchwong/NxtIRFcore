@@ -547,6 +547,9 @@ void FragmentsMap::ChrMapUpdate(const std::vector<string> &chrmap) {
   chrID_vec[0].resize(0);
   chrID_vec[1].resize(0);
   chrID_vec[2].resize(0);
+  temp_chrID_vec[0].resize(0);
+  temp_chrID_vec[1].resize(0);
+  temp_chrID_vec[2].resize(0);
 	chr_count = 0;
   for (unsigned int i = 0; i < chrmap.size(); i++) {
     chrName_vec[0][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
@@ -555,6 +558,14 @@ void FragmentsMap::ChrMapUpdate(const std::vector<string> &chrmap) {
     chrID_vec[1].push_back( &chrName_vec[1][chrmap.at(i)] );
     chrName_vec[2][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
     chrID_vec[2].push_back( &chrName_vec[2][chrmap.at(i)] );
+
+    temp_chrName_vec[0][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
+    temp_chrID_vec[0].push_back( &temp_chrName_vec[0][chrmap.at(i)] );
+    temp_chrName_vec[1][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
+    temp_chrID_vec[1].push_back( &temp_chrName_vec[1][chrmap.at(i)] );
+    temp_chrName_vec[2][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
+    temp_chrID_vec[2].push_back( &temp_chrName_vec[2][chrmap.at(i)] );
+
 		chr_count += 1;
   }
 }
@@ -614,24 +625,61 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
     //Walk each block within each read.
     for (unsigned int j = 0; j < blocks.rLens[index].size(); j++) {
       // Stranded 
-			(*chrID_vec[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1));
-			(*chrID_vec[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1));
+			(*temp_chrID_vec[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1));
+			(*temp_chrID_vec[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1));
 
       // Unstranded 
-			(*chrID_vec[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1));
-			(*chrID_vec[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1));
+			(*temp_chrID_vec[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1));
+			(*temp_chrID_vec[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1));
     }
   }
 	frag_count += 1;
 	if(frag_count % 1000000 == 0) {
 		Rcout << "Sorting fragment maps at frag_count = " << frag_count << '\n';
-		sort_and_collapse();
+		sort_and_collapse_temp();
 	}
 }
 
-void FragmentsMap::sort_and_collapse() {
+int FragmentsMap::sort_and_collapse_final() {
+	if(!final_is_sorted) {
+		sort_and_collapse_temp();
+		Rcout << "Performing final sort of fragment maps\n";
+		for(unsigned int j = 0; j < 3; j++) {
+			for (auto itChr=chrName_vec[j].begin(); itChr!=chrName_vec[j].end(); itChr++) {
+				// sort
+				std::sort(
+					itChr->second.begin(),
+					itChr->second.end()
+				);
+				// assign temp vector
+				std::vector< std::pair<unsigned int, int> > temp_vec;
+				unsigned int loci = 0;
+				int accum = 0;
+				for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
+					if(it_pos->first == 0) {
+						accum += it_pos->second;
+					} else {
+						if(accum != 0) temp_vec.push_back( std::make_pair(loci, accum) );
+						loci = it_pos->first;
+						accum = it_pos->second;
+					}
+				}
+				// final push
+				temp_vec.push_back( std::make_pair(loci, accum) );
+				// swap vector
+				itChr->second.swap(temp_vec);
+			}
+		}
+		final_is_sorted = true;
+	}
+	return(0);
+}
+
+int FragmentsMap::sort_and_collapse_temp() {
+	// Sort temp vectors and append to final:
+	
 	for(unsigned int j = 0; j < 3; j++) {
-    for (auto itChr=chrName_vec[j].begin(); itChr!=chrName_vec[j].end(); itChr++) {
+    for (auto itChr=temp_chrName_vec[j].begin(); itChr!=temp_chrName_vec[j].end(); itChr++) {
 			// sort
 			std::sort(
 				itChr->second.begin(),
@@ -653,9 +701,16 @@ void FragmentsMap::sort_and_collapse() {
 			// final push
 			temp_vec.push_back( std::make_pair(loci, accum) );
 			// swap vector
-			itChr->second.swap(temp_vec);
+			// itChr->second.swap(temp_vec);
+			chrName_vec[j].at(itChr->first).insert(
+				chrName_vec[j].at(itChr->first).end(),
+				temp_vec.begin(), temp_vec.end()		
+			);
+			// Clear temporary vector
+			itChr->second.clear();
 		}
 	}
+	return(0);
 }
 
 int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens) const {
@@ -720,7 +775,6 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
   return(0);
 	
 */
-
   // Write COV file as binary
 
   // Issue is map constructs auto-sort
@@ -920,6 +974,9 @@ FragmentsMap::~FragmentsMap() {
   chrName_vec[0].clear();
   chrName_vec[1].clear();
   chrName_vec[2].clear();
+  temp_chrName_vec[0].clear();
+  temp_chrName_vec[1].clear();
+  temp_chrName_vec[2].clear();
 }
 
 

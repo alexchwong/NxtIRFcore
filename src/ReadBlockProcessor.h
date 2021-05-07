@@ -123,6 +123,10 @@ private:
 	// vector pair
   std::map<string, std::vector< std::pair<unsigned int, int> > > chrName_vec[3];
   std::vector< std::vector< std::pair<unsigned int, int> >* > chrID_vec[3];
+
+	// vector pair temp
+  std::map<string, std::vector< std::pair<unsigned int, int> > > temp_chrName_vec[3];
+  std::vector< std::vector< std::pair<unsigned int, int> >* > temp_chrID_vec[3];
   
   union stream_uint32 {
     char c[4];
@@ -135,9 +139,13 @@ private:
 	
 	int chr_count = 0;
   uint32_t frag_count = 0;
-	void sort_and_collapse();
+	int sort_and_collapse_temp();
+
+	bool final_is_sorted = false;
 public:
   ~FragmentsMap();
+	int sort_and_collapse_final();
+
   void ProcessBlocks(const FragmentBlocks &blocks);
   void ChrMapUpdate(const std::vector<string> &chrmap);
   int WriteOutput(std::ostream *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, int threshold = 4) const;
