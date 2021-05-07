@@ -21,18 +21,24 @@ class ReadBlockProcessor {
 
 class JunctionCount : public ReadBlockProcessor {
 	private:
-		std::map<string, std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>> chrName_junc_count;
+		std::map<string, std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>> * chrName_junc_count;
 		std::vector<std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>*> chrID_junc_count;
 		//unsigned int[3] - 0, neg strand count; 1, pos strand count; 2 = expected direction from ref: 0=unknown, 1=neg, 2=pos.
 
-		std::map<string, std::map<unsigned int,unsigned int[2]>> chrName_juncLeft_count;
+		std::map<string, std::map<unsigned int,unsigned int[2]>> * chrName_juncLeft_count;
 		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncLeft_count;
 
-		std::map<string, std::map<unsigned int,unsigned int[2]>> chrName_juncRight_count;
+		std::map<string, std::map<unsigned int,unsigned int[2]>> * chrName_juncRight_count;
 		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncRight_count;
 		  //chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
+		int Clean();
+		std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]> * new_map_junc;
+		std::map<unsigned int,unsigned int[2]> * new_map_junc_arm;
+		int32_t reads_processed = 0;
 	public:
+		JunctionCount();
     ~JunctionCount();   // destructor
+
 		void ProcessBlocks(const FragmentBlocks &fragblock);
 		void ChrMapUpdate(const std::vector<std::string> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;
@@ -114,8 +120,19 @@ class FragmentsInROI : public ReadBlockProcessor {
 class FragmentsMap : public ReadBlockProcessor {
   // Counts mappability.
 private:
-  std::map<string, std::map<unsigned int, int> > chrName_count[3];  // 0 = +, 1 = -, 2 = both
+  // 0 = +, 1 = -, 2 = both
+/*	
+	// nested map
+  std::map<string, std::map<unsigned int, int> > chrName_count[3];
   std::vector<std::map<unsigned int, int>*> chrID_count[3];
+*/
+	// vector pair
+  std::map<string, std::vector< std::pair<unsigned int, int> > > chrName_vec[3];
+  std::vector< std::vector< std::pair<unsigned int, int> >* > chrID_vec[3];
+
+	// vector pair temp
+  std::map<string, std::vector< std::pair<unsigned int, int> > > temp_chrName_vec[3];
+  std::vector< std::vector< std::pair<unsigned int, int> >* > temp_chrID_vec[3];
   
   union stream_uint32 {
     char c[4];
@@ -125,9 +142,16 @@ private:
     char c[4];
     int32_t i;
   };
-  
+	
+	int chr_count = 0;
+  uint32_t frag_count = 0;
+	int sort_and_collapse_temp();
+
+	bool final_is_sorted = false;
 public:
   ~FragmentsMap();
+	int sort_and_collapse_final(bool mark_as_final);
+
   void ProcessBlocks(const FragmentBlocks &blocks);
   void ChrMapUpdate(const std::vector<string> &chrmap);
   int WriteOutput(std::ostream *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, int threshold = 4) const;

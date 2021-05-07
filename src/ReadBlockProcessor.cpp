@@ -2,6 +2,12 @@
 #include "includedefine.h"
 // using namespace std;
 
+JunctionCount::JunctionCount() {
+    chrName_junc_count = new std::map<string, std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>>;
+    chrName_juncLeft_count = new std::map<string, std::map<unsigned int,unsigned int[2]>>;
+    chrName_juncRight_count = new std::map<string, std::map<unsigned int,unsigned int[2]>>;
+}
+
 //chrName_junc_count holds the data structure -- ChrName(string) -> Junc Start/End -> count.
 //chrID_junc_count holds the ChrID -> ...
 //  where the ChrID is the ChrID relating to the appropriate ChrName, as understood by the currently processed BAM file.
@@ -11,18 +17,10 @@ void JunctionCount::ChrMapUpdate(const std::vector<std::string> &chrmap) {
 	chrID_juncRight_count.resize(0);
 	// Below could be done with an iterator - i is not used except for element access of the single collection.
 	for (unsigned int i = 0; i < chrmap.size(); i++) {
-		chrID_junc_count.push_back( &chrName_junc_count[chrmap.at(i)] );
-		chrID_juncLeft_count.push_back( &chrName_juncLeft_count[chrmap.at(i)] );
-		chrID_juncRight_count.push_back( &chrName_juncRight_count[chrmap.at(i)] );
+		chrID_junc_count.push_back( &(*chrName_junc_count)[chrmap.at(i)] );
+		chrID_juncLeft_count.push_back( &(*chrName_juncLeft_count)[chrmap.at(i)] );
+		chrID_juncRight_count.push_back( &(*chrName_juncRight_count)[chrmap.at(i)] );
 	}
-	
-	
-//		std::map<string, std::map<unsigned int,unsigned int[2]>> chrName_juncLeft_count;
-//		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncLeft_count;
-
-//		std::map<string, std::map<unsigned int,unsigned int[2]>> chrName_juncRight_count;
-//		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncRight_count;
-
 }
 
 void JunctionCount::loadRef(std::istringstream &IN) {
@@ -66,12 +64,12 @@ void JunctionCount::loadRef(std::istringstream &IN) {
 		}
 		
 		if (direction == "-")  {
-			chrName_junc_count[s_chr][make_pair(start,end)][2] += 1;
+			(*chrName_junc_count)[s_chr][make_pair(start,end)][2] += 1;
 		}	else if (direction == "+") {
-			chrName_junc_count[s_chr][make_pair(start,end)][2] += 2;
+			(*chrName_junc_count)[s_chr][make_pair(start,end)][2] += 2;
 		}
 		if(!NMD_flag.empty() && !(0 == NMD_flag.compare(0, 2, "\"\""))) {
-			chrName_junc_count[s_chr][make_pair(start,end)][2] += 4;
+			(*chrName_junc_count)[s_chr][make_pair(start,end)][2] += 4;
 		}
 	}
 }
@@ -95,6 +93,10 @@ void JunctionCount::ProcessBlocks(const FragmentBlocks &blocks) {
 			}
 		}
 	}
+	reads_processed += 1;
+	if(reads_processed % 1000000 == 0) {
+		Clean();
+	}
 }
 
 int JunctionCount::WriteOutput(std::string& output, std::string& QC) const {
@@ -102,7 +104,7 @@ int JunctionCount::WriteOutput(std::string& output, std::string& QC) const {
 	int junc_anno = 0;
 	int junc_unanno = 0;
 	int junc_NMD = 0;
-	for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
+	for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
 		string chr = itChr->first;
 		for (auto itJuncs=itChr->second.begin(); itJuncs!=itChr->second.end(); ++itJuncs) {
 			if((itJuncs->second)[2] != 0) {
@@ -140,7 +142,7 @@ int JunctionCount::Directional(std::string& output) const {
 
     std::ostringstream oss;    
 
-	for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
+	for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
 		for (auto itJuncs=itChr->second.begin(); itJuncs!=itChr->second.end(); ++itJuncs) {
 			if (((itJuncs->second)[1] + (itJuncs->second)[0]) > 8) {
 				if ((itJuncs->second)[0] > (itJuncs->second)[1] * 4) {
@@ -194,48 +196,69 @@ int JunctionCount::Directional(std::string& output) const {
 
 unsigned int JunctionCount::lookup(std::string ChrName, unsigned int left, unsigned int right, bool direction) const {
 	try {
-		return chrName_junc_count.at(ChrName).at(make_pair(left, right))[direction];
+		return chrName_junc_count->at(ChrName).at(make_pair(left, right))[direction];
 	}catch (const std::out_of_range& e) {
 	}
 	return 0;
 }
 unsigned int JunctionCount::lookup(std::string ChrName, unsigned int left, unsigned int right) const {
 	try {
-		return chrName_junc_count.at(ChrName).at(make_pair(left, right))[0] + chrName_junc_count.at(ChrName).at(make_pair(left, right))[1];
+		return chrName_junc_count->at(ChrName).at(make_pair(left, right))[0] + chrName_junc_count->at(ChrName).at(make_pair(left, right))[1];
 	}catch (const std::out_of_range& e) {
 	}
 	return 0;
 }
 unsigned int JunctionCount::lookupLeft(std::string ChrName, unsigned int left, bool direction) const {
 	try {
-		return chrName_juncLeft_count.at(ChrName).at(left)[direction];
+		return chrName_juncLeft_count->at(ChrName).at(left)[direction];
 	}catch (const std::out_of_range& e) {
 	}
 	return 0;
 }
 unsigned int JunctionCount::lookupLeft(std::string ChrName, unsigned int left) const {
 	try {
-		return chrName_juncLeft_count.at(ChrName).at(left)[0] + chrName_juncLeft_count.at(ChrName).at(left)[1];
+		return chrName_juncLeft_count->at(ChrName).at(left)[0] + chrName_juncLeft_count->at(ChrName).at(left)[1];
 	}catch (const std::out_of_range& e) {
 	}
 	return 0;
 }
 unsigned int JunctionCount::lookupRight(std::string ChrName, unsigned int right, bool direction) const {
 	try {
-		return chrName_juncRight_count.at(ChrName).at(right)[direction];
+		return chrName_juncRight_count->at(ChrName).at(right)[direction];
 	}catch (const std::out_of_range& e) {
 	}
 	return 0;
 }
 unsigned int JunctionCount::lookupRight(std::string ChrName, unsigned int right) const {
 	try {
-		return chrName_juncRight_count.at(ChrName).at(right)[0] + chrName_juncRight_count.at(ChrName).at(right)[1];
+		return chrName_juncRight_count->at(ChrName).at(right)[0] + chrName_juncRight_count->at(ChrName).at(right)[1];
 	}catch (const std::out_of_range& e) {
 	}
 	return 0;
 }
 
-
+int JunctionCount::Clean() {
+	
+	for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
+		new_map_junc = new std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>;
+		new_map_junc->insert(itChr->second.begin(), itChr->second.end());
+		itChr->second.swap(*new_map_junc);
+		delete new_map_junc;
+	}
+	for (auto itChr=chrName_juncLeft_count->begin(); itChr!=chrName_juncLeft_count->end(); itChr++) {
+		new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
+		new_map_junc_arm->insert(itChr->second.begin(), itChr->second.end());
+		itChr->second.swap(*new_map_junc_arm);
+		delete new_map_junc_arm;
+	}
+	for (auto itChr=chrName_juncRight_count->begin(); itChr!=chrName_juncRight_count->end(); itChr++) {
+		new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
+		new_map_junc_arm->insert(itChr->second.begin(), itChr->second.end());
+		itChr->second.swap(*new_map_junc_arm);
+		delete new_map_junc_arm;
+	}
+	return(0);
+}
 
 
 
@@ -531,6 +554,7 @@ int FragmentsInChr::WriteOutput(std::string& output, std::string& QC) const {
 }
 
 void FragmentsMap::ChrMapUpdate(const std::vector<string> &chrmap) {
+/*
   chrID_count[0].resize(0);
   chrID_count[1].resize(0);
   chrID_count[2].resize(0);
@@ -542,10 +566,37 @@ void FragmentsMap::ChrMapUpdate(const std::vector<string> &chrmap) {
     chrName_count[2][chrmap.at(i)].insert({0,0}); // Insert dummy pair
     chrID_count[2].push_back( &chrName_count[2][chrmap.at(i)] );
   }
+*/	
+  chrID_vec[0].resize(0);
+  chrID_vec[1].resize(0);
+  chrID_vec[2].resize(0);
+  temp_chrID_vec[0].resize(0);
+  temp_chrID_vec[1].resize(0);
+  temp_chrID_vec[2].resize(0);
+	chr_count = 0;
+  for (unsigned int i = 0; i < chrmap.size(); i++) {
+    chrName_vec[0][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
+    chrID_vec[0].push_back( &chrName_vec[0][chrmap.at(i)] );
+    chrName_vec[1][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
+    chrID_vec[1].push_back( &chrName_vec[1][chrmap.at(i)] );
+    chrName_vec[2][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
+    chrID_vec[2].push_back( &chrName_vec[2][chrmap.at(i)] );
+
+    temp_chrName_vec[0][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
+    temp_chrID_vec[0].push_back( &temp_chrName_vec[0][chrmap.at(i)] );
+    temp_chrName_vec[1][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
+    temp_chrID_vec[1].push_back( &temp_chrName_vec[1][chrmap.at(i)] );
+    temp_chrName_vec[2][chrmap.at(i)].push_back(std::make_pair (0,0)); // Insert dummy pair
+    temp_chrID_vec[2].push_back( &temp_chrName_vec[2][chrmap.at(i)] );
+
+		chr_count += 1;
+  }
 }
 
 void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
-  std::map<unsigned int, int>::iterator it_position;
+  
+/*	
+	std::map<unsigned int, int>::iterator it_position;
   // Contains chr, then pos, then incremental coverage (+ indicates increased coverage compared to prior loci)
   
   //Walk each read within the fragment (1 or 2).
@@ -592,9 +643,105 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
       }
     }
   }
+*/
+  for (int index = 0; index < blocks.readCount; index ++) {
+    //Walk each block within each read.
+    for (unsigned int j = 0; j < blocks.rLens[index].size(); j++) {
+      // Stranded 
+			(*temp_chrID_vec[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1));
+			(*temp_chrID_vec[blocks.direction].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1));
+
+      // Unstranded 
+			(*temp_chrID_vec[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j], 1));
+			(*temp_chrID_vec[2].at(blocks.chr_id)).push_back(std::make_pair( blocks.readStart[index] + blocks.rStarts[index][j] + blocks.rLens[index][j], -1));
+    }
+  }
+	frag_count += 1;
+	if(frag_count % 1000000 == 0) {
+		// Rcout << "Sorting fragment maps at frag_count = " << frag_count << '\n';
+		sort_and_collapse_temp();
+	}
+}
+
+int FragmentsMap::sort_and_collapse_final(bool verbose) {
+	if(!final_is_sorted) {
+		sort_and_collapse_temp();
+		if(verbose)	Rcout << "Performing final sort of fragment maps\n";
+		Progress p(3 * chr_count, verbose);
+		for(unsigned int j = 0; j < 3; j++) {
+			for (auto itChr=chrName_vec[j].begin(); itChr!=chrName_vec[j].end(); itChr++) {
+				// sort
+				std::sort(
+					itChr->second.begin(),
+					itChr->second.end()
+				);
+				// assign temp vector
+				std::vector< std::pair<unsigned int, int> > temp_vec;
+				unsigned int loci = 0;
+				int accum = 0;
+				for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
+					if(it_pos->first == loci) {
+						accum += it_pos->second;
+					} else {
+						if(accum != 0) temp_vec.push_back( std::make_pair(loci, accum) );
+						loci = it_pos->first;
+						accum = it_pos->second;
+					}
+				}
+				// final push
+				temp_vec.push_back( std::make_pair(loci, accum) );
+				// swap vector
+				itChr->second.swap(temp_vec);
+				
+				p.increment(1);
+			}
+		}
+		final_is_sorted = true;
+	}
+	return(0);
+}
+
+int FragmentsMap::sort_and_collapse_temp() {
+	// Sort temp vectors and append to final:
+	
+	for(unsigned int j = 0; j < 3; j++) {
+    for (auto itChr=temp_chrName_vec[j].begin(); itChr!=temp_chrName_vec[j].end(); itChr++) {
+			// sort
+			std::sort(
+				itChr->second.begin(),
+				itChr->second.end()
+			);
+			// assign temp vector
+			std::vector< std::pair<unsigned int, int> > temp_vec;
+			unsigned int loci = 0;
+			int accum = 0;
+      for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
+				if(it_pos->first == 0) {
+					accum += it_pos->second;
+				} else {
+					if(accum != 0) temp_vec.push_back( std::make_pair(loci, accum) );
+					loci = it_pos->first;
+					accum = it_pos->second;
+				}
+			}
+			// final push
+			temp_vec.push_back( std::make_pair(loci, accum) );
+
+			chrName_vec[j].at(itChr->first).insert(
+				chrName_vec[j].at(itChr->first).end(),
+				temp_vec.begin(), temp_vec.end()		
+			);
+			// Clear temporary vector by swap trick
+			std::vector< std::pair<unsigned int, int> > empty_swap_vector;
+			itChr->second.swap(empty_swap_vector);
+		}
+	}
+	return(0);
 }
 
 int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens) const {
+/*
+
   // Write COV file as binary
 
   // Issue is map constructs auto-sort
@@ -652,11 +799,71 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
   }
   os->FlushBody();
   return(0);
+	
+*/
+  // Write COV file as binary
+
+  // Issue is map constructs auto-sort
+  // Need to put chrs and lengths into a map structure
+  std::map< std::string, int32_t > chrmap;
+  
+  // Arrange chromosomes in same order as arranged by mapping chrs
+  for(unsigned int i = 0; i < chr_names.size(); i++) {
+      chrmap.insert({chr_names[i], chr_lens[i]});
+  }
+  // Re-push into alphabetical ordered chromosomes
+  std::vector<std::string> sort_chr_names;
+  std::vector<int32_t> sort_chr_lens;
+  for (auto chr = chrmap.begin(); chr != chrmap.end(); chr++) {
+    sort_chr_names.push_back(chr->first);
+    sort_chr_lens.push_back(chr->second);
+  }
+  os->WriteHeader(sort_chr_names, sort_chr_lens);
+
+  unsigned int refID = 0;
+  for(unsigned int j = 0; j < 3; j++) {
+    for (auto itChr=chrName_vec[j].begin(); itChr!=chrName_vec[j].end(); itChr++) {
+      unsigned int coordpos = 0;
+      unsigned int coorddepth = 0;
+      bool writefirst = true;
+      
+      for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
+        if(writefirst) {
+          writefirst = false;
+          if(it_pos->first == 0) {
+            // Write coverage only
+            coorddepth += it_pos->second;
+          } else {
+            coorddepth = 0;
+
+            os->WriteEntry(refID, coorddepth, it_pos->first);
+            
+            coorddepth += it_pos->second;
+            coordpos = it_pos->first;
+          }
+        } else {
+          // coorddepth should already be recorded previously
+          os->WriteEntry(refID, coorddepth, it_pos->first - coordpos);
+          
+          coorddepth += it_pos->second;
+          
+          coordpos = it_pos->first;
+        }
+      }
+      // Write last entry for remainder of chromosome length
+      os->WriteEntry(refID, coorddepth, chrmap[itChr->first] - coordpos);
+      
+      refID += 1; 
+    }
+  }
+  os->FlushBody();
+  return(0);	
 }
 
 int FragmentsMap::WriteOutput(std::ostream *os, 
     const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, 
     int threshold) const {
+/*
     // This is called on mappability
   // Issue is map constructs auto-sort
   // Need to put chrs and lengths into a map structure
@@ -710,13 +917,83 @@ int FragmentsMap::WriteOutput(std::ostream *os,
     }
   }
   return 0;
+*/
+
+    // This is called on mappability
+  // Issue is map constructs auto-sort
+  // Need to put chrs and lengths into a map structure
+  std::map< std::string, int32_t > chrmap;
+  
+  // Arrange chromosomes in same order as arranged by mapping chrs
+  for(unsigned int i = 0; i < chr_names.size(); i++) {
+      chrmap.insert({chr_names[i], chr_lens[i]});
+  }
+  // Re-push into alphabetical ordered chromosomes
+  std::vector<std::string> sort_chr_names;
+  std::vector<int32_t> sort_chr_lens;
+  for (auto chr = chrmap.begin(); chr != chrmap.end(); chr++) {
+    sort_chr_names.push_back(chr->first);
+    sort_chr_lens.push_back(chr->second);
+  }    
+    
+  for (auto itChr=chrName_vec[2].begin(); itChr!=chrName_vec[2].end(); itChr++) {
+    int coverage = 0;
+    bool covered = false;
+    
+    if (itChr->second.begin()->first == 0 && itChr->second.begin()->second > threshold) {
+      covered = true;
+    } else {
+		// Write first coordinate
+	  *os << itChr->first << "\t0\t";
+	}
+    for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
+      coverage += it_pos->second;
+      if(coverage > threshold) {
+        if(covered) {
+          // do nothing
+        } else {
+          *os << it_pos->first << '\n';
+          covered = true;
+        }
+      } else {
+        if(covered) {
+          *os << itChr->first << "\t"
+              << it_pos->first << "\t";
+          covered = false;
+        } else {
+          
+          // do nothing
+        }
+      }
+    }
+    // Write last entry
+    if(!covered) {
+      *os << chrmap[itChr->first] << "\n";    
+    }
+  }
+  return 0;
 }
 
 
 JunctionCount::~JunctionCount() {
-    chrName_junc_count.clear();
-    chrName_juncLeft_count.clear();
-    chrName_juncRight_count.clear();
+		for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
+			new_map_junc = new std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>;
+			itChr->second.swap(*new_map_junc);
+			delete new_map_junc;
+		}
+		for (auto itChr=chrName_juncLeft_count->begin(); itChr!=chrName_juncLeft_count->end(); itChr++) {
+			new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
+			itChr->second.swap(*new_map_junc_arm);
+			delete new_map_junc_arm;
+		}
+		for (auto itChr=chrName_juncRight_count->begin(); itChr!=chrName_juncRight_count->end(); itChr++) {
+			new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
+			itChr->second.swap(*new_map_junc_arm);
+			delete new_map_junc_arm;
+		}
+		delete chrName_junc_count;
+		delete chrName_juncLeft_count;
+		delete chrName_juncRight_count;
 }
 
 SpansPoint::~SpansPoint() {
@@ -730,9 +1007,17 @@ FragmentsInChr::~FragmentsInChr() {
 }
 
 FragmentsMap::~FragmentsMap() {
+/*
   chrName_count[0].clear();
   chrName_count[1].clear();
   chrName_count[2].clear();
+*/
+  chrName_vec[0].clear();
+  chrName_vec[1].clear();
+  chrName_vec[2].clear();
+  temp_chrName_vec[0].clear();
+  temp_chrName_vec[1].clear();
+  temp_chrName_vec[2].clear();
 }
 
 

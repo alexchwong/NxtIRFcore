@@ -7,8 +7,12 @@
 Plot_Coverage(
   se,
   Event,
-  cov_data,
+  Gene,
+  seqname,
+  start,
+  end,
   strand = c("*", "+", "-"),
+  zoom_factor,
   tracks,
   track_names = tracks,
   condition,
@@ -17,12 +21,7 @@ Plot_Coverage(
   stack_tracks = TRUE,
   t_test = TRUE,
   norm_event,
-  zoom_factor = 1,
-  bases_flanking = 100,
-  Gene,
-  seqnames,
-  start,
-  end
+  bases_flanking = 100
 )
 }
 \arguments{
@@ -32,11 +31,20 @@ displayed}
 \item{Event}{The \code{EventName} or the IR / alternative splicing event to be
 normalised. Valid names are all entries within rownames(se)}
 
-\item{cov_data}{A list containing all the data required by this function.
-Generate this data using prepare_covplot_data()}
+\item{Gene}{Whether to use the range for the given Gene. If given and valid,
+overrides Event (but \code{Event} or \code{norm_event} will be used to normalise by
+condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name
+(Gene Symbol)}
+
+\item{seqname, start, end}{The chromosome (as a single character) and genomic
+coordinates (numeric) of the region to display. If present, overrides both
+\code{Event} and \code{Gene}}
 
 \item{strand}{Whether to show coverage of both strands "*" (default), or
 from the "+" or "-" strand only.}
+
+\item{zoom_factor}{Zoom out from event. Each level of zoom zooms out by a
+factor of 3.}
 
 \item{tracks}{The names of individual samples (if condition is not set),
 or the names of the different conditions to be plotted.}
@@ -55,35 +63,20 @@ transcripts that are not relevant to the samples being displayed.}
 \item{condense_tracks}{Whether to collapse the transcript tracks by gene.}
 
 \item{stack_tracks}{Whether to graph all the conditions on a single coverage
-track. If set to true, each condition}
+track. If set to true, each condition will be displayed in a different
+colour}
 
 \item{t_test}{Whether to perform a pair-wise T-test. Only used if there are
 TWO condition tracks.}
 
 \item{norm_event}{Whether to normalise by an event different to that given
 in "Event". The difference between this and Event is that the genomic
-coordinates are only centered around Event. norm_event overrides Event
-if both are given.}
-
-\item{zoom_factor}{Zoom out from event. Each level of zoom zooms out by a
-factor of 3.}
+coordinates are only centered around Event. If \code{norm_event} is different to
+\code{Event}, \code{norm_event} will be used for normalisation and \code{Event} will be
+used to define the genomic coordinates of the viewing window.}
 
 \item{bases_flanking}{How many bases flanking the zoomed window. Useful when
 used in conjunction with zoom_factor == 0}
-
-\item{Gene}{Whether to use the range for the given Gene. If given and valid,
-overrides Event (but \code{Event} or \code{norm_event} will be used to normalise by
-condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name
-(Gene Symbol)}
-
-\item{seqnames}{Use chromosome. Only used if \code{seqnames}, \code{start} and \code{end}
-are also given and valid.
-If these coordinates are set, they will override Event and Gene, although
-Event / norm_event is still required for normalising by condition}
-
-\item{start}{Overrides with given start coordinate. See \code{seqnames}}
-
-\item{end}{Overrides with given end coordinate. See \code{seqnames}}
 }
 \value{
 A list containing two objects. final_plot is the plotly object.
@@ -104,6 +97,9 @@ se = NxtIRF_example_NxtSE()
 
 colData(se)$treatment = rep(c("A", "B"), each = 3)
 
-Plot_Coverage(se, Event = rowData(se)$EventName[1], 
-  cov_data = ref(se), tracks = colnames(se)[1:2])
+Plot_Coverage(
+    se = se, 
+    Event = rowData(se)$EventName[1], 
+    tracks = colnames(se)[1:2]
+)
 }

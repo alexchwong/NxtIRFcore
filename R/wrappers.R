@@ -196,7 +196,9 @@ run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file,
         IRF_GenerateMappabilityRegions(s_bam, 
             output_file,
             threshold = threshold,
-            includeCov = includeCov)
+            includeCov = includeCov,
+            verbose = TRUE
+        )
     )
 }
 

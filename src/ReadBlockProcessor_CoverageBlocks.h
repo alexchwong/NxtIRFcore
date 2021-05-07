@@ -38,6 +38,7 @@ class CoverageBlocks : public ReadBlockProcessor {
 //		static const unsigned int coverage_block_max_length = 5000;
 		static const unsigned int coverage_block_max_length = 500;
 
+		std::map<string, std::vector<CoverageBlock>> * empty_map;
 	protected:
 		std::vector<BEDrecord> BEDrecords;
 
