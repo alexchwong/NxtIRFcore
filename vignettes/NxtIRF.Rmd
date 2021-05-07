@@ -1,6 +1,5 @@
 ---
-title: 'NxtIRF: Interactive Differential Alternative Splicing and Intron 
-    Retention analysis'
+title: 'NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis'
 author: "Alex Chit Hei Wong"
 date: "`r format(Sys.Date(), '%m/%d/%Y')`"
 abstract: >
@@ -28,8 +27,7 @@ output:
     rmarkdown::html_document:
         toc: true
 vignette: >
-    %\VignetteIndexEntry{NxtIRF: Interactive Differential Alternative Splicing 
-        and Intron Retention analysis}
+    %\VignetteIndexEntry{NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis}
     %\VignetteEngine{knitr::rmarkdown}
     %\usepackage[utf8]{inputenc}
 ---
@@ -72,8 +70,8 @@ coordinates.
 ```{r, results = FALSE, message = FALSE, warning = FALSE}
 GetReferenceResource(
     reference_path = "Reference_mock",
-    fasta_file = mock_genome(),
-    gtf_file = mock_gtf()
+    fasta = mock_genome(),
+    gtf = mock_gtf()
 )
 
 BuildReference(reference_path = "Reference_mock")

@@ -120,6 +120,9 @@
 #' \link{Mappability-methods} for \code{Mappability_GenReads()}\cr\cr
 NULL
 
+#' @describeIn BuildReference One-step function that fetches resources,
+#'   creates a STAR reference (including mappability calculations), then
+#'   creates the NxtIRF reference
 #' @export
 BuildReference_Full <- function(
         reference_path,
