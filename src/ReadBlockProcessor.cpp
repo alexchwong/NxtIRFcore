@@ -703,14 +703,14 @@ int FragmentsMap::sort_and_collapse_temp() {
 			}
 			// final push
 			temp_vec.push_back( std::make_pair(loci, accum) );
-			// swap vector
-			// itChr->second.swap(temp_vec);
+
 			chrName_vec[j].at(itChr->first).insert(
 				chrName_vec[j].at(itChr->first).end(),
 				temp_vec.begin(), temp_vec.end()		
 			);
-			// Clear temporary vector
-			itChr->second.clear();
+			// Clear temporary vector by swap trick
+			std::vector< std::pair<unsigned int, int> > empty_swap_vector;
+			itChr->second.swap(empty_swap_vector);
 		}
 	}
 	return(0);
