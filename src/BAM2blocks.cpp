@@ -359,7 +359,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 		}
 #endif
 		if ( (cPairedReads + cSingleReads) % 1000000 == 0 ) {
-			// swap map for a new one
+			// Clean map by swapping for a new one
 			new_spare_reads = new std::map< std::string, bam_read_core* >;
 			new_spare_reads->insert(spare_reads->begin(), spare_reads->end());
 			spare_reads->swap(*new_spare_reads);
