@@ -262,7 +262,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 #endif
 
 	// Use map pointer spare_reads:
-	
+	spare_reads = new std::map< std::string, bam_read_core* >;
 	int32_t spare_reads_count = 0;
 	
 	while(1) {
