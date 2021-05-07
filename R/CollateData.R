@@ -23,6 +23,8 @@
 #' @param paired Whether to expect single FASTQ files (of the format
 #'   "sample.fastq"), or
 #'   paired files (of the format "sample_1.fastq", "sample_2.fastq")
+#' @param fastq_suffix_type The name of the FASTQ suffix. Options are:
+#'   "fastq", "fastq.gz", "fq", or "fq.gz"
 #' @param ... Additional parameters to be passed to Find_Samples
 #' @return A multi-column data frame with the first column containing
 #'   the sample name, and subsequent columns being the file paths with suffix
@@ -98,10 +100,19 @@ Find_Samples <- function(sample_path, suffix = ".txt.gz",
 
 #' @describeIn Find_Samples Returns all FASTQ files in a given folder
 #' @export
-Find_FASTQ <- function(sample_path, paired = TRUE, ...) {
-    return(Find_Samples(sample_path, 
-        c("_1.fastq", "_2.fastq"),
-        c("forward", "reverse"), ...))
+Find_FASTQ <- function(sample_path, paired = TRUE, 
+        fastq_suffix_type = c("fastq", "fq", "fastq.gz", "fq.gz"),
+        ...) {
+    fastq_suffix_type = match.arg(fastq_suffix_type)
+    if(paired) {
+        return(Find_Samples(sample_path, 
+            paste0(c("_1.", "_2."), fastq_suffix_type),
+            c("forward", "reverse"), ...))    
+    } else {
+        return(Find_Samples(sample_path, 
+            paste0(".", fastq_suffix_type),
+            c("path"), ...))
+    }
 }
 
 #' @describeIn Find_Samples Returns all BAM files in a given folder
