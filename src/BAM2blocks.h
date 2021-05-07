@@ -78,7 +78,8 @@ class BAM2blocks {
 
 	bam_read_core reads[2];
 
-    std::map< std::string, bam_read_core* > spare_reads;
+//    std::map< std::string, bam_read_core* > spare_reads;
+    std::vector< std::pair < std::string, bam_read_core* > > spare_reads;
 
 	BAMReader * IN;
 
