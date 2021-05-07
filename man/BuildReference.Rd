@@ -18,9 +18,9 @@ GetReferenceResource(
 )
 
 BuildReference(
+  reference_path = "./Reference",
   fasta,
   gtf,
-  reference_path = "./Reference",
   convert_chromosome_names = NULL,
   overwrite_resource = FALSE,
   genome_type,
