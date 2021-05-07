@@ -241,6 +241,8 @@ unsigned int BAM2blocks::processSingle(bam_read_core * read1) {
 	return totalBlockLen;
 }
 
+
+
 int BAM2blocks::processAll(std::string& output, bool verbose) {
 
 	unsigned long long totalNucleotides = 0;
@@ -311,10 +313,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
         /* If it is potentially a paired read, store it in our buffer, process the pair together when it is complete */
 
 				std::string read_name = string(reads[0].read_name);
-
-				// auto it_read = spare_reads.find(read_name);
-				auto it_read = std::find_if(spare_reads.begin(), spare_reads.end(), 
-					[&](std::pair < std::string, bam_read_core* > i) {return (i.first==read_name);});
+				auto it_read = spare_reads.find(read_name);
 				
 				if(it_read != spare_reads.end()){
 					cPairedReads ++;
@@ -325,24 +324,18 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 							//cout << "procesPair call1" << endl;        
 							totalNucleotides += processPair(&reads[0], &(*(it_read->second)));
 												delete (it_read->second);
-							spare_reads.erase(it_read);
+							spare_reads.erase(read_name);
 						}else{
 							//cout << "procesPair call2" << endl;                
 							totalNucleotides += processPair(&(*(it_read->second)), &reads[0]);
 												delete (it_read->second);
-							spare_reads.erase(it_read);
+							spare_reads.erase(read_name);
 						}
 					}
 				} else {
 						bam_read_core * store_read = new bam_read_core;
 						*(store_read) = reads[0];
-						// spare_reads[read_name] = store_read;
-						spare_reads.push_back(
-							make_pair(
-								read_name,
-								store_read
-							)
-						);
+						spare_reads[read_name] = store_read;
 				}
       }
     }
@@ -354,16 +347,6 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 			}
 		}
 #endif
-
-		// Cleanup of spare_reads 
-		if ( (cPairedReads + cSingleReads) % 1000000 == 0 ) {
-			std::vector< std::pair < std::string, bam_read_core* > > new_spare_reads_vector;
-			new_spare_reads_vector.insert(
-				new_spare_reads_vector.end(),
-				spare_reads.begin(), spare_reads.end()
-			);
-			spare_reads.swap(new_spare_reads_vector);
-		}
 	}
 	return(0);
 }
