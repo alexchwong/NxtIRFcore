@@ -136,6 +136,10 @@ NULL
 #'   for IR / AS events? Setting `FALSE` (vanilla IRFinder) will exclude 
 #'   transcripts other than `protein_coding` and 
 #'   `processed_transcript` transcripts from IR analysis.
+#' @param n_threads The number of threads used to generate the STAR reference
+#'   and mappability calculations. Multi-threading is not used for NxtIRF
+#'   reference generation (but multiple cores are utilised by data.table
+#'   and fst packages automatically, where available)
 #' @return Nothing. The created reference will be written to the given 
 #'   directory. 
 #'   This includes:
