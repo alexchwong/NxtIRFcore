@@ -635,15 +635,16 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
   }
 	frag_count += 1;
 	if(frag_count % 1000000 == 0) {
-		Rcout << "Sorting fragment maps at frag_count = " << frag_count << '\n';
+		// Rcout << "Sorting fragment maps at frag_count = " << frag_count << '\n';
 		sort_and_collapse_temp();
 	}
 }
 
-int FragmentsMap::sort_and_collapse_final() {
+int FragmentsMap::sort_and_collapse_final(bool verbose) {
 	if(!final_is_sorted) {
 		sort_and_collapse_temp();
-		Rcout << "Performing final sort of fragment maps\n";
+		if(verbose)	Rcout << "Performing final sort of fragment maps\n";
+		Progress p(3 * chr_count, verbose);
 		for(unsigned int j = 0; j < 3; j++) {
 			for (auto itChr=chrName_vec[j].begin(); itChr!=chrName_vec[j].end(); itChr++) {
 				// sort
@@ -668,6 +669,8 @@ int FragmentsMap::sort_and_collapse_final() {
 				temp_vec.push_back( std::make_pair(loci, accum) );
 				// swap vector
 				itChr->second.swap(temp_vec);
+				
+				p.increment(1);
 			}
 		}
 		final_is_sorted = true;
