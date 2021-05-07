@@ -17,6 +17,10 @@ BAM2blocks::BAM2blocks() {
 	cChimericReads = 0;
 }
 
+BAM2blocks::~BAM2blocks() {
+	delete spare_reads;
+}
+
 // OK.
 void BAM2blocks::readBamHeader() {
   char buffer[1000];
@@ -251,16 +255,20 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
   int ret = 0;
 	// int pair = 0;
 	//int bytesread = 0;
-    std::ostringstream oss;
+	std::ostringstream oss;
 #ifndef GALAXY
   uint64_t prev_bam_pos = IN->tellg();	// For progress bar
 	Progress p(IN->IS_LENGTH, verbose);
-
 #endif
+
+	// Use map pointer spare_reads:
+	spare_reads = new std::map< std::string, bam_read_core* >;
+	int32_t spare_reads_count = 0;
+	
 	while(1) {
 		ret |= IN->read(reads[idx].c_block_size, 4);
 		if (IN->eof()) {
-      cErrorReads = spare_reads.size();
+      cErrorReads = spare_reads_count;
 			oss << "Total reads processed\t" << j-1 << '\n';
 			oss << "Total nucleotides\t" << totalNucleotides << '\n';
 			oss << "Total singles processed\t" << cSingleReads << '\n';
@@ -275,7 +283,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
       output = oss.str();
 			return(0);   
 		} else if(IN->fail() || (ret != 0 && ret != 1)) {
-      cErrorReads = spare_reads.size();
+      cErrorReads = spare_reads_count;
 			// cerr << "Input error at line:" << j << ", return error (" << ret << ")\n";
 			// cerr << "Characters read on last read call:" << IN->gcount() << '\n';
 			oss << "Total reads processed\t" << j-1 << '\n';
@@ -313,9 +321,9 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
         /* If it is potentially a paired read, store it in our buffer, process the pair together when it is complete */
 
 				std::string read_name = string(reads[0].read_name);
-				auto it_read = spare_reads.find(read_name);
+				auto it_read = spare_reads->find(read_name);
 				
-				if(it_read != spare_reads.end()){
+				if(it_read != spare_reads->end()){
 					cPairedReads ++;
 					if (reads[0].core.refID != it_read->second->core.refID) {
 						cChimericReads += 1;
@@ -324,18 +332,21 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 							//cout << "procesPair call1" << endl;        
 							totalNucleotides += processPair(&reads[0], &(*(it_read->second)));
 												delete (it_read->second);
-							spare_reads.erase(read_name);
+							spare_reads->erase(read_name);
+							spare_reads_count -= 1;
 						}else{
 							//cout << "procesPair call2" << endl;                
 							totalNucleotides += processPair(&(*(it_read->second)), &reads[0]);
 												delete (it_read->second);
-							spare_reads.erase(read_name);
+							spare_reads->erase(read_name);
+							spare_reads_count -= 1;
 						}
 					}
 				} else {
 						bam_read_core * store_read = new bam_read_core;
 						*(store_read) = reads[0];
-						spare_reads[read_name] = store_read;
+						spare_reads->insert({read_name, store_read});
+						spare_reads_count += 1;
 				}
       }
     }
@@ -347,7 +358,15 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 			}
 		}
 #endif
+		if ( (cPairedReads + cSingleReads) % 1000000 == 0 ) {
+			// Clean map by swapping for a new one
+			new_spare_reads = new std::map< std::string, bam_read_core* >;
+			new_spare_reads->insert(spare_reads->begin(), spare_reads->end());
+			spare_reads->swap(*new_spare_reads);
+			delete new_spare_reads;
+		}
 	}
+	delete spare_reads;
 	return(0);
 }
 

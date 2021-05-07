@@ -195,8 +195,8 @@ server_ref_new <- function(id, refresh_tab, volumes) {
         })
         observeEvent(input$buildRef, {
             args <- list(reference_path = settings_newref$newref_path, 
-                fasta_file = settings_newref$newref_fasta, 
-                gtf_file = settings_newref$newref_gtf,
+                fasta = settings_newref$newref_fasta, 
+                gtf = settings_newref$newref_gtf,
                 genome_type = input$newref_genome_type, 
                 nonPolyARef = settings_newref$newref_NPA, 
                 MappabilityRef = settings_newref$newref_mappa,

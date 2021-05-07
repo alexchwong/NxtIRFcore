@@ -11,8 +11,15 @@ is_valid <- function(x) {
         (!is.character(x) || (x != "" && x != "(none)"))
 }
 
-.log <- function(msg = "", type = c("error", "warning", "silent", "message")) {
+.log <- function(msg = "", 
+        type = c("error", "warning", "silent", "message"),
+        use_system_time = TRUE,
+        ...
+) {
     type = match.arg(type)
+    if(use_system_time) {
+        msg = paste(format(Sys.time(), "%b %d %X"), msg)
+    }
     if(type == "error") {
         stop(msg, call. = FALSE)
     } else if(type == "warning") {

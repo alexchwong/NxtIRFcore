@@ -1,21 +1,38 @@
 ---
 title: 'NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis'
 author: "Alex Chit Hei Wong"
-date: "`r Sys.Date()`"
+date: "`r format(Sys.Date(), '%m/%d/%Y')`"
+abstract: >
+    Intron Retention (IR) is a form of alternative splicing whereby the intron 
+    is retained (i.e. not spliced) in final messenger RNA. Although many 
+    bioinformatics tools are available to quantitate other forms of alternative
+    splicing, dedicated tools to quantify Intron Retention are limited. 
+    Quantifying IR requires not only measurement of spliced transcripts (often 
+    using mapped splice junction reads), but also measurement of the coverage of
+    the putative retained intron. The latter requires adjustment for the fact 
+    that many introns contain repetitive regions as well as other RNA expressing
+    elements. IRFinder corrects for many of these complexities; however its 
+    dependencies on Linux and STAR limits its wider usage. Also, IRFinder does
+    not calculate other forms of splicings besides IR. Finally, IRFinder 
+    produces text-based output, requiring an established understanding of the
+    data produced in order to interpret its results.
+    
+    NxtIRF overcomes the above limitations. Firstly, NxtIRF incorporates the
+    IRFinder C++ routines, allowing users to run the IRFinder algorithm in the
+    R/Bioconductor environment on multiple platforms. NxtIRF is a full pipeline
+    that quantifies IR (and other alternative splicing) events, organises the
+    data and produces relevant visualisation. Additionally, NxtIRF offers an
+    interactive graphical interface that allows users to explore the data.
 output:
-    rmarkdown::html_vignette:
+    rmarkdown::html_document:
         toc: true
 vignette: >
     %\VignetteIndexEntry{NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis}
     %\VignetteEngine{knitr::rmarkdown}
-    \usepackage[utf8]{inputenc}
+    %\usepackage[utf8]{inputenc}
 ---
 
-# Introduction
-
-blablabla
-
-# An example pipeline for NxtIRF
+# The NxtIRF Workflow
 
 This vignette includes a working example to demonstrate how to use NxtIRF.
 
@@ -52,9 +69,9 @@ coordinates.
 
 ```{r, results = FALSE, message = FALSE, warning = FALSE}
 GetReferenceResource(
-    fasta_file = mock_genome(),
-    gtf_file = mock_gtf(),
-    reference_path = "Reference_mock"
+    reference_path = "Reference_mock",
+    fasta = mock_genome(),
+    gtf = mock_gtf()
 )
 
 BuildReference(reference_path = "Reference_mock")
@@ -420,4 +437,114 @@ library(pheatmap)
 
 pheatmap(mat, annotation_col = as.data.frame(colData(se.filtered)))
 ```
+
+### Coverage Plots
+
+NxtIRF is able to produce RNA-seq coverage plots of analysed samples. Coverage
+data is compiled simultaneous to the IR and junction quantitation performed
+by the IRFinder C++ routine. This data is saved in "COV" files, which is a BGZF
+compressed and indexed file. COV files show compression and performance gains
+over BigWig files.
+
+Additionally, NxtIRF performs coverage plots of multiple samples combined based
+on user-defined experimental conditions. This is a powerful tool to
+illustrate group-specific differential splicing or IR. NxtIRF does this by
+normalising the coverage depths of each sample based on transcript depth at
+the splice junction / intron of interest. By doing so, the coverage depths of
+constitutively expressed flanking exons are normalised to unity. As a result,
+the intron depths reflect the fraction of transcripts with retained introns and
+can be compared across samples.
+
+We will first demonstrate by plotting the RNA-seq coverage of a single gene
+by a single sample
+
+```{r, fig.width = 7, fig.height = 5}
+res = Plot_Coverage(
+    se = se.filtered, 
+    Gene = "TP53", 
+    tracks = colnames(se.filtered)[1])
+res$final_plot
+```
+ There are many transcripts in TP53! This is because by default, NxtIRF displays
+ all annotated transcripts. For clarity, one can either collapse the transcripts
+ at a per-gene level, by setting condense_tracks = TRUE:
+ 
+```{r, fig.width = 7, fig.height = 5}
+res = Plot_Coverage(
+    se = se.filtered, 
+    Gene = "TP53",
+    tracks = colnames(se.filtered)[1],
+    condense_tracks = TRUE
+)
+res$final_plot
+```
+
+Alternatively, for fine control, one can supply a vector containing the
+transcript names to be displayed:
+
+```{r, fig.width = 7, fig.height = 5}
+res = Plot_Coverage(
+    se = se.filtered, 
+    Gene = "TP53",
+    tracks = colnames(se.filtered)[1],
+    selected_transcripts = c("TP53-201", "TP53-204")
+)
+res$final_plot
+```
+
+In the heatmap in the previous section, we can see some retained introns in 
+NSUN5 that are more highly expressed in "02H003" and "02H025". To demonstrate 
+this, we first introduce a new condition that groups these two samples:
+
+```{r }
+colData(se.filtered)$NSUN5_IR = c(rep("High", 2), rep("Low", 4))
+```
+
+Performing differential analysis will confirm this to be the case:
+
+```{r }
+require("limma")
+
+res_limma_NSUN5 <- limma_ASE(
+    se = se.filtered,
+    test_factor = "NSUN5_IR",
+    test_nom = "High",
+    test_denom = "Low",
+)
+
+head(res_limma_NSUN5$EventName)
+```
+
+We can now visualise the top hit, NSUN5 intron 3. To visualise the IR event
+across conditions, we specify the type of condition to contrast. 
+The names of the tracks will be the names of the nominator (test) and 
+denominator (control) conditions
+
+```{r, fig.width = 7, fig.height = 5}
+res = Plot_Coverage(
+    se = se.filtered, 
+    Event = res_limma_NSUN5$EventName[1],
+    condition = "NSUN5_IR",
+    tracks = c("High", "Low"),
+)
+res$final_plot
+```
+
+Although NSUN5 intron 3 is the most differentially retained in the analysis, the
+difference isn't very apparent. This is because the difference between the
+absolute values is very small. In contrast, intron 2 looks more prominently
+different in the heatmap, so we can explore this as well:
+
+```{r, fig.width = 7, fig.height = 5}
+res = Plot_Coverage(
+    se = se.filtered, 
+    Event = "NSUN5/ENST00000252594_Intron2/clean",
+    condition = "NSUN5_IR",
+    tracks = c("High", "Low"),
+)
+res$final_plot
+```
+
+There are more complex customisation options with NxtIRF's Plot_Coverage tool
+which will be explored in subsequent tutorials (TODO).
 
