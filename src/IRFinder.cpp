@@ -53,7 +53,7 @@ bool IRF_Check_Cov(std::string s_in) {
 List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end, int strand) {
 // Returns an RLE covering the region described above
 // s_in: The coverage file
-// strand: 0 = +, 1 = -, 2 = *
+// strand: 0 = -, 1 = +, 2 = *
   
   List NULL_RLE = List::create(
     _["values"] = 0,
@@ -126,7 +126,7 @@ List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end,
 List IRF_RLEList_From_Cov(std::string s_in, int strand) {
   // Returns an RLEList
   // s_in: The coverage file
-  // strand: 0 = +, 1 = -, 2 = *
+  // strand: 0 = -, 1 = +, 2 = *
   
   List NULL_RLE = List::create(
     _["values"] = 0,

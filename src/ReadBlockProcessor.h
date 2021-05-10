@@ -120,7 +120,7 @@ class FragmentsInROI : public ReadBlockProcessor {
 class FragmentsMap : public ReadBlockProcessor {
   // Counts mappability.
 private:
-  // 0 = +, 1 = -, 2 = both
+  // 0 = -, 1 = +, 2 = both
 /*	
 	// nested map
   std::map<string, std::map<unsigned int, int> > chrName_count[3];

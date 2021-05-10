@@ -246,7 +246,7 @@ get_multi_DT_from_gz = function(infile = "",
 #'  name
 #' @param start The 0-based start coordinate 
 #' @param end The 0-based end coordinate
-#' @param strand An integer denoting ths strand: "+" = 0, "-" = 1, "*" = 2
+#' @param strand Either "*", "+", or "-"
 #' @return If seqname is left as "", returns an RLEList of the whole BAM file.
 #'   If seqname and coordinates are given, returns an RLE containing the
 #'   chromosome coordinate. Coordinates outside the given range will be set to 0
@@ -257,23 +257,27 @@ get_multi_DT_from_gz = function(infile = "",
 #'
 #' cov <- GetCoverage(cov_file, seqname = "chrZ", 
 #'   start = 10000, end = 20000,
-#'   strand = 2
+#'   strand = "*"
 #' )
 #' @export
-GetCoverage <- function(file, seqname = "", start = 0, end = 0, strand = 2) {
-    if(!(as.numeric(strand) %in% c(0,1,2))) {
+GetCoverage <- function(file, seqname = "", start = 0, end = 0, 
+        strand = c("*", "+", "-")) {
+    strand = match.arg(strand)
+    if(!(strand %in% c("*", "+", "-"))) {
         .log(paste("In GetCoverage(),",
-            "Invalid strand. Must be either 0 (+), 1 (-) or 2(*)"))
+            "Invalid strand. '*', '+' or '-'"))
     }
+    strand_int = ifelse(strand == "*", 2, 
+        ifelse(strand == "+", 1, 0))
+        
     if(!is.numeric(start) || !is.numeric(end) || 
             (as.numeric(start) > as.numeric(end)) || 
             as.numeric(end) == 0) {
         .log(paste("In GetCoverage(),",
             "Null or negative regions not allowed"))
     }
-
     if(seqname == "") {
-        raw_list = IRF_RLEList_From_Cov(normalizePath(file), strand)
+        raw_list = IRF_RLEList_From_Cov(normalizePath(file), strand_int)
         final_list = list()
         if(length(raw_list) > 0) {
             for(i in seq_len(length(raw_list))) {
@@ -290,14 +294,14 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0, strand = 2) {
     } else if(end == 0) {
         raw_RLE = IRF_RLE_From_Cov(
             normalizePath(file), as.character(seqname), 
-            0,0, as.numeric(strand)
+            0,0, strand_int
         )
         final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$length)
     } else {
         raw_RLE = IRF_RLE_From_Cov(
             normalizePath(file), as.character(seqname), 
             round(as.numeric(start)), round(as.numeric(end)), 
-            as.numeric(strand)
+            strand_int
         )
         final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$length)
     }
