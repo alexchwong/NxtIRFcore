@@ -150,7 +150,7 @@ private:
 	bool final_is_sorted = false;
 public:
   ~FragmentsMap();
-	int sort_and_collapse_final(bool mark_as_final);
+	int sort_and_collapse_final(bool verbose);
 
   void ProcessBlocks(const FragmentBlocks &blocks);
   void ChrMapUpdate(const std::vector<string> &chrmap);
