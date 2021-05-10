@@ -739,6 +739,23 @@ int FragmentsMap::sort_and_collapse_temp() {
 	return(0);
 }
 
+// Gets a subset vector of pairs of coordinate / increment values
+int FragmentsMap::GetVectorPair(std::vector< std::pair<unsigned int, int> > &vector_pair, unsigned int start, unsigned int end, const std::string &chrName, unsigned int dir) const {
+	auto it = chrName_vec[dir].find(chrName);
+	auto first = upper_bound(it->second.begin(), it->second.end(), 
+		make_pair(start, 0), 
+    []( std::pair<unsigned int, int> const& a, std::pair<unsigned int, int> const& b ) { 
+			return a.first < b.first; 
+		});
+	auto last = upper_bound(it->second.begin(), it->second.end(),
+		make_pair(end, 0), 
+    []( std::pair<unsigned int, int> const& a, std::pair<unsigned int, int> const& b ) { 
+			return a.first < b.first; 
+		});
+	vector_pair.insert(vector_pair.end(), first, last);
+	return(0);
+}
+
 int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens) const {
 /*
 
