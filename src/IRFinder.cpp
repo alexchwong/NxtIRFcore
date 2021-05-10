@@ -428,9 +428,9 @@ std::string myLine_QC;
 	oJuncCount.WriteOutput(myLine_JC, myLine_QC);
 	oSpansPoint.WriteOutput(myLine_SP, myLine_QC);
 	oFragmentsInChr.WriteOutput(myLine_Chr, myLine_QC);
-	oCoverageBlocks.WriteOutput(myLine_ND, myLine_QC, oJuncCount, oSpansPoint);
+	oCoverageBlocks.WriteOutput(myLine_ND, myLine_QC, oJuncCount, oSpansPoint, oFragMap);
   if (directionality != 0) {
-    oCoverageBlocks.WriteOutput(myLine_Dir, myLine_QC, oJuncCount, oSpansPoint, directionality); // Directional.
+    oCoverageBlocks.WriteOutput(myLine_Dir, myLine_QC, oJuncCount, oSpansPoint, oFragMap, directionality); // Directional.
 	}
 
   outGZ.writeline("QC\tValue");
@@ -636,9 +636,9 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		oJuncCount.WriteOutput(myLine_JC, myLine_QC);
 		oSpansPoint.WriteOutput(myLine_SP, myLine_QC);
 		oFragmentsInChr.WriteOutput(myLine_Chr, myLine_QC);
-		oCoverageBlocks.WriteOutput(myLine_ND, myLine_QC, oJuncCount, oSpansPoint);
+		oCoverageBlocks.WriteOutput(myLine_ND, myLine_QC, oJuncCount, oSpansPoint, oFragMap);
 		if (directionality != 0) {
-			oCoverageBlocks.WriteOutput(myLine_Dir, myLine_QC, oJuncCount, oSpansPoint, directionality); // Directional.
+			oCoverageBlocks.WriteOutput(myLine_Dir, myLine_QC, oJuncCount, oSpansPoint, oFragMap, directionality); // Directional.
 		}
 
 		outGZ.writeline("QC\tValue");

@@ -27,6 +27,7 @@ void CoverageBlock::RecordCover(unsigned int readStart, unsigned int readEnd, bo
 	if (readStart <= blockStart && readEnd > blockStart) {
 		firstDepth[dir]++;
 	}else if (readStart < blockEnd) {
+		/*
 		// Need to increment the starts vector.
 		unsigned int inc_index = readStart - blockStart - 1;
 		if (blockExtentsL) { //already an int vector
@@ -44,6 +45,7 @@ void CoverageBlock::RecordCover(unsigned int readStart, unsigned int readEnd, bo
 				blockExtents->at(inc_index).start[dir]++;
 			}
 		}
+		*/
 	}else{
 		return;
 	}
@@ -51,9 +53,9 @@ void CoverageBlock::RecordCover(unsigned int readStart, unsigned int readEnd, bo
 	if (readEnd >= blockEnd) {
 		return;
 	}else{
+/*
 		// Need to increment the ends vector.
 		unsigned int inc_index = readEnd - blockStart - 1;
-
 		if (blockExtentsL) { //already an int vector
 			blockExtentsL->at(inc_index).end[dir]++;
 		}else if (!blockExtents) { //don't have a char vector either - create first.
@@ -69,11 +71,12 @@ void CoverageBlock::RecordCover(unsigned int readStart, unsigned int readEnd, bo
 				blockExtents->at(inc_index).end[dir]++;
 			}
 		}
+*/
 	}	
 	// Can Throw: Out of range exception.
 }
 
-
+/*
 void CoverageBlock::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end) const {
 	if (!blockExtentsL && !blockExtents) {
 		// how many bases in this block?
@@ -137,6 +140,85 @@ void CoverageBlock::updateCoverageHist(std::map<unsigned int,unsigned int> &hist
 				if (i>=startindex) {
 					hist[depth] ++;
 				}
+			}
+		}
+	}
+}
+*/
+
+// updateCoverageHist from completed FragmentMap - non-directional:
+void CoverageBlock::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, const FragmentsMap &FM, const std::string &chrName) const {
+	std::vector< std::pair<unsigned int, int> > vec;
+	FM.GetVectorPair(vec, blockStart, blockEnd + 1, chrName, 2);
+
+	if (vec.size() == 0) {
+		// how many bases in this block?
+		hist[firstDepth[0]+firstDepth[1]] += min(blockEnd, end) - max(blockStart,start);
+	}else{
+		// There are read starts and ends -- need to walk the positions from the start of this block
+		//  even if not in the region of interest.
+
+		//special handling for the first base -- the one before the vector starts.
+		int depth = (int)(firstDepth[0]+firstDepth[1]);
+		if (start <= blockStart) {
+			// use the first depth, before commencing in the vector.
+			hist[(unsigned int)depth] ++;
+		}
+
+		unsigned int startindex = max(blockStart+1, start) - blockStart - 1;
+		unsigned int endindex = min(blockEnd, end) - blockStart - 1;
+		
+		auto it=vec.begin();
+		for (unsigned int i=0; i<endindex; i++) {
+			while(it->first < (i + blockStart + 1) && it != vec.end()) {
+				it++;
+			};
+			if(it->first == (i + blockStart + 1)) {
+				depth += it->second;
+			}
+			if (i>=startindex) {
+				hist[(unsigned int)depth] ++;
+			}
+		}
+	}
+}
+
+// updateCoverageHist from completed FragmentMap - directional:
+void CoverageBlock::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, bool dir, const FragmentsMap &FM, const std::string &chrName) const {
+	std::vector< std::pair<unsigned int, int> > vec;
+	if(dir) {
+		FM.GetVectorPair(vec, blockStart, blockEnd + 1, chrName, 1);
+	} else {
+		FM.GetVectorPair(vec, blockStart, blockEnd + 1, chrName, 0);
+	}
+	
+	if (vec.size() == 0) {
+		// how many bases in this block?
+		hist[firstDepth[dir]] += min(blockEnd, end) - max(blockStart,start);
+	}else{
+		// There are read starts and ends -- need to walk the positions from the start of this block
+		//  even if not in the region of interest.
+
+		//special handling for the first base -- the one before the vector starts.
+		int depth = (int)(firstDepth[dir]);
+		if (start <= blockStart) {
+			// use the first depth, before commencing in the vector.
+			hist[(unsigned int)depth] ++;
+		}
+
+		unsigned int startindex = max(blockStart+1, start) - blockStart - 1;
+		unsigned int endindex = min(blockEnd, end) - blockStart - 1;
+		
+		auto it=vec.begin();
+		for (unsigned int i=0; i<endindex; i++) {
+			while(it->first < (i + blockStart + 1) && it != vec.end()) {
+				it++;
+			};
+			if(it->first == (i + blockStart + 1)) {
+				depth += it->second;
+			}
+			if (i>=startindex) {
+				hist[(unsigned int)depth] ++;
 			}
 		}
 	}

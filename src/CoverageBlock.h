@@ -2,6 +2,7 @@
 #define CODE_COVERAGEBLOCK
 
 #include "includedefine.h"
+#include "ReadBlockProcessor.h"
 
 class start_stops {
 	public:
@@ -57,8 +58,11 @@ class CoverageBlock {
 		void print(std::ostream& os) const;
 		
 		//First form, non-directional. Second form, directional with "dir" specifiying whether sense or anti-sense.
-		void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end) const;
-		void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, bool dir) const;
+		// void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end) const;
+		// void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, bool dir) const;
+
+		void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, const FragmentsMap &FM, const std::string &chrName) const;
+		void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, bool dir, const FragmentsMap &FM, const std::string &chrName) const;
 
 		inline bool posIsAfterStart(const unsigned int &compareval) const {
 		  return (compareval > blockStart);
