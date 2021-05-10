@@ -391,6 +391,7 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   
   BB.openFile(&inbam); // This file needs to be a decompressed BAM. (setup via fifo / or expect already decompressed via stdin).
   BB.processAll(myLine, verbose);
+	oFragMap.sort_and_collapse_final(verbose);
 
 // Write output to file:  
 	if(verbose) {  
@@ -470,7 +471,6 @@ std::string myLine_QC;
   covFile outCOV;
   outCOV.SetOutputHandle(&ofCOV);
   
-	oFragMap.sort_and_collapse_final(verbose);
   oFragMap.WriteBinary(&outCOV, BB.chr_names, BB.chr_lens);
   ofCOV.close();
   
@@ -603,7 +603,8 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		
 		BB.openFile(&inbam); // This file needs to be a decompressed BAM. (setup via fifo / or expect already decompressed via stdin).
 		BB.processAll(myLine, false);
-
+		oFragMap.sort_and_collapse_final(false);
+		
 		std::ofstream out;
 		out.open(s_output_txt, std::ios::binary);
 
@@ -678,7 +679,6 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		covFile outCOV;
 		outCOV.SetOutputHandle(&ofCOV);
 		
-		oFragMap.sort_and_collapse_final(false);
 		oFragMap.WriteBinary(&outCOV, BB.chr_names, BB.chr_lens);
 		ofCOV.close();		
 	}

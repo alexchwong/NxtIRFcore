@@ -150,12 +150,13 @@ private:
 	bool final_is_sorted = false;
 public:
   ~FragmentsMap();
-	int sort_and_collapse_final(bool mark_as_final);
+  int sort_and_collapse_final(bool mark_as_final);
 
   void ProcessBlocks(const FragmentBlocks &blocks);
   void ChrMapUpdate(const std::vector<string> &chrmap);
   int WriteOutput(std::ostream *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, int threshold = 4) const;
   int WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens) const;
+  int GetVectorPair(std::vector< std::pair<unsigned int, int> > &vector_pair, unsigned int start, unsigned int end, const std::string &chrName, unsigned int dir) const;
 };
 
 
