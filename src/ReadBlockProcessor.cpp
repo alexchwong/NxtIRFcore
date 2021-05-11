@@ -773,7 +773,7 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
 	GetVectorPair(vec, start, end + 1, chrName, dir);
 
 	
-	if (vec.size() == 0) {
+	if (vec.size() == 1) {
 		// how many bases in this block?
 		auto it=vec.begin();
 		hist[it->second] += end - start;
@@ -789,7 +789,7 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
 		hist[(unsigned int)depth] ++;
 		// }
 
-		unsigned int startindex = 0;
+		// unsigned int startindex = 0;
 		unsigned int endindex = end - start - 1;
 		
 		for (unsigned int i=0; i<endindex; i++) {
