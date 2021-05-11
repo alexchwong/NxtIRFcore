@@ -25,7 +25,7 @@ CoverageBlock::~CoverageBlock(){
 //direction -- 0=False/Neg, 1=True/Pos.
 void CoverageBlock::RecordCover(unsigned int readStart, unsigned int readEnd, bool dir) {
 	if (readStart <= blockStart && readEnd > blockStart) {
-		firstDepth[dir]++;
+		// firstDepth[dir]++;
 	}else if (readStart < blockEnd) {
 		/*
 		// Need to increment the starts vector.
@@ -149,17 +149,19 @@ void CoverageBlock::updateCoverageHist(std::map<unsigned int,unsigned int> &hist
 // updateCoverageHist from completed FragmentMap - non-directional:
 void CoverageBlock::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, const FragmentsMap &FM, const std::string &chrName) const {
 	std::vector< std::pair<unsigned int, int> > vec;
-	FM.GetVectorPair(vec, blockStart, blockEnd + 1, chrName, 2);
+	FM.GetVectorPair(vec, blockStart, blockEnd, chrName, 2);
 
-	if (vec.size() == 0) {
+	if (vec.size() == 1) {
 		// how many bases in this block?
-		hist[firstDepth[0]+firstDepth[1]] += min(blockEnd, end) - max(blockStart,start);
+		auto it=vec.begin();
+		hist[it->second] += min(blockEnd, end) - max(blockStart,start);
 	}else{
 		// There are read starts and ends -- need to walk the positions from the start of this block
 		//  even if not in the region of interest.
 
 		//special handling for the first base -- the one before the vector starts.
-		int depth = (int)(firstDepth[0]+firstDepth[1]);
+		auto it=vec.begin();
+		int depth = it->second;
 		if (start <= blockStart) {
 			// use the first depth, before commencing in the vector.
 			hist[(unsigned int)depth] ++;
@@ -168,13 +170,12 @@ void CoverageBlock::updateCoverageHist(std::map<unsigned int,unsigned int> &hist
 		unsigned int startindex = max(blockStart+1, start) - blockStart - 1;
 		unsigned int endindex = min(blockEnd, end) - blockStart - 1;
 		
-		auto it=vec.begin();
 		for (unsigned int i=0; i<endindex; i++) {
 			while(it->first < (i + blockStart + 1) && it != vec.end()) {
 				it++;
 			};
 			if(it->first == (i + blockStart + 1)) {
-				depth += it->second;
+				depth = it->second;
 			}
 			if (i>=startindex) {
 				hist[(unsigned int)depth] ++;
@@ -194,13 +195,15 @@ void CoverageBlock::updateCoverageHist(std::map<unsigned int,unsigned int> &hist
 	
 	if (vec.size() == 0) {
 		// how many bases in this block?
-		hist[firstDepth[dir]] += min(blockEnd, end) - max(blockStart,start);
+		auto it=vec.begin();
+		hist[it->second] += min(blockEnd, end) - max(blockStart,start);
 	}else{
 		// There are read starts and ends -- need to walk the positions from the start of this block
 		//  even if not in the region of interest.
 
 		//special handling for the first base -- the one before the vector starts.
-		int depth = (int)(firstDepth[dir]);
+		auto it=vec.begin();
+		int depth = it->second;
 		if (start <= blockStart) {
 			// use the first depth, before commencing in the vector.
 			hist[(unsigned int)depth] ++;
@@ -209,13 +212,12 @@ void CoverageBlock::updateCoverageHist(std::map<unsigned int,unsigned int> &hist
 		unsigned int startindex = max(blockStart+1, start) - blockStart - 1;
 		unsigned int endindex = min(blockEnd, end) - blockStart - 1;
 		
-		auto it=vec.begin();
 		for (unsigned int i=0; i<endindex; i++) {
 			while(it->first < (i + blockStart + 1) && it != vec.end()) {
 				it++;
 			};
 			if(it->first == (i + blockStart + 1)) {
-				depth += it->second;
+				depth = it->second;
 			}
 			if (i>=startindex) {
 				hist[(unsigned int)depth] ++;

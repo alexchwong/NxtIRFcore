@@ -677,22 +677,28 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
 				);
 				// assign temp vector
 				std::vector< std::pair<unsigned int, int> > temp_vec;
-				unsigned int loci = 0;
-				int accum = 0;
+				unsigned int 	loci = 0; 			// Current genomic coordinate
+				int 					depth = 0; 			// Current depth of cursor
+				int 					old_depth = 0;	// Previous depth of cursor
+				
 				for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
-					if(it_pos->first == loci) {
-						accum += it_pos->second;
-					} else {
-						if(accum != 0) temp_vec.push_back( std::make_pair(loci, accum) );
+					if(it_pos->first != loci) {
+						if(loci == 0 || depth != old_depth) {
+							// write to final vector		
+							temp_vec.push_back( std::make_pair(loci, depth) );
+							old_depth = depth;
+						} 
 						loci = it_pos->first;
-						accum = it_pos->second;
 					}
+					depth += it_pos->second;
 				}
 				// final push
-				temp_vec.push_back( std::make_pair(loci, accum) );
+				if(loci == 0 || depth != old_depth) {
+					temp_vec.push_back( std::make_pair(loci, depth) );
+				}
 				// swap vector
 				itChr->second.swap(temp_vec);
-				
+				// This is of the structure: first = (unsigned int) genomic loci, second = (int) current depth
 				p.increment(1);
 			}
 		}
@@ -752,72 +758,16 @@ int FragmentsMap::GetVectorPair(std::vector< std::pair<unsigned int, int> > &vec
     []( std::pair<unsigned int, int> const& a, std::pair<unsigned int, int> const& b ) { 
 			return a.first < b.first; 
 		});
+	if(first != it->second.begin()) {
+		first--;
+	} else {
+		Rcout << "FragMap GetVectorPair is already at beginning\n";
+	}	
 	vector_pair.insert(vector_pair.end(), first, last);
 	return(0);
 }
 
 int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens) const {
-/*
-
-  // Write COV file as binary
-
-  // Issue is map constructs auto-sort
-  // Need to put chrs and lengths into a map structure
-  std::map< std::string, int32_t > chrmap;
-  
-  // Arrange chromosomes in same order as arranged by mapping chrs
-  for(unsigned int i = 0; i < chr_names.size(); i++) {
-      chrmap.insert({chr_names[i], chr_lens[i]});
-  }
-  // Re-push into alphabetical ordered chromosomes
-  std::vector<std::string> sort_chr_names;
-  std::vector<int32_t> sort_chr_lens;
-  for (auto chr = chrmap.begin(); chr != chrmap.end(); chr++) {
-    sort_chr_names.push_back(chr->first);
-    sort_chr_lens.push_back(chr->second);
-  }
-  os->WriteHeader(sort_chr_names, sort_chr_lens);
-
-  unsigned int refID = 0;
-  for(unsigned int j = 0; j < 3; j++) {
-    for (auto itChr=chrName_count[j].begin(); itChr!=chrName_count[j].end(); itChr++) {
-      unsigned int coordpos = 0;
-      unsigned int coorddepth = 0;
-      bool writefirst = true;
-            
-      for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
-        if(writefirst) {
-          writefirst = false;
-          if(it_pos->first == 0) {
-            // Write coverage only
-            coorddepth += it_pos->second;
-          } else {
-            coorddepth = 0;
-
-            os->WriteEntry(refID, coorddepth, it_pos->first);
-            
-            coorddepth += it_pos->second;
-            coordpos = it_pos->first;
-          }
-        } else {
-          // coorddepth should already be recorded previously
-          os->WriteEntry(refID, coorddepth, it_pos->first - coordpos);
-          
-          coorddepth += it_pos->second;
-          
-          coordpos = it_pos->first;
-        }
-      }
-      // Write last entry for remainder of chromosome length
-      os->WriteEntry(refID, coorddepth, chrmap[itChr->first] - coordpos);
-      
-      refID += 1; 
-    }
-  }
-  os->FlushBody();
-  return(0);
-	
-*/
   // Write COV file as binary
 
   // Issue is map constructs auto-sort
@@ -845,6 +795,10 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
       bool writefirst = true;
       
       for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
+				// COV file is of the format: 
+					//	first = (int) depth; 
+					//	second = (unsigned int) length offset from previous
+				
         if(writefirst) {
           writefirst = false;
           if(it_pos->first == 0) {
@@ -855,15 +809,14 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 
             os->WriteEntry(refID, coorddepth, it_pos->first);
             
-            coorddepth += it_pos->second;
+            coorddepth = it_pos->second;
             coordpos = it_pos->first;
           }
         } else {
           // coorddepth should already be recorded previously
           os->WriteEntry(refID, coorddepth, it_pos->first - coordpos);
           
-          coorddepth += it_pos->second;
-          
+          coorddepth = it_pos->second;
           coordpos = it_pos->first;
         }
       }
@@ -880,63 +833,8 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 int FragmentsMap::WriteOutput(std::ostream *os, 
     const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, 
     int threshold) const {
-/*
-    // This is called on mappability
-  // Issue is map constructs auto-sort
-  // Need to put chrs and lengths into a map structure
-  std::map< std::string, int32_t > chrmap;
-  
-  // Arrange chromosomes in same order as arranged by mapping chrs
-  for(unsigned int i = 0; i < chr_names.size(); i++) {
-      chrmap.insert({chr_names[i], chr_lens[i]});
-  }
-  // Re-push into alphabetical ordered chromosomes
-  std::vector<std::string> sort_chr_names;
-  std::vector<int32_t> sort_chr_lens;
-  for (auto chr = chrmap.begin(); chr != chrmap.end(); chr++) {
-    sort_chr_names.push_back(chr->first);
-    sort_chr_lens.push_back(chr->second);
-  }    
-    
-  for (auto itChr=chrName_count[2].begin(); itChr!=chrName_count[2].end(); itChr++) {
-    int coverage = 0;
-    bool covered = false;
-    
-    if (itChr->second.begin()->first == 0 && itChr->second.begin()->second > threshold) {
-      covered = true;
-    } else {
-		// Write first coordinate
-	  *os << itChr->first << "\t0\t";
-	}
-    for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
-      coverage += it_pos->second;
-      if(coverage > threshold) {
-        if(covered) {
-          // do nothing
-        } else {
-          *os << it_pos->first << '\n';
-          covered = true;
-        }
-      } else {
-        if(covered) {
-          *os << itChr->first << "\t"
-              << it_pos->first << "\t";
-          covered = false;
-        } else {
-          
-          // do nothing
-        }
-      }
-    }
-    // Write last entry
-    if(!covered) {
-      *os << chrmap[itChr->first] << "\n";    
-    }
-  }
-  return 0;
-*/
 
-    // This is called on mappability
+  // This is called on mappability
   // Issue is map constructs auto-sort
   // Need to put chrs and lengths into a map structure
   std::map< std::string, int32_t > chrmap;
@@ -960,11 +858,11 @@ int FragmentsMap::WriteOutput(std::ostream *os,
     if (itChr->second.begin()->first == 0 && itChr->second.begin()->second > threshold) {
       covered = true;
     } else {
-		// Write first coordinate
-	  *os << itChr->first << "\t0\t";
-	}
+			// Write first coordinate
+			*os << itChr->first << "\t0\t";
+		}
     for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
-      coverage += it_pos->second;
+      coverage = it_pos->second;
       if(coverage > threshold) {
         if(covered) {
           // do nothing
