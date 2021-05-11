@@ -20,7 +20,7 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 	//s_keydata.reserve(400);
 	BEDrecord BEDrec;
 
-	std::map<string, std::vector<std::pair<unsigned int, unsigned int>> > temp_segments;
+	// std::map<string, std::vector<std::pair<unsigned int, unsigned int>> > temp_segments;
 
 	while (!IN.eof()) {
 		getline(IN, myLine);
@@ -67,13 +67,13 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 			getline(lensStream, myField, ',');
 			i_block_end = i_block_start + stoul(myField);
 			BEDrec.blocks.push_back(std::make_pair( i_block_start, i_block_end ));
-			temp_segments[BEDrec.chrName].push_back(std::make_pair( i_block_start, i_block_end ) ); 
+			// temp_segments[BEDrec.chrName].push_back(std::make_pair( i_block_start, i_block_end ) ); 
 		}		
 		BEDrecords.push_back(BEDrec);
 	}
 	// Read from file complete.
 
-
+/*
 	// We have a map of Chr->Vectors. Each vector is a pair of start/stop BED coords.
 	//  We want to sort and merge these & produce as result, a set of non-overlapping BED
 	//  blocks, each of a maximum length, which we can use to create our data structures
@@ -115,17 +115,21 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 		}
 		chrName_CoverageBlocks[it_chr->first].shrink_to_fit();
 	}
+*/
 }
 
 void CoverageBlocks::ChrMapUpdate(const std::vector<string> &chrmap) {
+/*
 	chrID_CoverageBlocks.resize(0);
 	for (unsigned int i = 0; i < chrmap.size(); i++) {
 		chrID_CoverageBlocks.push_back( &chrName_CoverageBlocks[chrmap.at(i)] );
 	}
+*/	
 }
 
 
 void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
+/*
 	std::vector<CoverageBlock>::iterator it_coverblock;
 	unsigned int start;
 	unsigned int end;
@@ -152,6 +156,7 @@ void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
 			}
 		}
 	}
+*/
 }
 
 /*
@@ -531,5 +536,5 @@ CoverageBlocks::~CoverageBlocks() {
 	// empty_map = new std::map<string, std::vector<CoverageBlock>>;
 	// chrName_CoverageBlocks.swap(*empty_map);
 	// delete empty_map;
-	chrName_CoverageBlocks.clear();
+	// chrName_CoverageBlocks.clear();
 }
