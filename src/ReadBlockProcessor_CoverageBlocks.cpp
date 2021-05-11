@@ -191,30 +191,32 @@ void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const s
 void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM) const{
 	std::vector<CoverageBlock>::const_iterator it_CB;
 	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		it_CB = upper_bound(
-			chrName_CoverageBlocks.at(chrName).begin(),
-			chrName_CoverageBlocks.at(chrName).end(),
-			it_blocks->first
-			);
-		while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
-			it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second, FM, chrName);  //for non-dir.
-			it_CB++;
-		}
+		// it_CB = upper_bound(
+			// chrName_CoverageBlocks.at(chrName).begin(),
+			// chrName_CoverageBlocks.at(chrName).end(),
+			// it_blocks->first
+			// );
+		// while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
+			// it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second, FM, chrName);  //for non-dir.
+			// it_CB++;
+		// }
+		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, 2, chrName);
 	}
 }
 
 void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM) const{
 	std::vector<CoverageBlock>::const_iterator it_CB;
 	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		it_CB = upper_bound(
-			chrName_CoverageBlocks.at(chrName).begin(),
-			chrName_CoverageBlocks.at(chrName).end(),
-			it_blocks->first
-			);
-		while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
-			it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction, FM, chrName);  //directional.
-			it_CB++;
-		}
+		// it_CB = upper_bound(
+			// chrName_CoverageBlocks.at(chrName).begin(),
+			// chrName_CoverageBlocks.at(chrName).end(),
+			// it_blocks->first
+			// );
+		// while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
+			// it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction, FM, chrName);  //directional.
+			// it_CB++;
+		// }
+		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction ? 1 : 0, chrName);
 	}
 }
 

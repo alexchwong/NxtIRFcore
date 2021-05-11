@@ -157,6 +157,7 @@ public:
   int WriteOutput(std::ostream *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, int threshold = 4) const;
   int WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens) const;
   int GetVectorPair(std::vector< std::pair<unsigned int, int> > &vector_pair, unsigned int start, unsigned int end, const std::string &chrName, unsigned int dir) const;
+  void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const std::string &chrName) const;
 };
 
 
