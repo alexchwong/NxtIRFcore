@@ -73,154 +73,28 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 	}
 	// Read from file complete.
 
-/*
-	// We have a map of Chr->Vectors. Each vector is a pair of start/stop BED coords.
-	//  We want to sort and merge these & produce as result, a set of non-overlapping BED
-	//  blocks, each of a maximum length, which we can use to create our data structures
-	//  for the computation of coverage.
-
-	// Construct chrName_CoverageBlocks(Pos/Neg). The ChrName->Vector map of non-overlapping "CoverageBlock" objects. (this is where depth gets recorded)
-	for (std::map<string, std::vector<std::pair<unsigned int, unsigned int>>>::iterator it_chr=temp_segments.begin(); it_chr!=temp_segments.end(); it_chr++) {
-		// foreach chromosome.
-		std::sort(it_chr->second.begin(), it_chr->second.end());
-
-		unsigned int next_start = 0;
-		unsigned int next_end = 0;
-		unsigned int max_gap = 50;
-		bool first_record = true;
-		for (std::vector<std::pair<unsigned int, unsigned int>>::iterator it_blocks=it_chr->second.begin(); it_blocks!=it_chr->second.end(); it_blocks++) {
-			if (it_blocks->first > next_end + max_gap) {
-				//We are passed the last block, output the old.
-				if (first_record) {
-					first_record = false;
-				}else{
-					while (next_start + coverage_block_max_length < next_end) {
-						chrName_CoverageBlocks[it_chr->first].push_back(CoverageBlock(next_start, next_start + coverage_block_max_length));
-						next_start += coverage_block_max_length;
-					}
-					chrName_CoverageBlocks[it_chr->first].push_back(CoverageBlock(next_start, next_end));
-				}
-				next_start = it_blocks->first;
-				next_end = it_blocks->second;
-			}else if (it_blocks->second > next_end) {
-        		next_end = it_blocks->second;
-			}
-		}
-		if (!first_record) {
-			while (next_start + coverage_block_max_length < next_end) {
-				chrName_CoverageBlocks[it_chr->first].push_back(CoverageBlock(next_start, next_start + coverage_block_max_length));
-				next_start += coverage_block_max_length;
-			}
-			chrName_CoverageBlocks[it_chr->first].push_back(CoverageBlock(next_start, next_end));
-		}
-		chrName_CoverageBlocks[it_chr->first].shrink_to_fit();
-	}
-*/
 }
 
 void CoverageBlocks::ChrMapUpdate(const std::vector<string> &chrmap) {
-/*
-	chrID_CoverageBlocks.resize(0);
-	for (unsigned int i = 0; i < chrmap.size(); i++) {
-		chrID_CoverageBlocks.push_back( &chrName_CoverageBlocks[chrmap.at(i)] );
-	}
-*/	
+
 }
 
 
 void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
-/*
-	std::vector<CoverageBlock>::iterator it_coverblock;
-	unsigned int start;
-	unsigned int end;
 
-	//Walk each read within the fragment (1 or 2).
-	for (int index = 0; index < blocks.readCount; index ++) {
-		//Walk each block within each read.
-		for (unsigned int j = 0; j < blocks.rLens[index].size(); j++) {
-			// Have a block.
-			start = blocks.readStart[index] + blocks.rStarts[index][j];
-			end = start + blocks.rLens[index][j];
-			// need abs coords & blocks.chr_id.
-			// Then do appropriate upper_bound/lower_bound search - find our first block, make the call.
-
-			it_coverblock = std::upper_bound(
-				(*chrID_CoverageBlocks.at(blocks.chr_id)).begin(),
-				(*chrID_CoverageBlocks.at(blocks.chr_id)).end(),
-				start
-			);
-			while (it_coverblock != (*chrID_CoverageBlocks.at(blocks.chr_id)).end() && it_coverblock->posIsAfterStart(end)) {
-				it_coverblock->RecordCover(start, end, blocks.direction);
-
-				it_coverblock++;
-			}
-		}
-	}
-*/
 }
-
-/*
-
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks) const {
-	std::vector<CoverageBlock>::const_iterator it_CB;
-	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		it_CB = upper_bound(
-			chrName_CoverageBlocks.at(chrName).begin(),
-			chrName_CoverageBlocks.at(chrName).end(),
-			it_blocks->first
-			);
-		while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
-			it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second);  //for non-dir.
-			it_CB++;
-		}
-	}
-}
-
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction) const {
-	std::vector<CoverageBlock>::const_iterator it_CB;
-	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		it_CB = upper_bound(
-			chrName_CoverageBlocks.at(chrName).begin(),
-			chrName_CoverageBlocks.at(chrName).end(),
-			it_blocks->first
-			);
-		while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
-			it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction);  //directional.
-			it_CB++;
-		}
-	}
-}
-*/
 
 // Using FragmentsMap
 void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM) const{
-	std::vector<CoverageBlock>::const_iterator it_CB;
+	// std::vector<CoverageBlock>::const_iterator it_CB;
 	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		// it_CB = upper_bound(
-			// chrName_CoverageBlocks.at(chrName).begin(),
-			// chrName_CoverageBlocks.at(chrName).end(),
-			// it_blocks->first
-			// );
-		// while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
-			// it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second, FM, chrName);  //for non-dir.
-			// it_CB++;
-		// }
 		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, 2, chrName);
 	}
 }
 
 void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM) const{
-	std::vector<CoverageBlock>::const_iterator it_CB;
+	// std::vector<CoverageBlock>::const_iterator it_CB;
 	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		// it_CB = upper_bound(
-			// chrName_CoverageBlocks.at(chrName).begin(),
-			// chrName_CoverageBlocks.at(chrName).end(),
-			// it_blocks->first
-			// );
-		// while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
-			// it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction, FM, chrName);  //directional.
-			// it_CB++;
-		// }
 		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction ? 1 : 0, chrName);
 	}
 }

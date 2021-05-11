@@ -807,7 +807,7 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
 }
 
 
-int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens) const {
+int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, bool verbose)  {
   // Write COV file as binary
 
   // Issue is map constructs auto-sort
@@ -827,52 +827,106 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
   }
   os->WriteHeader(sort_chr_names, sort_chr_lens);
 
+	if(!final_is_sorted) {
+		sort_and_collapse_temp();
+	}
+
+	if(verbose)	Rcout << "Performing final sort of fragment maps\n";
+	Progress p(3 * sort_chr_names.size(), verbose);
   unsigned int refID = 0;
   for(unsigned int j = 0; j < 3; j++) {
     for (auto itChr=chrName_vec[j].begin(); itChr!=chrName_vec[j].end(); itChr++) {
-      unsigned int coordpos = 0;
-      unsigned int coorddepth = 0;
-      bool writefirst = true;
-      
+      // unsigned int coordpos = 0;
+      // unsigned int coorddepth = 0;
+      // bool writefirst = true;
+			
+     	if(!final_is_sorted) {
+				std::sort(
+					itChr->second.begin(),
+					itChr->second.end()
+				);
+			}
+			// assign temp vector
+			std::vector< std::pair<unsigned int, int> > temp_vec;
+			unsigned int 	loci = 0; 			// Current genomic coordinate
+			unsigned int 	old_loci = 0; 			// Current genomic coordinate
+			int 					depth = 0; 			// Current depth of cursor
+			int 					old_depth = 0;	// Previous depth of cursor
+			
       for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
 				// COV file is of the format: 
 					//	first = (int) depth; 
 					//	second = (unsigned int) length offset from previous
-				
-        if(writefirst) {
-          writefirst = false;
-          if(it_pos->first == 0) {
-            // Write coverage only
-            coorddepth += it_pos->second;
-          } else {
-            coorddepth = 0;
+			
+				if(it_pos->first != loci) {
+					// Write entry
+					if(loci == 0 || depth != old_depth) {	
+						if(!final_is_sorted) {
+							temp_vec.push_back( std::make_pair(loci, depth) );
+						}
+						if(loci > 0) {
+							os->WriteEntry(refID, old_depth, loci - old_loci);						
+						}
+						old_depth = depth;
+						old_loci = loci;
+					}
+					loci = it_pos->first;
+				}
+				if(!final_is_sorted) {	
+					depth += it_pos->second;
+				} else {
+					depth = it_pos->second;
+				}
+			}	
+			if(!final_is_sorted) {
+				if(loci == 0 || depth != old_depth) {
+					temp_vec.push_back( std::make_pair(loci, depth) );
+				}
+				itChr->second.swap(temp_vec);
+			}
+			os->WriteEntry(refID, old_depth, loci - old_loci);
+			os->WriteEntry(refID, depth, chrmap[itChr->first] - loci);
+/*
+			if(writefirst) {
+				writefirst = false;
+				if(it_pos->first == 0) {
+					// Write coverage only
+					coorddepth += it_pos->second;
+				} else {
+					coorddepth = 0;
 
-            os->WriteEntry(refID, coorddepth, it_pos->first);
-            
-            coorddepth = it_pos->second;
-            coordpos = it_pos->first;
-          }
-        } else {
-          // coorddepth should already be recorded previously
-          os->WriteEntry(refID, coorddepth, it_pos->first - coordpos);
-          
-          coorddepth = it_pos->second;
-          coordpos = it_pos->first;
-        }
+					os->WriteEntry(refID, coorddepth, it_pos->first);
+					
+					coorddepth = it_pos->second;
+					coordpos = it_pos->first;
+				}
+			} else {
+				// coorddepth should already be recorded previously
+				os->WriteEntry(refID, coorddepth, it_pos->first - coordpos);
+				
+				coorddepth = it_pos->second;
+				coordpos = it_pos->first;
+			}
       }
       // Write last entry for remainder of chromosome length
       os->WriteEntry(refID, coorddepth, chrmap[itChr->first] - coordpos);
-      
+*/
+
+			p.increment(1);
       refID += 1; 
     }
   }
+	
+	if(!final_is_sorted) {
+		final_is_sorted = true;
+	}
   os->FlushBody();
   return(0);	
 }
 
 int FragmentsMap::WriteOutput(std::ostream *os, 
     const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, 
-    int threshold) const {
+    int threshold, bool verbose)  {
 
   // This is called on mappability
   // Issue is map constructs auto-sort
@@ -890,7 +944,92 @@ int FragmentsMap::WriteOutput(std::ostream *os,
     sort_chr_names.push_back(chr->first);
     sort_chr_lens.push_back(chr->second);
   }    
-    
+
+	if(!final_is_sorted) {
+		sort_and_collapse_temp();
+	}
+
+	if(verbose)	Rcout << "Performing final sort of fragment maps\n";
+	Progress p(3 * sort_chr_names.size(), verbose);
+  unsigned int refID = 0;
+  for(unsigned int j = 0; j < 3; j++) {
+    for (auto itChr=chrName_vec[j].begin(); itChr!=chrName_vec[j].end(); itChr++) {
+     	if(!final_is_sorted) {
+				std::sort(
+					itChr->second.begin(),
+					itChr->second.end()
+				);
+			}
+			// assign temp vector
+			std::vector< std::pair<unsigned int, int> > temp_vec;
+			unsigned int 	loci = 0; 			// Current genomic coordinate
+			int 					depth = 0; 			// Current depth of cursor
+			int 					old_depth = 0;	// Previous depth of cursor
+
+			// int coverage = 0;
+			bool covered = false;
+			
+      for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
+				// COV file is of the format: 
+					//	first = (int) depth; 
+					//	second = (unsigned int) length offset from previous
+			
+				if(it_pos->first != loci) {
+					// Write entry
+					if(loci == 0 || depth != old_depth) {	
+						if(!final_is_sorted) {
+							temp_vec.push_back( std::make_pair(loci, depth) );
+						}
+						if(j == 2) {
+							if(loci == 0 && depth > threshold) {
+								covered = true;
+							} else if(loci == 0) {
+								// Write first coordinate
+								*os << loci << "\t0\t";
+							} else if(depth > threshold) {
+								if(covered) {
+									// do nothing
+								} else {
+									*os << loci << '\n';
+									covered = true;
+								}
+							} else {
+								if(covered) {
+									*os << itChr->first << "\t"
+											<< loci << "\t";
+									covered = false;
+								} else {
+									// do nothing
+								}
+							}
+						}
+						// os->WriteEntry(refID, depth, it_pos->first - loci);
+						old_depth = depth;
+					}
+					loci = it_pos->first;
+				}
+				if(!final_is_sorted) {	
+					depth += it_pos->second;
+				} else {
+					depth = it_pos->second;
+				}
+			}	
+			if(!final_is_sorted) {
+				if(loci == 0 || depth != old_depth) {
+					temp_vec.push_back( std::make_pair(loci, depth) );
+				}
+				itChr->second.swap(temp_vec);
+			}
+			if(j == 2 && !covered) {
+				*os << chrmap[itChr->first] << "\n";    
+			}
+			// os->WriteEntry(refID, depth, chrmap[itChr->first] - loci);
+			p.increment(1);
+      refID += 1; 
+    }
+  }
+
+/*
   for (auto itChr=chrName_vec[2].begin(); itChr!=chrName_vec[2].end(); itChr++) {
     int coverage = 0;
     bool covered = false;
@@ -926,6 +1065,11 @@ int FragmentsMap::WriteOutput(std::ostream *os,
       *os << chrmap[itChr->first] << "\n";    
     }
   }
+*/	
+	if(!final_is_sorted) {
+		final_is_sorted = true;
+	}
+
   return 0;
 }
 

@@ -221,13 +221,6 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
   std::string BBreport;
   BB.processAll(BBreport, verbose);
   
-  std::ofstream outFragsMap;
-  outFragsMap.open(s_output_txt, std::ifstream::out);
-	
-	oFragMap.sort_and_collapse_final(verbose);
-  oFragMap.WriteOutput(&outFragsMap, BB.chr_names, BB.chr_lens, threshold);
-  outFragsMap.flush(); outFragsMap.close();
-
 #ifndef GALAXY
   if(includeCov == 1) {
 #else
@@ -239,9 +232,17 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
     covFile outCOV;
     outCOV.SetOutputHandle(&ofCOV);
     
-    oFragMap.WriteBinary(&outCOV, BB.chr_names, BB.chr_lens);
+    oFragMap.WriteBinary(&outCOV, BB.chr_names, BB.chr_lens, verbose);
     ofCOV.close();    
   }
+  
+  std::ofstream outFragsMap;
+  outFragsMap.open(s_output_txt, std::ifstream::out);
+	
+  oFragMap.WriteOutput(&outFragsMap, BB.chr_names, BB.chr_lens, threshold, verbose);
+  outFragsMap.flush(); outFragsMap.close();
+
+
   
   return(0);
 }
