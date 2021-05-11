@@ -282,7 +282,7 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
         if(length(raw_list) > 0) {
             for(i in seq_len(length(raw_list))) {
                 final_list[[i]] = S4Vectors::Rle(
-                    raw_list[[i]]$values, raw_list[[i]]$length
+                    raw_list[[i]]$values, raw_list[[i]]$lengths
                 )
             }
         } else {
@@ -296,14 +296,14 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
             normalizePath(file), as.character(seqname), 
             0,0, strand_int
         )
-        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$length)
+        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$lengths)
     } else {
         raw_RLE = IRF_RLE_From_Cov(
             normalizePath(file), as.character(seqname), 
             round(as.numeric(start)), round(as.numeric(end)), 
             strand_int
         )
-        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$length)
+        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$lengths)
     }
 }
 
