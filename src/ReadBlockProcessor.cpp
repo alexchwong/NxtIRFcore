@@ -858,7 +858,14 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 					//	first = (int) depth; 
 					//	second = (unsigned int) length offset from previous
 			
-				if(it_pos->first != loci) {
+        if(it_pos->first == 0) {
+          if(!final_is_sorted) {	
+            depth += it_pos->second;
+          } else {
+            depth = it_pos->second;
+          }
+          old_depth = depth;
+        } else if(it_pos->first != loci) {
 					// Write entry
 					if(loci == 0 || depth != old_depth) {	
 						if(!final_is_sorted) {

@@ -272,7 +272,7 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
         
     if(!is.numeric(start) || !is.numeric(end) || 
             (as.numeric(start) > as.numeric(end)) || 
-            as.numeric(end) == 0) {
+            (as.numeric(end) == 0 && seqname != "")) {
         .log(paste("In GetCoverage(),",
             "Null or negative regions not allowed"))
     }
