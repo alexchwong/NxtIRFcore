@@ -767,6 +767,46 @@ int FragmentsMap::GetVectorPair(std::vector< std::pair<unsigned int, int> > &vec
 	return(0);
 }
 
+// updateCoverageHist from completed FragmentMap - directional:
+void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const std::string &chrName) const {
+	std::vector< std::pair<unsigned int, int> > vec;
+	GetVectorPair(vec, start, end + 1, chrName, dir);
+
+	
+	if (vec.size() == 0) {
+		// how many bases in this block?
+		auto it=vec.begin();
+		hist[it->second] += end - start;
+	}else{
+		// There are read starts and ends -- need to walk the positions from the start of this block
+		//  even if not in the region of interest.
+
+		//special handling for the first base -- the one before the vector starts.
+		auto it=vec.begin();
+		int depth = it->second;
+		// if (start <= blockStart) {
+			// use the first depth, before commencing in the vector.
+		hist[(unsigned int)depth] ++;
+		// }
+
+		unsigned int startindex = 0;
+		unsigned int endindex = end - start - 1;
+		
+		for (unsigned int i=0; i<endindex; i++) {
+			while(it->first < (i + start + 1) && it != vec.end()) {
+				it++;
+			};
+			if(it->first == (i + start + 1)) {
+				depth = it->second;
+			}
+			// if (i>=startindex) {
+				hist[(unsigned int)depth] ++;
+			// }
+		}
+	}
+}
+
+
 int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens) const {
   // Write COV file as binary
 
