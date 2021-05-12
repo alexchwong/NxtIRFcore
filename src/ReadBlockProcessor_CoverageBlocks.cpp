@@ -154,7 +154,8 @@ double CoverageBlocks::trimmedMeanFromHist(const std::map<unsigned int,unsigned 
 	for (auto h : hist) {
 		size += h.second;
 	}
-	unsigned int skip = size * ((100 - centerPercent)/2) / 100;
+	double skip_d = (double)size * ((100.0 - (double)centerPercent)/2.0) / 100.0; 
+	unsigned int skip = floor(skip_d);
 	
 	unsigned long long total = 0;
 	unsigned int count = 0;
