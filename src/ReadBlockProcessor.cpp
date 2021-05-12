@@ -772,6 +772,10 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
 	std::vector< std::pair<unsigned int, int> > vec;
 	GetVectorPair(vec, start, end + 1, chrName, dir);
 
+	unsigned int size = 0;
+	for (auto h : hist) {
+		size += h.second;
+	}
 	
 	if (vec.size() == 1) {
 		// how many bases in this block?
@@ -804,6 +808,15 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
 			// }
 		}
 	}
+  // check hist size:
+	unsigned int size_end = 0;
+	for (auto h : hist) {
+		size_end += h.second;
+	}
+  if((size_end - size) != (end - start)) {
+    Rcout << "Mismatch hist size: " << chrName << ":" <<
+        start << "-" << end << '\n';
+  }
 }
 
 
