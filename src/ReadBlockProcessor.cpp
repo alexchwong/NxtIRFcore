@@ -845,6 +845,9 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 		sort_and_collapse_temp();
 	}
 
+			// assign temp vector
+  std::vector< std::pair<unsigned int, int> > * temp_vec;
+
 	if(verbose)	Rcout << "Performing final sort of fragment maps\n";
 	Progress p(3 * sort_chr_names.size(), verbose);
   unsigned int refID = 0;
@@ -860,13 +863,13 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 					itChr->second.end()
 				);
 			}
-			// assign temp vector
-			std::vector< std::pair<unsigned int, int> > temp_vec;
+
 			unsigned int 	loci = 0; 			// Current genomic coordinate
 			unsigned int 	old_loci = 0; 			// Current genomic coordinate
 			int 					depth = 0; 			// Current depth of cursor
 			int 					old_depth = 0;	// Previous depth of cursor
-			
+			temp_vec = new std::vector< std::pair<unsigned int, int> >;
+      
       for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
 				// COV file is of the format: 
 					//	first = (int) depth; 
@@ -882,7 +885,7 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 					// Write entry
 					if(depth != old_depth) {	
             if(!final_is_sorted) {
-              temp_vec.push_back( std::make_pair(old_loci, old_depth) );
+              temp_vec->push_back( std::make_pair(old_loci, old_depth) );
               if(old_loci > 80000 && old_loci < 82000) Rcout << old_loci << '\t' << old_depth << '\n';
             }
             os->WriteEntry(refID, old_depth, loci - old_loci);
@@ -905,12 +908,13 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
       }
       
 			if(!final_is_sorted) {
-        temp_vec.push_back( std::make_pair(old_loci, old_depth) );
+        temp_vec->push_back( std::make_pair(old_loci, old_depth) );
 
 				if(depth != old_depth) {
-					temp_vec.push_back( std::make_pair(loci, depth) );
+					temp_vec->push_back( std::make_pair(loci, depth) );
 				}
-				itChr->second.swap(temp_vec);
+				itChr->second.swap(*temp_vec);
+        delete temp_vec;
 			}
 			os->WriteEntry(refID, old_depth, loci - old_loci);
 			os->WriteEntry(refID, depth, chrmap[itChr->first] - loci);
