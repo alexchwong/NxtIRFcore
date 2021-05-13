@@ -620,7 +620,7 @@ int FragmentsMap::sort_and_collapse_temp() {
       int accum = 0;
       for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
         if(it_pos->first != loci) {
-          if(accum != 0) temp_vec.push_back( std::make_pair(loci, accum) );
+          if(accum != 0) temp_vec->push_back( std::make_pair(loci, accum) );
           loci = it_pos->first;
           accum = it_pos->second;
         } else {
@@ -628,11 +628,11 @@ int FragmentsMap::sort_and_collapse_temp() {
         }
       }
       // final push
-      temp_vec.push_back( std::make_pair(loci, accum) );
+      temp_vec->push_back( std::make_pair(loci, accum) );
 
       chrName_vec[j].at(itChr->first).insert(
         chrName_vec[j].at(itChr->first).end(),
-        temp_vec.begin(), temp_vec.end()    
+        temp_vec->begin(), temp_vec->end()    
       );
       delete temp_vec;
       
