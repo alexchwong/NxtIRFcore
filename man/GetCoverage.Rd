@@ -4,7 +4,7 @@
 \alias{GetCoverage}
 \title{Calls NxtIRF's C++ function to retrieve coverage}
 \usage{
-GetCoverage(file, seqname = "", start = 0, end = 0, strand = 2)
+GetCoverage(file, seqname = "", start = 0, end = 0, strand = c("*", "+", "-"))
 }
 \arguments{
 \item{file}{The file name of the COV file}
@@ -16,7 +16,7 @@ name}
 
 \item{end}{The 0-based end coordinate}
 
-\item{strand}{An integer denoting ths strand: "+" = 0, "-" = 1, "*" = 2}
+\item{strand}{Either "*", "+", or "-"}
 }
 \value{
 If seqname is left as "", returns an RLEList of the whole BAM file.
@@ -34,6 +34,6 @@ cov_file <- covfile(se)[1]
 
 cov <- GetCoverage(cov_file, seqname = "chrZ", 
   start = 10000, end = 20000,
-  strand = 2
+  strand = "*"
 )
 }

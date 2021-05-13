@@ -18,6 +18,9 @@
 #include <stdexcept>
 #include <zlib.h>
 #include <zconf.h>
+#include <math.h>
+#include <chrono>
+#include <thread>
 
 //__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
 

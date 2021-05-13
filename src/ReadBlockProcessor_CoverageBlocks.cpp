@@ -20,7 +20,7 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 	//s_keydata.reserve(400);
 	BEDrecord BEDrec;
 
-	std::map<string, std::vector<std::pair<unsigned int, unsigned int>> > temp_segments;
+	// std::map<string, std::vector<std::pair<unsigned int, unsigned int>> > temp_segments;
 
 	while (!IN.eof()) {
 		getline(IN, myLine);
@@ -67,120 +67,33 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 			getline(lensStream, myField, ',');
 			i_block_end = i_block_start + stoul(myField);
 			BEDrec.blocks.push_back(std::make_pair( i_block_start, i_block_end ));
-			temp_segments[BEDrec.chrName].push_back(std::make_pair( i_block_start, i_block_end ) ); 
+			// temp_segments[BEDrec.chrName].push_back(std::make_pair( i_block_start, i_block_end ) ); 
 		}		
 		BEDrecords.push_back(BEDrec);
 	}
 	// Read from file complete.
 
-
-	// We have a map of Chr->Vectors. Each vector is a pair of start/stop BED coords.
-	//  We want to sort and merge these & produce as result, a set of non-overlapping BED
-	//  blocks, each of a maximum length, which we can use to create our data structures
-	//  for the computation of coverage.
-
-	// Construct chrName_CoverageBlocks(Pos/Neg). The ChrName->Vector map of non-overlapping "CoverageBlock" objects. (this is where depth gets recorded)
-	for (std::map<string, std::vector<std::pair<unsigned int, unsigned int>>>::iterator it_chr=temp_segments.begin(); it_chr!=temp_segments.end(); it_chr++) {
-		// foreach chromosome.
-		std::sort(it_chr->second.begin(), it_chr->second.end());
-
-		unsigned int next_start = 0;
-		unsigned int next_end = 0;
-		unsigned int max_gap = 50;
-		bool first_record = true;
-		for (std::vector<std::pair<unsigned int, unsigned int>>::iterator it_blocks=it_chr->second.begin(); it_blocks!=it_chr->second.end(); it_blocks++) {
-			if (it_blocks->first > next_end + max_gap) {
-				//We are passed the last block, output the old.
-				if (first_record) {
-					first_record = false;
-				}else{
-					while (next_start + coverage_block_max_length < next_end) {
-						chrName_CoverageBlocks[it_chr->first].push_back(CoverageBlock(next_start, next_start + coverage_block_max_length));
-						next_start += coverage_block_max_length;
-					}
-					chrName_CoverageBlocks[it_chr->first].push_back(CoverageBlock(next_start, next_end));
-				}
-				next_start = it_blocks->first;
-				next_end = it_blocks->second;
-			}else if (it_blocks->second > next_end) {
-        		next_end = it_blocks->second;
-			}
-		}
-		if (!first_record) {
-			while (next_start + coverage_block_max_length < next_end) {
-				chrName_CoverageBlocks[it_chr->first].push_back(CoverageBlock(next_start, next_start + coverage_block_max_length));
-				next_start += coverage_block_max_length;
-			}
-			chrName_CoverageBlocks[it_chr->first].push_back(CoverageBlock(next_start, next_end));
-		}
-		chrName_CoverageBlocks[it_chr->first].shrink_to_fit();
-	}
 }
 
 void CoverageBlocks::ChrMapUpdate(const std::vector<string> &chrmap) {
-	chrID_CoverageBlocks.resize(0);
-	for (unsigned int i = 0; i < chrmap.size(); i++) {
-		chrID_CoverageBlocks.push_back( &chrName_CoverageBlocks[chrmap.at(i)] );
-	}
+
 }
 
 
 void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
-	std::vector<CoverageBlock>::iterator it_coverblock;
-	unsigned int start;
-	unsigned int end;
 
-	//Walk each read within the fragment (1 or 2).
-	for (int index = 0; index < blocks.readCount; index ++) {
-		//Walk each block within each read.
-		for (unsigned int j = 0; j < blocks.rLens[index].size(); j++) {
-			// Have a block.
-			start = blocks.readStart[index] + blocks.rStarts[index][j];
-			end = start + blocks.rLens[index][j];
-			// need abs coords & blocks.chr_id.
-			// Then do appropriate upper_bound/lower_bound search - find our first block, make the call.
+}
 
-			it_coverblock = std::upper_bound(
-				(*chrID_CoverageBlocks.at(blocks.chr_id)).begin(),
-				(*chrID_CoverageBlocks.at(blocks.chr_id)).end(),
-				start
-			);
-			while (it_coverblock != (*chrID_CoverageBlocks.at(blocks.chr_id)).end() && it_coverblock->posIsAfterStart(end)) {
-				it_coverblock->RecordCover(start, end, blocks.direction);
-
-				it_coverblock++;
-			}
-		}
+// Using FragmentsMap
+void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM, bool debug) const{
+	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
+		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, 2, chrName, debug);
 	}
 }
 
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks) const {
-	std::vector<CoverageBlock>::const_iterator it_CB;
+void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM, bool debug) const{
 	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		it_CB = upper_bound(
-			chrName_CoverageBlocks.at(chrName).begin(),
-			chrName_CoverageBlocks.at(chrName).end(),
-			it_blocks->first
-			);
-		while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
-			it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second);  //for non-dir.
-			it_CB++;
-		}
-	}
-}
-
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction) const {
-	std::vector<CoverageBlock>::const_iterator it_CB;
-	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		it_CB = upper_bound(
-			chrName_CoverageBlocks.at(chrName).begin(),
-			chrName_CoverageBlocks.at(chrName).end(),
-			it_blocks->first
-			);
-		while (it_CB != chrName_CoverageBlocks.at(chrName).end() && it_CB->posIsAfterStart(it_blocks->second)) {
-			it_CB->updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction);  //directional.
-			it_CB++;
-		}
+		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction ? 1 : 0, chrName, debug);
 	}
 }
 
@@ -234,12 +147,14 @@ double CoverageBlocks::percentileFromHist(const std::map<unsigned int,unsigned i
 	return std::numeric_limits<double>::quiet_NaN();
 }
 
-double CoverageBlocks::trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent) const {
+double CoverageBlocks::trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent, bool debug) const {
 	unsigned int size = 0;
 	for (auto h : hist) {
 		size += h.second;
+    if(debug) Rcout << h.first << '\t' << h.second << '\n';
 	}
-	unsigned int skip = size * ((100 - centerPercent)/2) / 100;
+	double skip_d = (double)size * ((100.0 - (double)centerPercent)/2.0) / 100.0; 
+	unsigned int skip = floor(skip_d);
 	
 	unsigned long long total = 0;
 	unsigned int count = 0;
@@ -270,7 +185,7 @@ double CoverageBlocks::trimmedMeanFromHist(const std::map<unsigned int,unsigned 
 
 
 
-int CoverageBlocks::WriteOutput(std::string& output) const {
+int CoverageBlocks::WriteOutput(std::string& output, const FragmentsMap &FM) const {
 
 // This output function will be generic -- outputting Chr/Start/Stop/Name/Dir/ Score - Mean50 (that bit probably cmd line customisable).
 // The output we need will be in the extended class.
@@ -282,7 +197,7 @@ int CoverageBlocks::WriteOutput(std::string& output) const {
 			len += (it_blocks->second - it_blocks->first);
 		}
 		std::map<unsigned int,unsigned int> hist;
-		fillHist(hist, it_BED->chrName, it_BED->blocks);
+		fillHist(hist, it_BED->chrName, it_BED->blocks, FM);
 
 		unsigned int histPositions = 0;
 		for (auto h : hist) {
@@ -300,7 +215,7 @@ int CoverageBlocks::WriteOutput(std::string& output) const {
 }
 
 
-int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, const JunctionCount &JC, const SpansPoint &SP, int directionality) const {
+int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, const JunctionCount &JC, const SpansPoint &SP, const FragmentsMap &FM, int directionality) const {
     std::ostringstream oss; std::ostringstream oss_qc; 
 	// Custom output function - related to the IRFinder needs
   if(directionality == 0) {
@@ -365,14 +280,15 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 				if (directionality == -1) {
 					measureDir = !BEDrec.direction;
 				}
-
+				bool debug = false;
+        // bool debug = (0 == s_ID.compare(0, 23, "ENST00000269305_Intron6"));
 				std::map<unsigned int,unsigned int> hist;
 				if (directionality == 0) {
-					fillHist(hist, BEDrec.chrName, BEDrec.blocks);
+					fillHist(hist, BEDrec.chrName, BEDrec.blocks, FM, debug);
 				}else{
-					fillHist(hist, BEDrec.chrName, BEDrec.blocks, measureDir);
+					fillHist(hist, BEDrec.chrName, BEDrec.blocks, measureDir, FM, debug);
 				}
-				intronTrimmedMean = trimmedMeanFromHist(hist, 40);
+				intronTrimmedMean = trimmedMeanFromHist(hist, 40, debug);
 				coverage = coverageFromHist(hist);
 				oss << exclBases << "\t"
 					<< coverage << "\t"
@@ -396,10 +312,10 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 						<< SPright << "\t";
 
 					hist.clear();
-					fillHist(hist, BEDrec.chrName, {{intronStart + 5, intronStart + 55}}, measureDir);
+					fillHist(hist, BEDrec.chrName, {{intronStart + 5, intronStart + 55}}, measureDir, FM);
 					oss << trimmedMeanFromHist(hist, 40) << "\t";
 					hist.clear();
-					fillHist(hist, BEDrec.chrName, {{intronEnd - 55, intronEnd - 5}}, measureDir);
+					fillHist(hist, BEDrec.chrName, {{intronEnd - 55, intronEnd - 5}}, measureDir, FM);
 					oss << trimmedMeanFromHist(hist, 40) << "\t";
 					JCleft = JC.lookupLeft(BEDrec.chrName, intronStart, measureDir);
 					JCright = JC.lookupRight(BEDrec.chrName, intronEnd, measureDir);
@@ -414,10 +330,10 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 						<< SPright << "\t";			
 
 					hist.clear();
-					fillHist(hist, BEDrec.chrName, {{intronStart + 5, intronStart + 55}});
+					fillHist(hist, BEDrec.chrName, {{intronStart + 5, intronStart + 55}}, FM);
 					oss << trimmedMeanFromHist(hist, 40) << "\t";
 					hist.clear();
-					fillHist(hist, BEDrec.chrName, {{intronEnd - 55, intronEnd - 5}});
+					fillHist(hist, BEDrec.chrName, {{intronEnd - 55, intronEnd - 5}}, FM);
 					oss << trimmedMeanFromHist(hist, 40) << "\t";
 					JCleft = JC.lookupLeft(BEDrec.chrName, intronStart);
 					JCright = JC.lookupRight(BEDrec.chrName, intronEnd);
@@ -492,7 +408,8 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 }
 
 CoverageBlocks::~CoverageBlocks() {
-	empty_map = new std::map<string, std::vector<CoverageBlock>>;
-	chrName_CoverageBlocks.swap(*empty_map);
-	delete empty_map;
+	// empty_map = new std::map<string, std::vector<CoverageBlock>>;
+	// chrName_CoverageBlocks.swap(*empty_map);
+	// delete empty_map;
+	// chrName_CoverageBlocks.clear();
 }

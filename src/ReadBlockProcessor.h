@@ -120,7 +120,7 @@ class FragmentsInROI : public ReadBlockProcessor {
 class FragmentsMap : public ReadBlockProcessor {
   // Counts mappability.
 private:
-  // 0 = +, 1 = -, 2 = both
+  // 0 = -, 1 = +, 2 = both
 /*	
 	// nested map
   std::map<string, std::map<unsigned int, int> > chrName_count[3];
@@ -150,12 +150,14 @@ private:
 	bool final_is_sorted = false;
 public:
   ~FragmentsMap();
-	int sort_and_collapse_final(bool mark_as_final);
+  int sort_and_collapse_final(bool mark_as_final);
 
   void ProcessBlocks(const FragmentBlocks &blocks);
   void ChrMapUpdate(const std::vector<string> &chrmap);
-  int WriteOutput(std::ostream *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, int threshold = 4) const;
-  int WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens) const;
+  int WriteOutput(std::ostream *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, int threshold = 4, bool verbose = false) ;
+  int WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, bool verbose = false) ;
+
+  void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const std::string &chrName, bool debug = false) const;
 };
 
 
