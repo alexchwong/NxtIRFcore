@@ -149,10 +149,11 @@ double CoverageBlocks::percentileFromHist(const std::map<unsigned int,unsigned i
 	return std::numeric_limits<double>::quiet_NaN();
 }
 
-double CoverageBlocks::trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent) const {
+double CoverageBlocks::trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent, bool debug) const {
 	unsigned int size = 0;
 	for (auto h : hist) {
 		size += h.second;
+    if(debug) Rcout << h.first << '\t' << h.second << '\n';
 	}
 	double skip_d = (double)size * ((100.0 - (double)centerPercent)/2.0) / 100.0; 
 	unsigned int skip = floor(skip_d);
@@ -288,7 +289,7 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 				}else{
 					fillHist(hist, BEDrec.chrName, BEDrec.blocks, measureDir, FM);
 				}
-				intronTrimmedMean = trimmedMeanFromHist(hist, 40);
+				intronTrimmedMean = trimmedMeanFromHist(hist, 40, (0 == s_ID.compare(0, 23, "ENST00000269305_Intron6")));
 				coverage = coverageFromHist(hist);
 				oss << exclBases << "\t"
 					<< coverage << "\t"

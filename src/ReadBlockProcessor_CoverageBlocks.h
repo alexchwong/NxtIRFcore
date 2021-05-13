@@ -44,7 +44,7 @@ class CoverageBlocks : public ReadBlockProcessor {
 		double meanFromHist(const std::map<unsigned int,unsigned int> &hist) const;
 		double coverageFromHist(const std::map<unsigned int,unsigned int> &hist) const;
 		double percentileFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int percentile) const;
-		double trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent) const;
+		double trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent, bool debug = false) const;
 };
 
 class CoverageBlocksIRFinder : public CoverageBlocks {
