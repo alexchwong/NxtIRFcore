@@ -768,7 +768,7 @@ int FragmentsMap::GetVectorPair(std::vector< std::pair<unsigned int, int> > &vec
 }
 
 // updateCoverageHist from completed FragmentMap - directional:
-void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const std::string &chrName) const {
+void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const std::string &chrName, bool debug) const {
 	std::vector< std::pair<unsigned int, int> > vec;
 	GetVectorPair(vec, start, end + 1, chrName, dir);
 
@@ -788,6 +788,7 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
 		//special handling for the first base -- the one before the vector starts.
 		auto it=vec.begin();
 		int depth = it->second;
+    if(debug) Rcout << it->first << '\t' << it->second << '\n';
 		// if (start <= blockStart) {
 			// use the first depth, before commencing in the vector.
 		hist[(unsigned int)depth] ++;
@@ -802,6 +803,7 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
 			};
 			if(it->first == (i + start + 1)) {
 				depth = it->second;
+        if(debug) Rcout << it->first << '\t' << it->second << '\n';
 			}
 			// if (i>=startindex) {
 				hist[(unsigned int)depth] ++;
