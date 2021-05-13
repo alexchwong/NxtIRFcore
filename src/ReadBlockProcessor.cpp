@@ -712,28 +712,30 @@ std::vector< std::pair<unsigned int, int> > FragmentsMap::GetVectorPair(unsigned
 
 // updateCoverageHist from completed FragmentMap - directional:
 void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const std::string &chrName, bool debug) const {
-  std::vector< std::pair<unsigned int, int> > vec = GetVectorPair(start, end + 1, chrName, dir);
-
-  if (vec.size() == 1) {
-    auto it=vec.begin();
-    hist[it->second] += end - start; // how many bases in this block?
-  }else{
-    auto it=vec.begin();
-    int depth = it->second;
-    if(debug) Rcout << it->first << '\t' << it->second << '\n';
-    hist[(unsigned int)depth] ++;
- 
-    unsigned int endindex = end - start - 1;
-    for (unsigned int i=0; i<endindex; i++) {
-      while(it->first < (i + start + 1) && it != vec.end()) {
-        it++;
-      };
-      if(it->first == (i + start + 1)) {
-        depth = it->second;
-        if(debug) Rcout << it->first << '\t' << it->second << '\n';
-      }
-      hist[(unsigned int)depth] ++;
+  // std::vector< std::pair<unsigned int, int> > vec = GetVectorPair(start, end + 1, chrName, dir);
+  auto it_chr = chrName_vec[dir].find(chrName);
+  auto it_pos = upper_bound(it_chr->second.begin(), it_chr->second.end(), 
+    make_pair(start, 0), 
+    []( std::pair<unsigned int, int> const& a, std::pair<unsigned int, int> const& b ) { 
+      return a.first < b.first; 
+    });
+  
+  while(it_pos->first > start && it_pos != it_chr->second.begin()) {
+    it_pos--;
+  }
+  int depth = it_pos->second;
+  unsigned int cursor = start;
+  while(cursor < end) {
+    while(it_pos->first <= cursor && it_pos != it_chr->second.end()) {
+      it_pos++;
     }
+    if(it_pos == it_chr->second.end()) {
+      hist[(unsigned int)depth] += end - cursor;
+      break;
+    }
+    hist[(unsigned int)depth] += min(it_pos->first, end) - cursor;
+    cursor = it_pos->first;
+    depth = it_pos->second;
   }
 }
 
