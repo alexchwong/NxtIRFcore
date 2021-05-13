@@ -86,18 +86,14 @@ void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
 
 // Using FragmentsMap
 void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM, bool debug) const{
-	// std::vector<CoverageBlock>::const_iterator it_CB;
 	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
 		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, 2, chrName, debug);
-    // if(debug) Rcout <<  it_blocks->first << '\t' << it_blocks->second << '\n';
 	}
 }
 
 void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM, bool debug) const{
-	// std::vector<CoverageBlock>::const_iterator it_CB;
 	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
 		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction ? 1 : 0, chrName, debug);
-    // if(debug) Rcout <<  it_blocks->first << '\t' << it_blocks->second << '\n';
 	}
 }
 
@@ -284,7 +280,8 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 				if (directionality == -1) {
 					measureDir = !BEDrec.direction;
 				}
-        bool debug = (0 == s_ID.compare(0, 23, "ENST00000269305_Intron6"));
+				bool debug = false;
+        // bool debug = (0 == s_ID.compare(0, 23, "ENST00000269305_Intron6"));
 				std::map<unsigned int,unsigned int> hist;
 				if (directionality == 0) {
 					fillHist(hist, BEDrec.chrName, BEDrec.blocks, FM, debug);

@@ -886,7 +886,7 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 					if(depth != old_depth) {	
             if(!final_is_sorted) {
               temp_vec->push_back( std::make_pair(old_loci, old_depth) );
-              if(old_loci > 80000 && old_loci < 82000) Rcout << old_loci << '\t' << old_depth << '\n';
+//              if(old_loci > 80000 && old_loci < 82000) Rcout << old_loci << '\t' << old_depth << '\n';
             }
             os->WriteEntry(refID, old_depth, loci - old_loci);
             old_depth = depth;
