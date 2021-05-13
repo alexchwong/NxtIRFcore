@@ -602,6 +602,12 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
 int FragmentsMap::sort_and_collapse_temp() {
   // Sort temp vectors and append to final:
   
+    // assign temp vector
+    std::vector< std::pair<unsigned int, int> > * temp_vec;
+    // empty swap vector
+    std::vector< std::pair<unsigned int, int> > * empty_swap_vector;
+
+  
   for(unsigned int j = 0; j < 3; j++) {
     for (auto itChr=temp_chrName_vec[j].begin(); itChr!=temp_chrName_vec[j].end(); itChr++) {
       // sort
@@ -609,17 +615,16 @@ int FragmentsMap::sort_and_collapse_temp() {
         itChr->second.begin(),
         itChr->second.end()
       );
-      // assign temp vector
-      std::vector< std::pair<unsigned int, int> > temp_vec;
+
       unsigned int loci = 0;
       int accum = 0;
       for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
-        if(it_pos->first == 0) {
-          accum += it_pos->second;
-        } else {
+        if(it_pos->first != loci) {
           if(accum != 0) temp_vec.push_back( std::make_pair(loci, accum) );
           loci = it_pos->first;
           accum = it_pos->second;
+        } else {
+          accum += it_pos->second;
         }
       }
       // final push
@@ -629,9 +634,12 @@ int FragmentsMap::sort_and_collapse_temp() {
         chrName_vec[j].at(itChr->first).end(),
         temp_vec.begin(), temp_vec.end()    
       );
+      delete temp_vec;
+      
       // Clear temporary vector by swap trick
-      std::vector< std::pair<unsigned int, int> > empty_swap_vector;
-      itChr->second.swap(empty_swap_vector);
+      empty_swap_vector = new std::vector< std::pair<unsigned int, int> >;
+      itChr->second.swap(*empty_swap_vector);
+      delete empty_swap_vector;
     }
   }
   return(0);
@@ -653,7 +661,8 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
           itChr->second.begin(),
           itChr->second.end()
         );
-        // assign temp vector
+        
+        // Progressors
         unsigned int   loci = 0;       // Current genomic coordinate
         unsigned int   old_loci = 0;       // Current genomic coordinate
         int           depth = 0;       // Current depth of cursor
