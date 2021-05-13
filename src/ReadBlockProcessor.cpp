@@ -631,7 +631,7 @@ int FragmentsMap::sort_and_collapse_temp() {
 
       chrName_vec[j].at(itChr->first).insert(
         chrName_vec[j].at(itChr->first).end(),
-        temp_vec->begin(), temp_vec.end()    
+        temp_vec->begin(), temp_vec->end()    
       );
       delete temp_vec;
       
