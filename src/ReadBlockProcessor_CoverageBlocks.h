@@ -1,7 +1,6 @@
 #ifndef CODE_READBLOCKPROCESSOR_COVERAGEBLOCKS
 #define CODE_READBLOCKPROCESSOR_COVERAGEBLOCKS
 
-#include "CoverageBlock.h"
 #include "ReadBlockProcessor.h"
 #include "FragmentBlocks.h"
 
@@ -29,39 +28,28 @@ class CoverageBlocks : public ReadBlockProcessor {
 
 	private:
 
-		// Coverage depth data-structures.
-		std::map<string, std::vector<CoverageBlock>> chrName_CoverageBlocks;
-		// Shortcut pointers to depth data-structures.
-		std::vector<std::vector<CoverageBlock>*> chrID_CoverageBlocks;
-
-		// TODO: what is optimal for speed & memory usage?
-//		static const unsigned int coverage_block_max_length = 5000;
-		static const unsigned int coverage_block_max_length = 500;
-
-		std::map<string, std::vector<CoverageBlock>> * empty_map;
 	protected:
 		std::vector<BEDrecord> BEDrecords;
 
-
 	public:
-        ~CoverageBlocks();
+    ~CoverageBlocks();
 		void ProcessBlocks(const FragmentBlocks &fragblock);
 		void ChrMapUpdate(const std::vector<string> &chrmap);
 		void loadRef(std::istringstream &IN);
-		int WriteOutput(std::string& output) const;
+		int WriteOutput(std::string& output, const FragmentsMap &FM) const;
 		
-		void fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks) const;
-		void fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction) const;
+	  void fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM, bool debug = false) const;
+		void fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM, bool debug = false) const;
 
 		double meanFromHist(const std::map<unsigned int,unsigned int> &hist) const;
 		double coverageFromHist(const std::map<unsigned int,unsigned int> &hist) const;
 		double percentileFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int percentile) const;
-		double trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent) const;
+		double trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent, bool debug = false) const;
 };
 
 class CoverageBlocksIRFinder : public CoverageBlocks {
 	public:
-		int WriteOutput(std::string& output, std::string& QC, const JunctionCount &JC, const SpansPoint &SP, int directionality = 0) const;
+		int WriteOutput(std::string& output, std::string& QC, const JunctionCount &JC, const SpansPoint &SP, const FragmentsMap &FM, int directionality = 0) const;
 };
 
 

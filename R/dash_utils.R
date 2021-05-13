@@ -1,8 +1,13 @@
-GetCoverage_DF <- function(samples, files, seqname, start, end, strand) {
+GetCoverage_DF <- function(samples, files, seqname, start, end, 
+        strand = c("*", "+", "-")) {
+    strand = match.arg(strand)
+    if(!(strand %in% c("*", "+", "-"))) {
+        .log(paste("In GetCoverage(),",
+            "Invalid strand. '*', '+' or '-'"))
+    }
     covData = list()
     for(i in seq_len(length(files))) {
-        cov = GetCoverage(files[i], seqname, start - 1, end, 
-            ifelse(strand == "+", 0, ifelse(strand == "-", 1, 2)))
+        cov = GetCoverage(files[i], seqname, start - 1, end, strand)
         view = IRanges::Views(cov, start, end)
         view.df = as.data.frame(view[[1]])
         covData[[i]] = view.df

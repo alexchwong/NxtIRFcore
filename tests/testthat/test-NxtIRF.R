@@ -6,7 +6,8 @@ test_that("NxtIRF pipeline reproduces NxtSE object", {
     )
     IRFinder(bams$BAM, bams$sample,
         reference_path = file.path(tempdir(), "Reference"),
-        output_path = file.path(tempdir(), "IRFinder_output")
+        output_path = file.path(tempdir(), "IRFinder_output"),
+        overwrite = TRUE
     )
     expr <- Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
     CollateData(expr, 
@@ -50,7 +51,7 @@ test_that("NxtIRF pipeline reproduces NxtSE object", {
         sampleQC(se_compare)[,-1]
     )
 
-    for(i in ncol(se)) {
+    for(i in seq_len(ncol(se))) {
         expect_equal(
             openssl::md5(file(covfile(se_realized)[i])), 
             openssl::md5(file(covfile(se_compare)[i]))
