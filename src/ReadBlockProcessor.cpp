@@ -698,7 +698,11 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
     []( std::pair<unsigned int, int> const& a, std::pair<unsigned int, int> const& b ) { 
       return a.first < b.first; 
     });
-  
+  if(it_pos == it_chr->second.end()) {
+    // No coverage data
+    hist[0] += end - start;
+    return;
+  }
   while(it_pos->first > start && it_pos != it_chr->second.begin()) {
     it_pos--; // shouldn't matter as the first vector pair should be at coord zero
   }
