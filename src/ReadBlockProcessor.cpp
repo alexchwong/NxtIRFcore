@@ -599,6 +599,44 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
   }
 }
 
+int FragmentsMap::sort_and_collapse_temp() {
+  // Sort temp vectors and append to final:
+  
+  for(unsigned int j = 0; j < 3; j++) {
+    for (auto itChr=temp_chrName_vec[j].begin(); itChr!=temp_chrName_vec[j].end(); itChr++) {
+      // sort
+      std::sort(
+        itChr->second.begin(),
+        itChr->second.end()
+      );
+      // assign temp vector
+      std::vector< std::pair<unsigned int, int> > temp_vec;
+      unsigned int loci = 0;
+      int accum = 0;
+      for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
+        if(it_pos->first == 0) {
+          accum += it_pos->second;
+        } else {
+          if(accum != 0) temp_vec.push_back( std::make_pair(loci, accum) );
+          loci = it_pos->first;
+          accum = it_pos->second;
+        }
+      }
+      // final push
+      temp_vec.push_back( std::make_pair(loci, accum) );
+
+      chrName_vec[j].at(itChr->first).insert(
+        chrName_vec[j].at(itChr->first).end(),
+        temp_vec.begin(), temp_vec.end()    
+      );
+      // Clear temporary vector by swap trick
+      std::vector< std::pair<unsigned int, int> > empty_swap_vector;
+      itChr->second.swap(empty_swap_vector);
+    }
+  }
+  return(0);
+}
+
 int FragmentsMap::sort_and_collapse_final(bool verbose) {
   if(!final_is_sorted) {
     sort_and_collapse_temp();
@@ -643,71 +681,12 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
         itChr->second.swap(*temp_vec);
         delete temp_vec;
         p.increment(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
     }
     final_is_sorted = true;
   }
   return(0);
-}
-
-int FragmentsMap::sort_and_collapse_temp() {
-  // Sort temp vectors and append to final:
-  
-  for(unsigned int j = 0; j < 3; j++) {
-    for (auto itChr=temp_chrName_vec[j].begin(); itChr!=temp_chrName_vec[j].end(); itChr++) {
-      // sort
-      std::sort(
-        itChr->second.begin(),
-        itChr->second.end()
-      );
-      // assign temp vector
-      std::vector< std::pair<unsigned int, int> > temp_vec;
-      unsigned int loci = 0;
-      int accum = 0;
-      for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
-        if(it_pos->first == 0) {
-          accum += it_pos->second;
-        } else {
-          if(accum != 0) temp_vec.push_back( std::make_pair(loci, accum) );
-          loci = it_pos->first;
-          accum = it_pos->second;
-        }
-      }
-      // final push
-      temp_vec.push_back( std::make_pair(loci, accum) );
-
-      chrName_vec[j].at(itChr->first).insert(
-        chrName_vec[j].at(itChr->first).end(),
-        temp_vec.begin(), temp_vec.end()    
-      );
-      // Clear temporary vector by swap trick
-      std::vector< std::pair<unsigned int, int> > empty_swap_vector;
-      itChr->second.swap(empty_swap_vector);
-    }
-  }
-  return(0);
-}
-
-// Gets a subset vector of pairs of coordinate / increment values
-std::vector< std::pair<unsigned int, int> > FragmentsMap::GetVectorPair(unsigned int start, unsigned int end, const std::string &chrName, unsigned int dir) const {
-  auto it = chrName_vec[dir].find(chrName);
-  auto first = upper_bound(it->second.begin(), it->second.end(), 
-    make_pair(start, 0), 
-    []( std::pair<unsigned int, int> const& a, std::pair<unsigned int, int> const& b ) { 
-      return a.first < b.first; 
-    });
-  auto last = upper_bound(it->second.begin(), it->second.end(),
-    make_pair(end, 0), 
-    []( std::pair<unsigned int, int> const& a, std::pair<unsigned int, int> const& b ) { 
-      return a.first < b.first; 
-    });
-  if(first != it->second.begin()) {
-    first--;
-  } else {
-    Rcout << "FragMap GetVectorPair is already at beginning\n";
-  }  
-  std::vector< std::pair<unsigned int, int> > vec(first, last);
-  return(vec);
 }
 
 // updateCoverageHist from completed FragmentMap - directional:
@@ -721,7 +700,7 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
     });
   
   while(it_pos->first > start && it_pos != it_chr->second.begin()) {
-    it_pos--;
+    it_pos--; // shouldn't matter as the first vector pair should be at coord zero
   }
   int depth = it_pos->second;
   unsigned int cursor = start;
@@ -803,6 +782,7 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
             if(!final_is_sorted) {
               temp_vec->push_back( std::make_pair(old_loci, old_depth) );
 //              if(old_loci > 80000 && old_loci < 82000) Rcout << old_loci << '\t' << old_depth << '\n';
+              if(old_depth < 0) Rcout << "Warning - writing depth below zero: " << old_loci << '\t' << old_depth << '\n';
             }
             os->WriteEntry(refID, old_depth, loci - old_loci);
             old_depth = depth;
@@ -822,8 +802,10 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
       
       if(!final_is_sorted) {
         temp_vec->push_back( std::make_pair(old_loci, old_depth) );
+        if(old_depth < 0) Rcout << "Warning - writing depth below zero: " << old_loci << '\t' << old_depth << '\n';
         if(depth != old_depth) {
           temp_vec->push_back( std::make_pair(loci, depth) );
+          if(depth < 0) Rcout << "Warning - writing depth below zero: " << loci << '\t' << depth << '\n';
         }
         itChr->second.swap(*temp_vec);
         delete temp_vec;
@@ -832,7 +814,8 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
       os->WriteEntry(refID, depth, chrmap[itChr->first] - loci);
 
       p.increment(1);
-      refID += 1; 
+      refID += 1;
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
   
@@ -882,9 +865,7 @@ int FragmentsMap::WriteOutput(std::ostream *os,
     for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
       coverage += it_pos->second;
       if(coverage > threshold) {
-        if(covered) {
-          // do nothing
-        } else {
+        if(!covered) {
           *os << it_pos->first << '\n';
           covered = true;
         }
@@ -893,8 +874,6 @@ int FragmentsMap::WriteOutput(std::ostream *os,
           *os << itChr->first << "\t"
               << it_pos->first << "\t";
           covered = false;
-        } else {
-          // do nothing
         }
       }
     }
@@ -940,11 +919,6 @@ FragmentsInChr::~FragmentsInChr() {
 }
 
 FragmentsMap::~FragmentsMap() {
-/*
-  chrName_count[0].clear();
-  chrName_count[1].clear();
-  chrName_count[2].clear();
-*/
   chrName_vec[0].clear();
   chrName_vec[1].clear();
   chrName_vec[2].clear();
