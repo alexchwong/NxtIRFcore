@@ -746,7 +746,7 @@ int FragmentsMap::sort_and_collapse_temp() {
 }
 
 // Gets a subset vector of pairs of coordinate / increment values
-int FragmentsMap::GetVectorPair(std::vector< std::pair<unsigned int, int> > &vector_pair, unsigned int start, unsigned int end, const std::string &chrName, unsigned int dir) const {
+std::vector< std::pair<unsigned int, int> > FragmentsMap::GetVectorPair(unsigned int start, unsigned int end, const std::string &chrName, unsigned int dir) const {
 	auto it = chrName_vec[dir].find(chrName);
 	auto first = upper_bound(it->second.begin(), it->second.end(), 
 		make_pair(start, 0), 
@@ -763,14 +763,13 @@ int FragmentsMap::GetVectorPair(std::vector< std::pair<unsigned int, int> > &vec
 	} else {
 		Rcout << "FragMap GetVectorPair is already at beginning\n";
 	}	
-	vector_pair.insert(vector_pair.end(), first, last);
-	return(0);
+	std::vector< std::pair<unsigned int, int> > vec(first, last);
+	return(vec);
 }
 
 // updateCoverageHist from completed FragmentMap - directional:
 void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const std::string &chrName, bool debug) const {
-	std::vector< std::pair<unsigned int, int> > vec;
-	GetVectorPair(vec, start, end + 1, chrName, dir);
+	std::vector< std::pair<unsigned int, int> > vec = GetVectorPair(start, end + 1, chrName, dir);
 
 	unsigned int size = 0;
 	for (auto h : hist) {
@@ -884,7 +883,6 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 					if(depth != old_depth) {	
             if(!final_is_sorted) {
               temp_vec.push_back( std::make_pair(old_loci, old_depth) );
-              if(old_loci == 81065) Rcout << old_loci << '\t' << old_depth << '\n';
             }
             os->WriteEntry(refID, old_depth, loci - old_loci);
             old_depth = depth;
