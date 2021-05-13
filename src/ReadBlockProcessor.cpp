@@ -873,37 +873,41 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 					//	first = (int) depth; 
 					//	second = (unsigned int) length offset from previous
 			
-        if(it_pos->first == 0) {
-          if(!final_is_sorted) {	
-            depth += it_pos->second;
-          } else {
-            depth = it_pos->second;
-          }
-          old_depth = depth;
-        } else if(it_pos->first != loci) {
+      /*
+          __ 
+        __|   depth, loci
+      __|     old_depth, old_loci
+      */
+      
+        if(it_pos->first != loci) {
 					// Write entry
-					if(loci == 0 || depth != old_depth) {	
-						if(loci > 0) {
-              if(!final_is_sorted) {
-                temp_vec.push_back( std::make_pair(old_loci, old_depth) );
-                if(old_loci == 81065) Rcout << old_loci << '\t' << old_depth << '\n';
-              }
-							os->WriteEntry(refID, old_depth, loci - old_loci);						
-						}
-						old_depth = depth;
-						old_loci = loci;
-					}
-					loci = it_pos->first;
+					if(depth != old_depth) {	
+            if(!final_is_sorted) {
+              temp_vec.push_back( std::make_pair(old_loci, old_depth) );
+              if(old_loci == 81065) Rcout << old_loci << '\t' << old_depth << '\n';
+            }
+            os->WriteEntry(refID, old_depth, loci - old_loci);
+            loci = it_pos->first;
+            old_depth = depth;
+            old_loci = loci;
+          } else {
+            // if depth == old_depth, then not worth writing loci
+            loci = it_pos->first;
+          }
 				}
-				if(!final_is_sorted) {	
-					depth += it_pos->second;
-				} else {
-					depth = it_pos->second;
-				}
-			}	
+        if(!final_is_sorted) {	
+          depth += it_pos->second;
+        } else {
+          depth = it_pos->second;
+        }
+        if(it_pos->first == 0) {
+          old_depth = depth;  // ensure never trigger write when first time it_pos->first != loci
+        }       
+      }
+      
 			if(!final_is_sorted) {
         temp_vec.push_back( std::make_pair(old_loci, old_depth) );
-				if(loci == 0 || depth != old_depth) {
+				if(depth != old_depth) {
 					temp_vec.push_back( std::make_pair(loci, depth) );
 				}
 				itChr->second.swap(temp_vec);
