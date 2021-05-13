@@ -604,8 +604,6 @@ int FragmentsMap::sort_and_collapse_temp() {
   
     // assign temp vector
     std::vector< std::pair<unsigned int, int> > * temp_vec;
-    // empty swap vector
-    std::vector< std::pair<unsigned int, int> > * empty_swap_vector;
 
   
   for(unsigned int j = 0; j < 3; j++) {
@@ -615,7 +613,8 @@ int FragmentsMap::sort_and_collapse_temp() {
         itChr->second.begin(),
         itChr->second.end()
       );
-
+      
+      temp_vec = new std::vector< std::pair<unsigned int, int> >;
       unsigned int loci = 0;
       int accum = 0;
       for(auto it_pos = itChr->second.begin(); it_pos != itChr->second.end(); it_pos++) {
@@ -632,14 +631,14 @@ int FragmentsMap::sort_and_collapse_temp() {
 
       chrName_vec[j].at(itChr->first).insert(
         chrName_vec[j].at(itChr->first).end(),
-        temp_vec->begin(), temp_vec->end()    
+        temp_vec->begin(), temp_vec.end()    
       );
       delete temp_vec;
       
       // Clear temporary vector by swap trick
-      empty_swap_vector = new std::vector< std::pair<unsigned int, int> >;
-      itChr->second.swap(*empty_swap_vector);
-      delete empty_swap_vector;
+      // empty swap vector
+      std::vector< std::pair<unsigned int, int> > empty_swap_vector;
+      itChr->second.swap(empty_swap_vector);
     }
   }
   return(0);
