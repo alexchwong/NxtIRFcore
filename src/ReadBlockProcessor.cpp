@@ -883,11 +883,11 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
         } else if(it_pos->first != loci) {
 					// Write entry
 					if(loci == 0 || depth != old_depth) {	
-						if(!final_is_sorted) {
-							temp_vec.push_back( std::make_pair(loci, depth) );
-              if(loci = 81065) Rcout << loci << '\t' << depth << '\n';
-						}
 						if(loci > 0) {
+              if(!final_is_sorted) {
+                temp_vec.push_back( std::make_pair(old_loci, old_depth) );
+                if(old_loci == 81065) Rcout << old_loci << '\t' << old_depth << '\n';
+              }
 							os->WriteEntry(refID, old_depth, loci - old_loci);						
 						}
 						old_depth = depth;
@@ -902,6 +902,7 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 				}
 			}	
 			if(!final_is_sorted) {
+        temp_vec.push_back( std::make_pair(old_loci, old_depth) );
 				if(loci == 0 || depth != old_depth) {
 					temp_vec.push_back( std::make_pair(loci, depth) );
 				}
