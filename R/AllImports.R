@@ -65,7 +65,7 @@
 #' @importFrom S4Vectors bindCOLS bindROWS getListElement setListElement
 #' @importFrom XML getHTMLLinks
 #' @importClassesFrom SummarizedExperiment SummarizedExperiment
-#' @importClassesFrom S4Vectors DataFrame RleList
+#' @importClassesFrom S4Vectors DataFrame
 NULL
 
 S4_disableValidity <- getFromNamespace("disableValidity", "S4Vectors")
