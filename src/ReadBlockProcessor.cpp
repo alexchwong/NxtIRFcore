@@ -887,9 +887,9 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
               if(old_loci == 81065) Rcout << old_loci << '\t' << old_depth << '\n';
             }
             os->WriteEntry(refID, old_depth, loci - old_loci);
-            loci = it_pos->first;
             old_depth = depth;
             old_loci = loci;
+            loci = it_pos->first;
           } else {
             // if depth == old_depth, then not worth writing loci
             loci = it_pos->first;
