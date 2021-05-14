@@ -28,6 +28,7 @@ class CoverageBlocks : public ReadBlockProcessor {
 
 	private:
 
+  
 	protected:
 		std::vector<BEDrecord> BEDrecords;
 
@@ -38,13 +39,15 @@ class CoverageBlocks : public ReadBlockProcessor {
 		void loadRef(std::istringstream &IN);
 		int WriteOutput(std::string& output, const FragmentsMap &FM) const;
 		
-	  void fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM, bool debug = false) const;
-		void fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM, bool debug = false) const;
+	  void fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM, bool debug = false) const;
+		void fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM, bool debug = false) const;
 
 		double meanFromHist(const std::map<unsigned int,unsigned int> &hist) const;
 		double coverageFromHist(const std::map<unsigned int,unsigned int> &hist) const;
 		double percentileFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int percentile) const;
 		double trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent, bool debug = false) const;
+
+    vector<chr_index> chrs;
 };
 
 class CoverageBlocksIRFinder : public CoverageBlocks {
