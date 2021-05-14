@@ -95,7 +95,7 @@ void JunctionCount::ProcessBlocks(const FragmentBlocks &blocks) {
   }
   reads_processed += 1;
   if(reads_processed % 1000000 == 0) {
-    Clean();
+    // Clean();
   }
 }
 
@@ -237,28 +237,7 @@ unsigned int JunctionCount::lookupRight(std::string ChrName, unsigned int right)
   return 0;
 }
 
-int JunctionCount::Clean() {
-  
-  for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
-    new_map_junc = new std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>;
-    new_map_junc->insert(itChr->second.begin(), itChr->second.end());
-    itChr->second.swap(*new_map_junc);
-    delete new_map_junc;
-  }
-  for (auto itChr=chrName_juncLeft_count->begin(); itChr!=chrName_juncLeft_count->end(); itChr++) {
-    new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
-    new_map_junc_arm->insert(itChr->second.begin(), itChr->second.end());
-    itChr->second.swap(*new_map_junc_arm);
-    delete new_map_junc_arm;
-  }
-  for (auto itChr=chrName_juncRight_count->begin(); itChr!=chrName_juncRight_count->end(); itChr++) {
-    new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
-    new_map_junc_arm->insert(itChr->second.begin(), itChr->second.end());
-    itChr->second.swap(*new_map_junc_arm);
-    delete new_map_junc_arm;
-  }
-  return(0);
-}
+
 
 
 
@@ -621,8 +600,8 @@ int FragmentsMap::sort_and_collapse_temp() {
 
       // Clear temporary vector by swap trick
       // empty swap vector
-      std::vector< std::pair<unsigned int, int> > empty_swap_vector;
-      itChr->swap(empty_swap_vector);
+      // std::vector< std::pair<unsigned int, int> > empty_swap_vector;
+      itChr->clear();
       
       refID++;
     }
@@ -636,7 +615,7 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
     if(verbose)  Rcout << "Performing final sort of fragment maps\n";
     
     // assign temp vector
-    std::vector< std::pair<unsigned int, int> > * temp_vec;
+    // std::vector< std::pair<unsigned int, int> > * temp_vec;
     
     Progress p(3 * chr_count, verbose);
     for(unsigned int j = 0; j < 3; j++) {
@@ -655,12 +634,12 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
         unsigned int   old_loci = 0;       // Current genomic coordinate
         int           depth = 0;       // Current depth of cursor
         int           old_depth = 0;  // Previous depth of cursor
-        temp_vec = new std::vector< std::pair<unsigned int, int> >;
+        // temp_vec = new std::vector< std::pair<unsigned int, int> >;
         
         for(auto it_pos = itChr->begin(); it_pos != itChr->end(); it_pos++) {
           if(it_pos->first != loci) {
             if(depth != old_depth) {  
-              temp_vec->push_back( std::make_pair(old_loci, old_depth) );
+              itDest->push_back( std::make_pair(old_loci, old_depth) );
               old_depth = depth;
               old_loci = loci;
             }
@@ -675,8 +654,8 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
         if(depth != old_depth) {
           itDest->push_back( std::make_pair(loci, depth) );
         }
-        itChr->swap(*temp_vec);
-        delete temp_vec;
+        itChr->clear();
+        // delete temp_vec;
         p.increment(1);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
@@ -747,7 +726,7 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
   }
 
       // assign temp vector
-  std::vector< std::pair<unsigned int, int> > * temp_vec;
+  // std::vector< std::pair<unsigned int, int> > * temp_vec;
   std::vector< std::pair<unsigned int, int> > * itChr;
   std::vector< std::pair<unsigned int, int> > * itDest;
   
@@ -767,7 +746,7 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
           itChr->begin(),
           itChr->end()
         );
-        temp_vec = new std::vector< std::pair<unsigned int, int> >;
+        // temp_vec = new std::vector< std::pair<unsigned int, int> >;
       } else {
         itChr = &chrName_vec_final[j].at(refID);
       }
@@ -818,8 +797,8 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
         if(depth != old_depth) {
           itDest->push_back( std::make_pair(loci, depth) );
         }
-        itChr->swap(*temp_vec);        
-        delete temp_vec;
+        itChr->clear();        
+        // delete temp_vec;
       }
       os->WriteEntry(i + j * sort_chr_names.size(), old_depth, loci - old_loci);
       os->WriteEntry(i + j * sort_chr_names.size(), depth, chrs[i].chr_len - loci);

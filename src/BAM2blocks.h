@@ -87,21 +87,21 @@ class BAM2blocks {
 	unsigned int processPair(bam_read_core * read1, bam_read_core * read2);
 	unsigned int processSingle(bam_read_core * read1);
 
-public:
+  public:
   	BAM2blocks();
 		~BAM2blocks();
   	void openFile(BAMReader * _IN);
   	void readBamHeader();  // implied by openFile. So perhaps should be private.
   	int processAll(std::string& output, bool threaded = false);
 
-	void registerCallbackChrMappingChange( std::function<void(const std::vector<chr_index> &)> callback );
-	void registerCallbackProcessBlocks( std::function<void(const FragmentBlocks &)> callback );
+    void registerCallbackChrMappingChange( std::function<void(const std::vector<chr_index> &)> callback );
+    void registerCallbackProcessBlocks( std::function<void(const FragmentBlocks &)> callback );
 
-	std::string samHeader;
-	std::vector<std::string> chr_names;   //tab terminated chromosome names.
-	std::vector<int32_t> chr_lens;	//length of each chromosome (not used when reading, used if optionally outputting an altered BAM file)
+    std::string samHeader;
+    std::vector<std::string> chr_names;   //tab terminated chromosome names.
+    std::vector<int32_t> chr_lens;	//length of each chromosome (not used when reading, used if optionally outputting an altered BAM file)
 
-  std::vector<chr_index> chrs;
+    std::vector<chr_index> chrs;
 };
 
 
