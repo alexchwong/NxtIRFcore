@@ -934,25 +934,25 @@ FragmentsInChr::~FragmentsInChr() {
     chrName_count.clear();
 }
 
-FragmentsMap::~FragmentsMap() {
+// FragmentsMap::~FragmentsMap() {
 
-  for(unsigned int j = 0; j < 3; j++) {
-    for(unsigned int i = 0; i < chrs.size(); i++) {
-      std::vector< std::pair<unsigned int, int> > empty_inner1;
-        chrName_vec_final[j].at(i).swap(empty_inner1);
-      std::vector< std::pair<unsigned int, int> > empty_inner2;
-        chrName_vec_new[j].at(i).swap(empty_inner2);
-      std::vector< std::pair<unsigned int, int> > empty_inner3;
-        temp_chrName_vec_new[j].at(i).swap(empty_inner3);
-    }
-    std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer1;
-      chrName_vec_final[j].swap(empty_outer1);
-    std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer2;
-      chrName_vec_new[j].swap(empty_outer2);
-    std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer3;
-      temp_chrName_vec_new[j].swap(empty_outer3);
-  }
-}
+  // for(unsigned int j = 0; j < 3; j++) {
+    // for(unsigned int i = 0; i < chrs.size(); i++) {
+      // std::vector< std::pair<unsigned int, int> > empty_inner1;
+        // chrName_vec_final[j].at(i).swap(empty_inner1);
+      // std::vector< std::pair<unsigned int, int> > empty_inner2;
+        // chrName_vec_new[j].at(i).swap(empty_inner2);
+      // std::vector< std::pair<unsigned int, int> > empty_inner3;
+        // temp_chrName_vec_new[j].at(i).swap(empty_inner3);
+    // }
+    // std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer1;
+      // chrName_vec_final[j].swap(empty_outer1);
+    // std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer2;
+      // chrName_vec_new[j].swap(empty_outer2);
+    // std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer3;
+      // temp_chrName_vec_new[j].swap(empty_outer3);
+  // }
+// }
 
 
 FragmentsInROI::~FragmentsInROI() {
