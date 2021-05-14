@@ -159,10 +159,10 @@ public:
 
   void ProcessBlocks(const FragmentBlocks &blocks);
   void ChrMapUpdate(const std::vector<chr_index> &chrmap);
-  int WriteOutput(std::ostream *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, int threshold = 4, bool verbose = false) ;
-  int WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, bool verbose = false) ;
+  int WriteOutput(std::ostream *os, int threshold = 4, bool verbose = false) ;
+  int WriteBinary(covFile *os, bool verbose = false) ;
 
-  void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const std::string &chrName, bool debug = false) const;
+  void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const unsigned int &refID, bool debug = false) const;
 };
 
 

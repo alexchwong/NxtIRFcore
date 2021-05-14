@@ -76,7 +76,9 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 }
 
 void CoverageBlocks::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
-
+  for (unsigned int i = 0; i < chrmap.size(); i++) {
+    chrs.push_back(chrmap.at(i));
+  }
 }
 
 
@@ -85,15 +87,15 @@ void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
 }
 
 // Using FragmentsMap
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM, bool debug) const{
+void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM, bool debug) const{
 	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, 2, chrName, debug);
+		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, 2, refID, debug);
 	}
 }
 
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const std::string &chrName, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM, bool debug) const{
+void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM, bool debug) const{
 	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
-		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction ? 1 : 0, chrName, debug);
+		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction ? 1 : 0, refID, debug);
 	}
 }
 
@@ -190,14 +192,14 @@ int CoverageBlocks::WriteOutput(std::string& output, const FragmentsMap &FM) con
 // This output function will be generic -- outputting Chr/Start/Stop/Name/Dir/ Score - Mean50 (that bit probably cmd line customisable).
 // The output we need will be in the extended class.
     std::ostringstream oss;
-    
+  unsigned int refID = 0;
 	for (std::vector<BEDrecord>::const_iterator it_BED=BEDrecords.begin(); it_BED!=BEDrecords.end(); it_BED++) {
 		unsigned int len=0;
 		for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=it_BED->blocks.begin(); it_blocks!= it_BED->blocks.end(); it_blocks++) {
 			len += (it_blocks->second - it_blocks->first);
 		}
 		std::map<unsigned int,unsigned int> hist;
-		fillHist(hist, it_BED->chrName, it_BED->blocks, FM);
+		fillHist(hist, refID, it_BED->blocks, FM);
 
 		unsigned int histPositions = 0;
 		for (auto h : hist) {
@@ -230,6 +232,9 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 	double ID_AS = 0.0;
 	std::string KE = "known-exon";
 	
+  unsigned int refID = 0;
+  std::string cur_chr = "";
+  
 	for (auto BEDrec : BEDrecords) {
 		recordNumber++;
 		// if name indicates it is a Dir/Non-dir record of interest - output it.
@@ -272,7 +277,12 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 	//1       860574  861258  nd/SAMD11/ENSG00000187634/+/2/860569/861301/732/121/anti-over   0       +       860574  861258  255,0,0 2       538,73  0,611
 	//1       860574  861296  dir/SAMD11/ENSG00000187634/+/2/860569/861301/732/83/clean       0       +       860574  861296  255,0,0 2       538,111 0,611
 
-
+        if(0 == BEDrec.chrName.compare(0, BEDrec.chrName.size(), cur_chr)) {
+          cur_chr = BEDrec.chrName;
+          auto it = find_if(chrs.begin(), chrs.end(), 
+            [&cur_chr](const chr_index& obj) {return obj.chr_name == cur_chr;});
+          refID = it->refID;
+        }
 				//eg: PHF13/ENSG00000116273/+/3/6676918/6679862/2944/10/clean
 				oss << BEDrec.chrName << "\t" << intronStart << "\t" << intronEnd << "\t" << s_name << "/" << s_ID << "/" << s_clean << "\t0\t" << ((BEDrec.direction) ?  "+" : "-" ) << "\t";
 
@@ -284,9 +294,9 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
         // bool debug = (0 == s_ID.compare(0, 23, "ENST00000269305_Intron6"));
 				std::map<unsigned int,unsigned int> hist;
 				if (directionality == 0) {
-					fillHist(hist, BEDrec.chrName, BEDrec.blocks, FM, debug);
+					fillHist(hist, refID, BEDrec.blocks, FM, debug);
 				}else{
-					fillHist(hist, BEDrec.chrName, BEDrec.blocks, measureDir, FM, debug);
+					fillHist(hist, refID, BEDrec.blocks, measureDir, FM, debug);
 				}
 				intronTrimmedMean = trimmedMeanFromHist(hist, 40, debug);
 				coverage = coverageFromHist(hist);
@@ -312,10 +322,10 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 						<< SPright << "\t";
 
 					hist.clear();
-					fillHist(hist, BEDrec.chrName, {{intronStart + 5, intronStart + 55}}, measureDir, FM);
+					fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, measureDir, FM);
 					oss << trimmedMeanFromHist(hist, 40) << "\t";
 					hist.clear();
-					fillHist(hist, BEDrec.chrName, {{intronEnd - 55, intronEnd - 5}}, measureDir, FM);
+					fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, measureDir, FM);
 					oss << trimmedMeanFromHist(hist, 40) << "\t";
 					JCleft = JC.lookupLeft(BEDrec.chrName, intronStart, measureDir);
 					JCright = JC.lookupRight(BEDrec.chrName, intronEnd, measureDir);
@@ -330,10 +340,10 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 						<< SPright << "\t";			
 
 					hist.clear();
-					fillHist(hist, BEDrec.chrName, {{intronStart + 5, intronStart + 55}}, FM);
+					fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, FM);
 					oss << trimmedMeanFromHist(hist, 40) << "\t";
 					hist.clear();
-					fillHist(hist, BEDrec.chrName, {{intronEnd - 55, intronEnd - 5}}, FM);
+					fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, FM);
 					oss << trimmedMeanFromHist(hist, 40) << "\t";
 					JCleft = JC.lookupLeft(BEDrec.chrName, intronStart);
 					JCright = JC.lookupRight(BEDrec.chrName, intronEnd);

@@ -682,12 +682,12 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
 }
 
 // updateCoverageHist from completed FragmentMap - directional:
-void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const std::string &chrName, bool debug) const {
+void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const unsigned int &refID, bool debug) const {
   // std::vector< std::pair<unsigned int, int> > vec = GetVectorPair(start, end + 1, chrName, dir);
   
-  auto it = find_if(chrs.begin(), chrs.end(), 
-    [&chrName](const chr_index& obj) {return obj.chr_name == chrName;});
-  unsigned int refID = it->refID;
+  // auto it = find_if(chrs.begin(), chrs.end(), 
+    // [&chrName](const chr_index& obj) {return obj.chr_name == chrName;});
+  // unsigned int refID = it->refID;
   
   auto it_chr = chrName_vec_new[dir].at(refID);
   auto it_pos = upper_bound(it_chr.begin(), it_chr.end(), 
@@ -720,7 +720,7 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
 }
 
 
-int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, bool verbose)  {
+int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
   // Write COV file as binary
 
   // Issue is map constructs auto-sort
@@ -834,7 +834,6 @@ int FragmentsMap::WriteBinary(covFile *os, const std::vector<std::string> chr_na
 }
 
 int FragmentsMap::WriteOutput(std::ostream *os, 
-    const std::vector<std::string> chr_names, const std::vector<int32_t> chr_lens, 
     int threshold, bool verbose)  {
 
   // This is called on mappability

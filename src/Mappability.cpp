@@ -232,14 +232,14 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
     covFile outCOV;
     outCOV.SetOutputHandle(&ofCOV);
     
-    oFragMap.WriteBinary(&outCOV, BB.chr_names, BB.chr_lens, verbose);
+    oFragMap.WriteBinary(&outCOV, verbose);
     ofCOV.close();    
   }
   
   std::ofstream outFragsMap;
   outFragsMap.open(s_output_txt, std::ifstream::out);
 	
-  oFragMap.WriteOutput(&outFragsMap, BB.chr_names, BB.chr_lens, threshold, verbose);
+  oFragMap.WriteOutput(&outFragsMap, threshold, verbose);
   outFragsMap.flush(); outFragsMap.close();
 
 
