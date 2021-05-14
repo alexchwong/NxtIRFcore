@@ -34,7 +34,7 @@ class CoverageBlocks : public ReadBlockProcessor {
 	public:
     ~CoverageBlocks();
 		void ProcessBlocks(const FragmentBlocks &fragblock);
-		void ChrMapUpdate(const std::vector<string> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
 		void loadRef(std::istringstream &IN);
 		int WriteOutput(std::string& output, const FragmentsMap &FM) const;
 		
