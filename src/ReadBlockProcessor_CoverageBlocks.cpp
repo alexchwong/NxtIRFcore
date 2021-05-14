@@ -239,6 +239,7 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 	std::string KE = "known-exon";
 	
   unsigned int refID = 0;
+  bool chr_invalid = false;
   std::string cur_chr = "";
   
 	for (auto BEDrec : BEDrecords) {
@@ -289,115 +290,117 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
             [&cur_chr](const chr_index& obj) {return obj.chr_name == cur_chr;});
           if(it != chrs.end()) {
             refID = it->refID;
-            Rcout << BEDrec.chrName << '\t' << refID << '\n';
+            chr_invalid = false;
           } else {
-            Rcout << BEDrec.chrName << " not found\n";
+            chr_invalid = true;
+            refID = chrs.size();
           }
-
         }
-				//eg: PHF13/ENSG00000116273/+/3/6676918/6679862/2944/10/clean
-				oss << BEDrec.chrName << "\t" << intronStart << "\t" << intronEnd << "\t" << s_name << "/" << s_ID << "/" << s_clean << "\t0\t" << ((BEDrec.direction) ?  "+" : "-" ) << "\t";
 
-				measureDir = BEDrec.direction;
-				if (directionality == -1) {
-					measureDir = !BEDrec.direction;
-				}
-				bool debug = false;
+        //eg: PHF13/ENSG00000116273/+/3/6676918/6679862/2944/10/clean
+        oss << BEDrec.chrName << "\t" << intronStart << "\t" << intronEnd << "\t" << s_name << "/" << s_ID << "/" << s_clean << "\t0\t" << ((BEDrec.direction) ?  "+" : "-" ) << "\t";
+
+        measureDir = BEDrec.direction;
+        if (directionality == -1) {
+          measureDir = !BEDrec.direction;
+        }
+        bool debug = false;
         // bool debug = (0 == s_ID.compare(0, 23, "ENST00000269305_Intron6"));
-				std::map<unsigned int,unsigned int> hist;
-				if (directionality == 0) {
-					fillHist(hist, refID, BEDrec.blocks, FM, debug);
-				}else{
-					fillHist(hist, refID, BEDrec.blocks, measureDir, FM, debug);
-				}
-				intronTrimmedMean = trimmedMeanFromHist(hist, 40, debug);
-				coverage = coverageFromHist(hist);
-				oss << exclBases << "\t"
-					<< coverage << "\t"
-					<< intronTrimmedMean << "\t"
-					<< percentileFromHist(hist, 25) << "\t"
-					<< percentileFromHist(hist, 50) << "\t"
-					<< percentileFromHist(hist, 75) << "\t";
+        std::map<unsigned int,unsigned int> hist;
+        if (directionality == 0) {
+          fillHist(hist, refID, BEDrec.blocks, FM, debug);
+        }else{
+          fillHist(hist, refID, BEDrec.blocks, measureDir, FM, debug);
+        }
+        intronTrimmedMean = trimmedMeanFromHist(hist, 40, debug);
+        coverage = coverageFromHist(hist);
+        oss << exclBases << "\t"
+          << coverage << "\t"
+          << intronTrimmedMean << "\t"
+          << percentileFromHist(hist, 25) << "\t"
+          << percentileFromHist(hist, 50) << "\t"
+          << percentileFromHist(hist, 75) << "\t";
 
-				if(s_clean.compare(0, 5, "clean") == 0) {
-					ID_clean += intronTrimmedMean;				
-				} else if(s_clean.find(KE) != string::npos) {
-					ID_KE += intronTrimmedMean;				
-				} else if(directionality == 0) {
-					ID_AS += intronTrimmedMean;				
-				}
+        if(s_clean.compare(0, 5, "clean") == 0) {
+          ID_clean += intronTrimmedMean;				
+        } else if(s_clean.find(KE) != string::npos) {
+          ID_KE += intronTrimmedMean;				
+        } else if(directionality == 0) {
+          ID_AS += intronTrimmedMean;				
+        }
 
-				if (directionality != 0) {
-					SPleft = SP.lookup(BEDrec.chrName, intronStart, measureDir);
-					SPright = SP.lookup(BEDrec.chrName, intronEnd, measureDir);
-					oss << SPleft << "\t"
-						<< SPright << "\t";
+        if (directionality != 0) {
+          SPleft = SP.lookup(BEDrec.chrName, intronStart, measureDir);
+          SPright = SP.lookup(BEDrec.chrName, intronEnd, measureDir);
+          oss << SPleft << "\t"
+            << SPright << "\t";
 
-					hist.clear();
-					fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, measureDir, FM);
-					oss << trimmedMeanFromHist(hist, 40) << "\t";
-					hist.clear();
-					fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, measureDir, FM);
-					oss << trimmedMeanFromHist(hist, 40) << "\t";
-					JCleft = JC.lookupLeft(BEDrec.chrName, intronStart, measureDir);
-					JCright = JC.lookupRight(BEDrec.chrName, intronEnd, measureDir);
-					JCexact = JC.lookup(BEDrec.chrName, intronStart, intronEnd, measureDir);
-					oss << JCleft << "\t"
-						<< JCright << "\t"
-						<< JCexact << "\t";
-				}else{
-					SPleft = SP.lookup(BEDrec.chrName, intronStart);
-					SPright = SP.lookup(BEDrec.chrName, intronEnd);
-					oss << SPleft << "\t"
-						<< SPright << "\t";			
+          hist.clear();
+          fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, measureDir, FM);
+          oss << trimmedMeanFromHist(hist, 40) << "\t";
+          hist.clear();
+          fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, measureDir, FM);
+          oss << trimmedMeanFromHist(hist, 40) << "\t";
+          JCleft = JC.lookupLeft(BEDrec.chrName, intronStart, measureDir);
+          JCright = JC.lookupRight(BEDrec.chrName, intronEnd, measureDir);
+          JCexact = JC.lookup(BEDrec.chrName, intronStart, intronEnd, measureDir);
+          oss << JCleft << "\t"
+            << JCright << "\t"
+            << JCexact << "\t";
+        }else{
+          SPleft = SP.lookup(BEDrec.chrName, intronStart);
+          SPright = SP.lookup(BEDrec.chrName, intronEnd);
+          oss << SPleft << "\t"
+            << SPright << "\t";			
 
-					hist.clear();
-					fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, FM);
-					oss << trimmedMeanFromHist(hist, 40) << "\t";
-					hist.clear();
-					fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, FM);
-					oss << trimmedMeanFromHist(hist, 40) << "\t";
-					JCleft = JC.lookupLeft(BEDrec.chrName, intronStart);
-					JCright = JC.lookupRight(BEDrec.chrName, intronEnd);
-					JCexact = JC.lookup(BEDrec.chrName, intronStart, intronEnd);
-					oss << JCleft << "\t"
-						<< JCright << "\t"
-						<< JCexact << "\t";
-				}
-				if (intronTrimmedMean == 0 && JCleft == 0 && JCright == 0) {
-					oss << "0" << "\t";
-				}else if (intronTrimmedMean < 1) {
-					oss << ( coverage / (coverage + max(JCleft, JCright)) ) << "\t";
-				}else{
-					oss << ( intronTrimmedMean /(intronTrimmedMean + max(JCleft, JCright)) ) << "\t";
-				}
-				
-				// Final column -- don't try to be tri-state. Just say if it is "not ok".
-				// Not ok due to:
-				//	- insufficient spliced depth
-				//  - insufficient exact spliced compared to in-exact spliced depth
-				//  - too much variation between depths & crossings.  ... hmm, but at low depth, high probability of this failing.
-				
-				// Can only make a strong exclude call on spliced depth. Describe on the tool website ways to make a call for IR def true / IR def false.
+          hist.clear();
+          fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, FM);
+          oss << trimmedMeanFromHist(hist, 40) << "\t";
+          hist.clear();
+          fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, FM);
+          oss << trimmedMeanFromHist(hist, 40) << "\t";
+          JCleft = JC.lookupLeft(BEDrec.chrName, intronStart);
+          JCright = JC.lookupRight(BEDrec.chrName, intronEnd);
+          JCexact = JC.lookup(BEDrec.chrName, intronStart, intronEnd);
+          oss << JCleft << "\t"
+            << JCright << "\t"
+            << JCexact << "\t";
+        }
+        if (intronTrimmedMean == 0 && JCleft == 0 && JCright == 0) {
+          oss << "0" << "\t";
+        }else if (intronTrimmedMean < 1) {
+          oss << ( coverage / (coverage + max(JCleft, JCright)) ) << "\t";
+        }else{
+          oss << ( intronTrimmedMean /(intronTrimmedMean + max(JCleft, JCright)) ) << "\t";
+        }
+        
+        // Final column -- don't try to be tri-state. Just say if it is "not ok".
+        // Not ok due to:
+        //	- insufficient spliced depth
+        //  - insufficient exact spliced compared to in-exact spliced depth
+        //  - too much variation between depths & crossings.  ... hmm, but at low depth, high probability of this failing.
+        
+        // Can only make a strong exclude call on spliced depth. Describe on the tool website ways to make a call for IR def true / IR def false.
 //				if (JCexact < 10 || JCexact*1.33333333 < max(JCleft, JCright) ) {
 //					oss << "-" << "\n";
 //				}else{
 //					oss << "ok" << "\n";
 //				}
 
-				if (JCexact + intronTrimmedMean < 10) {
-					oss << "LowCover" << "\n";
-				}else if (JCexact < 4) {
-					oss << "LowSplicing" << "\n";
-				}else if (JCexact*1.33333333 < max(JCleft, JCright) ) {
-					oss << "MinorIsoform" << "\n";
-				// TODO: check, logic below. Crossing should differ by more than 2 & more than 50% before a fault is called.
-				}else if (  (max(SPleft, SPright) > intronTrimmedMean+2 && max(SPleft, SPright) > intronTrimmedMean*1.5 )
-						|| (min(SPleft, SPright)+2 < intronTrimmedMean && min(SPleft, SPright)*1.5 < intronTrimmedMean ) ){
-					oss << "NonUniformIntronCover" << "\n";
-				}else{
-					oss << "-" << "\n";
-				}
+        if (JCexact + intronTrimmedMean < 10) {
+          oss << "LowCover" << "\n";
+        }else if (JCexact < 4) {
+          oss << "LowSplicing" << "\n";
+        }else if (JCexact*1.33333333 < max(JCleft, JCright) ) {
+          oss << "MinorIsoform" << "\n";
+        // TODO: check, logic below. Crossing should differ by more than 2 & more than 50% before a fault is called.
+        }else if (  (max(SPleft, SPright) > intronTrimmedMean+2 && max(SPleft, SPright) > intronTrimmedMean*1.5 )
+            || (min(SPleft, SPright)+2 < intronTrimmedMean && min(SPleft, SPright)*1.5 < intronTrimmedMean ) ){
+          oss << "NonUniformIntronCover" << "\n";
+        }else{
+          oss << "-" << "\n";
+        }
+
 				
 			}catch (const std::out_of_range& e) {
         #ifndef GALAXY
