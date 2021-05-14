@@ -281,7 +281,13 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
           cur_chr = BEDrec.chrName;
           auto it = find_if(chrs.begin(), chrs.end(), 
             [&cur_chr](const chr_index& obj) {return obj.chr_name == cur_chr;});
-          refID = it->refID;
+          if(it != chrs.end()) {
+            refID = it->refID;
+            Rcout << BEDrec.chrName << '\t' << refID << '\n';
+          } else {
+            Rcout << BEDrec.chrName << " not found\n";
+          }
+
         }
 				//eg: PHF13/ENSG00000116273/+/3/6676918/6679862/2944/10/clean
 				oss << BEDrec.chrName << "\t" << intronStart << "\t" << intronEnd << "\t" << s_name << "/" << s_ID << "/" << s_clean << "\t0\t" << ((BEDrec.direction) ?  "+" : "-" ) << "\t";
