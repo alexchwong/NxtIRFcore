@@ -155,7 +155,7 @@ private:
   
   vector<chr_index> chrs;
 public:
-  ~FragmentsMap();
+  ~FragmentsMap() = default;
   int sort_and_collapse_final(bool mark_as_final);
 
   void ProcessBlocks(const FragmentBlocks &blocks);

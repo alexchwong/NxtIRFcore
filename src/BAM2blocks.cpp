@@ -334,13 +334,13 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 						if (reads[0].core.pos <= it_read->second->core.pos) {
 							//cout << "procesPair call1" << endl;        
 							totalNucleotides += processPair(&reads[0], &(*(it_read->second)));
-												delete (it_read->second);
+              delete (it_read->second);
 							spare_reads->erase(read_name);
 							spare_reads_count -= 1;
 						}else{
 							//cout << "procesPair call2" << endl;                
 							totalNucleotides += processPair(&(*(it_read->second)), &reads[0]);
-												delete (it_read->second);
+              delete (it_read->second);
 							spare_reads->erase(read_name);
 							spare_reads_count -= 1;
 						}
