@@ -277,7 +277,7 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 	//1       860574  861258  nd/SAMD11/ENSG00000187634/+/2/860569/861301/732/121/anti-over   0       +       860574  861258  255,0,0 2       538,73  0,611
 	//1       860574  861296  dir/SAMD11/ENSG00000187634/+/2/860569/861301/732/83/clean       0       +       860574  861296  255,0,0 2       538,111 0,611
 
-        if(0 == BEDrec.chrName.compare(0, BEDrec.chrName.size(), cur_chr)) {
+        if(0 != BEDrec.chrName.compare(0, BEDrec.chrName.size(), cur_chr)) {
           cur_chr = BEDrec.chrName;
           auto it = find_if(chrs.begin(), chrs.end(), 
             [&cur_chr](const chr_index& obj) {return obj.chr_name == cur_chr;});
