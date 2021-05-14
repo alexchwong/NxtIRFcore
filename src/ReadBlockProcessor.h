@@ -126,6 +126,7 @@ private:
   std::map<string, std::map<unsigned int, int> > chrName_count[3];
   std::vector<std::map<unsigned int, int>*> chrID_count[3];
 */
+  std::vector< std::vector< std::pair<unsigned int, int> > > chrName_vec_final[3];
   std::vector< std::vector< std::pair<unsigned int, int> > > chrName_vec_new[3];
   std::vector< std::vector< std::pair<unsigned int, int> > > temp_chrName_vec_new[3];
   

@@ -87,14 +87,20 @@ void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
 }
 
 // Using FragmentsMap
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, const FragmentsMap &FM, bool debug) const{
-	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
+void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, 
+    const std::vector<std::pair<unsigned int,unsigned int>> &blocks, 
+    const FragmentsMap &FM, bool debug) const{
+      
+	for (auto it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
 		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, 2, refID, debug);
 	}
 }
 
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, const FragmentsMap &FM, bool debug) const{
-	for (std::vector<std::pair<unsigned int,unsigned int>>::const_iterator it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
+void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, 
+    const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, 
+    const FragmentsMap &FM, bool debug) const{
+      
+	for (auto it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
 		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction ? 1 : 0, refID, debug);
 	}
 }
