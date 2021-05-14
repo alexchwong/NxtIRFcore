@@ -75,7 +75,7 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 
 }
 
-void CoverageBlocks::ChrMapUpdate(const std::vector<string> &chrmap) {
+void CoverageBlocks::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
 
 }
 
