@@ -689,6 +689,11 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
 // updateCoverageHist from completed FragmentMap - directional:
 void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const unsigned int &refID, bool debug) const {
   
+  if(refID >= chrName_vec_final[dir].size()) {
+    hist.insert({0,0});
+    return;
+  }
+  
   auto it_chr = &chrName_vec_final[dir].at(refID);
   auto it_pos = upper_bound(
       it_chr->begin(), 
@@ -930,12 +935,23 @@ FragmentsInChr::~FragmentsInChr() {
 }
 
 FragmentsMap::~FragmentsMap() {
-  chrName_vec_new[0].clear();
-  chrName_vec_new[1].clear();
-  chrName_vec_new[2].clear();
-  temp_chrName_vec_new[0].clear();
-  temp_chrName_vec_new[1].clear();
-  temp_chrName_vec_new[2].clear();
+
+  for(unsigned int j = 0; j < 3; j++) {
+    for(unsigned int i = 0; i < chrs.size(); i++) {
+      std::vector< std::pair<unsigned int, int> > empty_inner1;
+        chrName_vec_final[j].at(i).swap(empty_inner1);
+      std::vector< std::pair<unsigned int, int> > empty_inner2;
+        chrName_vec_new[j].at(i).swap(empty_inner2);
+      std::vector< std::pair<unsigned int, int> > empty_inner3;
+        temp_chrName_vec_new[j].at(i).swap(empty_inner3);
+    }
+    std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer1;
+      chrName_vec_final[j].swap(empty_outer1);
+    std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer2;
+      chrName_vec_new[j].swap(empty_outer2);
+    std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer3;
+      temp_chrName_vec_new[j].swap(empty_outer3);
+  }
 }
 
 
