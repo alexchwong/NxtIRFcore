@@ -63,8 +63,8 @@ int GZReader::GetBuffer() {
       const char * error_string;
       error_string = gzerror (gz_in, & err);
       if (err) {
-        std::ostringstream oss;
-        oss << "Exception during zlib decompression: (" << err << ") " << error_string;
+        // std::ostringstream oss;
+        Rcout << "Exception during zlib decompression: (" << err << ") " << error_string;
         // throw(std::runtime_error(oss.str()));
         free(data);
 				return(err);
@@ -116,8 +116,8 @@ int GZReader::LoadGZ(std::string s_filename, bool asStream, bool lazy) {
           const char * error_string;
           error_string = gzerror (gz_in, & err);
           if (err) {
-            std::ostringstream oss;
-            oss << "Exception during zlib decompression: (" << err << ") " << error_string;
+            // std::ostringstream oss;
+            Rcout << "Exception during zlib decompression: (" << err << ") " << error_string;
             // throw(std::runtime_error(oss.str()));
             free(data);
 						return(err);
