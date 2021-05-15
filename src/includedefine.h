@@ -21,6 +21,7 @@
 #include <math.h>
 #include <chrono>
 #include <thread>
+#include <memory>
 
 //__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
 
