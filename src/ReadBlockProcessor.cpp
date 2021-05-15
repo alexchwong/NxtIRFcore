@@ -876,15 +876,15 @@ int FragmentsMap::WriteOutput(std::ostream *os,
 }
 
 
-SpansPoint::~SpansPoint() {
-    chrName_pos.clear();
-    chrName_count[0].clear();
-    chrName_count[1].clear();
-}
+// SpansPoint::~SpansPoint() {
+    // chrName_pos.clear();
+    // chrName_count[0].clear();
+    // chrName_count[1].clear();
+// }
 
-FragmentsInChr::~FragmentsInChr() {
-    chrName_count.clear();
-}
+// FragmentsInChr::~FragmentsInChr() {
+    // chrName_count.clear();
+// }
 
 // FragmentsMap::~FragmentsMap() {
 
@@ -907,11 +907,11 @@ FragmentsInChr::~FragmentsInChr() {
 // }
 
 
-FragmentsInROI::~FragmentsInROI() {
-    RegionID_counter[0].clear();
-    RegionID_counter[1].clear();
-    chrName_ROI.clear();
-    chrName_count[0].clear();
-    chrName_count[1].clear();
-    chrName_ROI_text.clear();
-}
+// FragmentsInROI::~FragmentsInROI() {
+    // RegionID_counter[0].clear();
+    // RegionID_counter[1].clear();
+    // chrName_ROI.clear();
+    // chrName_count[0].clear();
+    // chrName_count[1].clear();
+    // chrName_ROI_text.clear();
+// }

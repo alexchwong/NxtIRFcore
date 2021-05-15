@@ -64,7 +64,7 @@ class SpansPoint : public ReadBlockProcessor {
 		char overhangTotal;
 		//chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
 	public:
-        ~SpansPoint();
+    // ~SpansPoint();
 		void setSpanLength(unsigned int overhang_left, unsigned int overhang_right);
 		void loadRef(std::istringstream &IN);
 		void ProcessBlocks(const FragmentBlocks &fragblock);
@@ -81,7 +81,7 @@ class FragmentsInChr : public ReadBlockProcessor {
 		std::map<string, std::vector<unsigned int>> chrName_count; //only expecting 2 items in our vector.
 		std::vector<std::vector<unsigned int>*> chrID_count;
 	public:
-        ~FragmentsInChr();
+    // ~FragmentsInChr();
 		void ProcessBlocks(const FragmentBlocks &blocks);
 		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;		
@@ -104,7 +104,7 @@ class FragmentsInROI : public ReadBlockProcessor {
 		//   if pre-sorted, it may be easier to check for no overlapping blocks on read .. or can do this immediately after read with a single nested-walk.
 		std::map<string, std::vector<string>> chrName_ROI_text;
 	public:
-        ~FragmentsInROI();
+    // ~FragmentsInROI();
 		void ProcessBlocks(const FragmentBlocks &blocks);
 		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		void loadRef(std::istringstream &IN);
@@ -115,25 +115,10 @@ class FragmentsMap : public ReadBlockProcessor {
   // Counts mappability.
 private:
   // 0 = -, 1 = +, 2 = both
-/*	
-	// nested map
-  std::map<string, std::map<unsigned int, int> > chrName_count[3];
-  std::vector<std::map<unsigned int, int>*> chrID_count[3];
-*/
   std::vector< std::vector< std::pair<unsigned int, int> > > chrName_vec_final[3];
   std::vector< std::vector< std::pair<unsigned int, int> > > chrName_vec_new[3];
   std::vector< std::vector< std::pair<unsigned int, int> > > temp_chrName_vec_new[3];
-  
-	// vector pair
-  // std::map<string, std::vector< std::pair<unsigned int, int> > > chrName_vec[3];
-  // std::vector< std::vector< std::pair<unsigned int, int> >* > chrID_vec[3];
 
-	// vector pair temp
-  // std::map<string, std::vector< std::pair<unsigned int, int> > > temp_chrName_vec[3];
-  // std::vector< std::vector< std::pair<unsigned int, int> >* > temp_chrID_vec[3];
-  
-
-	
 	int chr_count = 0;
   uint32_t frag_count = 0;
 	int sort_and_collapse_temp();
