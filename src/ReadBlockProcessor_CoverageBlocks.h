@@ -35,7 +35,7 @@ class CoverageBlocks : public ReadBlockProcessor {
 	public:
     ~CoverageBlocks();
 		void ProcessBlocks(const FragmentBlocks &fragblock);
-		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		void loadRef(std::istringstream &IN);
 		int WriteOutput(std::string& output, const FragmentsMap &FM) const;
 		
@@ -47,7 +47,7 @@ class CoverageBlocks : public ReadBlockProcessor {
 		double percentileFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int percentile) const;
 		double trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent, bool debug = false) const;
 
-    vector<chr_index> chrs;
+    vector<chr_entry> chrs;
 };
 
 class CoverageBlocksIRFinder : public CoverageBlocks {

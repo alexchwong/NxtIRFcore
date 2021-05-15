@@ -16,7 +16,7 @@ Chromosome sorted or not won't matter, as these get split into different vectors
 class ReadBlockProcessor {
 	public:
 		virtual void ProcessBlocks(const FragmentBlocks &fragblock) = 0;
-		virtual void ChrMapUpdate(const std::vector<chr_index> &chrmap) = 0; //Maybe some of these funcs shouldn't be pure virtual - overloadable if needed, but default often ok.
+		virtual void ChrMapUpdate(const std::vector<chr_entry> &chrmap) = 0; //Maybe some of these funcs shouldn't be pure virtual - overloadable if needed, but default often ok.
 };
 
 class JunctionCount : public ReadBlockProcessor {
@@ -34,7 +34,7 @@ class JunctionCount : public ReadBlockProcessor {
 	public:
 
 		void ProcessBlocks(const FragmentBlocks &fragblock);
-		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;
 		void loadRef(std::istringstream &IN); //loadRef is optional, it allows directional detection to determine not just non-dir vs dir, but also which direction.
 
@@ -68,7 +68,7 @@ class SpansPoint : public ReadBlockProcessor {
 		void setSpanLength(unsigned int overhang_left, unsigned int overhang_right);
 		void loadRef(std::istringstream &IN);
 		void ProcessBlocks(const FragmentBlocks &fragblock);
-		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		//void SetOutputStream(std::ostream *os);
 		int WriteOutput(std::string& output, std::string& QC) const;
 		unsigned int lookup(std::string ChrName, unsigned int pos, bool direction) const;
@@ -83,7 +83,7 @@ class FragmentsInChr : public ReadBlockProcessor {
 	public:
         ~FragmentsInChr();
 		void ProcessBlocks(const FragmentBlocks &blocks);
-		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;		
 };
 
@@ -106,7 +106,7 @@ class FragmentsInROI : public ReadBlockProcessor {
 	public:
         ~FragmentsInROI();
 		void ProcessBlocks(const FragmentBlocks &blocks);
-		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		void loadRef(std::istringstream &IN);
 		int WriteOutput(std::string& output, std::string& QC) const;		
 };
@@ -132,14 +132,7 @@ private:
   // std::map<string, std::vector< std::pair<unsigned int, int> > > temp_chrName_vec[3];
   // std::vector< std::vector< std::pair<unsigned int, int> >* > temp_chrID_vec[3];
   
-  union stream_uint32 {
-    char c[4];
-    uint32_t u;
-  };
-  union stream_int32 {
-    char c[4];
-    int32_t i;
-  };
+
 	
 	int chr_count = 0;
   uint32_t frag_count = 0;
@@ -147,12 +140,12 @@ private:
 
 	bool final_is_sorted = false;
   
-  vector<chr_index> chrs;
+  vector<chr_entry> chrs;
 public:
   int sort_and_collapse_final(bool mark_as_final);
 
   void ProcessBlocks(const FragmentBlocks &blocks);
-  void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+  void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
   int WriteOutput(std::ostream *os, int threshold = 4, bool verbose = false) ;
   int WriteBinary(covFile *os, bool verbose = false) ;
 

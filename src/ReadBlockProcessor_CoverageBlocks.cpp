@@ -75,7 +75,7 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 
 }
 
-void CoverageBlocks::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
+void CoverageBlocks::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
   for (unsigned int i = 0; i < chrmap.size(); i++) {
     chrs.push_back(chrmap.at(i));
   }
@@ -286,7 +286,7 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
         if(0 != BEDrec.chrName.compare(0, BEDrec.chrName.size(), cur_chr)) {
           cur_chr = BEDrec.chrName;
           auto it = find_if(chrs.begin(), chrs.end(), 
-            [&cur_chr](const chr_index& obj) {return obj.chr_name == cur_chr;});
+            [&cur_chr](const chr_entry& obj) {return obj.chr_name == cur_chr;});
           if(it != chrs.end()) {
             refID = it->refID;
           } else {

@@ -51,18 +51,13 @@ class BAM2blocks {
 		} magic;
 	};
 
-	union stream_int32 {
-		char c[4];
-		int32_t i;
-	};
-
 	static const int BAM_HEADER_BYTES = 8;
 	static const int BAM_READ_CORE_BYTES = 36;
 	static const int BAM_READ_CORE_MAX_CIGAR = 2000;
 
 	FragmentBlocks oBlocks;
 
-	std::vector< std::function<void(const std::vector<chr_index> &)> > callbacksChrMappingChange;
+	std::vector< std::function<void(const std::vector<chr_entry> &)> > callbacksChrMappingChange;
 	std::vector< std::function<void(const FragmentBlocks &)> > callbacksProcessBlocks;
 
 	// Statistics.
@@ -94,14 +89,14 @@ class BAM2blocks {
   	void readBamHeader();  // implied by openFile. So perhaps should be private.
   	int processAll(std::string& output, bool threaded = false);
 
-    void registerCallbackChrMappingChange( std::function<void(const std::vector<chr_index> &)> callback );
+    void registerCallbackChrMappingChange( std::function<void(const std::vector<chr_entry> &)> callback );
     void registerCallbackProcessBlocks( std::function<void(const FragmentBlocks &)> callback );
 
     std::string samHeader;
     std::vector<std::string> chr_names;   //tab terminated chromosome names.
     std::vector<int32_t> chr_lens;	//length of each chromosome (not used when reading, used if optionally outputting an altered BAM file)
 
-    std::vector<chr_index> chrs;
+    std::vector<chr_entry> chrs;
 };
 
 
