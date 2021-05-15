@@ -17,6 +17,7 @@ class ReadBlockProcessor {
 	public:
 		virtual void ProcessBlocks(const FragmentBlocks &fragblock) = 0;
 		virtual void ChrMapUpdate(const std::vector<chr_entry> &chrmap) = 0; //Maybe some of these funcs shouldn't be pure virtual - overloadable if needed, but default often ok.
+    virtual ~ReadBlockProcessor() {};
 };
 
 class JunctionCount : public ReadBlockProcessor {
@@ -32,7 +33,7 @@ class JunctionCount : public ReadBlockProcessor {
 		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncRight_count;
 		  //chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
 	public:
-
+    ~JunctionCount() {};
 		void ProcessBlocks(const FragmentBlocks &fragblock);
 		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;
@@ -64,6 +65,7 @@ class SpansPoint : public ReadBlockProcessor {
 		char overhangTotal;
 		//chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
 	public:
+    ~SpansPoint() {};
 		void setSpanLength(unsigned int overhang_left, unsigned int overhang_right);
 		void loadRef(std::istringstream &IN);
 		void ProcessBlocks(const FragmentBlocks &fragblock);
@@ -80,6 +82,7 @@ class FragmentsInChr : public ReadBlockProcessor {
 		std::map<string, std::vector<unsigned int>> chrName_count; //only expecting 2 items in our vector.
 		std::vector<std::vector<unsigned int>*> chrID_count;
 	public:
+    ~FragmentsInChr() {};
 		void ProcessBlocks(const FragmentBlocks &blocks);
 		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;		
@@ -102,6 +105,7 @@ class FragmentsInROI : public ReadBlockProcessor {
 		//   if pre-sorted, it may be easier to check for no overlapping blocks on read .. or can do this immediately after read with a single nested-walk.
 		std::map<string, std::vector<string>> chrName_ROI_text;
 	public:
+    ~FragmentsInROI() {};
 		void ProcessBlocks(const FragmentBlocks &blocks);
 		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		void loadRef(std::istringstream &IN);
@@ -123,6 +127,7 @@ private:
   
   vector<chr_entry> chrs;
 public:
+  ~FragmentsMap() {};
   int sort_and_collapse_final(bool verbose);
 
   void ProcessBlocks(const FragmentBlocks &blocks);

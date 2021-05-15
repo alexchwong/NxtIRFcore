@@ -494,19 +494,23 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
     Rcout << "Reading reference file\n";
   }
 
-  CoverageBlocksIRFinder CB_template;
-  SpansPoint SP_template;
-  FragmentsInROI ROI_template;
-  JunctionCount JC_template;
+  CoverageBlocksIRFinder * CB_template = new CoverageBlocksIRFinder;
+  SpansPoint * SP_template = new SpansPoint;
+  FragmentsInROI * ROI_template = new FragmentsInROI;
+  JunctionCount * JC_template = new JunctionCount;
   
   int ret = 0;
   
-  ret = IRF_ref(s_ref, CB_template, SP_template, ROI_template, JC_template, verbose);
-  if(ret != 0) return(ret);
+  ret = IRF_ref(s_ref, *CB_template, *SP_template, *ROI_template, *JC_template, verbose);
+  // if(ret != 0) return(ret);
   
   // main:
   // ret = IRF_core(s_bam, s_output_txt, s_output_cov,
     // CB_template, SP_template, ROI_template, JC_template, verbose);
+  delete CB_template;
+  delete SP_template;
+  delete ROI_template;
+  delete JC_template;
   
   return(ret);
 }
