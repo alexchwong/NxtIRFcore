@@ -332,7 +332,6 @@ int IRF_ref(std::string &reference_file,
 
 // Ensure valid reference termination:
   getline(gz_in->iss, myLine, '\n');
-  // gz_in->closeGZ();
   delete gz_in;
   
   if(strncmp(myLine.c_str(), refEOF, 4) != 0) {
@@ -508,8 +507,8 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   if(ret != 0) return(ret);
   
   // main:
-  // ret = IRF_core(s_bam, s_output_txt, s_output_cov,
-    // *CB_template, *SP_template, *ROI_template, *JC_template, verbose);
+  ret = IRF_core(s_bam, s_output_txt, s_output_cov,
+    *CB_template, *SP_template, *ROI_template, *JC_template, verbose);
   
   delete CB_template;
   delete SP_template;
