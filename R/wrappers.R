@@ -22,43 +22,43 @@
     n_threads = floor(max_threads)
     
     # OpenMP version currently causes C stack usage errors. Disable for now
-    # if(Has_OpenMP() > 0 & Use_OpenMP) {
-        # n_threads = min(n_threads, length(s_bam))
-        # IRF_main_multithreaded(ref_file, s_bam, output_files, n_threads)
-    # } else {
-        # Use BiocParallel
-    n_rounds = ceiling(length(s_bam) / floor(max_threads))
-    n_threads = ceiling(length(s_bam) / n_rounds)
-
-    BPPARAM = BiocParallel::bpparam()
-    if(Sys.info()["sysname"] == "Windows") {
-        BPPARAM_mod = BiocParallel::SnowParam(n_threads)
-        message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
+    if(Has_OpenMP() > 0 & Use_OpenMP) {
+        n_threads = min(n_threads, length(s_bam))
+        IRF_main_multithreaded(ref_file, s_bam, output_files, n_threads)
     } else {
-        BPPARAM_mod = BiocParallel::MulticoreParam(n_threads)
-        message(paste("Using MulticoreParam", BPPARAM_mod$workers, 
-            "threads"))
-    }
+        # Use BiocParallel
+        n_rounds = ceiling(length(s_bam) / floor(max_threads))
+        n_threads = ceiling(length(s_bam) / n_rounds)
 
-    row_starts = seq(1, by = n_threads, length.out = n_rounds)
-    for(i in seq_len(n_rounds)) {
-        selected_rows_subset = seq(row_starts[i], 
-            min(length(s_bam), row_starts[i] + n_threads - 1)
-        )
-        BiocParallel::bplapply(selected_rows_subset,
-            function(i, s_bam, reference_file, output_files, verbose, overwrite) {
-                .irfinder_run_single(s_bam[i], reference_file, output_files[i], 
-                    verbose, overwrite)
-            }, 
-            s_bam = s_bam,
-            reference_file = ref_file,
-            output_files = output_files,
-            verbose = verbose,
-            overwrite = overwrite_IRFinder_output,
-            BPPARAM = BPPARAM_mod
-        )
+        BPPARAM = BiocParallel::bpparam()
+        if(Sys.info()["sysname"] == "Windows") {
+            BPPARAM_mod = BiocParallel::SnowParam(n_threads)
+            message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
+        } else {
+            BPPARAM_mod = BiocParallel::MulticoreParam(n_threads)
+            message(paste("Using MulticoreParam", BPPARAM_mod$workers, 
+                "threads"))
+        }
+
+        row_starts = seq(1, by = n_threads, length.out = n_rounds)
+        for(i in seq_len(n_rounds)) {
+            selected_rows_subset = seq(row_starts[i], 
+                min(length(s_bam), row_starts[i] + n_threads - 1)
+            )
+            BiocParallel::bplapply(selected_rows_subset,
+                function(i, s_bam, reference_file, output_files, verbose, overwrite) {
+                    .irfinder_run_single(s_bam[i], reference_file, output_files[i], 
+                        verbose, overwrite)
+                }, 
+                s_bam = s_bam,
+                reference_file = ref_file,
+                output_files = output_files,
+                verbose = verbose,
+                overwrite = overwrite_IRFinder_output,
+                BPPARAM = BPPARAM_mod
+            )
+        }
     }
-    # }
     if(run_featureCounts == TRUE) {
         .irfinder_run_featureCounts(reference_path, output_files, 
             s_bam, n_threads)
