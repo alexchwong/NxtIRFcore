@@ -401,7 +401,7 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   covFile outCOV;
   outCOV.SetOutputHandle(&ofCOV);
   
-  oFragMap.WriteBinary(&outCOV, BB.chr_names, BB.chr_lens, verbose);
+  oFragMap.WriteBinary(&outCOV, verbose);
   ofCOV.close();
 
 // Write output to file:  
@@ -614,7 +614,7 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		covFile outCOV;
 		outCOV.SetOutputHandle(&ofCOV);
 		
-		oFragMap.WriteBinary(&outCOV, BB.chr_names, BB.chr_lens);
+		oFragMap.WriteBinary(&outCOV);
 		ofCOV.close();	
 		
 		std::ofstream out;

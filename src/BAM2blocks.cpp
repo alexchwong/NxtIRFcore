@@ -39,6 +39,7 @@ void BAM2blocks::readBamHeader() {
   IN->read(i32.c ,4);
   unsigned int n_chr = i32.i;
 
+
   for (unsigned int i = 0; i < n_chr; i++) {
     IN->read(i32.c ,4);
     IN->read(buffer , i32.i);
@@ -47,10 +48,12 @@ void BAM2blocks::readBamHeader() {
 
     IN->read(i32.c ,4);
     chr_lens.push_back(i32.i);
+    chrs.push_back(chr_index(i, chrName, i32.i));
   }
+  std::sort(chrs.begin(), chrs.end());
   
 	for (auto & callback : callbacksChrMappingChange ) {
-		callback(chr_names);
+		callback(chrs);
 	}
   
 }
@@ -331,13 +334,13 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 						if (reads[0].core.pos <= it_read->second->core.pos) {
 							//cout << "procesPair call1" << endl;        
 							totalNucleotides += processPair(&reads[0], &(*(it_read->second)));
-												delete (it_read->second);
+              delete (it_read->second);
 							spare_reads->erase(read_name);
 							spare_reads_count -= 1;
 						}else{
 							//cout << "procesPair call2" << endl;                
 							totalNucleotides += processPair(&(*(it_read->second)), &reads[0]);
-												delete (it_read->second);
+              delete (it_read->second);
 							spare_reads->erase(read_name);
 							spare_reads_count -= 1;
 						}
@@ -377,7 +380,7 @@ void BAM2blocks::openFile(BAMReader * _IN) {
   	readBamHeader(); // readBamHeader needs to call the ChrMappingChange callbacks.
 }
 
-void BAM2blocks::registerCallbackChrMappingChange( std::function<void(const std::vector<string> &)> callback ) {
+void BAM2blocks::registerCallbackChrMappingChange( std::function<void(const std::vector<chr_index> &)> callback ) {
 	callbacksChrMappingChange.push_back(callback);
 }
 
