@@ -15,6 +15,7 @@ Chromosome sorted or not won't matter, as these get split into different vectors
 
 class ReadBlockProcessor {
 	public:
+    ~ReadBlockProcessor() { // do nothing};
 		virtual void ProcessBlocks(const FragmentBlocks &fragblock) = 0;
 		virtual void ChrMapUpdate(const std::vector<chr_entry> &chrmap) = 0; //Maybe some of these funcs shouldn't be pure virtual - overloadable if needed, but default often ok.
 };
@@ -32,7 +33,6 @@ class JunctionCount : public ReadBlockProcessor {
 		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncRight_count;
 		  //chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
 	public:
-
 		void ProcessBlocks(const FragmentBlocks &fragblock);
 		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;
