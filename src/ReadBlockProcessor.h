@@ -31,7 +31,7 @@ class JunctionCount : public ReadBlockProcessor {
 		std::map<string, std::map<unsigned int,unsigned int[2]>> * chrName_juncRight_count;
 		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncRight_count;
 		  //chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
-		int Clean();
+
 		std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]> * new_map_junc;
 		std::map<unsigned int,unsigned int[2]> * new_map_junc_arm;
 		int32_t reads_processed = 0;
