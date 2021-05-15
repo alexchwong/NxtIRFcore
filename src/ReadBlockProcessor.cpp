@@ -526,7 +526,6 @@ int FragmentsInChr::WriteOutput(std::string& output, std::string& QC) const {
 }
 
 void FragmentsMap::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
-  chr_count = chrs.size();
   std::vector< std::pair<unsigned int, int> > empty_vector;
   empty_vector.push_back(std::make_pair (0,0));
   for(unsigned int j = 0; j < 3; j++) {   
@@ -605,7 +604,7 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
     sort_and_collapse_temp();
     if(verbose)  Rcout << "Performing final sort of fragment maps\n";
 
-    Progress p(3 * chr_count, verbose);
+    Progress p(3 * chrs.size(), verbose);
     for(unsigned int j = 0; j < 3; j++) {
       for(unsigned int i = 0; i < chrs.size(); i++) {
         auto itChr = &chrName_vec_new[j].at(i);

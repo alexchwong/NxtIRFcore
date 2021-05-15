@@ -80,7 +80,6 @@ class FragmentsInChr : public ReadBlockProcessor {
 		std::map<string, std::vector<unsigned int>> chrName_count; //only expecting 2 items in our vector.
 		std::vector<std::vector<unsigned int>*> chrID_count;
 	public:
-    // ~FragmentsInChr();
 		void ProcessBlocks(const FragmentBlocks &blocks);
 		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;		
@@ -117,7 +116,6 @@ private:
   std::vector< std::vector< std::pair<unsigned int, int> > > chrName_vec_new[3];
   std::vector< std::vector< std::pair<unsigned int, int> > > temp_chrName_vec_new[3];
 
-	int chr_count = 0;
   uint32_t frag_count = 0;
 	int sort_and_collapse_temp();
 
@@ -125,7 +123,7 @@ private:
   
   vector<chr_entry> chrs;
 public:
-  int sort_and_collapse_final(bool mark_as_final);
+  int sort_and_collapse_final(bool verbose);
 
   void ProcessBlocks(const FragmentBlocks &blocks);
   void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
