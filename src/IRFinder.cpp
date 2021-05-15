@@ -293,45 +293,48 @@ int IRF_ref(std::string &reference_file,
     JunctionCount &JC_template, 
     bool verbose
 ) { 
-  GZReader gz_in;
-  int ret = gz_in.LoadGZ(reference_file, true);
+  GZReader * gz_in = new GZReader;
+  int ret = gz_in->LoadGZ(reference_file, true);
   if(ret != 0) return(-1);
   
   std::string myLine;
   std::string myBuffer;
   
-  getline(gz_in.iss, myLine, '#');    // discard first >
-  getline(gz_in.iss, myLine, '\n');   // ignore file names for now
-  getline(gz_in.iss, myBuffer, '#');  // this is the data block for ref-cover.bed
+  getline(gz_in->iss, myLine, '#');    // discard first >
+  getline(gz_in->iss, myLine, '\n');   // ignore file names for now
+  getline(gz_in->iss, myBuffer, '#');  // this is the data block for ref-cover.bed
 
   std::istringstream inCoverageBlocks;
   inCoverageBlocks.str(myBuffer);
   CB_template.loadRef(inCoverageBlocks);
   
-    getline(gz_in.iss, myLine, '\n');
-    getline(gz_in.iss, myBuffer, '#');
+    getline(gz_in->iss, myLine, '\n');
+    getline(gz_in->iss, myBuffer, '#');
 
   SP_template.setSpanLength(5,4);
   std::istringstream inSpansPoint;
   inSpansPoint.str(myBuffer);
   SP_template.loadRef(inSpansPoint);
 
-  getline(gz_in.iss, myLine, '\n');
-  getline(gz_in.iss, myBuffer, '#');
+  getline(gz_in->iss, myLine, '\n');
+  getline(gz_in->iss, myBuffer, '#');
 
   std::istringstream inFragmentsInROI;
   inFragmentsInROI.str(myBuffer);
   ROI_template.loadRef(inFragmentsInROI);
 
-  getline(gz_in.iss, myLine, '\n');
-  getline(gz_in.iss, myBuffer, '#');
+  getline(gz_in->iss, myLine, '\n');
+  getline(gz_in->iss, myBuffer, '#');
 
   std::istringstream inJuncCount;
   inJuncCount.str(myBuffer);
   JC_template.loadRef(inJuncCount);
 
 // Ensure valid reference termination:
-  getline(gz_in.iss, myLine, '\n');    
+  getline(gz_in->iss, myLine, '\n');
+  // gz_in->closeGZ();
+  delete gz_in;
+  
   if(strncmp(myLine.c_str(), refEOF, 4) != 0) {
     Rcout << "Invalid IRFinder reference detected\n";
     return(-1);
