@@ -1,9 +1,6 @@
 #include "GZWriter.h"
 #include <stdexcept>
 
-GZWriter::GZWriter() {
-  bufferPos = 0;
-}
 void GZWriter::SetOutputHandle(std::ostream *out_stream) {
   OUT = out_stream;
 }

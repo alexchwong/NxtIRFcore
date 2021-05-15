@@ -73,8 +73,6 @@ class BAM2blocks {
 
 	bam_read_core reads[2];
 
-  std::map< std::string, bam_read_core* > * spare_reads;
-	std::map< std::string, bam_read_core* > * new_spare_reads;
 	BAMReader * IN;
 
 	void cigar2block(uint32_t * cigar, uint16_t n_cigar_op, std::vector<int> &starts, std::vector<int> &lens, int &ret_genome_len);
@@ -84,7 +82,6 @@ class BAM2blocks {
 
   public:
   	BAM2blocks();
-		~BAM2blocks();
   	void openFile(BAMReader * _IN);
   	void readBamHeader();  // implied by openFile. So perhaps should be private.
   	int processAll(std::string& output, bool threaded = false);

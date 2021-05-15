@@ -64,7 +64,6 @@ class SpansPoint : public ReadBlockProcessor {
 		char overhangTotal;
 		//chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
 	public:
-    // ~SpansPoint();
 		void setSpanLength(unsigned int overhang_left, unsigned int overhang_right);
 		void loadRef(std::istringstream &IN);
 		void ProcessBlocks(const FragmentBlocks &fragblock);
@@ -104,7 +103,6 @@ class FragmentsInROI : public ReadBlockProcessor {
 		//   if pre-sorted, it may be easier to check for no overlapping blocks on read .. or can do this immediately after read with a single nested-walk.
 		std::map<string, std::vector<string>> chrName_ROI_text;
 	public:
-    // ~FragmentsInROI();
 		void ProcessBlocks(const FragmentBlocks &blocks);
 		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		void loadRef(std::istringstream &IN);
