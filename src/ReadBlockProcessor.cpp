@@ -2,11 +2,7 @@
 #include "includedefine.h"
 // using namespace std;
 
-JunctionCount::JunctionCount() {
-    chrName_junc_count = new std::map<string, std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>>;
-    chrName_juncLeft_count = new std::map<string, std::map<unsigned int,unsigned int[2]>>;
-    chrName_juncRight_count = new std::map<string, std::map<unsigned int,unsigned int[2]>>;
-}
+
 
 //chrName_junc_count holds the data structure -- ChrName(string) -> Junc Start/End -> count.
 //chrID_junc_count holds the ChrID -> ...
@@ -17,9 +13,9 @@ void JunctionCount::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
   chrID_juncRight_count.resize(0);
   // Below could be done with an iterator - i is not used except for element access of the single collection.
   for (unsigned int i = 0; i < chrmap.size(); i++) {
-    chrID_junc_count.push_back( &(*chrName_junc_count)[chrmap.at(i).chr_name] );
-    chrID_juncLeft_count.push_back( &(*chrName_juncLeft_count)[chrmap.at(i).chr_name] );
-    chrID_juncRight_count.push_back( &(*chrName_juncRight_count)[chrmap.at(i).chr_name] );
+    chrID_junc_count.push_back( &(chrName_junc_count)[chrmap.at(i).chr_name] );
+    chrID_juncLeft_count.push_back( &(chrName_juncLeft_count)[chrmap.at(i).chr_name] );
+    chrID_juncRight_count.push_back( &(chrName_juncRight_count)[chrmap.at(i).chr_name] );
   }
 }
 
@@ -64,12 +60,12 @@ void JunctionCount::loadRef(std::istringstream &IN) {
     }
     
     if (direction == "-")  {
-      (*chrName_junc_count)[s_chr][make_pair(start,end)][2] += 1;
+      (chrName_junc_count)[s_chr][make_pair(start,end)][2] += 1;
     }  else if (direction == "+") {
-      (*chrName_junc_count)[s_chr][make_pair(start,end)][2] += 2;
+      (chrName_junc_count)[s_chr][make_pair(start,end)][2] += 2;
     }
     if(!NMD_flag.empty() && !(0 == NMD_flag.compare(0, 2, "\"\""))) {
-      (*chrName_junc_count)[s_chr][make_pair(start,end)][2] += 4;
+      (chrName_junc_count)[s_chr][make_pair(start,end)][2] += 4;
     }
   }
 }
@@ -93,10 +89,7 @@ void JunctionCount::ProcessBlocks(const FragmentBlocks &blocks) {
       }
     }
   }
-  reads_processed += 1;
-  if(reads_processed % 1000000 == 0) {
-    // Clean();
-  }
+
 }
 
 int JunctionCount::WriteOutput(std::string& output, std::string& QC) const {
@@ -104,7 +97,7 @@ int JunctionCount::WriteOutput(std::string& output, std::string& QC) const {
   int junc_anno = 0;
   int junc_unanno = 0;
   int junc_NMD = 0;
-  for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
+  for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
     string chr = itChr->first;
     for (auto itJuncs=itChr->second.begin(); itJuncs!=itChr->second.end(); ++itJuncs) {
       if((itJuncs->second)[2] != 0) {
@@ -142,7 +135,7 @@ int JunctionCount::Directional(std::string& output) const {
 
     std::ostringstream oss;    
 
-  for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
+  for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
     for (auto itJuncs=itChr->second.begin(); itJuncs!=itChr->second.end(); ++itJuncs) {
       if (((itJuncs->second)[1] + (itJuncs->second)[0]) > 8) {
         if ((itJuncs->second)[0] > (itJuncs->second)[1] * 4) {
@@ -196,42 +189,42 @@ int JunctionCount::Directional(std::string& output) const {
 
 unsigned int JunctionCount::lookup(std::string ChrName, unsigned int left, unsigned int right, bool direction) const {
   try {
-    return chrName_junc_count->at(ChrName).at(make_pair(left, right))[direction];
+    return chrName_junc_count.at(ChrName).at(make_pair(left, right))[direction];
   }catch (const std::out_of_range& e) {
   }
   return 0;
 }
 unsigned int JunctionCount::lookup(std::string ChrName, unsigned int left, unsigned int right) const {
   try {
-    return chrName_junc_count->at(ChrName).at(make_pair(left, right))[0] + chrName_junc_count->at(ChrName).at(make_pair(left, right))[1];
+    return chrName_junc_count.at(ChrName).at(make_pair(left, right))[0] + chrName_junc_count.at(ChrName).at(make_pair(left, right))[1];
   }catch (const std::out_of_range& e) {
   }
   return 0;
 }
 unsigned int JunctionCount::lookupLeft(std::string ChrName, unsigned int left, bool direction) const {
   try {
-    return chrName_juncLeft_count->at(ChrName).at(left)[direction];
+    return chrName_juncLeft_count.at(ChrName).at(left)[direction];
   }catch (const std::out_of_range& e) {
   }
   return 0;
 }
 unsigned int JunctionCount::lookupLeft(std::string ChrName, unsigned int left) const {
   try {
-    return chrName_juncLeft_count->at(ChrName).at(left)[0] + chrName_juncLeft_count->at(ChrName).at(left)[1];
+    return chrName_juncLeft_count.at(ChrName).at(left)[0] + chrName_juncLeft_count.at(ChrName).at(left)[1];
   }catch (const std::out_of_range& e) {
   }
   return 0;
 }
 unsigned int JunctionCount::lookupRight(std::string ChrName, unsigned int right, bool direction) const {
   try {
-    return chrName_juncRight_count->at(ChrName).at(right)[direction];
+    return chrName_juncRight_count.at(ChrName).at(right)[direction];
   }catch (const std::out_of_range& e) {
   }
   return 0;
 }
 unsigned int JunctionCount::lookupRight(std::string ChrName, unsigned int right) const {
   try {
-    return chrName_juncRight_count->at(ChrName).at(right)[0] + chrName_juncRight_count->at(ChrName).at(right)[1];
+    return chrName_juncRight_count.at(ChrName).at(right)[0] + chrName_juncRight_count.at(ChrName).at(right)[1];
   }catch (const std::out_of_range& e) {
   }
   return 0;
@@ -881,27 +874,6 @@ int FragmentsMap::WriteOutput(std::ostream *os,
   return 0;
 }
 
-
-JunctionCount::~JunctionCount() {
-    for (auto itChr=chrName_junc_count->begin(); itChr!=chrName_junc_count->end(); itChr++) {
-      new_map_junc = new std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>;
-      itChr->second.swap(*new_map_junc);
-      delete new_map_junc;
-    }
-    for (auto itChr=chrName_juncLeft_count->begin(); itChr!=chrName_juncLeft_count->end(); itChr++) {
-      new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
-      itChr->second.swap(*new_map_junc_arm);
-      delete new_map_junc_arm;
-    }
-    for (auto itChr=chrName_juncRight_count->begin(); itChr!=chrName_juncRight_count->end(); itChr++) {
-      new_map_junc_arm = new std::map<unsigned int,unsigned int[2]>;
-      itChr->second.swap(*new_map_junc_arm);
-      delete new_map_junc_arm;
-    }
-    delete chrName_junc_count;
-    delete chrName_juncLeft_count;
-    delete chrName_juncRight_count;
-}
 
 SpansPoint::~SpansPoint() {
     chrName_pos.clear();

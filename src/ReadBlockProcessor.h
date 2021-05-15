@@ -21,23 +21,17 @@ class ReadBlockProcessor {
 
 class JunctionCount : public ReadBlockProcessor {
 	private:
-		std::map<string, std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>> * chrName_junc_count;
+		std::map<string, std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>> chrName_junc_count;
 		std::vector<std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>*> chrID_junc_count;
 		//unsigned int[3] - 0, neg strand count; 1, pos strand count; 2 = expected direction from ref: 0=unknown, 1=neg, 2=pos.
 
-		std::map<string, std::map<unsigned int,unsigned int[2]>> * chrName_juncLeft_count;
+		std::map<string, std::map<unsigned int,unsigned int[2]>> chrName_juncLeft_count;
 		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncLeft_count;
 
-		std::map<string, std::map<unsigned int,unsigned int[2]>> * chrName_juncRight_count;
+		std::map<string, std::map<unsigned int,unsigned int[2]>> chrName_juncRight_count;
 		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncRight_count;
 		  //chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
-
-		std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]> * new_map_junc;
-		std::map<unsigned int,unsigned int[2]> * new_map_junc_arm;
-		int32_t reads_processed = 0;
 	public:
-		JunctionCount();
-    ~JunctionCount();   // destructor
 
 		void ProcessBlocks(const FragmentBlocks &fragblock);
 		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
@@ -155,7 +149,6 @@ private:
   
   vector<chr_index> chrs;
 public:
-  ~FragmentsMap() = default;
   int sort_and_collapse_final(bool mark_as_final);
 
   void ProcessBlocks(const FragmentBlocks &blocks);

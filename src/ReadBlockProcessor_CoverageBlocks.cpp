@@ -239,7 +239,6 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 	std::string KE = "known-exon";
 	
   unsigned int refID = 0;
-  bool chr_invalid = false;
   std::string cur_chr = "";
   
 	for (auto BEDrec : BEDrecords) {
