@@ -15,7 +15,7 @@ Chromosome sorted or not won't matter, as these get split into different vectors
 
 class ReadBlockProcessor {
 	public:
-    ~ReadBlockProcessor() {}; // do nothing
+    virtual ~ReadBlockProcessor() {}; // do nothing
 		virtual void ProcessBlocks(const FragmentBlocks &fragblock) = 0;
 		virtual void ChrMapUpdate(const std::vector<chr_entry> &chrmap) = 0; //Maybe some of these funcs shouldn't be pure virtual - overloadable if needed, but default often ok.
 };
