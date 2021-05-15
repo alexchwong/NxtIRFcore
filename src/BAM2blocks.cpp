@@ -48,7 +48,7 @@ void BAM2blocks::readBamHeader() {
 
     IN->read(i32.c ,4);
     chr_lens.push_back(i32.i);
-    chrs.push_back(chr_index(i, chrName, i32.i));
+    chrs.push_back(chr_entry(i, chrName, i32.i));
   }
   std::sort(chrs.begin(), chrs.end());
   
@@ -380,7 +380,7 @@ void BAM2blocks::openFile(BAMReader * _IN) {
   	readBamHeader(); // readBamHeader needs to call the ChrMappingChange callbacks.
 }
 
-void BAM2blocks::registerCallbackChrMappingChange( std::function<void(const std::vector<chr_index> &)> callback ) {
+void BAM2blocks::registerCallbackChrMappingChange( std::function<void(const std::vector<chr_entry> &)> callback ) {
 	callbacksChrMappingChange.push_back(callback);
 }
 

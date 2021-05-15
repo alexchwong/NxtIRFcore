@@ -7,7 +7,7 @@
 //chrName_junc_count holds the data structure -- ChrName(string) -> Junc Start/End -> count.
 //chrID_junc_count holds the ChrID -> ...
 //  where the ChrID is the ChrID relating to the appropriate ChrName, as understood by the currently processed BAM file.
-void JunctionCount::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
+void JunctionCount::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
   chrID_junc_count.resize(0);
   chrID_juncLeft_count.resize(0);
   chrID_juncRight_count.resize(0);
@@ -365,7 +365,7 @@ void SpansPoint::loadRef(std::istringstream &IN) {
   }
 }
 
-void SpansPoint::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
+void SpansPoint::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
   chrID_pos.resize(0);
   chrID_count[0].resize(0);
   chrID_count[1].resize(0);
@@ -377,7 +377,7 @@ void SpansPoint::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
 }
 
 
-void FragmentsInROI::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
+void FragmentsInROI::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
   chrID_ROI.resize(0);
   chrID_count[0].resize(0);
   chrID_count[1].resize(0);
@@ -494,7 +494,7 @@ void FragmentsInChr::ProcessBlocks(const FragmentBlocks &blocks) {
   (*chrID_count.at(blocks.chr_id))[blocks.direction]++;
 }
 
-void FragmentsInChr::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
+void FragmentsInChr::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
   chrID_count.resize(0);
   for (unsigned int i = 0; i < chrmap.size(); i++) {
     chrName_count[chrmap.at(i).chr_name].resize(2); // This data structure isn't auto initializing - unlike all the other structures. Or maybe just a vector can't access via [] until a position exists? But a map is fine. Makes sense.
@@ -525,7 +525,7 @@ int FragmentsInChr::WriteOutput(std::string& output, std::string& QC) const {
   return 0;
 }
 
-void FragmentsMap::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
+void FragmentsMap::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
   chr_count = chrs.size();
   std::vector< std::pair<unsigned int, int> > empty_vector;
   empty_vector.push_back(std::make_pair (0,0));
