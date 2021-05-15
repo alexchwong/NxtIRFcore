@@ -193,8 +193,8 @@ int covFile::ReadBuffer() {
     IN->read(GzipCheck, bamGzipHeadLength);
 
      if(strncmp(bamGzipHead, GzipCheck, bamGzipHeadLength) != 0) {
-        std::ostringstream oss;
-        oss << "Exception during BAM decompression - BGZF header corrupt: (at " << IN->tellg() << " bytes) ";
+        // std::ostringstream oss;
+        Rcout << "Exception during BAM decompression - BGZF header corrupt: (at " << IN->tellg() << " bytes) ";
         // throw(std::runtime_error(oss.str()));
 				return(Z_BUF_ERROR);
     }
@@ -217,15 +217,15 @@ int covFile::ReadBuffer() {
 
     ret = inflateInit2(&zs, -15);
     if(ret != Z_OK) {
-        std::ostringstream oss;
-        oss << "Exception during BAM decompression - inflateInit2() fail: (" << ret << ") ";
+        // std::ostringstream oss;
+        Rcout << "Exception during BAM decompression - inflateInit2() fail: (" << ret << ") ";
         // throw(std::runtime_error(oss.str()));
 				return(ret);
     }
     ret = inflate(&zs, Z_FINISH);
     if(ret != Z_OK && ret != Z_STREAM_END) {
-        std::ostringstream oss;
-        oss << "Exception during BAM decompression - inflate() fail: (" << ret << ") ";
+        // std::ostringstream oss;
+        Rcout << "Exception during BAM decompression - inflate() fail: (" << ret << ") ";
         // throw(std::runtime_error(oss.str()));
 				return(ret);
     }
