@@ -593,8 +593,9 @@ int FragmentsMap::sort_and_collapse_temp() {
 
       // Clear temporary vector by swap trick
       // empty swap vector
-      // std::vector< std::pair<unsigned int, int> > empty_swap_vector;
-      itChr->clear();
+      std::vector< std::pair<unsigned int, int> > empty_swap_vector;
+      // itChr->clear();
+      itChr->swap(empty_swap_vector);
       
       refID++;
     }
