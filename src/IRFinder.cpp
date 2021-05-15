@@ -426,14 +426,14 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   outGZ.writestring(myLine);
   outGZ.writeline("");
 
-// Generate output but save this to strings:
-std::string myLine_ROI;
-std::string myLine_JC;
-std::string myLine_SP;
-std::string myLine_Chr;
-std::string myLine_ND;
-std::string myLine_Dir;
-std::string myLine_QC;
+  // Generate output but save this to strings:
+  std::string myLine_ROI;
+  std::string myLine_JC;
+  std::string myLine_SP;
+  std::string myLine_Chr;
+  std::string myLine_ND;
+  std::string myLine_Dir;
+  std::string myLine_QC;
 
   oFragmentsInROI.WriteOutput(myLine_ROI, myLine_QC);
 	oJuncCount.WriteOutput(myLine_JC, myLine_QC);

@@ -17,10 +17,6 @@ BAM2blocks::BAM2blocks() {
 	cChimericReads = 0;
 }
 
-BAM2blocks::~BAM2blocks() {
-	delete spare_reads;
-}
-
 // OK.
 void BAM2blocks::readBamHeader() {
   char buffer[1000];
@@ -254,7 +250,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 
 	unsigned long long totalNucleotides = 0;
 	unsigned long j = 0;
-	int idx = 0;
+	unsigned int idx = 0;
   int ret = 0;
 	// int pair = 0;
 	//int bytesread = 0;
@@ -265,6 +261,9 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 #endif
 
 	// Use map pointer spare_reads:
+  std::map< std::string, bam_read_core* > * spare_reads;
+	std::map< std::string, bam_read_core* > * new_spare_reads;  
+  
 	spare_reads = new std::map< std::string, bam_read_core* >;
 	int32_t spare_reads_count = 0;
 	
@@ -321,36 +320,49 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
         cSingleReads ++;
         totalNucleotides += processSingle(&reads[idx]);
       }else{
-        /* If it is potentially a paired read, store it in our buffer, process the pair together when it is complete */
-
-				std::string read_name = string(reads[0].read_name);
-				auto it_read = spare_reads->find(read_name);
-				
-				if(it_read != spare_reads->end()){
-					cPairedReads ++;
-					if (reads[0].core.refID != it_read->second->core.refID) {
-						cChimericReads += 1;
-					} else {
-						if (reads[0].core.pos <= it_read->second->core.pos) {
-							//cout << "procesPair call1" << endl;        
-							totalNucleotides += processPair(&reads[0], &(*(it_read->second)));
-              delete (it_read->second);
-							spare_reads->erase(read_name);
-							spare_reads_count -= 1;
-						}else{
-							//cout << "procesPair call2" << endl;                
-							totalNucleotides += processPair(&(*(it_read->second)), &reads[0]);
-              delete (it_read->second);
-							spare_reads->erase(read_name);
-							spare_reads_count -= 1;
-						}
-					}
-				} else {
-						bam_read_core * store_read = new bam_read_core;
-						*(store_read) = reads[0];
-						spare_reads->insert({read_name, store_read});
-						spare_reads_count += 1;
-				}
+        if(idx == 0 && spare_reads->size() == 0) {
+          // If BAM is sorted by read name, then we don't need read size, simply use old system
+          idx++;
+        } else if(idx == 1 && spare_reads->size() == 0 && 
+            reads[0].core.l_read_name == reads[1].core.l_read_name &&
+            (0 == strncmp(reads[0].read_name, reads[1].read_name, reads[1].core.l_read_name))) {
+          cPairedReads ++;
+          totalNucleotides += processPair(&reads[0], &reads[1]);
+          idx = 0;
+        } else {
+          // Likely a coordinate sorted BAM file:
+          for(unsigned int k = 0; k <= idx; k++) {
+            std::string read_name = string(reads[k].read_name);
+            auto it_read = spare_reads->find(read_name);
+            
+            if(it_read != spare_reads->end()){
+              cPairedReads ++;
+              if (reads[k].core.refID != it_read->second->core.refID) {
+                cChimericReads += 1;
+              } else {
+                if (reads[k].core.pos <= it_read->second->core.pos) {
+                  //cout << "procesPair call1" << endl;        
+                  totalNucleotides += processPair(&reads[k], &(*(it_read->second)));
+                  delete (it_read->second);
+                  spare_reads->erase(read_name);
+                  spare_reads_count -= 1;
+                }else{
+                  //cout << "procesPair call2" << endl;                
+                  totalNucleotides += processPair(&(*(it_read->second)), &reads[k]);
+                  delete (it_read->second);
+                  spare_reads->erase(read_name);
+                  spare_reads_count -= 1;
+                }
+              }
+            } else {
+              bam_read_core * store_read = new bam_read_core;
+              *(store_read) = reads[k];
+              spare_reads->insert({read_name, store_read});
+              spare_reads_count += 1;
+            }
+          }
+          idx = 0;
+        }
       }
     }
 #ifndef GALAXY

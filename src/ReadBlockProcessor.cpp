@@ -566,8 +566,6 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
 
 int FragmentsMap::sort_and_collapse_temp() {
   // Sort temp vectors and append to final:
-
-  
   for(unsigned int j = 0; j < 3; j++) {
     unsigned int refID = 0;
     for (auto itChr=temp_chrName_vec_new[j].begin(); itChr!=temp_chrName_vec_new[j].end(); itChr++) {
@@ -594,7 +592,6 @@ int FragmentsMap::sort_and_collapse_temp() {
       // Clear temporary vector by swap trick
       // empty swap vector
       std::vector< std::pair<unsigned int, int> > empty_swap_vector;
-      // itChr->clear();
       itChr->swap(empty_swap_vector);
       
       refID++;
@@ -607,10 +604,7 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
   if(!final_is_sorted) {
     sort_and_collapse_temp();
     if(verbose)  Rcout << "Performing final sort of fragment maps\n";
-    
-    // assign temp vector
-    // std::vector< std::pair<unsigned int, int> > * temp_vec;
-    
+
     Progress p(3 * chr_count, verbose);
     for(unsigned int j = 0; j < 3; j++) {
       for(unsigned int i = 0; i < chrs.size(); i++) {
@@ -628,7 +622,6 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
         unsigned int   old_loci = 0;       // Current genomic coordinate
         int           depth = 0;       // Current depth of cursor
         int           old_depth = 0;  // Previous depth of cursor
-        // temp_vec = new std::vector< std::pair<unsigned int, int> >;
         
         for(auto it_pos = itChr->begin(); it_pos != itChr->end(); it_pos++) {
           if(it_pos->first != loci) {
@@ -649,7 +642,6 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
           itDest->push_back( std::make_pair(loci, depth) );
         }
         itChr->clear();
-        // delete temp_vec;
         p.increment(1);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
@@ -729,18 +721,15 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
   Progress p(3 * sort_chr_names.size(), verbose);
   unsigned int refID = 0;
   for(unsigned int j = 0; j < 3; j++) {
-    // for (auto itChr=chrName_vec[j].at(chrs.at(refID).refID).begin(); itChr!=chrName_vec[j].at(refID).end(); itChr++) {
     for(unsigned int i = 0; i < sort_chr_names.size(); i++) {
       // refID is reference ID as appears in BAM file; i is the nth chromosome as ordered in alpha order
       refID = chrs[i].refID;
-      // auto itChr = &chrName_vec_new[j].at(refID);
       if(!final_is_sorted) {
         itChr = &chrName_vec_new[j].at(refID);
         std::sort(
           itChr->begin(),
           itChr->end()
         );
-        // temp_vec = new std::vector< std::pair<unsigned int, int> >;
       } else {
         itChr = &chrName_vec_final[j].at(refID);
       }
@@ -874,44 +863,3 @@ int FragmentsMap::WriteOutput(std::ostream *os,
   }
   return 0;
 }
-
-
-// SpansPoint::~SpansPoint() {
-    // chrName_pos.clear();
-    // chrName_count[0].clear();
-    // chrName_count[1].clear();
-// }
-
-// FragmentsInChr::~FragmentsInChr() {
-    // chrName_count.clear();
-// }
-
-// FragmentsMap::~FragmentsMap() {
-
-  // for(unsigned int j = 0; j < 3; j++) {
-    // for(unsigned int i = 0; i < chrs.size(); i++) {
-      // std::vector< std::pair<unsigned int, int> > empty_inner1;
-        // chrName_vec_final[j].at(i).swap(empty_inner1);
-      // std::vector< std::pair<unsigned int, int> > empty_inner2;
-        // chrName_vec_new[j].at(i).swap(empty_inner2);
-      // std::vector< std::pair<unsigned int, int> > empty_inner3;
-        // temp_chrName_vec_new[j].at(i).swap(empty_inner3);
-    // }
-    // std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer1;
-      // chrName_vec_final[j].swap(empty_outer1);
-    // std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer2;
-      // chrName_vec_new[j].swap(empty_outer2);
-    // std::vector< std::vector< std::pair<unsigned int, int> > > empty_outer3;
-      // temp_chrName_vec_new[j].swap(empty_outer3);
-  // }
-// }
-
-
-// FragmentsInROI::~FragmentsInROI() {
-    // RegionID_counter[0].clear();
-    // RegionID_counter[1].clear();
-    // chrName_ROI.clear();
-    // chrName_count[0].clear();
-    // chrName_count[1].clear();
-    // chrName_ROI_text.clear();
-// }
