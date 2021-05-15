@@ -289,9 +289,7 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
             [&cur_chr](const chr_index& obj) {return obj.chr_name == cur_chr;});
           if(it != chrs.end()) {
             refID = it->refID;
-            chr_invalid = false;
           } else {
-            chr_invalid = true;
             refID = chrs.size();
           }
         }
