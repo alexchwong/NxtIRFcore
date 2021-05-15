@@ -285,80 +285,76 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
 	// galaxy
 #endif
 
-#ifndef GALAXY
-// [[Rcpp::export]]
-int IRF_main(std::string bam_file, std::string reference_file, std::string output_file, bool verbose = true){
+// IRFinder reference reader:
+int IRF_ref(std::string &reference_file, 
+    CoverageBlocksIRFinder &CB_template, 
+    SpansPoint &SP_template, 
+    FragmentsInROI &ROI_template,
+    JunctionCount &JC_template, 
+    bool verbose
+) { 
+  GZReader gz_in;
+  int ret = gz_in.LoadGZ(reference_file, true);
+  if(ret != 0) return(-1);
   
-  std::string s_output_txt = output_file + ".txt.gz";
-  std::string s_output_cov = output_file + ".cov";
-#else
-int IRF_main(std::string bam_file, std::string reference_file, std::string s_output_txt, std::string s_output_cov){	
-	bool verbose = true;
-#endif
-
-  std::string s_bam = bam_file;
+  std::string myLine;
+  std::string myBuffer;
   
-  std::string s_ref = reference_file;
-		
-		if(verbose) {
-			Rcout << "Running IRFinder on " << s_bam << "\nReference: " << reference_file << "\n";
-			Rcout << "Output file: " << s_output_txt << "\t" << s_output_cov << "\n\n";
+  getline(gz_in.iss, myLine, '#');    // discard first >
+  getline(gz_in.iss, myLine, '\n');   // ignore file names for now
+  getline(gz_in.iss, myBuffer, '#');  // this is the data block for ref-cover.bed
 
-			Rcout << "Reading reference file\n";
-		}
-
-    
-    GZReader gz_in;
-    int ret = gz_in.LoadGZ(reference_file, true);
-		if(ret != 0) return(-1);
-		
-    std::string myLine;
-    std::string myBuffer;
-    
-    getline(gz_in.iss, myLine, '#');    // discard first >
-    getline(gz_in.iss, myLine, '\n');   // ignore file names for now
-		
-    getline(gz_in.iss, myBuffer, '#');  // this is the data block for ref-cover.bed
-
-  CoverageBlocksIRFinder oCoverageBlocks;
   std::istringstream inCoverageBlocks;
   inCoverageBlocks.str(myBuffer);
-  oCoverageBlocks.loadRef(inCoverageBlocks);
-
+  CB_template.loadRef(inCoverageBlocks);
+  
     getline(gz_in.iss, myLine, '\n');
     getline(gz_in.iss, myBuffer, '#');
 
-  SpansPoint oSpansPoint;
-  oSpansPoint.setSpanLength(5,4);
+  SP_template.setSpanLength(5,4);
   std::istringstream inSpansPoint;
   inSpansPoint.str(myBuffer);
-  oSpansPoint.loadRef(inSpansPoint);
+  SP_template.loadRef(inSpansPoint);
 
-    getline(gz_in.iss, myLine, '\n');
-    getline(gz_in.iss, myBuffer, '#');
-  
-  FragmentsInROI oFragmentsInROI;
-  FragmentsInChr oFragmentsInChr;
+  getline(gz_in.iss, myLine, '\n');
+  getline(gz_in.iss, myBuffer, '#');
 
-    std::istringstream inFragmentsInROI;
-    inFragmentsInROI.str(myBuffer);
-    oFragmentsInROI.loadRef(inFragmentsInROI);
+  std::istringstream inFragmentsInROI;
+  inFragmentsInROI.str(myBuffer);
+  ROI_template.loadRef(inFragmentsInROI);
 
-    getline(gz_in.iss, myLine, '\n');
-    getline(gz_in.iss, myBuffer, '#');
+  getline(gz_in.iss, myLine, '\n');
+  getline(gz_in.iss, myBuffer, '#');
 
-  JunctionCount oJuncCount;
   std::istringstream inJuncCount;
   inJuncCount.str(myBuffer);
-  oJuncCount.loadRef(inJuncCount);
+  JC_template.loadRef(inJuncCount);
 
-	// Ensure valid reference termination:
-		getline(gz_in.iss, myLine, '\n');    
-		if(strncmp(myLine.c_str(), refEOF, 4) != 0) {
-			Rcout << "Invalid IRFinder reference detected\n";
-			return(0);
-		}
-  
+// Ensure valid reference termination:
+  getline(gz_in.iss, myLine, '\n');    
+  if(strncmp(myLine.c_str(), refEOF, 4) != 0) {
+    Rcout << "Invalid IRFinder reference detected\n";
+    return(-1);
+  }
+  return(0);
+}
+
+// IRFinder core:
+int IRF_core(std::string const &bam_file, 
+    std::string const &s_output_txt, std::string const &s_output_cov,
+    CoverageBlocksIRFinder const &CB_template, 
+    SpansPoint const &SP_template, 
+    FragmentsInROI const &ROI_template,
+    JunctionCount const &JC_template, 
+    bool verbose
+) {
+  std::string myLine;
+
+  CoverageBlocksIRFinder oCoverageBlocks(CB_template);
+  SpansPoint oSpansPoint(SP_template);
+  FragmentsInROI oFragmentsInROI(ROI_template);
+  FragmentsInChr oFragmentsInChr;
+  JunctionCount oJuncCount(JC_template);
   FragmentsMap oFragMap;
   
   BAM2blocks BB;
@@ -383,15 +379,16 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
 
 	if(verbose) {  
 		Rcout << "Processing BAM file\n";
-  }  
+  }
+  
   BAMReader inbam;
   std::ifstream inbam_stream;
-  inbam_stream.open(s_bam, std::ios::in | std::ios::binary);
+  inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
   inbam.SetInputHandle(&inbam_stream);
   
   BB.openFile(&inbam); // This file needs to be a decompressed BAM. (setup via fifo / or expect already decompressed via stdin).
   BB.processAll(myLine, verbose);
-	// oFragMap.sort_and_collapse_final(verbose);
+  inbam_stream.close();
 
   // Write Coverage Binary file:
   
@@ -434,7 +431,7 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   std::string myLine_ND;
   std::string myLine_Dir;
   std::string myLine_QC;
-
+  
   oFragmentsInROI.WriteOutput(myLine_ROI, myLine_QC);
 	oJuncCount.WriteOutput(myLine_JC, myLine_QC);
 	oSpansPoint.WriteOutput(myLine_SP, myLine_QC);
@@ -474,9 +471,44 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   outGZ.flush(true);
   out.flush(); out.close();
   
-
-  
   return(0);
+}
+
+#ifndef GALAXY
+// [[Rcpp::export]]
+int IRF_main(std::string bam_file, std::string reference_file, std::string output_file, bool verbose = true){
+  
+  std::string s_output_txt = output_file + ".txt.gz";
+  std::string s_output_cov = output_file + ".cov";
+#else
+int IRF_main(std::string bam_file, std::string reference_file, std::string s_output_txt, std::string s_output_cov){	
+	bool verbose = true;
+#endif
+
+  std::string s_bam = bam_file;
+  std::string s_ref = reference_file;
+		
+  if(verbose) {
+    Rcout << "Running IRFinder on " << s_bam << "\nReference: " << s_ref << "\n";
+    Rcout << "Output file: " << s_output_txt << "\t" << s_output_cov << "\n\n";
+    Rcout << "Reading reference file\n";
+  }
+
+  CoverageBlocksIRFinder CB_template;
+  SpansPoint SP_template;
+  FragmentsInROI ROI_template;
+  JunctionCount JC_template;
+  
+  int ret = 0;
+  
+  ret = IRF_ref(s_ref, CB_template, SP_template, ROI_template, JC_template, verbose);
+  if(ret != 0) return(ret);
+  
+  // main:
+  ret = IRF_core(s_bam, s_output_txt, s_output_cov,
+    CB_template, SP_template, ROI_template, JC_template, verbose);
+  
+  return(ret);
 }
 
 #ifndef GALAXY
@@ -519,171 +551,27 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 
   std::string s_ref = reference_file;
   Rcout << "Reading reference file\n";
-
-	GZReader gz_in;
-	int ret = gz_in.LoadGZ(reference_file, true);
-	if(ret != 0) return(-1);
+  
+  CoverageBlocksIRFinder CB_template;
+  SpansPoint SP_template;
+  FragmentsInROI ROI_template;
+  JunctionCount JC_template;
+  
+  int ret = 0;
+  
+  ret = IRF_ref(s_ref, CB_template, SP_template, ROI_template, JC_template, false);
+  if(ret != 0) return(ret);
 
 	Rcout << "Running IRFinder with OpenMP using " << use_threads << " threads\n";
 	#pragma omp parallel for
   for(unsigned int z = 0; z < v_bam.size(); z++) {
     std::string s_bam = v_bam.at(z);
-    std::string output_file = v_out.at(z);
-
-		std::string s_output_txt = output_file + ".txt.gz";
-		std::string s_output_cov = output_file + ".cov";
+		std::string s_output_txt = v_out.at(z) + ".txt.gz";
+		std::string s_output_cov = v_out.at(z) + ".cov";
 		
-    std::string myLine;
-    std::string myBuffer;
-    
-		std::istringstream iss(gz_in.iss.str());
-		
-    getline(iss, myLine, '>');    // discard first >
-    getline(iss, myLine, '\n');   // ignore file names for now
-    getline(iss, myBuffer, '>');  // this is the data block for ref-cover.bed
-
-		CoverageBlocksIRFinder oCoverageBlocks;
-		std::istringstream inCoverageBlocks;
-		inCoverageBlocks.str(myBuffer);
-		oCoverageBlocks.loadRef(inCoverageBlocks);
-
-		getline(iss, myLine, '\n');
-		getline(iss, myBuffer, '>');
-
-		SpansPoint oSpansPoint;
-		oSpansPoint.setSpanLength(5,4);
-		std::istringstream inSpansPoint;
-		inSpansPoint.str(myBuffer);
-		oSpansPoint.loadRef(inSpansPoint);
-
-		getline(iss, myLine, '\n');
-		getline(iss, myBuffer, '>');
-		
-		FragmentsInROI oFragmentsInROI;
-		FragmentsInChr oFragmentsInChr;
-
-		std::istringstream inFragmentsInROI;
-		inFragmentsInROI.str(myBuffer);
-		oFragmentsInROI.loadRef(inFragmentsInROI);
-
-		getline(iss, myLine, '\n');
-		getline(iss, myBuffer, '>');
-
-		JunctionCount oJuncCount;
-		std::istringstream inJuncCount;
-		inJuncCount.str(myBuffer);
-		oJuncCount.loadRef(inJuncCount);
-		
-		FragmentsMap oFragMap;
-		
-		BAM2blocks BB;
-  
-		BB.registerCallbackChrMappingChange( std::bind(&JunctionCount::ChrMapUpdate, &oJuncCount, std::placeholders::_1) );
-		BB.registerCallbackProcessBlocks( std::bind(&JunctionCount::ProcessBlocks, &oJuncCount, std::placeholders::_1) );
-		
-		BB.registerCallbackChrMappingChange( std::bind(&FragmentsInChr::ChrMapUpdate, &oFragmentsInChr, std::placeholders::_1) );
-		BB.registerCallbackProcessBlocks( std::bind(&FragmentsInChr::ProcessBlocks, &oFragmentsInChr, std::placeholders::_1) );
-		
-		BB.registerCallbackChrMappingChange( std::bind(&SpansPoint::ChrMapUpdate, &oSpansPoint, std::placeholders::_1) );
-		BB.registerCallbackProcessBlocks( std::bind(&SpansPoint::ProcessBlocks, &oSpansPoint, std::placeholders::_1) );
-		
-		BB.registerCallbackChrMappingChange( std::bind(&FragmentsInROI::ChrMapUpdate, &oFragmentsInROI, std::placeholders::_1) );
-		BB.registerCallbackProcessBlocks( std::bind(&FragmentsInROI::ProcessBlocks, &oFragmentsInROI, std::placeholders::_1) );
-		
-		BB.registerCallbackChrMappingChange( std::bind(&CoverageBlocks::ChrMapUpdate, &oCoverageBlocks, std::placeholders::_1) );
-		BB.registerCallbackProcessBlocks( std::bind(&CoverageBlocks::ProcessBlocks, &oCoverageBlocks, std::placeholders::_1) );
-
-		BB.registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &oFragMap, std::placeholders::_1) );
-		BB.registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &oFragMap, std::placeholders::_1) );
-		
-		BAMReader inbam;
-		std::ifstream inbam_stream;
-		inbam_stream.open(s_bam, std::ios::in | std::ios::binary);
-		inbam.SetInputHandle(&inbam_stream);
-		
-		Rcout << "Processing " << s_bam << "\n";
-		
-		BB.openFile(&inbam); // This file needs to be a decompressed BAM. (setup via fifo / or expect already decompressed via stdin).
-		BB.processAll(myLine, false);
-
-		// Write Coverage Binary file:
-		
-		std::ofstream ofCOV;
-		ofCOV.open(s_output_cov, std::ofstream::binary);
-		 
-		covFile outCOV;
-		outCOV.SetOutputHandle(&ofCOV);
-		
-		oFragMap.WriteBinary(&outCOV);
-		ofCOV.close();	
-		
-		std::ofstream out;
-		out.open(s_output_txt, std::ios::binary);
-
-	// GZ compression:
-		GZWriter outGZ;
-		outGZ.SetOutputHandle(&out);
-
-	// Write stats here:
-
-		outGZ.writeline("BAM_report\tValue");
-		outGZ.writestring(myLine);
-		outGZ.writeline("");
-
-		int directionality = oJuncCount.Directional(myLine);
-		outGZ.writeline("Directionality\tValue");
-		outGZ.writestring(myLine);
-		outGZ.writeline("");
-
-		// Generate output but save this to strings:
-		std::string myLine_ROI;
-		std::string myLine_JC;
-		std::string myLine_SP;
-		std::string myLine_Chr;
-		std::string myLine_ND;
-		std::string myLine_Dir;
-		std::string myLine_QC;
-
-		oFragmentsInROI.WriteOutput(myLine_ROI, myLine_QC);
-		oJuncCount.WriteOutput(myLine_JC, myLine_QC);
-		oSpansPoint.WriteOutput(myLine_SP, myLine_QC);
-		oFragmentsInChr.WriteOutput(myLine_Chr, myLine_QC);
-		oCoverageBlocks.WriteOutput(myLine_ND, myLine_QC, oJuncCount, oSpansPoint, oFragMap);
-		if (directionality != 0) {
-			oCoverageBlocks.WriteOutput(myLine_Dir, myLine_QC, oJuncCount, oSpansPoint, oFragMap, directionality); // Directional.
-		}
-
-		outGZ.writeline("QC\tValue");
-		outGZ.writestring(myLine_QC);
-		outGZ.writeline("");
-		
-		outGZ.writeline("ROIname\ttotal_hits\tpositive_strand_hits\tnegative_strand_hits");
-		outGZ.writestring(myLine_ROI);
-		outGZ.writeline("");
-		
-		outGZ.writeline("JC_seqname\tstart\tend\tstrand\ttotal\tpos\tneg");
-		outGZ.writestring(myLine_JC);
-		outGZ.writeline("");
-		
-		outGZ.writeline("SP_seqname\tcoord\ttotal\tpos\tneg");
-		outGZ.writestring(myLine_SP);
-		outGZ.writeline("");
-		
-		outGZ.writeline("ChrCoverage_seqname\ttotal\tpos\tneg");
-		outGZ.writestring(myLine_Chr);
-		outGZ.writeline("");
-		
-		outGZ.writestring(myLine_ND);
-		outGZ.writeline("");
-		
-		if (directionality != 0) {
-			outGZ.writestring(myLine_Dir);
-			outGZ.writeline("");
-		}
-		outGZ.flush(true);
-		out.flush(); out.close();
-		
-	
+    int ret2 = IRF_core(s_bam, s_output_txt, s_output_cov,
+      CB_template, SP_template, ROI_template, JC_template, false);
+    if(ret2 != 0) Rcout << "Error occurred running IRFinder on " << s_bam << '\n';
 	}
 
 	return(0);
