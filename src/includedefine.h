@@ -22,6 +22,20 @@
 #include <chrono>
 #include <thread>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+// [[Rcpp::export]]
+int Has_OpenMP() {
+#ifdef _OPENMP
+	return omp_get_max_threads();
+#else
+	return 0;
+#endif
+}
+
+
 //__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
 
 
@@ -72,6 +86,45 @@ union stream_uint16 {
 inline bool operator< (const chr_entry& lhs, const chr_entry& rhs){
   return lhs.chr_name < rhs.chr_name;
 }
+
+union bam_header {
+  char c[8];
+  struct {
+    char magic[4];
+    int32_t l_text;
+  } magic;
+};
+
+// TODO -- are structs best hidden inside the class? Does doing so push them into namespace of the class only?
+struct bam_read_core {
+  union {
+    char c_block_size[4];
+    uint32_t block_size;
+  };    
+  union {
+    char c[32];
+    struct {
+    // uint32_t block_size;
+    int32_t refID;
+    int32_t pos;
+    uint8_t l_read_name;
+    uint8_t mapq;
+    uint16_t bin;
+    uint16_t n_cigar_op;
+    uint16_t flag;
+    uint32_t l_seq;
+    int32_t next_refID;
+    int32_t next_pos;
+    int32_t tlen;
+    } core; // anonymous struct is now named.
+  };
+  char read_name[256];
+  union {
+    char cigar_buffer[2000];
+    uint32_t cigar[500];
+  };
+};
+
 
 
 #endif

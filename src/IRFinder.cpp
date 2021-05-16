@@ -8,18 +8,6 @@
 
 #ifndef GALAXY
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-// [[Rcpp::export]]
-int Has_OpenMP() {
-#ifdef _OPENMP
-	return omp_get_max_threads();
-#else
-	return 0;
-#endif
-}
 
 const char refEOF[5] =
 		"\x20\x45\x4f\x46";

@@ -257,7 +257,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 	std::ostringstream oss;
 #ifndef GALAXY
   uint64_t prev_bam_pos = IN->tellg();	// For progress bar
-	Progress p(IN->IS_LENGTH, verbose);
+	Progress p(IN->GetLength(), verbose);
 #endif
 
 	// Use map pointer spare_reads:

@@ -15,8 +15,16 @@ BAMReader::BAMReader() {
     IS_EOF = 0;
     IS_FAIL = 0;
     IS_LENGTH = 0;
+    
+    buffer = (char*)malloc(65536);
+    compressed_buffer = (char*)malloc(65536);
 }
 
+// Destructor
+BAMReader::~BAMReader() {
+  free(buffer);
+  free(compressed_buffer);
+}
 
 void BAMReader::SetInputHandle(std::istream *in_stream) {
 	IN = in_stream;
@@ -111,53 +119,52 @@ int BAMReader::LoadBuffer() {
     return(ret);
 }
 
-int BAMReader::read(char * dest, unsigned int len) {
+int BAMReader::read(char * dest, unsigned int len) {  
+  unsigned int remaining_bytes = 0;
+  unsigned int dest_pos = 0;
   
-    unsigned int remaining_bytes = 0;
-    unsigned int dest_pos = 0;
-    
-    int ret = 0;
-    // Initialisation if buffer empty
-    if(bufferMax == 0 || bufferPos == bufferMax) {
-        ret = LoadBuffer();
-        if(ret != 0) {
-          return(ret);
-        }
+  int ret = 0;
+  // Initialisation if buffer empty
+  if(bufferMax == 0 || bufferPos == bufferMax) {
+    ret = LoadBuffer();
+    if(ret != 0) {
+      return(ret);
     }
-    
-    if (len < bufferMax - bufferPos) {
-        memcpy(&dest[0], &buffer[bufferPos], len);
-        bufferPos += len;
-        return(Z_OK);
-    } else {
-        remaining_bytes = len - (bufferMax - bufferPos);
+  }
+  
+  if (len < bufferMax - bufferPos) {
+    memcpy(&dest[0], &buffer[bufferPos], len);
+    bufferPos += len;
+    return(Z_OK);
+  } else {
+    remaining_bytes = len - (bufferMax - bufferPos);
 
-        memcpy(&dest[dest_pos], &buffer[bufferPos], bufferMax - bufferPos);
-        dest_pos += bufferMax - bufferPos;
-        bufferMax = 0;
-        bufferPos = 0;        
-        ret = LoadBuffer();
-        if(ret != 0) {
-          return(ret);
-        }
-
-        while(remaining_bytes > bufferMax) {
-          memcpy(&dest[dest_pos], &buffer[0], bufferMax);
-          remaining_bytes -= bufferMax;
-          dest_pos += bufferMax;
-          bufferMax = 0;
-          bufferPos = 0;
-          ret = LoadBuffer();
-          if(ret != 0 || bufferMax == 0) {
-            return(ret);
-          }
-        }
-        
-        memcpy(&dest[dest_pos], &buffer[bufferPos], remaining_bytes);
-        bufferPos += remaining_bytes;
-        dest_pos += remaining_bytes;
+    memcpy(&dest[dest_pos], &buffer[bufferPos], bufferMax - bufferPos);
+    dest_pos += bufferMax - bufferPos;
+    bufferMax = 0;
+    bufferPos = 0;        
+    ret = LoadBuffer();
+    if(ret != 0) {
+      return(ret);
     }
-    return(0);
+
+    while(remaining_bytes > bufferMax) {
+      memcpy(&dest[dest_pos], &buffer[0], bufferMax);
+      remaining_bytes -= bufferMax;
+      dest_pos += bufferMax;
+      bufferMax = 0;
+      bufferPos = 0;
+      ret = LoadBuffer();
+      if(ret != 0 || bufferMax == 0) {
+        return(ret);
+      }
+    }
+      
+    memcpy(&dest[dest_pos], &buffer[bufferPos], remaining_bytes);
+    bufferPos += remaining_bytes;
+    dest_pos += remaining_bytes;
+  }
+  return(0);
 }
 
 int BAMReader::ignore(unsigned int len) {
