@@ -16,6 +16,8 @@ covFile::covFile() {
     
     mode = "";
     chr_index = NULL;
+    compressed_buffer = (char*)malloc(65536);
+    buffer = (char*)malloc(65536);
 }
 
 covBuffer::covBuffer() {
@@ -25,6 +27,8 @@ covBuffer::covBuffer() {
     file_bufferPos = 0;
     
     file_buffer = NULL;
+    compressed_buffer = (char*)malloc(65536);
+    buffer = (char*)malloc(65536);
 }
 
 // Destructor
@@ -32,12 +36,16 @@ covFile::~covFile() {
   if(chr_index != NULL) {
     free(chr_index);
   }
+  free(buffer);
+  free(compressed_buffer);
 }
 
 covBuffer::~covBuffer() {
   if(file_buffer != NULL) {
     free(file_buffer);
   }
+  free(buffer);
+  free(compressed_buffer);
 }
 
 // covBuffer functions
@@ -631,7 +639,7 @@ int covFile::FlushBody() {
   
   body.WriteBuffer();
 
-  OUT->write(body.file_buffer, body.file_bufferPos);
+  OUT->write(body.get_buffer_ptr(), body.get_buffer_pos());
   OUT->write(covFile::bamEOF, covFile::bamEOFlength);
   
   OUT->flush();
@@ -679,7 +687,7 @@ int covFile::WriteHeader(std::vector<std::string> s_chr, std::vector<int32_t> u_
   u32.u = chr_coord;                              // should equal zero
   memcpy(&chr_index[chr_index_pos], u32.c, 4);
   chr_index_pos += 4;
-  u64.u = body.file_bufferPos;                    // should equal zero
+  u64.u = body.get_buffer_pos();                    // should equal zero
   memcpy(&chr_index[chr_index_pos], u64.c, 8);
   chr_index_pos += 8;
   
@@ -724,7 +732,7 @@ int covFile::WriteEntry(unsigned int seqID, int value, unsigned int length) {
     u32.u = chr_coord;
     memcpy(&chr_index[chr_index_pos], u32.c, 4);
     chr_index_pos += 4;
-    u64.u = body.file_bufferPos;
+    u64.u = body.get_buffer_pos();
     memcpy(&chr_index[chr_index_pos], u64.c, 8);
     chr_index_pos += 8;    
   }
@@ -746,7 +754,7 @@ int covFile::WriteEntry(unsigned int seqID, int value, unsigned int length) {
     u32.u = chr_coord;      // The begin coordinate of the next bgzf block
     memcpy(&chr_index[chr_index_pos], u32.c, 4);
     chr_index_pos += 4;
-    u64.u = body.file_bufferPos;        // the file offset of the next bgzf block
+    u64.u = body.get_buffer_pos();        // the file offset of the next bgzf block
     memcpy(&chr_index[chr_index_pos], u64.c, 8);
     chr_index_pos += 8;
   }

@@ -83,18 +83,29 @@ List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end,
   }
   
   // Find corresponding seqname
-  int ref_index;
-  auto it_chr = std::find(inCov.chr_names.begin(), inCov.chr_names.end(), seqname);
-  if(it_chr == inCov.chr_names.end()) {
-		inCov_stream.close();	
-    return(NULL_RLE);
-  } else {
-    ref_index = distance(inCov.chr_names.begin(), it_chr);
+  unsigned int ref_index;
+  std::vector<chr_entry> chrs;
+  inCov.GetChrs(chrs);
+  while(0 != seqname.compare(0, seqname.size(), chrs.at(ref_index).chr_name)) {
+    if(ref_index == chrs.size()) break;
+    ref_index++;
   }
+  if(ref_index == chrs.size()) {
+    inCov_stream.close();	
+    return(NULL_RLE);
+  }
+  
+  // auto it_chr = std::find(inCov.chr_names.begin(), inCov.chr_names.end(), seqname);
+  // if(it_chr == inCov.chr_names.end()) {
+		// inCov_stream.close();	
+    // return(NULL_RLE);
+  // } else {
+    // ref_index = distance(inCov.chr_names.begin(), it_chr);
+  // }
   // end = 0 implies fetch whole chromosome
   int eff_end = 0;
   if(end == 0) {
-    eff_end = (int)inCov.chr_lens.at(ref_index);
+    eff_end = chrs.at(ref_index).chr_len;
   } else {
     eff_end = end;
   }
@@ -109,9 +120,9 @@ List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end,
 
   inCov_stream.close();
   // Push last value
-  if((uint32_t)eff_end < inCov.chr_lens.at(ref_index)) {
+  if((uint32_t)eff_end < (uint32_t)chrs.at(ref_index).chr_len) {
     values.push_back(0);
-    lengths.push_back(inCov.chr_lens.at(ref_index) - eff_end);
+    lengths.push_back((uint32_t)chrs.at(ref_index).chr_len - eff_end);
   }
     
   List RLE = List::create(
@@ -153,20 +164,23 @@ List IRF_RLEList_From_Cov(std::string s_in, int strand) {
     return(NULL_RLE);
   }
   
-  for (unsigned int i = 0; i < inCov.chr_names.size(); i++) {
-    uint32_t eff_end = inCov.chr_lens.at(i);
+  std::vector<chr_entry> chrs;
+  inCov.GetChrs(chrs);
+
+  for (unsigned int i = 0; i < chrs.size(); i++) {
+    uint32_t eff_end = chrs.at(i).chr_len;
     uint32_t start = 0;
     
     std::vector<int> values;
     std::vector<unsigned int> lengths;
 
-    inCov.FetchRLE(inCov.chr_names.at(i), (uint32_t)start, (uint32_t)eff_end, strand, &values, &lengths);
+    inCov.FetchRLE(chrs.at(i).chr_name, (uint32_t)start, (uint32_t)eff_end, strand, &values, &lengths);
     
     List RLE = List::create(
       _["values"] = values,
       _["lengths"] = lengths 
     );
-    RLEList.push_back(RLE, inCov.chr_names.at(i));
+    RLEList.push_back(RLE, chrs.at(i).chr_name);
   }
 
   inCov_stream.close();
@@ -348,7 +362,7 @@ int IRF_core(std::string const &bam_file,
     SpansPoint const &SP_template, 
     FragmentsInROI const &ROI_template,
     JunctionCount const &JC_template, 
-    bool verbose
+    bool const verbose
 ) {
   std::string myLine;
 
@@ -388,7 +402,7 @@ int IRF_core(std::string const &bam_file,
   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
   inbam.SetInputHandle(&inbam_stream);
   
-  BB.openFile(&inbam); // This file needs to be a decompressed BAM. (setup via fifo / or expect already decompressed via stdin).
+  BB.openFile(&inbam); // This file needs to be a decompressed BAM. fifo / or expect already decompressed via stdin).
   BB.processAll(myLine, verbose);
   inbam_stream.close();
 
@@ -559,14 +573,14 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
   std::string s_ref = reference_file;
   Rcout << "Reading reference file\n";
   
-  CoverageBlocksIRFinder CB_template;
-  SpansPoint SP_template;
-  FragmentsInROI ROI_template;
-  JunctionCount JC_template;
+  CoverageBlocksIRFinder * CB_template = new CoverageBlocksIRFinder;
+  SpansPoint * SP_template = new SpansPoint;
+  FragmentsInROI * ROI_template = new FragmentsInROI;
+  JunctionCount * JC_template = new JunctionCount;
   
   int ret = 0;
   
-  ret = IRF_ref(s_ref, CB_template, SP_template, ROI_template, JC_template, false);
+  ret = IRF_ref(s_ref, *CB_template, *SP_template, *ROI_template, *JC_template, false);
   if(ret != 0) return(ret);
 
 	Rcout << "Running IRFinder with OpenMP using " << use_threads << " threads\n";
@@ -577,7 +591,7 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		std::string s_output_cov = v_out.at(z) + ".cov";
 		
     int ret2 = IRF_core(s_bam, s_output_txt, s_output_cov,
-      CB_template, SP_template, ROI_template, JC_template, false);
+      *CB_template, *SP_template, *ROI_template, *JC_template, false);
     if(ret2 != 0) Rcout << "Error occurred running IRFinder on " << s_bam << '\n';
 	}
 
