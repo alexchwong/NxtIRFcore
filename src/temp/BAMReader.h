@@ -36,7 +36,7 @@ class BAMReader {
     int ignore(unsigned int len);
     int LoadBuffer();
     
-    size_t GetLength() { return(IS_LENGTH) };
+    size_t GetLength() { return(IS_LENGTH); };
     
     void SetInputHandle(std::istream *in_stream);
     

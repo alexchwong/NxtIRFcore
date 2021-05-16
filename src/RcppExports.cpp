@@ -78,8 +78,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // IRF_main
-int IRF_main(std::string bam_file, std::string reference_file, std::string output_file, bool verbose);
-RcppExport SEXP _NxtIRF_IRF_main(SEXP bam_fileSEXP, SEXP reference_fileSEXP, SEXP output_fileSEXP, SEXP verboseSEXP) {
+int IRF_main(std::string bam_file, std::string reference_file, std::string output_file, bool verbose, int n_threads);
+RcppExport SEXP _NxtIRF_IRF_main(SEXP bam_fileSEXP, SEXP reference_fileSEXP, SEXP output_fileSEXP, SEXP verboseSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -87,7 +87,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type reference_file(reference_fileSEXP);
     Rcpp::traits::input_parameter< std::string >::type output_file(output_fileSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(IRF_main(bam_file, reference_file, output_file, verbose));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(IRF_main(bam_file, reference_file, output_file, verbose, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -143,7 +144,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_NxtIRF_IRF_RLEList_From_Cov", (DL_FUNC) &_NxtIRF_IRF_RLEList_From_Cov, 2},
     {"_NxtIRF_IRF_gunzip", (DL_FUNC) &_NxtIRF_IRF_gunzip, 2},
     {"_NxtIRF_IRF_gunzip_DF", (DL_FUNC) &_NxtIRF_IRF_gunzip_DF, 2},
-    {"_NxtIRF_IRF_main", (DL_FUNC) &_NxtIRF_IRF_main, 4},
+    {"_NxtIRF_IRF_main", (DL_FUNC) &_NxtIRF_IRF_main, 5},
     {"_NxtIRF_IRF_main_multithreaded", (DL_FUNC) &_NxtIRF_IRF_main_multithreaded, 4},
     {"_NxtIRF_IRF_GenerateMappabilityReads", (DL_FUNC) &_NxtIRF_IRF_GenerateMappabilityReads, 5},
     {"_NxtIRF_IRF_GenerateMappabilityRegions", (DL_FUNC) &_NxtIRF_IRF_GenerateMappabilityRegions, 5},

@@ -269,7 +269,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 	
 	while(1) {
 		ret |= IN->read(reads[idx].c_block_size, 4);
-		if (IN->eof()) {
+		if (IN->eob()) {
       cErrorReads = spare_reads_count;
 			oss << "Total reads processed\t" << j-1 << '\n';
 			oss << "Total nucleotides\t" << totalNucleotides << '\n';
@@ -387,9 +387,9 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 
 
 
-void BAM2blocks::openFile(BAMReader * _IN) {
+void BAM2blocks::openFile(BAMReader_Multi * _IN) {
 	IN = _IN;
-  	readBamHeader(); // readBamHeader needs to call the ChrMappingChange callbacks.
+  readBamHeader(); // readBamHeader needs to call the ChrMappingChange callbacks.
 }
 
 void BAM2blocks::registerCallbackChrMappingChange( std::function<void(const std::vector<chr_entry> &)> callback ) {

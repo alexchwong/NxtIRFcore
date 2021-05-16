@@ -207,7 +207,7 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
   BB.registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &oFragMap, std::placeholders::_1) );
   BB.registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &oFragMap, std::placeholders::_1) );
   
-  BAMReader inbam;
+  BAMReader_Multi inbam(1);
   std::ifstream inbam_stream;
   if(bam_file == "-") {
     inbam.SetInputHandle(&std::cin);        

@@ -3,7 +3,7 @@
 
 #include "FragmentBlocks.h"
 
-#include "BAMReader.h"
+#include "BAMReader_Multi.h"
 
 
 /* Little Endian .. for big endian each group of 4 bytes needs to be reversed before individual members are accessed. */
@@ -34,7 +34,7 @@ class BAM2blocks {
 
 	bam_read_core reads[2];
 
-	BAMReader * IN;
+	BAMReader_Multi * IN;
 
 	void cigar2block(uint32_t * cigar, uint16_t n_cigar_op, std::vector<int> &starts, std::vector<int> &lens, int &ret_genome_len);
 
@@ -43,7 +43,7 @@ class BAM2blocks {
 
   public:
   	BAM2blocks();
-  	void openFile(BAMReader * _IN);
+  	void openFile(BAMReader_Multi * _IN);
   	void readBamHeader();  // implied by openFile. So perhaps should be private.
   	int processAll(std::string& output, bool threaded = false);
 

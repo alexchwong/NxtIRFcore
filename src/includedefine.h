@@ -26,16 +26,6 @@
 #include <omp.h>
 #endif
 
-// [[Rcpp::export]]
-int Has_OpenMP() {
-#ifdef _OPENMP
-	return omp_get_max_threads();
-#else
-	return 0;
-#endif
-}
-
-
 //__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
 
 
