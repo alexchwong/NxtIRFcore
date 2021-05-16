@@ -7,7 +7,7 @@ test_that("NxtIRF pipeline reproduces NxtSE object", {
     IRFinder(bams$BAM, bams$sample,
         reference_path = file.path(tempdir(), "Reference"),
         output_path = file.path(tempdir(), "IRFinder_output"),
-        overwrite = TRUE
+        overwrite = TRUE, n_threads = 1
     )
     expr <- Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
     CollateData(expr, 
