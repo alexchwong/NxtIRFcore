@@ -8,6 +8,15 @@
 
 #ifndef GALAXY
 
+// [[Rcpp::export]]
+int Has_OpenMP() {
+#ifdef _OPENMP
+	return omp_get_max_threads();
+#else
+	return 0;
+#endif
+}
+
 
 const char refEOF[5] =
 		"\x20\x45\x4f\x46";
@@ -349,8 +358,9 @@ int IRF_core(std::string const &bam_file,
     CoverageBlocksIRFinder const &CB_template, 
     SpansPoint const &SP_template, 
     FragmentsInROI const &ROI_template,
-    JunctionCount const &JC_template, 
-    bool const verbose
+    JunctionCount const &JC_template,
+    bool const verbose,
+    int n_threads = 1
 ) {
   std::string myLine;
 
@@ -385,12 +395,13 @@ int IRF_core(std::string const &bam_file,
 		Rcout << "Processing BAM file\n";
   }
   
-  BAMReader inbam;
+  BAMReader_Multi inbam(n_threads); // Rcout << "BAMReader_Multi created\n";
   std::ifstream inbam_stream;
   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
-  inbam.SetInputHandle(&inbam_stream);
+  inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";
   
-  BB.openFile(&inbam); // This file needs to be a decompressed BAM. fifo / or expect already decompressed via stdin).
+  BB.openFile(&inbam); // Rcout << "BAMReader_Multi header read\n";
+  // This file needs to be a decompressed BAM. fifo / or expect already decompressed via stdin).
   BB.processAll(myLine, verbose);
   inbam_stream.close();
 
@@ -480,13 +491,14 @@ int IRF_core(std::string const &bam_file,
 
 #ifndef GALAXY
 // [[Rcpp::export]]
-int IRF_main(std::string bam_file, std::string reference_file, std::string output_file, bool verbose = true){
+int IRF_main(std::string bam_file, std::string reference_file, std::string output_file, bool verbose = true, int n_threads = 1){
   
   std::string s_output_txt = output_file + ".txt.gz";
   std::string s_output_cov = output_file + ".cov";
 #else
 int IRF_main(std::string bam_file, std::string reference_file, std::string s_output_txt, std::string s_output_cov){	
-	bool verbose = true;
+	int n_threads = 1;
+  bool verbose = true;
 #endif
 
   std::string s_bam = bam_file;
@@ -510,7 +522,7 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   
   // main:
   ret = IRF_core(s_bam, s_output_txt, s_output_cov,
-    *CB_template, *SP_template, *ROI_template, *JC_template, verbose);
+    *CB_template, *SP_template, *ROI_template, *JC_template, verbose, n_threads);
   
   delete CB_template;
   delete SP_template;

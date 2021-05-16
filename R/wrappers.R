@@ -58,12 +58,12 @@
                 BPPARAM = BPPARAM_mod
             )
         }
-    }
+    # }
     if(run_featureCounts == TRUE) {
         .irfinder_run_featureCounts(reference_path, output_files, 
             s_bam, n_threads)
     }
-# }
+}
 
 .irfinder_run_single <- function(bam, ref, out, verbose, overwrite) {
     file_gz = paste0(out, ".txt.gz")
