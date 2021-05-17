@@ -222,6 +222,9 @@ int CoverageBlocks::WriteOutput(std::string& output, const FragmentsMap &FM) con
 	return 0;
 }
 
+void CoverageBlocksIRFinder::Combine(CoverageBlocksIRFinder &child) {
+  // do nothing; combining not necessary
+}
 
 int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, const JunctionCount &JC, const SpansPoint &SP, const FragmentsMap &FM, int directionality) const {
     std::ostringstream oss; std::ostringstream oss_qc; 

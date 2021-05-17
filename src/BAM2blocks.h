@@ -51,8 +51,8 @@ class BAM2blocks {
     void registerCallbackProcessBlocks( std::function<void(const FragmentBlocks &)> callback );
 
     std::string samHeader;
-    std::vector<std::string> chr_names;   //tab terminated chromosome names.
-    std::vector<int32_t> chr_lens;	//length of each chromosome (not used when reading, used if optionally outputting an altered BAM file)
+    // std::vector<std::string> chr_names;   //tab terminated chromosome names.
+    // std::vector<int32_t> chr_lens;	//length of each chromosome (not used when reading, used if optionally outputting an altered BAM file)
 
     std::vector<chr_entry> chrs;
 };

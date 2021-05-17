@@ -33,17 +33,19 @@ class buffer_chunk {
 class BAMReader_Multi {
 	private:
     // Each thread will load n_bgzf BGZF blocks; 100 BGZF blocks ~ 6 Mb decompressed
-    static const int n_bgzf = 1000;  
+    int n_bgzf = 1;  
+    static const int BAM_HEADER_BYTES = 8;
+    static const int BAM_READ_CORE_BYTES = 36;
     
     istream * IN;
     int IS_EOF;
     int IS_EOB;   // End of file AND buffer
     int IS_FAIL;
     size_t IS_LENGTH;
-
-    int n_threads = 1;
+    size_t BAM_READS_BEGIN;
     
-    bam_header Header;
+    int n_threads = 1;
+ 
 
     std::vector<buffer_chunk> buffer;
 
@@ -60,7 +62,10 @@ class BAMReader_Multi {
     
     int SetThreads(int threads_to_use);
     void SetInputHandle(std::istream *in_stream);
-
+    void readBamHeader();
+    void fillChrs(std::vector<chr_entry> &chrs);
+    void ProfileBAM(std::vector<uint64_t> &begin, std::vector<unsigned int> &first_read_offsets, int target_n_threads);
+    
     unsigned int read(char * dest, unsigned int len);  // returns the number of bytes actually read
     unsigned int ignore(unsigned int len);
 
@@ -71,4 +76,6 @@ class BAMReader_Multi {
     streamsize gcount();
 
     size_t GetLength() { return(IS_LENGTH); };
+    
+    std::vector<chr_entry> chrs;
 };
