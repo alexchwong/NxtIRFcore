@@ -89,7 +89,34 @@ void JunctionCount::ProcessBlocks(const FragmentBlocks &blocks) {
       }
     }
   }
+}
 
+void JunctionCount::Combine(const JunctionCount &child) {
+  for(unsigned int j = 0; j < 2; j++) {
+    for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
+      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
+        // Summate elements in child into parent with each key:
+        itPos->second[j] += child.lookup(itChr->first, itPos->first.first, itPos->first.second, j);
+      }
+      // Insert entries from child that do not exist in parent
+      itChr->second.insert(child.chrName_junc_count.at(itChr->first).begin(),
+        child.chrName_junc_count.at(itChr->first).end());
+    }
+    for (auto itChr=chrName_juncLeft_count.begin(); itChr!=chrName_juncLeft_count.end(); itChr++) {
+      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
+        itPos->second[j] += child.lookupLeft(itChr->first, itPos->first, j);
+      }
+      itChr->second.insert(child.chrName_juncLeft_count.at(itChr->first).begin(),
+        child.chrName_juncLeft_count.at(itChr->first).end());
+    }
+    for (auto itChr=chrName_juncRight_count.begin(); itChr!=chrName_juncRight_count.end(); itChr++) {
+      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
+        itPos->second[j] += child.lookupRight(itChr->first, itPos->first, j);
+      }
+      itChr->second.insert(child.chrName_juncRight_count.at(itChr->first).begin(),
+        child.chrName_juncRight_count.at(itChr->first).end());
+    }
+  }
 }
 
 int JunctionCount::WriteOutput(std::string& output, std::string& QC) const {
@@ -317,6 +344,16 @@ void SpansPoint::ProcessBlocks(const FragmentBlocks &blocks) {
   }
 }
 
+void SpansPoint::Combine(const SpansPoint &child) {
+  for(unsigned int j = 0; j < 2; j++) {
+    for (auto itChr=chrName_count[j].begin(); itChr!=chrName_count[j].end(); itChr++) {
+      for(unsigned int i = 0; i < itChr->second.size(); i++) {
+        itChr->second.at(i) += child.chrName_count[j].at(itChr->first).at(i);
+      }
+    }
+  }
+}
+
 
 void SpansPoint::loadRef(std::istringstream &IN) {
   // TODO: will we ever want to store some additional info -- eg: String name of each position? Not right now.
@@ -417,6 +454,14 @@ int FragmentsInROI::WriteOutput(std::string& output, std::string& QC) const {
   return 0;
 }
 
+void FragmentsInROI::Combine(const FragmentsInROI &child) {
+  for(unsigned int j = 0; j < 2; j++) {
+    for (auto itChr=RegionID_counter[j].begin(); itChr!=RegionID_counter[j].end(); itChr++) {
+      itChr->second += child.RegionID_counter[j].at(itChr->first);
+    }
+  }
+}
+
 void FragmentsInROI::loadRef(std::istringstream &IN) {
 
   std::string myLine;
@@ -502,6 +547,14 @@ void FragmentsInChr::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
   }
 }
 
+void FragmentsInChr::Combine(const FragmentsInChr &child) {
+  for (auto itChr=chrName_count.begin(); itChr!=chrName_count.end(); itChr++) {
+    for(unsigned int i = 0; i < itChr->second.size(); i++) {
+      itChr->second.at(i) += child.chrName_count.at(itChr->first).at(i);
+    }
+  }
+}
+
 int FragmentsInChr::WriteOutput(std::string& output, std::string& QC) const {
   std::ostringstream oss; std::ostringstream oss_QC;
   int count_Mito = 0; int count_ERCC = 0;
@@ -569,30 +622,31 @@ int FragmentsMap::sort_and_collapse_temp() {
     unsigned int refID = 0;
     for (auto itChr=temp_chrName_vec_new[j].begin(); itChr!=temp_chrName_vec_new[j].end(); itChr++) {
       // sort
-      std::sort(
-        itChr->begin(),
-        itChr->end()
-      );
+      if(itChr->size() > 0) {
+        std::sort(
+          itChr->begin(),
+          itChr->end()
+        );
 
-      unsigned int loci = 0;
-      int accum = 0;
-      for(auto it_pos = itChr->begin(); it_pos != itChr->end(); it_pos++) {
-        if(it_pos->first != loci) {
-          if(accum != 0) chrName_vec_new[j].at(refID).push_back( std::make_pair(loci, accum) );
-          loci = it_pos->first;
-          accum = it_pos->second;
-        } else {
-          accum += it_pos->second;
+        unsigned int loci = 0;
+        int accum = 0;
+        for(auto it_pos = itChr->begin(); it_pos != itChr->end(); it_pos++) {
+          if(it_pos->first != loci) {
+            if(accum != 0) chrName_vec_new[j].at(refID).push_back( std::make_pair(loci, accum) );
+            loci = it_pos->first;
+            accum = it_pos->second;
+          } else {
+            accum += it_pos->second;
+          }
         }
-      }
-      // final push
-      chrName_vec_new[j].at(refID).push_back( std::make_pair(loci, accum) );
+        // final push
+        chrName_vec_new[j].at(refID).push_back( std::make_pair(loci, accum) );
 
-      // Clear temporary vector by swap trick
-      // empty swap vector
-      std::vector< std::pair<unsigned int, int> > empty_swap_vector;
-      itChr->swap(empty_swap_vector);
-      
+        // Clear temporary vector by swap trick
+        // empty swap vector
+        std::vector< std::pair<unsigned int, int> > empty_swap_vector;
+        itChr->swap(empty_swap_vector);
+      }      
       refID++;
     }
   }
@@ -631,7 +685,11 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
             }
             loci = it_pos->first;
           } 
-          depth += it_pos->second;
+          if(incremental) {
+            depth += it_pos->second;
+          } else {
+            depth = it_pos->second;
+          }
           if(it_pos->first == 0) {
             old_depth = depth;  // ensure never trigger write when first time it_pos->first != loci
           }       
@@ -646,8 +704,30 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
       }
     }
     final_is_sorted = true;
+    incremental = false;
   }
   return(0);
+}
+
+void FragmentsMap::Combine(FragmentsMap &child) {
+  sort_and_collapse_temp();
+  child.sort_and_collapse_temp();
+  if(!final_is_sorted && !child.final_is_sorted) {
+    for(unsigned int j = 0; j < 3; j++) {
+      for(unsigned int i = 0; i < chrs.size(); i++) {
+        chrName_vec_new[j].at(i).insert(chrName_vec_new[j].at(i).end(),
+          child.chrName_vec_new[j].at(i).begin(), child.chrName_vec_new[j].at(i).end());
+      }
+    }
+  } else if(final_is_sorted && child.final_is_sorted) {
+    for(unsigned int j = 0; j < 3; j++) {
+      for(unsigned int i = 0; i < chrs.size(); i++) {
+        chrName_vec_final[j].at(i).insert(chrName_vec_final[j].at(i).end(),
+          child.chrName_vec_final[j].at(i).begin(), child.chrName_vec_final[j].at(i).end());
+      }
+    }
+    final_is_sorted = false;  // will request resort but keep incremental = false
+  }
 }
 
 // updateCoverageHist from completed FragmentMap - directional:
@@ -764,7 +844,7 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
           }
           loci = it_pos->first;
         }
-        if(!final_is_sorted) {  
+        if(incremental) {
           depth += it_pos->second;
         } else {
           depth = it_pos->second;
@@ -792,6 +872,7 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
   
   if(!final_is_sorted) {
     final_is_sorted = true;
+    incremental = true;
   }
   os->FlushBody();
   return(0);  
@@ -840,7 +921,7 @@ int FragmentsMap::WriteOutput(std::ostream *os,
       *os << chrs[i].chr_name << "\t0\t";
     }
     for(auto it_pos = itChr->begin(); it_pos != itChr->end(); it_pos++) {
-      coverage += it_pos->second;
+      coverage = it_pos->second;
       if(coverage > threshold) {
         if(!covered) {
           *os << it_pos->first << '\n';

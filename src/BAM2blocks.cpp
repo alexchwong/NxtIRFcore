@@ -19,39 +19,13 @@ BAM2blocks::BAM2blocks() {
 
 // OK.
 void BAM2blocks::readBamHeader() {
-  char buffer[1000];
-  std::string chrName;
-
-  bam_header bamhead;
-
-  IN->read(bamhead.c, BAM_HEADER_BYTES);
-
-  char * headertext = new char[bamhead.magic.l_text+1];
-  IN->read(headertext, bamhead.magic.l_text);
-  samHeader = string(headertext, bamhead.magic.l_text);
-  delete[] headertext;
-  
-  stream_int32 i32;
-  IN->read(i32.c ,4);
-  unsigned int n_chr = i32.i;
-
-
-  for (unsigned int i = 0; i < n_chr; i++) {
-    IN->read(i32.c ,4);
-    IN->read(buffer , i32.i);
-    chrName = string(buffer, i32.i-1);
-    chr_names.push_back(chrName);
-
-    IN->read(i32.c ,4);
-    chr_lens.push_back(i32.i);
-    chrs.push_back(chr_entry(i, chrName, i32.i));
-  }
-  std::sort(chrs.begin(), chrs.end());
+  IN->readBamHeader();
+  IN->fillChrs(chrs);
   
 	for (auto & callback : callbacksChrMappingChange ) {
 		callback(chrs);
 	}
-  
+  // Index the BAM file via BAMReader_Multi, for multi-threaded reading
 }
 
 void BAM2blocks::cigar2block(uint32_t * cigar, uint16_t n_cigar_op, std::vector<int> &starts, std::vector<int> &lens, int &ret_genome_len) {

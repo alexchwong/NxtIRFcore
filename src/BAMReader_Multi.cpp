@@ -131,6 +131,7 @@ BAMReader_Multi::BAMReader_Multi() {
   IS_EOB = 0;   // End of file AND buffer
   IS_FAIL = 0;
   IS_LENGTH = 0;
+  BAM_READS_BEGIN = 0;
   IN = NULL;
 }
 
@@ -139,6 +140,7 @@ BAMReader_Multi::BAMReader_Multi(int threads_to_use) {
   IS_EOB = 0;   // End of file AND buffer
   IS_FAIL = 0;
   IS_LENGTH = 0;
+  BAM_READS_BEGIN = 0;
   IN = NULL;
   SetThreads(threads_to_use);
 }
@@ -177,6 +179,89 @@ void BAMReader_Multi::SetInputHandle(std::istream *in_stream) {
     IN->seekg (0, std::ios_base::end);
     IS_LENGTH = IN->tellg();
     IN->seekg (0, std::ios_base::beg);    
+  }
+}
+
+// OK.
+void BAMReader_Multi::readBamHeader() {
+  char buffer[1000];
+  std::string chrName;
+
+  bam_header bamhead;
+  read(bamhead.c, BAM_HEADER_BYTES);
+
+  char * headertext = new char[bamhead.magic.l_text+1];
+  read(headertext, bamhead.magic.l_text);
+  
+  std::string samHeader = string(headertext, bamhead.magic.l_text);
+  delete[] headertext;
+  
+  stream_int32 i32;
+  read(i32.c ,4);
+  unsigned int n_chr = i32.i;
+
+  for (unsigned int i = 0; i < n_chr; i++) {
+    read(i32.c ,4);
+    read(buffer , i32.i);
+    chrName = string(buffer, i32.i-1);
+    read(i32.c ,4);
+    chrs.push_back(chr_entry(i, chrName, i32.i));
+  }
+  std::sort(chrs.begin(), chrs.end());
+  // Rcout << "BAM cursor at" << tellg() << '\n';
+  if(buffer_pos == comp_buffer_count) BAM_READS_BEGIN = tellg();
+}
+
+void BAMReader_Multi::fillChrs(std::vector<chr_entry> &chrs_dest) {
+  for(unsigned int i = 0; i < chrs.size(); i++) {
+    chrs_dest.push_back(chrs.at(i));
+  }
+}
+
+void BAMReader_Multi::ProfileBAM(
+    std::vector<uint64_t> &begin, std::vector<unsigned int> &first_read_offsets, int target_n_threads) {
+  if(BAM_READS_BEGIN > 0) {
+    std::vector<uint64_t> begins;
+    std::vector<unsigned int> offsets;
+    stream_uint32 u32;
+    unsigned int bytes_read;
+    
+    bool end_of_buffer = false;
+    bool break_at_read_head = false;
+    bool break_at_read_body = false;
+    
+    
+    begins.push_back(BAM_READS_BEGIN);
+    offsets.push_back(0);
+    IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
+    
+    while(!eof()) {
+      buffer_chunk * temp_buffer = new buffer_chunk;
+      temp_buffer->read_from_file(IN);
+      temp_buffer->decompress();
+      
+      end_of_buffer = false;
+      break_at_read_head = false;
+      break_at_read_body = false;
+      while(!end_of_buffer) {
+        bytes_read = temp_buffer->read(u32.c, 4);
+        if(bytes_read < 4) {
+          end_of_buffer = true;
+          break_at_read_head = true;
+          break;
+        }
+        bytes_read = temp_buffer->ignore(u32.u - 4);
+        if(bytes_read < u32.u - 4) {
+          end_of_buffer = true;
+          break_at_read_body = true;
+          break;
+        }
+        if(temp_buffer->is_at_end()) {
+          end_of_buffer = true;
+        }
+      }
+      delete temp_buffer;
+    }
   }
 }
 
