@@ -9,6 +9,7 @@ buffer_chunk::buffer_chunk() {
   pos = 0;
   buffer = NULL;
   decompressed_buffer = NULL;
+  decompressed = false;
 }
 
 buffer_chunk::~buffer_chunk() {
@@ -21,6 +22,7 @@ int buffer_chunk::clear_buffer() {
   if(decompressed_buffer) free(decompressed_buffer);
   buffer = NULL;
   decompressed_buffer = NULL;
+  decompressed = false;
   max_buffer = 0;
   max_decompressed = 0;
   pos = 0;
@@ -29,7 +31,6 @@ int buffer_chunk::clear_buffer() {
 
 int buffer_chunk::read_from_file(istream * IN) {
   stream_uint16 u16;
-
   char GzipCheck[16];
   IN->read(GzipCheck, 16);
 
@@ -42,11 +43,12 @@ int buffer_chunk::read_from_file(istream * IN) {
   }
 
   IN->read(u16.c, 2);
+
   max_buffer = u16.u + 1 - 2  - 16;
-  Rcout << "BGZF block " << max_buffer << " bytes";
+  // Rcout << "BGZF block " << max_buffer << " bytes";
   buffer = (char*)malloc(max_buffer + 1);
   IN->read(buffer, max_buffer);
-  Rcout << " read\n";
+  // Rcout << " read\n";
 
   return(0);
 }
@@ -85,9 +87,10 @@ int buffer_chunk::decompress() {
     ret = inflateEnd(&zs);
     
     max_decompressed -= zs.avail_out;
+    decompressed = true;
     // Don't really need to deallocate decompressed_buffer, as long as we know the real max
 
-    Rcout << "BGZF block " << max_decompressed << " bytes decompressed\n";
+    // Rcout << "BGZF block " << max_decompressed << " bytes decompressed\n";
 
     uint32_t crc = crc32(crc32(0L, NULL, 0L), (Bytef*)decompressed_buffer, max_decompressed);
     if(crc_check != crc) {
@@ -96,6 +99,8 @@ int buffer_chunk::decompress() {
         return(ret);
     }
     pos = 0;
+  } else {
+    decompressed = true;
   }
   return(0);
 }
@@ -148,6 +153,10 @@ BAMReader_Multi::~BAMReader_Multi() {
 }
 
 int BAMReader_Multi::SetThreads(int threads_to_use) {
+#ifndef _OPENMP
+  if(threads_to_use > 1) Rcout << "OpenMP not built for this system... running in single thread\n";
+  n_threads = 1
+#else
 	if(threads_to_use > 0 && threads_to_use <= omp_get_thread_limit()) {
     n_threads = threads_to_use;
 	} else {
@@ -157,6 +166,7 @@ int BAMReader_Multi::SetThreads(int threads_to_use) {
 		}
 	}
   omp_set_num_threads(n_threads);
+#endif  
   return(0);
 }
 
@@ -168,25 +178,22 @@ void BAMReader_Multi::SetInputHandle(std::istream *in_stream) {
     IS_LENGTH = IN->tellg();
     IN->seekg (0, std::ios_base::beg);    
   }
-  
-  // Prime the pump:
-  read_from_file(n_bgzf * n_threads);
-  decompress(n_bgzf * n_threads);
 }
 
 int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
-  if(comp_buffer_count > 0) {
-    if(buffer.at(comp_buffer_count - 1).GetMaxBuffer() == 10) {
-      IS_EOF = 1;
-      return(Z_STREAM_END);
-    }
-  }
   unsigned int i = 0;
+  buffer.resize(comp_buffer_count + n_blocks);
   while(i < n_blocks) {
-    buffer.push_back(buffer_chunk());
     int ret = buffer.at(comp_buffer_count).read_from_file(IN);
-    if(ret != 0) return(ret);
-    comp_buffer_count++;
+    if(ret != 0) {
+      if(ret == 1) {
+        IS_EOF = 1;
+      } else {
+        Rcout << "Error reading file, error code: " << ret << '\n';
+      }
+      return(ret);
+    }
+    comp_buffer_count++; 
     if(buffer.at(comp_buffer_count - 1).GetMaxBuffer() == 10) {
       IS_EOF = 1;
       return(Z_STREAM_END);
@@ -200,7 +207,10 @@ int BAMReader_Multi::decompress(unsigned int n_blocks) {
   unsigned int end_blocks = min(comp_buffer_count, n_blocks + buffer_count);
   
   if(n_threads > 1) {
+#ifndef _OPENMP
+#else
     #pragma omp parallel for
+#endif
     for(unsigned int i = buffer_count; i < end_blocks; i++) {
       if(!buffer.at(i).is_decompressed()) buffer.at(i).decompress();
     }
@@ -210,7 +220,7 @@ int BAMReader_Multi::decompress(unsigned int n_blocks) {
     }
   }
   buffer_count = end_blocks;
-  Rcout << "BAMReader_Multi " << n_blocks << " decompressed\n";
+  // Rcout << "BAMReader_Multi " << n_blocks << " decompressed\n";
 
   return(0);
 }
@@ -218,27 +228,25 @@ int BAMReader_Multi::decompress(unsigned int n_blocks) {
 unsigned int BAMReader_Multi::read(char * dest, unsigned int len) {  
   // Read from current buffer
   unsigned int cursor = 0;
+  if(IS_EOB == 1) return(cursor);
   while(cursor < len) {
-    if(buffer.at(buffer_pos).is_at_end()) {
-      // destroy current buffer
-      buffer.at(buffer_pos).clear_buffer();
-      if(IS_EOF == 1) {
-        IS_EOB = 1;
-        return(cursor);
-      }
-      buffer_pos++;
-    }
-    if(buffer_pos == buffer.size() && IS_EOF != 1) {
+    if(buffer_pos == comp_buffer_count && IS_EOF != 1) {
       read_from_file(n_bgzf * n_threads);
       decompress(n_bgzf * n_threads);
+    } // reading will always start with reading buffer if current is empty
+    if(!buffer.at(buffer_pos).is_eof_block()) {
+      cursor += buffer.at(buffer_pos).read(dest + cursor, len - cursor);
     }
-    cursor += buffer.at(buffer_pos).read(dest + cursor, len - cursor);
-  }
-  if(cursor < len) {
-    IS_EOB = 1;
-  } else if(IS_EOF == 1 && buffer.at(buffer_pos).is_at_end()) {
-    buffer.at(buffer_pos).clear_buffer();
-    IS_EOB = 1;
+    if(buffer_pos < comp_buffer_count) {
+      if(buffer.at(buffer_pos).is_at_end()) {
+        buffer.at(buffer_pos).clear_buffer(); // destroy current buffer
+        if(IS_EOF == 1 && buffer_pos == comp_buffer_count - 1) {
+          IS_EOB = 1; // Rcout << "EOB reached\n";
+          return(cursor);
+        }
+        buffer_pos++; // increment
+      }
+    } // reading will always end with end of buffer being cleared
   }
   return(cursor);
 }
@@ -246,28 +254,25 @@ unsigned int BAMReader_Multi::read(char * dest, unsigned int len) {
 unsigned int BAMReader_Multi::ignore(unsigned int len) {  
   // Read from current buffer
   unsigned int cursor = 0;
+  if(IS_EOB == 1) return(cursor);
   while(cursor < len) {
-    if(buffer.at(buffer_pos).is_at_end()) {
-      // destroy current buffer
-      buffer.at(buffer_pos).clear_buffer();
-      buffer_pos++;
+    if(buffer_pos == comp_buffer_count && IS_EOF != 1) {
+      read_from_file(n_bgzf * n_threads);
+      decompress(n_bgzf * n_threads);
+    } // reading will always start with reading buffer if current is empty
+    if(!buffer.at(buffer_pos).is_eof_block()) {
+      cursor += buffer.at(buffer_pos).ignore(len - cursor);
     }
-    if(buffer_count < buffer_pos) {
-      if(comp_buffer_count < buffer_pos) {
-        if(IS_EOF == 1) break;
-        read_from_file(10 * n_threads);
+    if(buffer_pos < comp_buffer_count) {
+      if(buffer.at(buffer_pos).is_at_end()) {
+        buffer.at(buffer_pos).clear_buffer(); // destroy current buffer
+        if(IS_EOF == 1 && buffer_pos == comp_buffer_count - 1) {
+          IS_EOB = 1; // Rcout << "EOB reached\n";
+          return(cursor);
+        }
+        buffer_pos++; // increment
       }
-      if(buffer_count < comp_buffer_count) {
-        decompress(10 * n_threads);
-      }
-    }
-    cursor += buffer.at(buffer_pos).ignore(len - cursor);
-  }
-  if(cursor < len) {
-    IS_EOB = 1;
-  } else if(IS_EOF == 1 && buffer.at(buffer_pos).is_at_end()) {
-    buffer.at(buffer_pos).clear_buffer();
-    IS_EOB = 1;
+    } // reading will always end with end of buffer being cleared
   }
   return(cursor);
 }
@@ -277,7 +282,7 @@ bool BAMReader_Multi::eof() {
       return (true);
   } else {
     if(IN->eof()) {
-      IS_EOF = 1;
+      IS_EOF = 1; // Rcout << "EOF reached\n";
       return (true);
     } else {
       return (false);
@@ -290,9 +295,9 @@ bool BAMReader_Multi::eob() {
   if(IS_EOB == 1) {
       return (true);
   } else {
-    if(IS_EOF == 1 && buffer.at(buffer_pos).is_at_end()) {
+    if(IS_EOF == 1 && buffer_pos == comp_buffer_count - 1 && buffer.at(buffer_pos).is_at_end()) {
       buffer.at(buffer_pos).clear_buffer();
-      IS_EOB = 1;
+      IS_EOB = 1; // Rcout << "EOB reached\n";
       return (true);
     } else {
       return (false);

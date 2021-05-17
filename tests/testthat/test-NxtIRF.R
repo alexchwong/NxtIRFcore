@@ -4,13 +4,13 @@ test_that("NxtIRF pipeline reproduces NxtSE object", {
         fasta = mock_genome(), gtf = mock_gtf(),
         reference_path = file.path(tempdir(), "Reference")
     )
+    # i = 1 
+    # NxtIRF:::.irfinder_run_single(bams$BAM[i], file.path(tempdir(), "Reference", "IRFinder.ref.gz"), file.path(tempdir(),"Output"), TRUE, TRUE)
     IRFinder(bams$BAM, bams$sample,
         reference_path = file.path(tempdir(), "Reference"),
         output_path = file.path(tempdir(), "IRFinder_output"),
         overwrite = TRUE, n_threads = 1
     )
-    i = 1 
-    NxtIRF:::.irfinder_run_single(bams$BAM[i], file.path(tempdir(), "Reference", "IRFinder.ref.gz"), file.path(tempdir(),"Output"), TRUE, TRUE)
     expr <- Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
     CollateData(expr, 
         reference_path = file.path(tempdir(), "Reference"),

@@ -29,8 +29,8 @@ IRF_main <- function(bam_file, reference_file, output_file, verbose = TRUE, n_th
     .Call(`_NxtIRF_IRF_main`, bam_file, reference_file, output_file, verbose, n_threads)
 }
 
-IRF_main_multithreaded <- function(reference_file, bam_files, output_files, max_threads) {
-    .Call(`_NxtIRF_IRF_main_multithreaded`, reference_file, bam_files, output_files, max_threads)
+IRF_main_multithreaded <- function(reference_file, bam_files, output_files, max_threads, verbose = TRUE) {
+    .Call(`_NxtIRF_IRF_main_multithreaded`, reference_file, bam_files, output_files, max_threads, verbose)
 }
 
 IRF_GenerateMappabilityReads <- function(genome_file, out_fa, read_len, read_stride, error_pos) {
