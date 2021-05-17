@@ -312,7 +312,6 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
       // debugs
       ret = IN->ignore(reads[idx].block_size - BAM_READ_CORE_BYTES + 4 - reads[idx].core.l_read_name - (reads[idx].core.n_cigar_op*4));
 
-/*
       if (reads[idx].core.flag & 0x904) {
         // If is an unmapped / secondary / supplementary alignment -- discard/overwrite
         cSkippedReads ++;
@@ -365,7 +364,6 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
           idx = 0;
         }
       }
-*/
     }
 #ifndef GALAXY
 		if(verbose) {
