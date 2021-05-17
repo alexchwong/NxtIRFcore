@@ -10,6 +10,7 @@ class buffer_chunk {
     unsigned int pos;
     char * buffer;
     char * decompressed_buffer;
+    bool decompressed;
   public:
     buffer_chunk();
     ~buffer_chunk();
@@ -18,8 +19,9 @@ class buffer_chunk {
     int read_from_file(istream * IN);   // Reads a bgzf from this stream into buffer, then sets max_buffer to non-zero
     int decompress();                   // Decompresses buffer, sets max_decompressed to non-zero
 
-    bool is_decompressed() { return(max_decompressed != 0); };
-    bool is_at_end() { return(max_decompressed != 0 && pos == max_decompressed); };
+    bool is_decompressed() { return(decompressed); };
+    bool is_at_end() { return(decompressed && pos == max_decompressed); };
+    bool is_eof_block() { return(decompressed && max_decompressed == 0); }
     
     unsigned int GetMaxBuffer() { return(max_buffer); };
     unsigned int GetMaxBufferDecompressed() { return(max_decompressed); };
@@ -30,7 +32,9 @@ class buffer_chunk {
 
 class BAMReader_Multi {
 	private:
-    static const int n_bgzf = 1;
+    // Each thread will load n_bgzf BGZF blocks; 100 BGZF blocks ~ 6 Mb decompressed
+    static const int n_bgzf = 100;  
+    
     istream * IN;
     int IS_EOF;
     int IS_EOB;   // End of file AND buffer

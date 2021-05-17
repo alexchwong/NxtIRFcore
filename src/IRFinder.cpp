@@ -80,7 +80,7 @@ List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end,
   }
   
   // Find corresponding seqname
-  unsigned int ref_index;
+  unsigned int ref_index = 0;
   std::vector<chr_entry> chrs;
   inCov.GetChrs(chrs);
   while(0 != seqname.compare(0, seqname.size(), chrs.at(ref_index).chr_name)) {
@@ -535,13 +535,13 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
 #ifndef GALAXY
 
 #ifndef _OPENMP
-int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, StringVector output_files, int max_threads){
+int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, StringVector output_files, int max_threads, bool verbose = true){
 	Rcout << "NxtIRF was built without OpenMP; exiting...";
 	return(1);
 }
 #else
 // [[Rcpp::export]]
-int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, StringVector output_files, int max_threads){
+int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, StringVector output_files, int max_threads, bool verbose = true){
 	
 	int use_threads = 0;
 	if(max_threads > 0 && max_threads <= omp_get_thread_limit()) {
@@ -584,14 +584,15 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
   if(ret != 0) return(ret);
 
 	Rcout << "Running IRFinder with OpenMP using " << use_threads << " threads\n";
-	#pragma omp parallel for
+
   for(unsigned int z = 0; z < v_bam.size(); z++) {
     std::string s_bam = v_bam.at(z);
 		std::string s_output_txt = v_out.at(z) + ".txt.gz";
 		std::string s_output_cov = v_out.at(z) + ".cov";
-		
+		// Rcout << "Processing " << s_bam << " with output " << v_out.at(z) << '\n';
+    
     int ret2 = IRF_core(s_bam, s_output_txt, s_output_cov,
-      *CB_template, *SP_template, *ROI_template, *JC_template, false);
+      *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
     if(ret2 != 0) Rcout << "Error occurred running IRFinder on " << s_bam << '\n';
 	}
 

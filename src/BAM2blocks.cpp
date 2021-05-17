@@ -268,7 +268,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 	int32_t spare_reads_count = 0;
 	
 	while(1) {
-		ret |= IN->read(reads[idx].c_block_size, 4);
+		ret = IN->read(reads[idx].c_block_size, 4);  // Should return 4 if all 4 bytes are read
 		if (IN->eob()) {
       cErrorReads = spare_reads_count;
 			oss << "Total reads processed\t" << j-1 << '\n';
@@ -284,7 +284,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 			oss << "Error detected on line\t" << "NA" << '\n';
       output = oss.str();
 			return(0);   
-		} else if(IN->fail() || (ret != 0 && ret != 1)) {
+		} else if(IN->fail() || (ret != 4)) {
       cErrorReads = spare_reads_count;
 			// cerr << "Input error at line:" << j << ", return error (" << ret << ")\n";
 			// cerr << "Characters read on last read call:" << IN->gcount() << '\n';
@@ -306,11 +306,11 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
 		}
     if(reads[idx].block_size > BAM_READ_CORE_BYTES - 4) {
       j++;
-      ret |= IN->read(reads[idx].c, BAM_READ_CORE_BYTES - 4);
-      ret |= IN->read(reads[idx].read_name, reads[idx].core.l_read_name);
-      ret |= IN->read(reads[idx].cigar_buffer, reads[idx].core.n_cigar_op*4);    
+      ret = IN->read(reads[idx].c, BAM_READ_CORE_BYTES - 4);
+      ret = IN->read(reads[idx].read_name, reads[idx].core.l_read_name);
+      ret = IN->read(reads[idx].cigar_buffer, reads[idx].core.n_cigar_op*4);    
       // debugs
-      ret |= IN->ignore(reads[idx].block_size - BAM_READ_CORE_BYTES + 4 - reads[idx].core.l_read_name - (reads[idx].core.n_cigar_op*4));
+      ret = IN->ignore(reads[idx].block_size - BAM_READ_CORE_BYTES + 4 - reads[idx].core.l_read_name - (reads[idx].core.n_cigar_op*4));
 
       if (reads[idx].core.flag & 0x904) {
         /* If is an unmapped / secondary / supplementary alignment -- discard/overwrite */
