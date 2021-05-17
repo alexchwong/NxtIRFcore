@@ -543,13 +543,14 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 // [[Rcpp::export]]
 int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, StringVector output_files, int max_threads, bool verbose = true){
 	
-	int use_threads = 0;
+	int use_threads = 1;
 	if(max_threads > 0 && max_threads <= omp_get_thread_limit()) {
 		// if(max_threads > bam_files.size()) {
 			// use_threads = bam_files.size();
 		// } else {
 			// use_threads = max_threads;
 		// }
+    use_threads = max_threads
 	} else {
 		use_threads = omp_get_thread_limit();
 		if(use_threads < 1) {
