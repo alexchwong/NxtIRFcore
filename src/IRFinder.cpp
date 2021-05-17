@@ -550,7 +550,7 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 		// } else {
 			// use_threads = max_threads;
 		// }
-    use_threads = max_threads
+    use_threads = max_threads;
 	} else {
 		use_threads = omp_get_thread_limit();
 		if(use_threads < 1) {
