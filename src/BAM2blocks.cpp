@@ -312,11 +312,12 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
       // debugs
       ret = IN->ignore(reads[idx].block_size - BAM_READ_CORE_BYTES + 4 - reads[idx].core.l_read_name - (reads[idx].core.n_cigar_op*4));
 
+/*
       if (reads[idx].core.flag & 0x904) {
-        /* If is an unmapped / secondary / supplementary alignment -- discard/overwrite */
+        // If is an unmapped / secondary / supplementary alignment -- discard/overwrite
         cSkippedReads ++;
       }else if (! (reads[idx].core.flag & 0x1)) {
-        /* If is a single read -- process it as a single -- then discard/overwrite */
+        // If is a single read -- process it as a single -- then discard/overwrite
         cSingleReads ++;
         totalNucleotides += processSingle(&reads[idx]);
       }else{
@@ -364,6 +365,7 @@ int BAM2blocks::processAll(std::string& output, bool verbose) {
           idx = 0;
         }
       }
+*/
     }
 #ifndef GALAXY
 		if(verbose) {
