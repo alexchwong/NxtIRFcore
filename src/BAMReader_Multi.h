@@ -33,7 +33,7 @@ class buffer_chunk {
 class BAMReader_Multi {
 	private:
     // Each thread will load n_bgzf BGZF blocks; 100 BGZF blocks ~ 6 Mb decompressed
-    static const int n_bgzf = 10000;  
+    static const int n_bgzf = 1000;  
     
     istream * IN;
     int IS_EOF;
