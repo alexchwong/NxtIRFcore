@@ -23,7 +23,7 @@
     
     # OpenMP version currently causes C stack usage errors. Disable for now
     if(Has_OpenMP() > 0 & Use_OpenMP) {
-        n_threads = min(n_threads, length(s_bam))
+        # n_threads = min(n_threads, length(s_bam))
         IRF_main_multithreaded(ref_file, s_bam, output_files, n_threads, verbose)
     } else {
         # Use BiocParallel
