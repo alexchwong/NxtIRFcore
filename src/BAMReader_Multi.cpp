@@ -210,6 +210,10 @@ void BAMReader_Multi::readBamHeader() {
   std::sort(chrs.begin(), chrs.end());
   // Rcout << "BAM cursor at" << tellg() << '\n';
   if(buffer_pos == comp_buffer_count) BAM_READS_BEGIN = tellg();
+  
+  std::vector<uint64_t> begins;
+  std::vector<unsigned int> first_read_offsets;
+  ProfileBAM(begins, first_read_offsets, 8);
 }
 
 void BAMReader_Multi::fillChrs(std::vector<chr_entry> &chrs_dest) {
@@ -219,48 +223,92 @@ void BAMReader_Multi::fillChrs(std::vector<chr_entry> &chrs_dest) {
 }
 
 void BAMReader_Multi::ProfileBAM(
-    std::vector<uint64_t> &begin, std::vector<unsigned int> &first_read_offsets, int target_n_threads) {
+    std::vector<uint64_t> &block_begins, std::vector<unsigned int> &last_read_offsets, int target_n_threads) {
   if(BAM_READS_BEGIN > 0) {
-    std::vector<uint64_t> begins;
-    std::vector<unsigned int> offsets;
+    std::vector<uint64_t> temp_begins;
+    std::vector<unsigned int> temp_last_read_offsets;
+    
+    uint64_t new_begin = 0;
+    unsigned int last_read_offset = 0;
+    unsigned int new_offset = 0;
     stream_uint32 u32;
     unsigned int bytes_read;
     
     bool end_of_buffer = false;
     bool break_at_read_head = false;
     bool break_at_read_body = false;
+    unsigned int head_offset = 0;
+    uint64_t block_begin;
     
-    
-    begins.push_back(BAM_READS_BEGIN);
-    offsets.push_back(0);
     IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
     
     while(!eof()) {
       buffer_chunk * temp_buffer = new buffer_chunk;
+      block_begin = tellg();
       temp_buffer->read_from_file(IN);
       temp_buffer->decompress();
       
-      end_of_buffer = false;
-      break_at_read_head = false;
-      break_at_read_body = false;
-      while(!end_of_buffer) {
-        bytes_read = temp_buffer->read(u32.c, 4);
-        if(bytes_read < 4) {
-          end_of_buffer = true;
-          break_at_read_head = true;
-          break;
+      if(!temp_buffer->is_eof_block()) {
+        // Deal with previous block and output block start:
+        new_begin = block_begin; 
+        if(break_at_read_body) {
+          bytes_read = temp_buffer->ignore(new_offset); // assume this read is completed
+        } else if(break_at_read_head) {
+          bytes_read = temp_buffer->read(u32.c + head_offset, 4 - head_offset);
+          new_offset = u32.u - head_offset + 4;
+          bytes_read = temp_buffer->ignore(u32.u); // assume this read is completed
+        } else {
+          new_offset = 0;
         }
-        bytes_read = temp_buffer->ignore(u32.u - 4);
-        if(bytes_read < u32.u - 4) {
-          end_of_buffer = true;
-          break_at_read_body = true;
-          break;
+        temp_begins.push_back(new_begin);
+        // first_read_offsets.push_back(new_offset);
+        // Rcout << new_begin << '\t' << new_offset << '\n';
+        
+        head_offset = 0;
+        end_of_buffer = false;
+        break_at_read_head = false;
+        break_at_read_body = false;
+        while(!end_of_buffer) {
+          last_read_offset = temp_buffer->GetPos();
+          bytes_read = temp_buffer->read(u32.c, 4);
+          // Rcout << bytes_read << '\t';
+          if(bytes_read < 4) {
+            end_of_buffer = true;
+            break_at_read_head = true;
+            head_offset = bytes_read;
+            break;
+          }
+          bytes_read = temp_buffer->ignore(u32.u);
+          // Rcout << bytes_read << '\n';
+          if(bytes_read < u32.u) {
+            new_offset = u32.u - bytes_read;
+            end_of_buffer = true;
+            break_at_read_body = true;
+            break;
+          }
+          if(temp_buffer->is_at_end()) {
+            new_offset = 0;
+            end_of_buffer = true;
+          }
         }
-        if(temp_buffer->is_at_end()) {
-          end_of_buffer = true;
-        }
+      } else {
+        IS_EOF = 1; break;
       }
       delete temp_buffer;
+      if(!break_at_read_head && !break_at_read_body) last_read_offset = 0;
+      temp_last_read_offsets.push_back(last_read_offset);
+      
+    }
+    // reset
+    IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
+    IS_EOF = 0;
+    
+    // divide cake into n_threads:
+    unsigned int divisor = temp_begins.size() / target_n_threads;
+    for(unsigned int i = 0; i < temp_begins.size(); i+=divisor) {
+      block_begins.push_back(temp_begins.at(i));
+      last_read_offsets.push_back(temp_last_read_offsets.at(i));
+      Rcout << temp_begins.at(i) << '\t' << temp_last_read_offsets.at(i) << '\n';
     }
   }
 }
@@ -388,17 +436,4 @@ bool BAMReader_Multi::eob() {
       return (false);
     }
   }
-}
-
-uint64_t BAMReader_Multi::tellg() {
-    return((uint64_t)IN->tellg());
-}
-
-bool BAMReader_Multi::fail() {
-    return(IN->fail());
-}
-
-
-streamsize BAMReader_Multi::gcount() {
-    return(IN->gcount());
 }

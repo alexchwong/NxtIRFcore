@@ -21,8 +21,12 @@ class buffer_chunk {
 
     bool is_decompressed() { return(decompressed); };
     bool is_at_end() { return(decompressed && pos == max_decompressed); };
-    bool is_eof_block() { return(decompressed && max_decompressed == 0); }
+    bool is_eof_block() { 
+      return(max_buffer == 10);
+      // return(decompressed && max_decompressed == 0); 
+    }
     
+    unsigned int GetPos() { return(pos); };
     unsigned int GetMaxBuffer() { return(max_buffer); };
     unsigned int GetMaxBufferDecompressed() { return(max_decompressed); };
     
@@ -64,17 +68,17 @@ class BAMReader_Multi {
     void SetInputHandle(std::istream *in_stream);
     void readBamHeader();
     void fillChrs(std::vector<chr_entry> &chrs);
-    void ProfileBAM(std::vector<uint64_t> &begin, std::vector<unsigned int> &first_read_offsets, int target_n_threads);
+    void ProfileBAM(std::vector<uint64_t> &block_begins, 
+      std::vector<unsigned int> &last_read_offsets, int target_n_threads = 1);
     
     unsigned int read(char * dest, unsigned int len);  // returns the number of bytes actually read
     unsigned int ignore(unsigned int len);
 
     bool eof();
     bool eob();
-    bool fail();
-    uint64_t tellg();
-    streamsize gcount();
-
+    bool fail() {return(IN->fail());};
+    uint64_t tellg() {return((uint64_t)IN->tellg());};
+    streamsize gcount() {return(IN->gcount());};
     size_t GetLength() { return(IS_LENGTH); };
     
     std::vector<chr_entry> chrs;
