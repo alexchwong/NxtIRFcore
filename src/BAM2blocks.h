@@ -12,49 +12,67 @@
 
 
 class BAM2blocks {
-	static const int BAM_HEADER_BYTES = 8;
-	static const int BAM_READ_CORE_BYTES = 36;
-	static const int BAM_READ_CORE_MAX_CIGAR = 2000;
+    static const int BAM_HEADER_BYTES = 8;
+    static const int BAM_READ_CORE_BYTES = 36;
+    static const int BAM_READ_CORE_MAX_CIGAR = 2000;
 
-	FragmentBlocks oBlocks;
+    FragmentBlocks oBlocks;
 
-	std::vector< std::function<void(const std::vector<chr_entry> &)> > callbacksChrMappingChange;
-	std::vector< std::function<void(const FragmentBlocks &)> > callbacksProcessBlocks;
+    std::vector< std::function<void(const std::vector<chr_entry> &)> > callbacksChrMappingChange;
+    std::vector< std::function<void(const FragmentBlocks &)> > callbacksProcessBlocks;
 
-	// Statistics.
-	unsigned long cShortPairs;
-	unsigned long cIntersectPairs;
-	unsigned long cLongPairs;
-	unsigned long cSingleReads;
-	unsigned long cPairedReads;
-	unsigned long cErrorReads;
-	unsigned long cSkippedReads;
-	unsigned long cChimericReads;
+    void cigar2block(uint32_t * cigar, uint16_t n_cigar_op, std::vector<int> &starts, std::vector<int> &lens, int &ret_genome_len);
 
+    unsigned int processPair(bam_read_core * read1, bam_read_core * read2);
+    unsigned int processSingle(bam_read_core * read1);
 
-	bam_read_core reads[2];
+  	unsigned int readBamHeader(std::vector<uint64_t> &block_begins, std::vector<unsigned int> &read_offsets,
+      unsigned int n_workers);  // implied by openFile. So perhaps should be private.
 
-	BAMReader_Multi * IN;
+    // Statistics.
+    unsigned long cReadsProcessed;
+    unsigned long long totalNucleotides;
+    
+    unsigned long cShortPairs;
+    unsigned long cIntersectPairs;
+    unsigned long cLongPairs;
+    unsigned long cSingleReads;
+    unsigned long cPairedReads;
+    unsigned long cErrorReads;
+    unsigned long cSkippedReads;
+    unsigned long cChimericReads;
 
-	void cigar2block(uint32_t * cigar, uint16_t n_cigar_op, std::vector<int> &starts, std::vector<int> &lens, int &ret_genome_len);
+    bool error_detected;
 
-	unsigned int processPair(bam_read_core * read1, bam_read_core * read2);
-	unsigned int processSingle(bam_read_core * read1);
+    bam_read_core reads[2];
+    BAMReader_Multi * IN;  
+    std::vector<chr_entry> chrs;
+    bool chrs_prepped = false;
 
+    std::vector<uint64_t> block_begins;
+    std::vector<unsigned int> read_offsets;
+
+    std::map< std::string, bam_read_core* > * spare_reads;    
   public:
-  	BAM2blocks();
-  	void openFile(BAMReader_Multi * _IN);
-  	void readBamHeader();  // implied by openFile. So perhaps should be private.
-  	int processAll(std::string& output, bool threaded = false);
+  	BAM2blocks(); ~BAM2blocks();
+  	unsigned int openFile(BAMReader_Multi * _IN, unsigned int n_workers);
+    void AttachReader(BAMReader_Multi * _IN);
+    
+    void ProvideTask(unsigned int thread_number, 
+        uint64_t &begin_bgzf, unsigned int &begin_pos,
+        uint64_t &end_bgzf, unsigned int &end_pos     
+    );
+    void TransferChrs(BAM2blocks& other);
+  	int processAll();
+  	int processSpares(BAM2blocks& other);
+
+  	int WriteOutput(std::string& output);
+
+    bam_read_core * SupplyRead(std::string& read_name);
 
     void registerCallbackChrMappingChange( std::function<void(const std::vector<chr_entry> &)> callback );
     void registerCallbackProcessBlocks( std::function<void(const FragmentBlocks &)> callback );
 
-    std::string samHeader;
-    // std::vector<std::string> chr_names;   //tab terminated chromosome names.
-    // std::vector<int32_t> chr_lens;	//length of each chromosome (not used when reading, used if optionally outputting an altered BAM file)
-
-    std::vector<chr_entry> chrs;
 };
 
 
