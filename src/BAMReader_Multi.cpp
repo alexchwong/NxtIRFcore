@@ -7,6 +7,7 @@ buffer_chunk::buffer_chunk() {
   max_buffer = 0;
   max_decompressed = 0;
   pos = 0;
+  end_pos = 65536;
   buffer = NULL;
   decompressed_buffer = NULL;
   decompressed = false;
@@ -26,6 +27,7 @@ int buffer_chunk::clear_buffer() {
   max_buffer = 0;
   max_decompressed = 0;
   pos = 0;
+  end_pos = 65536;
   return(0);
 }
 
@@ -98,7 +100,8 @@ int buffer_chunk::decompress() {
         Rcout << "CRC fail during BAM decompression";
         return(ret);
     }
-    pos = 0;
+    // pos = 0;
+    if(end_pos < max_decompressed) max_decompressed = end_pos;
   } else {
     decompressed = true;
   }
@@ -118,6 +121,7 @@ unsigned int buffer_chunk::read(char * dest, unsigned int len) {
 unsigned int buffer_chunk::ignore(unsigned int len) {  
   if(!is_decompressed()) return(0);
   if(pos >= max_decompressed) return(0);
+  if(len == 0) return(0);
 
   unsigned int bytes_to_read = min(max_decompressed, pos + len) - pos;
   // memcpy(decompressed_buffer, decompressed_buffer + pos, bytes_to_read);
@@ -132,17 +136,45 @@ BAMReader_Multi::BAMReader_Multi() {
   IS_FAIL = 0;
   IS_LENGTH = 0;
   BAM_READS_BEGIN = 0;
+  BAM_BLOCK_CURSOR = 0;
   IN = NULL;
 }
 
-BAMReader_Multi::BAMReader_Multi(int threads_to_use) {
+BAMReader_Multi::BAMReader_Multi(uint64_t block_begin, unsigned int begin_offset,
+      uint64_t block_end, unsigned int end_offset) {
   IS_EOF = 0;
   IS_EOB = 0;   // End of file AND buffer
   IS_FAIL = 0;
   IS_LENGTH = 0;
   BAM_READS_BEGIN = 0;
+  BAM_BLOCK_CURSOR = 0;
+  
+  begin_block_offset = block_begin;
+  begin_read_offset = begin_offset;
+  end_block_offset = block_end;
+  end_read_offset = end_offset;
+  
+  BAM_BLOCK_CURSOR = block_begin;
   IN = NULL;
-  SetThreads(threads_to_use);
+}
+
+void BAMReader_Multi::AssignTask(std::istream *in_stream, 
+      uint64_t block_begin, unsigned int begin_offset,
+      uint64_t block_end, unsigned int end_offset) {
+  IS_EOF = 0;
+  IS_EOB = 0;   // End of file AND buffer
+  IS_FAIL = 0;
+  IS_LENGTH = 0;
+  BAM_READS_BEGIN = 0;
+  BAM_BLOCK_CURSOR = 0;
+  
+  begin_block_offset = block_begin;
+  begin_read_offset = begin_offset;
+  end_block_offset = block_end;
+  end_read_offset = end_offset;
+  
+  BAM_BLOCK_CURSOR = block_begin;
+  IN = in_stream;
 }
 
 // Destructor
@@ -154,36 +186,21 @@ BAMReader_Multi::~BAMReader_Multi() {
   }
 }
 
-int BAMReader_Multi::SetThreads(int threads_to_use) {
-#ifndef _OPENMP
-  if(threads_to_use > 1) Rcout << "OpenMP not built for this system... running in single thread\n";
-  n_threads = 1
-#else
-	if(threads_to_use > 0 && threads_to_use <= omp_get_thread_limit()) {
-    n_threads = threads_to_use;
-	} else {
-		n_threads = omp_get_thread_limit();
-		if(n_threads < 1) {
-			n_threads = 1;
-		}
-	}
-  omp_set_num_threads(n_threads);
-#endif  
-  return(0);
-}
-
 void BAMReader_Multi::SetInputHandle(std::istream *in_stream) {
 	IN = in_stream;
   //  get length of file:
   if(in_stream != &std::cin) {
     IN->seekg (0, std::ios_base::end);
     IS_LENGTH = IN->tellg();
-    IN->seekg (0, std::ios_base::beg);    
+    IN->seekg (BAM_BLOCK_CURSOR, std::ios_base::beg);    
   }
 }
 
 // OK.
-void BAMReader_Multi::readBamHeader() {
+unsigned int BAMReader_Multi::readBamHeader(
+    std::vector<uint64_t> &block_begins, 
+    std::vector<unsigned int> &read_offsets,
+    unsigned int n_workers) {
   char buffer[1000];
   std::string chrName;
 
@@ -209,11 +226,12 @@ void BAMReader_Multi::readBamHeader() {
   }
   std::sort(chrs.begin(), chrs.end());
   // Rcout << "BAM cursor at" << tellg() << '\n';
-  if(buffer_pos == comp_buffer_count) BAM_READS_BEGIN = tellg();
+  if(buffer_pos == comp_buffer_count) {
+    BAM_READS_BEGIN = tellg();
+    BAM_BLOCK_CURSOR = BAM_READS_BEGIN;
+  }
   
-  std::vector<uint64_t> begins;
-  std::vector<unsigned int> first_read_offsets;
-  ProfileBAM(begins, first_read_offsets, 8);
+  return(ProfileBAM(block_begins, read_offsets, n_workers));
 }
 
 void BAMReader_Multi::fillChrs(std::vector<chr_entry> &chrs_dest) {
@@ -222,11 +240,15 @@ void BAMReader_Multi::fillChrs(std::vector<chr_entry> &chrs_dest) {
   }
 }
 
-void BAMReader_Multi::ProfileBAM(
-    std::vector<uint64_t> &block_begins, std::vector<unsigned int> &last_read_offsets, int target_n_threads) {
+unsigned int BAMReader_Multi::ProfileBAM(
+    std::vector<uint64_t> &block_begins, 
+    std::vector<unsigned int> &read_offsets, 
+    unsigned int target_n_threads) {
+      
+  std::vector<uint64_t> temp_begins;
+  std::vector<unsigned int> temp_last_read_offsets;
+
   if(BAM_READS_BEGIN > 0) {
-    std::vector<uint64_t> temp_begins;
-    std::vector<unsigned int> temp_last_read_offsets;
     
     uint64_t new_begin = 0;
     unsigned int last_read_offset = 0;
@@ -307,13 +329,19 @@ void BAMReader_Multi::ProfileBAM(
     unsigned int divisor = temp_begins.size() / target_n_threads;
     for(unsigned int i = 0; i < temp_begins.size(); i+=divisor) {
       block_begins.push_back(temp_begins.at(i));
-      last_read_offsets.push_back(temp_last_read_offsets.at(i));
+      read_offsets.push_back(temp_last_read_offsets.at(i));
       Rcout << temp_begins.at(i) << '\t' << temp_last_read_offsets.at(i) << '\n';
     }
+    // Return position of EOF block:
+    block_begins.push_back(block_begin);
+    read_offsets.push_back(0);
   }
+  return(temp_begins.size());
 }
 
 int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
+  if(IS_EOF == 1) return(0);
+  IN->seekg (BAM_BLOCK_CURSOR, std::ios_base::beg);   
   unsigned int i = 0;
   buffer.resize(comp_buffer_count + n_blocks);
   while(i < n_blocks) {
@@ -326,6 +354,15 @@ int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
       }
       return(ret);
     }
+    // Set begin cursor if BAM_BLOCK_CURSOR == begin_block_offset
+    if(BAM_BLOCK_CURSOR == begin_block_offset) {
+      buffer.at(comp_buffer_count).SetPos(begin_read_offset);
+    }
+    if(BAM_BLOCK_CURSOR == end_block_offset && end_block_offset > 0) {
+      buffer.at(comp_buffer_count).SetEndPos(end_read_offset);
+      IS_EOF = 1;   // Set virtual EOF
+    }
+    
     comp_buffer_count++; 
     if(buffer.at(comp_buffer_count - 1).GetMaxBuffer() == 10) {
       IS_EOF = 1;
@@ -333,24 +370,16 @@ int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
     }
     i++;
   }
+  BAM_BLOCK_CURSOR = IN->tellg();
   return(0);
 }
 
 int BAMReader_Multi::decompress(unsigned int n_blocks) {
+  if(IS_EOB == 1) return(0);
   unsigned int end_blocks = min(comp_buffer_count, n_blocks + buffer_count);
   
-  if(n_threads > 1) {
-#ifndef _OPENMP
-#else
-    #pragma omp parallel for
-#endif
-    for(unsigned int i = buffer_count; i < end_blocks; i++) {
-      if(!buffer.at(i).is_decompressed()) buffer.at(i).decompress();
-    }
-  } else {
-    for(unsigned int i = buffer_count; i < end_blocks; i++) {
-      if(!buffer.at(i).is_decompressed()) buffer.at(i).decompress();
-    }
+  for(unsigned int i = buffer_count; i < end_blocks; i++) {
+    if(!buffer.at(i).is_decompressed()) buffer.at(i).decompress();
   }
   buffer_count = end_blocks;
   // Rcout << "BAMReader_Multi " << n_blocks << " decompressed\n";
@@ -364,8 +393,12 @@ unsigned int BAMReader_Multi::read(char * dest, unsigned int len) {
   if(IS_EOB == 1) return(cursor);
   while(cursor < len) {
     if(buffer_pos == comp_buffer_count && IS_EOF != 1) {
-      read_from_file(n_bgzf * n_threads);
-      decompress(n_bgzf * n_threads);
+      if(auto_load_data) {
+        read_from_file(n_bgzf);
+        decompress(n_bgzf);        
+      } else {
+        return(cursor);
+      }
     } // reading will always start with reading buffer if current is empty
     if(!buffer.at(buffer_pos).is_eof_block()) {
       cursor += buffer.at(buffer_pos).read(dest + cursor, len - cursor);
@@ -390,8 +423,12 @@ unsigned int BAMReader_Multi::ignore(unsigned int len) {
   if(IS_EOB == 1) return(cursor);
   while(cursor < len) {
     if(buffer_pos == comp_buffer_count && IS_EOF != 1) {
-      read_from_file(n_bgzf * n_threads);
-      decompress(n_bgzf * n_threads);
+      if(auto_load_data) {
+        read_from_file(n_bgzf);
+        decompress(n_bgzf);        
+      } else {
+        return(cursor);
+      }
     } // reading will always start with reading buffer if current is empty
     if(!buffer.at(buffer_pos).is_eof_block()) {
       cursor += buffer.at(buffer_pos).ignore(len - cursor);

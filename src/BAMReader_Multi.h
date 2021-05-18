@@ -8,6 +8,7 @@ class buffer_chunk {
     unsigned int max_buffer;
     unsigned int max_decompressed;
     unsigned int pos;
+    unsigned int end_pos;
     char * buffer;
     char * decompressed_buffer;
     bool decompressed;
@@ -27,6 +28,15 @@ class buffer_chunk {
     }
     
     unsigned int GetPos() { return(pos); };
+    unsigned int SetPos(unsigned int pos_to_set) {
+      pos = pos_to_set;
+      return(pos); 
+    };
+    unsigned int SetEndPos(unsigned int pos_to_set) {
+      end_pos = pos_to_set;
+      return(end_pos);
+    };
+    
     unsigned int GetMaxBuffer() { return(max_buffer); };
     unsigned int GetMaxBufferDecompressed() { return(max_decompressed); };
     
@@ -48,28 +58,45 @@ class BAMReader_Multi {
     size_t IS_LENGTH;
     size_t BAM_READS_BEGIN;
     
-    int n_threads = 1;
- 
-
+    size_t BAM_BLOCK_CURSOR;
+    
     std::vector<buffer_chunk> buffer;
 
     unsigned int comp_buffer_count = 0;   // File reading will increase this count
     unsigned int buffer_count = 0;        // Multi-threaded decompress will increase this count
     unsigned int buffer_pos = 0;          // Reading past the current decompressed buffer will increase this count
 
-    int read_from_file(unsigned int n_blocks);
-    int decompress(unsigned int n_blocks);
+    // Allows setting BAMReader_Multi with rules to read a subset of BAM:
+    // These rules are controlled when relevant BGZF block is read from file
+    bool auto_load_data = true;
+    uint64_t begin_block_offset = 0;
+    unsigned int begin_read_offset = 0;
+    uint64_t end_block_offset = 0;
+    unsigned int end_read_offset = 65536;
+
+
   public:
     BAMReader_Multi();
-    BAMReader_Multi(int threads_to_use);
+    BAMReader_Multi(uint64_t block_begin, unsigned int begin_offset,
+      uint64_t block_end, unsigned int end_offset);
     ~BAMReader_Multi();
+
+    void AssignTask(std::istream *in_stream, uint64_t block_begin, unsigned int begin_offset,
+      uint64_t block_end, unsigned int end_offset);
+    void SetAutoLoad(bool autoload) {auto_load_data = autoload;};
     
-    int SetThreads(int threads_to_use);
     void SetInputHandle(std::istream *in_stream);
-    void readBamHeader();
+    std::istream* GetFileHandle() { return(IN); };
+    unsigned int readBamHeader(
+      std::vector<uint64_t> &block_begins, 
+      std::vector<unsigned int> &read_offsets,
+      unsigned int n_workers = 1);
     void fillChrs(std::vector<chr_entry> &chrs);
-    void ProfileBAM(std::vector<uint64_t> &block_begins, 
-      std::vector<unsigned int> &last_read_offsets, int target_n_threads = 1);
+    unsigned int ProfileBAM(std::vector<uint64_t> &block_begins, 
+      std::vector<unsigned int> &read_offsets, unsigned int target_n_threads = 1);
+
+    int read_from_file(unsigned int n_blocks);
+    int decompress(unsigned int n_blocks);
     
     unsigned int read(char * dest, unsigned int len);  // returns the number of bytes actually read
     unsigned int ignore(unsigned int len);

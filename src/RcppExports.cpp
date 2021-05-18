@@ -123,8 +123,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // IRF_GenerateMappabilityRegions
-int IRF_GenerateMappabilityRegions(std::string bam_file, std::string output_file, int threshold, int includeCov, bool verbose);
-RcppExport SEXP _NxtIRF_IRF_GenerateMappabilityRegions(SEXP bam_fileSEXP, SEXP output_fileSEXP, SEXP thresholdSEXP, SEXP includeCovSEXP, SEXP verboseSEXP) {
+int IRF_GenerateMappabilityRegions(std::string bam_file, std::string output_file, int threshold, int includeCov, bool verbose, int n_threads);
+RcppExport SEXP _NxtIRF_IRF_GenerateMappabilityRegions(SEXP bam_fileSEXP, SEXP output_fileSEXP, SEXP thresholdSEXP, SEXP includeCovSEXP, SEXP verboseSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -133,7 +133,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type threshold(thresholdSEXP);
     Rcpp::traits::input_parameter< int >::type includeCov(includeCovSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(IRF_GenerateMappabilityRegions(bam_file, output_file, threshold, includeCov, verbose));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(IRF_GenerateMappabilityRegions(bam_file, output_file, threshold, includeCov, verbose, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -148,7 +149,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_NxtIRF_IRF_main", (DL_FUNC) &_NxtIRF_IRF_main, 5},
     {"_NxtIRF_IRF_main_multithreaded", (DL_FUNC) &_NxtIRF_IRF_main_multithreaded, 5},
     {"_NxtIRF_IRF_GenerateMappabilityReads", (DL_FUNC) &_NxtIRF_IRF_GenerateMappabilityReads, 5},
-    {"_NxtIRF_IRF_GenerateMappabilityRegions", (DL_FUNC) &_NxtIRF_IRF_GenerateMappabilityRegions, 5},
+    {"_NxtIRF_IRF_GenerateMappabilityRegions", (DL_FUNC) &_NxtIRF_IRF_GenerateMappabilityRegions, 6},
     {NULL, NULL, 0}
 };
 
