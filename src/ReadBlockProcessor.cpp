@@ -679,6 +679,10 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
 
     Progress p(3 * chrs.size(), verbose);
     for(unsigned int j = 0; j < 3; j++) {
+      
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
       for(unsigned int i = 0; i < chrs.size(); i++) {
         auto itChr = &chrName_vec_new[j].at(i);
         auto itDest = &chrName_vec_final[j].at(i);
@@ -718,9 +722,14 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
           itDest->push_back( std::make_pair(loci, depth) );
         }
         itChr->clear();
+        
+#ifdef _OPENMP
+        #pragma omp critical
+#endif
         p.increment(1);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
+      
     }
     final_is_sorted = true;
     incremental = false;
@@ -805,23 +814,19 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
   os->WriteHeader(sort_chr_names, sort_chr_lens);
 
   if(!final_is_sorted) {
-    if(verbose)  Rcout << "Performing final sort of fragment maps\n";
-    sort_and_collapse_temp();
+    // if(verbose)  Rcout << "Performing final sort of fragment maps\n";
+    sort_and_collapse_final(verbose);   // Perform this separately as this is now multi-threaded
   }
-
-      // assign temp vector
-  // std::vector< std::pair<unsigned int, int> > * temp_vec;
-  std::vector< std::pair<unsigned int, int> > * itChr;
-  std::vector< std::pair<unsigned int, int> > * itDest;
   
   if(verbose)  Rcout << "Writing COV file\n";
-  
   Progress p(3 * sort_chr_names.size(), verbose);
-  unsigned int refID = 0;
   for(unsigned int j = 0; j < 3; j++) {
     for(unsigned int i = 0; i < sort_chr_names.size(); i++) {
       // refID is reference ID as appears in BAM file; i is the nth chromosome as ordered in alpha order
-      refID = chrs[i].refID;
+      std::vector< std::pair<unsigned int, int> > * itChr;
+      std::vector< std::pair<unsigned int, int> > * itDest;
+
+      unsigned int refID = chrs[i].refID;
       if(!final_is_sorted) {
         itChr = &chrName_vec_new[j].at(refID);
         std::sort(
@@ -879,7 +884,6 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
           itDest->push_back( std::make_pair(loci, depth) );
         }
         itChr->clear();        
-        // delete temp_vec;
       }
       os->WriteEntry(i + j * sort_chr_names.size(), old_depth, loci - old_loci);
       os->WriteEntry(i + j * sort_chr_names.size(), depth, chrs[i].chr_len - loci);

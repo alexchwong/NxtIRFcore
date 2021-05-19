@@ -57,6 +57,7 @@ class BAMReader_Multi {
     int n_bgzf = 1;  
     static const int BAM_HEADER_BYTES = 8;
     static const int BAM_READ_CORE_BYTES = 36;
+    static const char bamGzipHead[16+1];
     
     istream * IN;
     int IS_EOF;
@@ -81,7 +82,6 @@ class BAMReader_Multi {
     uint64_t end_block_offset = 0;
     unsigned int end_read_offset = 65536;
 
-
   public:
     BAMReader_Multi();
     BAMReader_Multi(uint64_t block_begin, unsigned int begin_offset,
@@ -101,6 +101,8 @@ class BAMReader_Multi {
     void fillChrs(std::vector<chr_entry> &chrs);
     unsigned int ProfileBAM(std::vector<uint64_t> &block_begins, 
       std::vector<unsigned int> &read_offsets, unsigned int target_n_threads = 1);
+
+    int getBGZFstarts(std::vector<uint64_t> & BGZF_begins);
 
     int read_from_file(unsigned int n_blocks);
     int decompress(unsigned int n_blocks);

@@ -323,7 +323,7 @@ int BAM2blocks::processSpares(BAM2blocks& other) {
       if (spare_read->core.refID != it_read->second->core.refID) {
         cChimericReads += 1;
       } else {
-        Rcout << "Read matched: " << read_name << '\n';
+        // Rcout << "Read matched: " << read_name << '\n';
         if (spare_read->core.pos <= it_read->second->core.pos) {    
           totalNucleotides += processPair(&(*spare_read), &(*(it_read->second)));
         } else{              
