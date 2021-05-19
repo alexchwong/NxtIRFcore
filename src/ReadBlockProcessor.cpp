@@ -92,6 +92,7 @@ void JunctionCount::ProcessBlocks(const FragmentBlocks &blocks) {
 }
 
 void JunctionCount::Combine(const JunctionCount &child) {
+  Rcout << "Combining JuncCounts" << '\n';
   for(unsigned int j = 0; j < 2; j++) {
     for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
       for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
@@ -364,6 +365,7 @@ void SpansPoint::ProcessBlocks(const FragmentBlocks &blocks) {
 }
 
 void SpansPoint::Combine(const SpansPoint &child) {
+  Rcout << "Combining SpansPoint" << '\n';
   for(unsigned int j = 0; j < 2; j++) {
     for (auto itChr=chrName_count[j].begin(); itChr!=chrName_count[j].end(); itChr++) {
       for(unsigned int i = 0; i < itChr->second.size(); i++) {
@@ -474,6 +476,7 @@ int FragmentsInROI::WriteOutput(std::string& output, std::string& QC) const {
 }
 
 void FragmentsInROI::Combine(const FragmentsInROI &child) {
+  Rcout << "Combining FragmentsInROI" << '\n';
   for(unsigned int j = 0; j < 2; j++) {
     for (auto itChr=RegionID_counter[j].begin(); itChr!=RegionID_counter[j].end(); itChr++) {
       itChr->second += child.RegionID_counter[j].at(itChr->first);
@@ -567,6 +570,7 @@ void FragmentsInChr::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
 }
 
 void FragmentsInChr::Combine(const FragmentsInChr &child) {
+  Rcout << "Combining FragmentsInChr" << '\n';
   for (auto itChr=chrName_count.begin(); itChr!=chrName_count.end(); itChr++) {
     for(unsigned int i = 0; i < itChr->second.size(); i++) {
       itChr->second.at(i) += child.chrName_count.at(itChr->first).at(i);
@@ -738,6 +742,7 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
 }
 
 void FragmentsMap::Combine(FragmentsMap &child) {
+  Rcout << "Combining FragmentsMap" << '\n';
   sort_and_collapse_temp();
   child.sort_and_collapse_temp();
   if(!final_is_sorted && !child.final_is_sorted) {
