@@ -344,7 +344,6 @@ int BAM2blocks::processSpares(BAM2blocks& other) {
 
 int BAM2blocks::processAll() {
   // Reads from BAMReader until finished; do not create output
-  Rcout << "BAM2blocks processing reads, spare reads = " << spare_reads->size() << "\n";
 	unsigned int idx = 0;
   int ret = 0;
   bool any_reads_processed = false;
@@ -353,10 +352,10 @@ int BAM2blocks::processAll() {
 
 	while(1) {
 		ret = IN->read(reads[idx].c_block_size, 4);  // Should return 4 if all 4 bytes are read
-    Rcout << "4 bytes read\n";
 
 		if (IN->eob() || IN->fail() || (ret != 4)) {
       // Bank the spare read:
+      // Rcout << "BAM2blocks::processAll ret == " << ret << '\n';
       if(idx == 1 && spare_reads->size() == 0) {
         std::string read_name = string(reads[0].read_name);
         bam_read_core * store_read = new bam_read_core;
@@ -370,36 +369,31 @@ int BAM2blocks::processAll() {
       any_reads_processed = true;
     }
     if(reads[idx].block_size > BAM_READ_CORE_BYTES - 4) {
-      Rcout << "Reading rest of read, " << reads[idx].block_size << " bytes\n";
-
       ret = IN->read(reads[idx].c, BAM_READ_CORE_BYTES - 4);
       ret = IN->read(reads[idx].read_name, reads[idx].core.l_read_name);
       ret = IN->read(reads[idx].cigar_buffer, reads[idx].core.n_cigar_op*4);    
       // debugs
       ret = IN->ignore(reads[idx].block_size - BAM_READ_CORE_BYTES + 4 - reads[idx].core.l_read_name - (reads[idx].core.n_cigar_op*4));
 
-      Rcout << "Read is read\n";
-
       if (reads[idx].core.flag & 0x904) {
         // If is an unmapped / secondary / supplementary alignment -- discard/overwrite
-        cSkippedReads ++; Rcout << "Read is skipped read\n";
+        cSkippedReads ++;
       }else if (! (reads[idx].core.flag & 0x1)) {
         // If is a single read -- process it as a single -- then discard/overwrite
         cSingleReads ++;
         totalNucleotides += processSingle(&reads[idx]);
-        cReadsProcessed++; Rcout << "Read is single read\n";
+        cReadsProcessed++;
       }else{
-        Rcout << "Read is paired\n";
         if(idx == 0 && spare_reads->size() == 0) {
           // If BAM is sorted by read name, then we don't need read size, simply use old system
-          idx++; Rcout << "Read is banked\n";
+          idx++;
         } else if(idx == 1 && spare_reads->size() == 0 && 
             reads[0].core.l_read_name == reads[1].core.l_read_name &&
             (0 == strncmp(reads[0].read_name, reads[1].read_name, reads[1].core.l_read_name))) {
           cPairedReads ++;
           totalNucleotides += processPair(&reads[0], &reads[1]);
           cReadsProcessed+=2;
-          idx = 0; Rcout << "Read is matched paired\n";
+          idx = 0;
         } else {
           // Likely a coordinate sorted BAM file:
           for(unsigned int k = 0; k <= idx; k++) {
@@ -407,7 +401,7 @@ int BAM2blocks::processAll() {
             auto it_read = spare_reads->find(read_name);
             
             if(it_read != spare_reads->end()){
-              cPairedReads ++; Rcout << "Read is matched paired\n";
+              cPairedReads ++;
               if (reads[k].core.refID != it_read->second->core.refID) {
                 cChimericReads += 1;
               } else {
@@ -429,14 +423,11 @@ int BAM2blocks::processAll() {
               bam_read_core * store_read = new bam_read_core;
               *(store_read) = reads[k];
               spare_reads->insert({read_name, store_read});
-              Rcout << "Read is banked\n";
             }
           }
           idx = 0;
         }
       }
-      Rcout << "Read is processed or banked\n";
-
     }
 
 		if ( (cPairedReads + cSingleReads) % 1000000 == 0 ) {

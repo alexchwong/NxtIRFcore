@@ -5,6 +5,7 @@
 
 class buffer_chunk {
 	private:
+    size_t bgzf_pos;
     unsigned int max_buffer;
     unsigned int max_decompressed;
     unsigned int pos;
@@ -28,10 +29,16 @@ class buffer_chunk {
     }
     
     unsigned int GetPos() { return(pos); };
+    unsigned int GetBGZFPos() { return(bgzf_pos); };
     unsigned int SetPos(unsigned int pos_to_set) {
       pos = pos_to_set;
       return(pos); 
     };
+    unsigned int SetBGZFPos(size_t pos_to_set) { 
+      bgzf_pos = pos_to_set;
+      return(bgzf_pos); 
+    };
+
     unsigned int SetEndPos(unsigned int pos_to_set) {
       end_pos = pos_to_set;
       return(end_pos);

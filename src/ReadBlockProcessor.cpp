@@ -98,24 +98,43 @@ void JunctionCount::Combine(const JunctionCount &child) {
         // Summate elements in child into parent with each key:
         itPos->second[j] += child.lookup(itChr->first, itPos->first.first, itPos->first.second, j);
       }
-      // Insert entries from child that do not exist in parent
-      itChr->second.insert(child.chrName_junc_count.at(itChr->first).begin(),
-        child.chrName_junc_count.at(itChr->first).end());
     }
     for (auto itChr=chrName_juncLeft_count.begin(); itChr!=chrName_juncLeft_count.end(); itChr++) {
       for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
         itPos->second[j] += child.lookupLeft(itChr->first, itPos->first, j);
       }
-      itChr->second.insert(child.chrName_juncLeft_count.at(itChr->first).begin(),
-        child.chrName_juncLeft_count.at(itChr->first).end());
     }
     for (auto itChr=chrName_juncRight_count.begin(); itChr!=chrName_juncRight_count.end(); itChr++) {
       for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
         itPos->second[j] += child.lookupRight(itChr->first, itPos->first, j);
       }
-      itChr->second.insert(child.chrName_juncRight_count.at(itChr->first).begin(),
-        child.chrName_juncRight_count.at(itChr->first).end());
     }
+
+    for (auto itChr=child.chrName_junc_count.begin(); itChr!=child.chrName_junc_count.end(); itChr++) {
+      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
+        // Insert missing entries from child:
+        if(lookup(itChr->first, itPos->first.first, itPos->first.second, j) == 0) {
+          chrName_junc_count.at(itChr->first)[make_pair(itPos->first.first, itPos->first.second)][j] += 
+            itPos->second[j];
+        }
+      }
+    }
+    for (auto itChr=child.chrName_juncLeft_count.begin(); itChr!=child.chrName_juncLeft_count.end(); itChr++) {
+      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
+        if(lookupLeft(itChr->first, itPos->first, j) == 0) {
+          chrName_juncLeft_count.at(itChr->first)[itPos->first][j] += itPos->second[j];
+        }
+      }
+
+    }
+    for (auto itChr=child.chrName_juncRight_count.begin(); itChr!=child.chrName_juncRight_count.end(); itChr++) {
+      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
+        if(lookupRight(itChr->first, itPos->first, j) == 0) {
+          chrName_juncRight_count.at(itChr->first)[itPos->first][j] += itPos->second[j];
+        }
+      }
+    }
+
   }
 }
 
