@@ -94,51 +94,55 @@ void JunctionCount::ProcessBlocks(const FragmentBlocks &blocks) {
 void JunctionCount::Combine(const JunctionCount &child) {
   for(unsigned int j = 0; j < 2; j++) {
 
-    for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
-      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
-        // Summate elements in child into parent with each key:
-        itPos->second[j] += child.lookup(itChr->first, itPos->first.first, itPos->first.second, j);
-      }
-    }
+    // for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
+      // for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
+        /* Summate elements in child into parent with each key: */
+        // itPos->second[j] += child.lookup(itChr->first, itPos->first.first, itPos->first.second, j);
+      // }
+    // }
 
-    for (auto itChr=chrName_juncLeft_count.begin(); itChr!=chrName_juncLeft_count.end(); itChr++) {
-      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
-        itPos->second[j] += child.lookupLeft(itChr->first, itPos->first, j);
-      }
-    }
+    // for (auto itChr=chrName_juncLeft_count.begin(); itChr!=chrName_juncLeft_count.end(); itChr++) {
+      // for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
+        // itPos->second[j] += child.lookupLeft(itChr->first, itPos->first, j);
+      // }
+    // }
 
-    for (auto itChr=chrName_juncRight_count.begin(); itChr!=chrName_juncRight_count.end(); itChr++) {
-      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
-        itPos->second[j] += child.lookupRight(itChr->first, itPos->first, j);
-      }
-    }
-
-    for (auto itChr=child.chrName_junc_count.begin(); itChr!=child.chrName_junc_count.end(); itChr++) {
-      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
-        // Insert missing entries from child:
-        if(lookup(itChr->first, itPos->first.first, itPos->first.second, j) == 0) {
-          chrName_junc_count.at(itChr->first)[make_pair(itPos->first.first, itPos->first.second)][j] += 
-            itPos->second[j];
+    // for (auto itChr=chrName_juncRight_count.begin(); itChr!=chrName_juncRight_count.end(); itChr++) {
+      // for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
+        // itPos->second[j] += child.lookupRight(itChr->first, itPos->first, j);
+      // }
+    // }
+    for(unsigned int i = 0; i < chrName_junc_count.size(); i++) {
+      auto itChr1=child.chrName_junc_count.begin();
+      for(unsigned int k = 0; k < i; k++) itChr1++;
+      // for (auto itChr=child.chrName_junc_count.begin(); itChr!=child.chrName_junc_count.end(); itChr++) {
+        for (auto itPos = itChr1->second.begin(); itPos != itChr1->second.end(); itPos++) {
+          // Insert missing entries from child:
+          // if(lookup(itChr->first, itPos->first.first, itPos->first.second, j) == 0) {
+            chrName_junc_count.at(itChr1->first)[make_pair(itPos->first.first, itPos->first.second)][j] += 
+              itPos->second[j];
+          // }
         }
-      }
-    }
-
-    for (auto itChr=child.chrName_juncLeft_count.begin(); itChr!=child.chrName_juncLeft_count.end(); itChr++) {
-      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
-        if(lookupLeft(itChr->first, itPos->first, j) == 0) {
-          chrName_juncLeft_count.at(itChr->first)[itPos->first][j] += itPos->second[j];
+      // }
+      auto itChr2=child.chrName_juncLeft_count.begin();
+      for(unsigned int k = 0; k < i; k++) itChr2++;
+      // for (auto itChr=child.chrName_juncLeft_count.begin(); itChr!=child.chrName_juncLeft_count.end(); itChr++) {
+        for (auto itPos = itChr2->second.begin(); itPos != itChr2->second.end(); itPos++) {
+          // if(lookupLeft(itChr->first, itPos->first, j) == 0) {
+            chrName_juncLeft_count.at(itChr2->first)[itPos->first][j] += itPos->second[j];
+          // }
         }
-      }
-    }
-
-    for (auto itChr=child.chrName_juncRight_count.begin(); itChr!=child.chrName_juncRight_count.end(); itChr++) {
-      for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
-        if(lookupRight(itChr->first, itPos->first, j) == 0) {
-          chrName_juncRight_count.at(itChr->first)[itPos->first][j] += itPos->second[j];
+      // }
+      auto itChr3=child.chrName_juncRight_count.begin();
+      for(unsigned int k = 0; k < i; k++) itChr3++;
+      // for (auto itChr=child.chrName_juncRight_count.begin(); itChr!=child.chrName_juncRight_count.end(); itChr++) {
+        for (auto itPos = itChr3->second.begin(); itPos != itChr3->second.end(); itPos++) {
+          // if(lookupRight(itChr->first, itPos->first, j) == 0) {
+            chrName_juncRight_count.at(itChr3->first)[itPos->first][j] += itPos->second[j];
+          // }
         }
-      }
+      // }
     }
-
   }
 }
 
