@@ -93,24 +93,40 @@ void JunctionCount::ProcessBlocks(const FragmentBlocks &blocks) {
 
 void JunctionCount::Combine(const JunctionCount &child) {
   Rcout << "Combining JuncCounts" << '\n';
+
   for(unsigned int j = 0; j < 2; j++) {
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
       for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
         // Summate elements in child into parent with each key:
         itPos->second[j] += child.lookup(itChr->first, itPos->first.first, itPos->first.second, j);
       }
     }
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (auto itChr=chrName_juncLeft_count.begin(); itChr!=chrName_juncLeft_count.end(); itChr++) {
       for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
         itPos->second[j] += child.lookupLeft(itChr->first, itPos->first, j);
       }
     }
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (auto itChr=chrName_juncRight_count.begin(); itChr!=chrName_juncRight_count.end(); itChr++) {
       for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
         itPos->second[j] += child.lookupRight(itChr->first, itPos->first, j);
       }
     }
 
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (auto itChr=child.chrName_junc_count.begin(); itChr!=child.chrName_junc_count.end(); itChr++) {
       for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
         // Insert missing entries from child:
@@ -120,6 +136,9 @@ void JunctionCount::Combine(const JunctionCount &child) {
         }
       }
     }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (auto itChr=child.chrName_juncLeft_count.begin(); itChr!=child.chrName_juncLeft_count.end(); itChr++) {
       for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
         if(lookupLeft(itChr->first, itPos->first, j) == 0) {
@@ -128,6 +147,9 @@ void JunctionCount::Combine(const JunctionCount &child) {
       }
 
     }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (auto itChr=child.chrName_juncRight_count.begin(); itChr!=child.chrName_juncRight_count.end(); itChr++) {
       for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
         if(lookupRight(itChr->first, itPos->first, j) == 0) {
@@ -731,7 +753,7 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
         #pragma omp critical
 #endif
         p.increment(1);
-        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
       
     }
