@@ -83,7 +83,7 @@ void CoverageBlocks::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
 
 
 void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
-
+  // do nothing
 }
 
 // Using FragmentsMap

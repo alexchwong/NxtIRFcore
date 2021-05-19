@@ -404,97 +404,84 @@ int IRF_core(std::string const &bam_file,
     BBchild.push_back(new BAM2blocks);
     BRchild.push_back(new BAMReader_Multi);
 
-    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&JunctionCount::ChrMapUpdate, *oJC.at(i), std::placeholders::_1) );
-    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&JunctionCount::ProcessBlocks, *oJC.at(i), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&JunctionCount::ChrMapUpdate, &(*oJC.at(i)), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&JunctionCount::ProcessBlocks, &(*oJC.at(i)), std::placeholders::_1) );
     
-    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsInChr::ChrMapUpdate, *oChr.at(i), std::placeholders::_1) );
-    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsInChr::ProcessBlocks, *oChr.at(i), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsInChr::ChrMapUpdate, &(*oChr.at(i)), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsInChr::ProcessBlocks, &(*oChr.at(i)), std::placeholders::_1) );
     
-    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&SpansPoint::ChrMapUpdate, *oSP.at(i), std::placeholders::_1) );
-    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&SpansPoint::ProcessBlocks, *oSP.at(i), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&SpansPoint::ChrMapUpdate, &(*oSP.at(i)), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&SpansPoint::ProcessBlocks, &(*oSP.at(i)), std::placeholders::_1) );
         
-    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsInROI::ChrMapUpdate, *oROI.at(i), std::placeholders::_1) );
-    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsInROI::ProcessBlocks, *oROI.at(i), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsInROI::ChrMapUpdate, &(*oROI.at(i)), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsInROI::ProcessBlocks, &(*oROI.at(i)), std::placeholders::_1) );
     
-    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&CoverageBlocks::ChrMapUpdate, *oCB.at(i), std::placeholders::_1) );
-    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&CoverageBlocks::ProcessBlocks, *oCB.at(i), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&CoverageBlocks::ChrMapUpdate, &(*oCB.at(i)), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&CoverageBlocks::ProcessBlocks, &(*oCB.at(i)), std::placeholders::_1) );
 
-    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, *oFM.at(i), std::placeholders::_1) );
-    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, *oFM.at(i), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &(*oFM.at(i)), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &(*oFM.at(i)), std::placeholders::_1) );
 
     // Assign task:
     uint64_t begin_bgzf; unsigned int begin_pos;
     uint64_t end_bgzf; unsigned int end_pos;
     BB.ProvideTask(i, begin_bgzf, begin_pos, end_bgzf, end_pos);
+    
     BRchild.at(i)->AssignTask(&inbam_stream, begin_bgzf, begin_pos, end_bgzf, end_pos);
+    BRchild.at(i)->SetAutoLoad(false);
+    
     BBchild.at(i)->AttachReader(BRchild.at(i));
     BBchild.at(i)->TransferChrs(BB);
   }
   
   // BAM processing loop
+  
   Progress p(n_bgzf_blocks, verbose);
-  while(1) {
-    unsigned int break_out = 0;
-    for(unsigned int i = 0; i < n_threads_to_use; i++) {
-      if(BRchild.at(i)->eob()) break_out++;
-    }
-    if(break_out == n_threads_to_use) break;  // This occurs when all threads are finished
-    
-    Rcout << "Preparing to read file\n";
-    // Serial read
-    for(unsigned int i = 0; i < n_threads_to_use; i++) {
-      BRchild.at(i)->read_from_file(100);   // try 100 for now
-    }
-    // Parallel decompress and process:
-    Rcout << "Preparing to decompress blocks\n";
+  // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
 #ifdef _OPENMP
-    if(n_threads_to_use > 1) {
-      #pragma omp parallel for
-      for(unsigned int i = 0; i < n_threads_to_use; i++) {
-        BRchild.at(i)->decompress(100);
-      }
-    } else {
-#endif
-      for(unsigned int i = 0; i < n_threads_to_use; i++) {
-        BRchild.at(i)->decompress(100);
-      }
-#ifdef _OPENMP      
+  #pragma omp parallel for
+  for(unsigned int i = 0; i < n_threads_to_use; i++) {
+    while(!BRchild.at(i)->eob()) {
+      int n_blocks_read = 0;
+      #pragma omp critical
+      n_blocks_read = BRchild.at(i)->read_from_file(100);
+      
+      BRchild.at(i)->decompress(100);
+      BBchild.at(i)->processAll();
+      
+      #pragma omp critical
+      p.increment(n_blocks_read);
+      
+      // #pragma omp critical
+      // Rcout << "Blocks read: " << n_blocks_read << '\n';
     }
-#endif
-
-    Rcout << "Preparing to process blocks\n";
-#ifdef _OPENMP
-    if(n_threads_to_use > 1) {
-      #pragma omp parallel for
-      for(unsigned int i = 0; i < n_threads_to_use; i++) {
-        BBchild.at(i)->processAll();
-      }
-    } else {
-#endif
-      for(unsigned int i = 0; i < n_threads_to_use; i++) {
-        BBchild.at(i)->processAll();
-      }
-#ifdef _OPENMP      
-    }
-#endif
-
-  Rcout << "BAM blocks processed\n";
-
-    p.increment(100 * n_threads_to_use);
   }
+#else
+  for(unsigned int i = 0; i < n_threads_to_use; i++) {
+    while(!BRchild.at(i)->eob()) {
+      
+      int n_blocks_read = BRchild.at(i)->read_from_file(100);
+      BRchild.at(i)->decompress(100);
+      BBchild.at(i)->processAll();
+      
+      p.increment(n_blocks_read);
+    }
+  }
+#endif
 
-  Rcout << "BAM processing finished\n";
+  // Rcout << "BAM processing finished\n";
   
   // Combine BB's and process spares
   if(n_threads_to_use > 1) {
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
+      // Rcout << "Processing spares: " << i << '\n';
       BBchild.at(0)->processSpares(*BBchild.at(i));
     }
   }
   BBchild.at(0)->WriteOutput(myLine);
   inbam_stream.close();
 
-  Rcout << "BAM spare reads processed\n";
+  // Rcout << "BAM spare reads processed\n";
 
   
   // Combine objects:
@@ -509,7 +496,7 @@ int IRF_core(std::string const &bam_file,
     }
   }
 
-  Rcout << "Objects combined\n";
+  // Rcout << "Objects combined\n";
 
 
   // Write Coverage Binary file:

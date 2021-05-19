@@ -4,6 +4,7 @@
 
 
 buffer_chunk::buffer_chunk() {
+  bgzf_pos = 0;
   max_buffer = 0;
   max_decompressed = 0;
   pos = 0;
@@ -77,13 +78,15 @@ int buffer_chunk::decompress() {
     int ret = inflateInit2(&zs, -15);
     if(ret != Z_OK) {
         std::ostringstream oss;
-        Rcout << "Exception during BAM decompression - inflateInit2() fail: (" << ret << ") ";
+        Rcout << "Exception during BAM decompression - inflateInit2() fail: (" << ret << ") "
+          << ", bgzf pos = " << GetBGZFPos() << '\n';
         return(ret);
     }
     ret = inflate(&zs, Z_FINISH);
     if(ret != Z_OK && ret != Z_STREAM_END) {
         std::ostringstream oss;
-        Rcout << "Exception during BAM decompression - inflate() fail: (" << ret << ") ";
+        Rcout << "Exception during BAM decompression - inflate() fail: (" << ret << ") "
+          << ", bgzf pos = " << GetBGZFPos() << '\n';
         return(ret);
     }
     ret = inflateEnd(&zs);
@@ -97,7 +100,7 @@ int buffer_chunk::decompress() {
     uint32_t crc = crc32(crc32(0L, NULL, 0L), (Bytef*)decompressed_buffer, max_decompressed);
     if(crc_check != crc) {
         std::ostringstream oss;
-        Rcout << "CRC fail during BAM decompression";
+        Rcout << "CRC fail during BAM decompression" << ", bgzf pos = " << GetBGZFPos() << '\n';
         return(ret);
     }
     // pos = 0;
@@ -168,12 +171,16 @@ void BAMReader_Multi::AssignTask(std::istream *in_stream,
   BAM_READS_BEGIN = 0;
   BAM_BLOCK_CURSOR = 0;
   
-  begin_block_offset = block_begin;
+  begin_block_offset = block_begin; 
   begin_read_offset = begin_offset;
   end_block_offset = block_end;
   end_read_offset = end_offset;
   
-  BAM_BLOCK_CURSOR = block_begin;
+  BAM_BLOCK_CURSOR = block_begin; 
+  // Rcout << "block begin: " << BAM_BLOCK_CURSOR << '\n';
+    Rcout << begin_block_offset << " " << begin_read_offset
+    << ", " << end_block_offset << " " << end_read_offset << '\n';
+  
   IN = in_stream;
 }
 
@@ -321,16 +328,19 @@ unsigned int BAMReader_Multi::ProfileBAM(
       temp_last_read_offsets.push_back(last_read_offset);
       
     }
+    Rcout << "EOF block recorded: " << block_begin << "\n";
+    
     // reset
     IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
     IS_EOF = 0;
     
     // divide cake into n_threads:
-    unsigned int divisor = temp_begins.size() / target_n_threads;
-    for(unsigned int i = 0; i < temp_begins.size(); i+=divisor) {
+    unsigned int divisor = (temp_begins.size()/ target_n_threads);
+    unsigned int i = 0;
+    while(i < temp_begins.size() && block_begins.size() < target_n_threads) {
       block_begins.push_back(temp_begins.at(i));
       read_offsets.push_back(temp_last_read_offsets.at(i));
-      Rcout << temp_begins.at(i) << '\t' << temp_last_read_offsets.at(i) << '\n';
+      i+=divisor;
     }
     // Return position of EOF block:
     block_begins.push_back(block_begin);
@@ -340,19 +350,34 @@ unsigned int BAMReader_Multi::ProfileBAM(
 }
 
 int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
-  if(IS_EOF == 1) return(0);
-  IN->seekg (BAM_BLOCK_CURSOR, std::ios_base::beg);   
   unsigned int i = 0;
+  if(IS_EOF == 1) return(i);
+  
+  IN->clear();    // In case another thread has hit the EOF bit
+  IN->seekg (BAM_BLOCK_CURSOR, std::ios_base::beg);
+  
+  // Rcout << "Reading blocks starting from " << comp_buffer_count << " at file position "
+    // << BAM_BLOCK_CURSOR << '\n';
+  
   buffer.resize(comp_buffer_count + n_blocks);
   while(i < n_blocks) {
+    if(IS_EOF == 1) return(i);
+    if(BAM_BLOCK_CURSOR == end_block_offset && end_read_offset == 0) {
+      IS_EOF = 1;
+      return(i);
+    }
+    buffer.at(comp_buffer_count).SetBGZFPos(BAM_BLOCK_CURSOR);
     int ret = buffer.at(comp_buffer_count).read_from_file(IN);
     if(ret != 0) {
       if(ret == 1) {
         IS_EOF = 1;
       } else {
-        Rcout << "Error reading file, error code: " << ret << '\n';
+        Rcout << "Error reading file, error code: " << ret << ", bgzf pos = " 
+          << buffer.at(comp_buffer_count).GetBGZFPos() << '\n';
       }
-      return(ret);
+      return(i);
+    } else {
+      i++;
     }
     // Set begin cursor if BAM_BLOCK_CURSOR == begin_block_offset
     if(BAM_BLOCK_CURSOR == begin_block_offset) {
@@ -361,22 +386,25 @@ int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
     if(BAM_BLOCK_CURSOR == end_block_offset && end_block_offset > 0) {
       buffer.at(comp_buffer_count).SetEndPos(end_read_offset);
       IS_EOF = 1;   // Set virtual EOF
+      i--;
     }
-    
+
     comp_buffer_count++; 
     if(buffer.at(comp_buffer_count - 1).GetMaxBuffer() == 10) {
       IS_EOF = 1;
-      return(Z_STREAM_END);
+      i--;
     }
-    i++;
+    BAM_BLOCK_CURSOR = IN->tellg();
   }
   BAM_BLOCK_CURSOR = IN->tellg();
-  return(0);
+  return(i);
 }
 
 int BAMReader_Multi::decompress(unsigned int n_blocks) {
   if(IS_EOB == 1) return(0);
   unsigned int end_blocks = min(comp_buffer_count, n_blocks + buffer_count);
+
+  // Rcout << "Decompressing blocks starting from " << buffer_count << '\n';
   
   for(unsigned int i = buffer_count; i < end_blocks; i++) {
     if(!buffer.at(i).is_decompressed()) buffer.at(i).decompress();

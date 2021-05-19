@@ -65,13 +65,13 @@
     }
 }
 
-.irfinder_run_single <- function(bam, ref, out, verbose, overwrite) {
+.irfinder_run_single <- function(bam, ref, out, verbose, overwrite, n_threads = 1) {
     file_gz = paste0(out, ".txt.gz")
     file_cov = paste0(out, ".cov")
     bam_short = file.path(basename(dirname(bam)), basename(bam))
     if(overwrite ||
         !(file.exists(file_gz) | file.exists(file_cov))) {
-        IRF_main(bam, ref, out, verbose)
+        IRF_main(bam, ref, out, verbose, n_threads)
         # Check IRFinder returns all files successfully
 
         if(!file.exists(file_gz)) {
