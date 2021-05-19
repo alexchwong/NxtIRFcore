@@ -634,7 +634,7 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
     }
   }
   frag_count += 1;
-  if(frag_count % 10000000 == 0) {
+  if(frag_count % 1000000 == 0) {
     sort_and_collapse_temp();
   }
 }
