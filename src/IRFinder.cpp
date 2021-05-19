@@ -371,9 +371,7 @@ int IRF_core(std::string const &bam_file,
   
   std::string myLine;
   
-	if(verbose) {  
-		Rcout << "Processing BAM file\n";
-  }
+	if(verbose) Rcout << "Processing BAM file\n";
   BAM2blocks BB;  
   
   BAMReader_Multi inbam; // Rcout << "BAMReader_Multi created\n";
@@ -476,6 +474,8 @@ int IRF_core(std::string const &bam_file,
   
   // Rcout << "BAM processing finished\n";
   
+  if(verbose && n_threads_to_use > 1) Rcout << "Compiling data from threads\n";
+
   // Combine BB's and process spares
   if(n_threads_to_use > 1) {
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
@@ -485,9 +485,6 @@ int IRF_core(std::string const &bam_file,
   BBchild.at(0)->WriteOutput(myLine);
   inbam_stream.close();
 
-  // Rcout << "BAM spare reads processed\n";
-
-  
   // Combine objects:
   if(n_threads_to_use > 1) {
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
@@ -511,9 +508,8 @@ int IRF_core(std::string const &bam_file,
   ofCOV.close();
 
 // Write output to file:  
-	if(verbose) {  
-		Rcout << "Writing output file\n";
-	}
+	if(verbose) Rcout << "Writing output file\n";
+
   std::ofstream out;
   out.open(s_output_txt, std::ios::binary);
 
