@@ -439,12 +439,13 @@ int IRF_core(std::string const &bam_file,
   Progress p(n_bgzf_blocks, verbose);
   // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
 #ifdef _OPENMP
+  unsigned int blocks_read_total = 0;
   #pragma omp parallel for
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     while(!BRchild.at(i)->eob()) {
-      int n_blocks_read = 0;
+      unsigned int n_blocks_read = 0;
       #pragma omp critical
-      n_blocks_read = BRchild.at(i)->read_from_file(100);
+      n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
       
       BRchild.at(i)->decompress(100);
       BBchild.at(i)->processAll();
@@ -452,10 +453,14 @@ int IRF_core(std::string const &bam_file,
       #pragma omp critical
       p.increment(n_blocks_read);
       
+      #pragma omp critical
+      blocks_read_total += n_blocks_read;
       // #pragma omp critical
       // Rcout << "Blocks read: " << n_blocks_read << '\n';
     }
   }
+  if(blocks_read_total < n_bgzf_blocks) p.increment(n_bgzf_blocks - blocks_read_total);
+  
 #else
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     while(!BRchild.at(i)->eob()) {
@@ -468,13 +473,12 @@ int IRF_core(std::string const &bam_file,
     }
   }
 #endif
-
+  
   // Rcout << "BAM processing finished\n";
   
   // Combine BB's and process spares
   if(n_threads_to_use > 1) {
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
-      // Rcout << "Processing spares: " << i << '\n';
       BBchild.at(0)->processSpares(*BBchild.at(i));
     }
   }
@@ -682,7 +686,11 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
     
     int ret2 = IRF_core(s_bam, s_output_txt, s_output_cov,
       *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
-    if(ret2 != 0) Rcout << "Error occurred running IRFinder on " << s_bam << '\n';
+    if(ret2 != 0) {
+      Rcout << "Error occurred running IRFinder on " << s_bam << '\n';
+    } else {
+      Rcout << s_bam << " processed\n";
+    }
 	}
 
 	return(0);
