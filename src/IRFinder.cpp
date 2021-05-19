@@ -498,35 +498,24 @@ int IRF_core(std::string const &bam_file,
   }
 
   // Rcout << "Objects combined\n";
-
-
   // Write Coverage Binary file:
   std::ofstream ofCOV; ofCOV.open(s_output_cov, std::ofstream::binary);  
   covFile outCOV; outCOV.SetOutputHandle(&ofCOV);
-  
   oFM.at(0)->WriteBinary(&outCOV, verbose);
   ofCOV.close();
 
 // Write output to file:  
 	if(verbose) Rcout << "Writing output file\n";
 
-  std::ofstream out;
-  out.open(s_output_txt, std::ios::binary);
-
-// GZ compression:
-  GZWriter outGZ;
-  outGZ.SetOutputHandle(&out);
+  std::ofstream out; out.open(s_output_txt, std::ios::binary);  // Open binary file
+  GZWriter outGZ; outGZ.SetOutputHandle(&out); // GZ compression
 
 // Write stats here:
 
-  outGZ.writeline("BAM_report\tValue");
-  outGZ.writestring(myLine);
-  outGZ.writeline("");
+  outGZ.writeline("BAM_report\tValue"); outGZ.writestring(myLine); outGZ.writeline("");
 
   int directionality = oJC.at(0)->Directional(myLine);
-  outGZ.writeline("Directionality\tValue");
-  outGZ.writestring(myLine);
-  outGZ.writeline("");
+  outGZ.writeline("Directionality\tValue"); outGZ.writestring(myLine); outGZ.writeline("");
 
   // Generate output but save this to strings:
   std::string myLine_ROI;
