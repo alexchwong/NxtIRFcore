@@ -316,8 +316,8 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                 fastq_1 = Expr_sample[, "forward"]
                 fastq_2 = NULL        
             } else {
-                fastq_1 = Experiment[, "forward"]
-                fastq_2 = Experiment[, "reverse"]
+                fastq_1 = Expr_sample[, "forward"]
+                fastq_2 = Expr_sample[, "reverse"]
             }
             memory_mode = "LoadAndKeep"
             if(two_pass && pass == 1) {

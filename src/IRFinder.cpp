@@ -646,7 +646,7 @@ int IRF_main_multi(std::string reference_file, StringVector bam_files, StringVec
     std::string s_bam = v_bam.at(z);
 		std::string s_output_txt = v_out.at(z) + ".txt.gz";
 		std::string s_output_cov = v_out.at(z) + ".cov";
-		// Rcout << "Processing " << s_bam << " with output " << v_out.at(z) << '\n';
+		Rcout << "Processing " << s_bam << " with output " << v_out.at(z) << '\n';
     
     int ret2 = IRF_core(s_bam, s_output_txt, s_output_cov,
       *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
