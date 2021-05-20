@@ -257,9 +257,6 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
   
   unsigned int bgzf_size = 0;
   
-  Progress p(IS_LENGTH, true);
-  size_t cursor = BAM_READS_BEGIN;
-  p.increment(cursor);
   while(!IN->eof() && bgzf_size != 10) {
     BGZF_begins.push_back(IN->tellg());
     
@@ -277,8 +274,6 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
     bgzf_size = u16.u + 1 - 2  - 16;
     
     IN->ignore(bgzf_size);
-    p.increment((size_t)IN->tellg() - cursor);
-    cursor = IN->tellg();
   }
   IN->clear();
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
@@ -317,7 +312,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
     Rcout << "block " << temp_begins.at(i) << '\t';
     read_offsets.push_back(0);
     i+=divisor;
-    Rcout >> '\n';
+    Rcout << '\n';
   }
   bool is_self_contained = true;
   for(unsigned int j = 0; j < block_begins.size(); j++) {
