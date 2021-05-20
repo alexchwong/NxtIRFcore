@@ -159,7 +159,7 @@ unsigned int BAM2blocks::processPair(bam_read_core * read1, bam_read_core * read
     //reads do not intersect
     oBlocks.readCount = 2;
     debugstate.append( "-Long-");
-  }else if (read1->core.pos + r1_genome_len >= read2->core.pos + r2_genome_len)){
+  }else if (read1->core.pos + r1_genome_len >= read2->core.pos + r2_genome_len){
     if(read1->core.pos == read2->core.pos && r1_genome_len > r2_genome_len) {
       cIntersectPairs++;
     } else {
