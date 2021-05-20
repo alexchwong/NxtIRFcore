@@ -351,6 +351,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
     return(temp_begins.size());
   } else {
     Rcout << "BAM reads appear to be split across BGZF blocks, requiring full indexing...\n";
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     temp_begins.clear(); block_begins.clear(); read_offsets.clear();    
   }
  
@@ -422,7 +423,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
     }
     delete temp_buffer;
     p.increment((size_t)IN->tellg() - cursor);
-    cursor = IN->tellg();    
+    cursor = (size_t)IN->tellg();    
     
     if(!break_at_read_head && !break_at_read_body) last_read_offset = 0;
     temp_last_read_offsets.push_back(last_read_offset);
