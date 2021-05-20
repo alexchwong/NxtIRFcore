@@ -433,7 +433,7 @@ int IRF_core(std::string const &bam_file,
   bool interrupted = false;
   #pragma omp parallel for
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    while(!BRchild.at(i)->eob()) {
+    while(!BRchild.at(i)->eob() && !interrupted) {
       unsigned int n_blocks_read = 0;
       #pragma omp critical
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
@@ -442,11 +442,10 @@ int IRF_core(std::string const &bam_file,
       BBchild.at(i)->processAll();
       
       #pragma omp critical
-      if ( ! Progress::check_abort() ) {
+      if ( !Progress::check_abort() ) {
         p.increment(n_blocks_read);
       } else {
         interrupted = true;
-        break;
       }
       
       #pragma omp critical
