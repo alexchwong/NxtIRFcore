@@ -278,7 +278,7 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
   }
   IN->clear();
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
-
+  
   if(bgzf_size == 10) {
     return(0);
   } else {
@@ -308,6 +308,9 @@ unsigned int BAMReader_Multi::ProfileBAM(
   // assign n blocks to check if they are self-contained bgzf (i.e. they start and end at read boundary)
   unsigned int divisor = (temp_begins.size()/ target_n_threads);
   unsigned int i = 0;
+  Rcout << "temp_begins.size() == " << temp_begins.size() <<
+    " target_n_threads " << target_n_threads <<
+    " divisor " << divisor << '\n';
   Rcout << "Checking whether bgzf blocks contain whole number of reads\n";
   while(i < temp_begins.size() && block_begins.size() < target_n_threads) {
     block_begins.push_back(temp_begins.at(i));

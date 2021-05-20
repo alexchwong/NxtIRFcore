@@ -51,7 +51,7 @@ unsigned int BAM2blocks::readBamHeader(
     bool verbose,
     unsigned int n_workers
 ) {
-  unsigned int n_bgzf = IN->readBamHeader(block_begins, read_offsets, n_workers);
+  unsigned int n_bgzf = IN->readBamHeader(block_begins, read_offsets, verbose, n_workers);
   IN->fillChrs(chrs);
   return(n_bgzf);
 }
