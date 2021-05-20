@@ -99,11 +99,12 @@ class BAMReader_Multi {
     std::istream* GetFileHandle() { return(IN); };
     unsigned int readBamHeader(
       std::vector<uint64_t> &block_begins, 
-      std::vector<unsigned int> &read_offsets,
+      std::vector<unsigned int> &read_offsets, bool verbose,
       unsigned int n_workers = 1);
     void fillChrs(std::vector<chr_entry> &chrs);
     unsigned int ProfileBAM(std::vector<uint64_t> &block_begins, 
-      std::vector<unsigned int> &read_offsets, unsigned int target_n_threads = 1);
+      std::vector<unsigned int> &read_offsets, bool verbose,
+      unsigned int target_n_threads = 1);
 
     int getBGZFstarts(std::vector<uint64_t> & BGZF_begins);
 
