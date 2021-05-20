@@ -257,7 +257,9 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
   
   unsigned int bgzf_size = 0;
   
-  
+  Progress p(IS_LENGTH, true);
+  size_t cursor = BAM_READS_BEGIN;
+  p.increment(cursor);
   while(!IN->eof() && bgzf_size != 10) {
     BGZF_begins.push_back(IN->tellg());
     
@@ -275,6 +277,8 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
     bgzf_size = u16.u + 1 - 2  - 16;
     
     IN->ignore(bgzf_size);
+    p.increment(IN->tellg() - cursor);
+    cursor = IN->tellg();
   }
   IN->clear();
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
@@ -307,6 +311,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
   // assign n blocks to check if they are self-contained bgzf (i.e. they start and end at read boundary)
   unsigned int divisor = (temp_begins.size()/ target_n_threads);
   unsigned int i = 0;
+  Rcout << "Checking whether bgzf blocks contain whole number of reads\n";
   while(i < temp_begins.size() && block_begins.size() < target_n_threads) {
     block_begins.push_back(temp_begins.at(i));
     read_offsets.push_back(0);
@@ -360,13 +365,15 @@ unsigned int BAMReader_Multi::ProfileBAM(
   uint64_t block_begin;
     
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
-  
+  Progress p(IS_LENGTH, true);
+  size_t cursor = BAM_READS_BEGIN;
+  p.increment(cursor);
   while(!eof()) {
     buffer_chunk * temp_buffer = new buffer_chunk;
     block_begin = tellg();
     temp_buffer->read_from_file(IN);
     temp_buffer->decompress();
-    
+
     if(!temp_buffer->is_eof_block()) {
       // Deal with previous block and output block start:
       new_begin = block_begin; 
@@ -414,6 +421,9 @@ unsigned int BAMReader_Multi::ProfileBAM(
       IS_EOF = 1; break;
     }
     delete temp_buffer;
+    p.increment(IN->tellg() - cursor);
+    cursor = IN->tellg();    
+    
     if(!break_at_read_head && !break_at_read_body) last_read_offset = 0;
     temp_last_read_offsets.push_back(last_read_offset);
   }
