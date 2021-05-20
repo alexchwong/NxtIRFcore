@@ -1,25 +1,24 @@
+#include "includedefine.h"
+
 #include "ReadBlockProcessor.h"
 #include "ReadBlockProcessor_CoverageBlocks.h"
 #include "BAM2blocks.h"
 #include "GZReader.h"
 #include "Mappability.h"
 
-#include "includedefine.h"
+const char refEOF[5] =
+		"\x20\x45\x4f\x46";
 
 #ifndef GALAXY
 
-// [[Rcpp::export]]
-int Has_OpenMP() {
-#ifdef _OPENMP
-	return omp_get_max_threads();
-#else
-	return 0;
-#endif
-}
-
-
-const char refEOF[5] =
-		"\x20\x45\x4f\x46";
+    // [[Rcpp::export]]
+    int Has_OpenMP() {
+    #ifdef _OPENMP
+      return omp_get_max_threads();
+    #else
+      return 0;
+    #endif
+    }
 
 // [[Rcpp::export]]
 bool IRF_Check_Cov(std::string s_in) {
@@ -362,10 +361,9 @@ int IRF_core(std::string const &bam_file,
     bool const verbose,
     int n_threads = 1
 ) {
-  unsigned int n_threads_to_use = n_threads;   // Should be sorted out in calling function
+  unsigned int n_threads_to_use = (unsigned int)n_threads;   // Should be sorted out in calling function
  
   std::string myLine;
-  
 	if(verbose) Rcout << "Processing BAM file\n";
   
   
@@ -558,23 +556,7 @@ int IRF_core(std::string const &bam_file,
   return(0);
 }
 
-int Set_Threads(int n_threads) {
-#ifdef _OPENMP
-  int use_threads = 1;
-	if(n_threads > 0 && n_threads <= omp_get_thread_limit()) {
-    use_threads = n_threads;
-	} else {
-		use_threads = omp_get_thread_limit();
-		if(use_threads < 1) {
-			use_threads = 1;
-		}
-	}
-	omp_set_num_threads(use_threads);
-  return(use_threads);
-#else
-	return(1);
-#endif
-}
+
 
 #ifndef GALAXY
 // [[Rcpp::export]]

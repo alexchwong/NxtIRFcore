@@ -1,3 +1,6 @@
+#ifndef CODE_BAMREADER_MULTI
+#define CODE_BAMREADER_MULTI
+
 #include <stdio.h>
 #include <string.h>
 #include <zlib.h>
@@ -119,3 +122,5 @@ class BAMReader_Multi {
     
     std::vector<chr_entry> chrs;
 };
+
+#endif
