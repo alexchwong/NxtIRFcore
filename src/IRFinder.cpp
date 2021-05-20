@@ -364,13 +364,14 @@ int IRF_core(std::string const &bam_file,
   unsigned int n_threads_to_use = (unsigned int)n_threads;   // Should be sorted out in calling function
  
   std::string myLine;
-	if(verbose) Rcout << "Processing BAM file\n";
+	if(verbose) Rcout << "Processing BAM file " << bam_file << "\n";
   
   
   std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
   BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
   
   BAM2blocks BB;  
+  if(verbose) Rcout << "Identifying BGZFZ blocks in BAM file\n";
   unsigned int n_bgzf_blocks = BB.openFile(&inbam, verbose, n_threads_to_use);
   // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
  
@@ -429,6 +430,7 @@ int IRF_core(std::string const &bam_file,
   // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
 #ifdef _OPENMP
   unsigned int blocks_read_total = 0;
+  bool interrupted = false;
   #pragma omp parallel for
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     while(!BRchild.at(i)->eob()) {
@@ -440,7 +442,12 @@ int IRF_core(std::string const &bam_file,
       BBchild.at(i)->processAll();
       
       #pragma omp critical
-      p.increment(n_blocks_read);
+      if ( ! Progress::check_abort() ) {
+        p.increment(n_blocks_read);
+      } else {
+        interrupted = true;
+        break;
+      }
       
       #pragma omp critical
       blocks_read_total += n_blocks_read;
@@ -449,6 +456,8 @@ int IRF_core(std::string const &bam_file,
       // Rcout << "Blocks read: " << n_blocks_read << '\n';
     }
   }
+  
+  if(interrupted) return(-1);
   if(blocks_read_total < n_bgzf_blocks) p.increment(n_bgzf_blocks - blocks_read_total);
   
 #else
@@ -511,12 +520,18 @@ int IRF_core(std::string const &bam_file,
   std::string myLine_Dir;
   std::string myLine_QC;
   
+  Rcout << "Writing ROIs\n";
   oROI.at(0)->WriteOutput(myLine_ROI, myLine_QC);
+  Rcout << "Writing Juncs\n";
 	oJC.at(0)->WriteOutput(myLine_JC, myLine_QC);
+  Rcout << "Writing Spans\n";
 	oSP.at(0)->WriteOutput(myLine_SP, myLine_QC);
+  Rcout << "Writing Chrs\n";
 	oChr.at(0)->WriteOutput(myLine_Chr, myLine_QC);
+  Rcout << "Writing CoverageBlocks\n";
 	oCB.at(0)->WriteOutput(myLine_ND, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0));
   if (directionality != 0) {
+    Rcout << "Writing Stranded CoverageBlocks\n";
     oCB.at(0)->WriteOutput(myLine_Dir, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0), directionality); // Directional.
 	}
 
@@ -600,7 +615,7 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   ret = IRF_core(s_bam, s_output_txt, s_output_cov,
     *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
     
-  if(ret != 0) Rcout << "Error occurred running IRFinder on " << s_bam << '\n';
+  if(ret != 0) Rcout << "Process interrupted running IRFinder on " << s_bam << '\n';
   
   delete CB_template;
   delete SP_template;
@@ -654,13 +669,22 @@ int IRF_main_multi(std::string reference_file, StringVector bam_files, StringVec
     int ret2 = IRF_core(s_bam, s_output_txt, s_output_cov,
       *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
     if(ret2 != 0) {
-      Rcout << "Error occurred running IRFinder on " << s_bam << '\n';
+      Rcout << "Process interrupted running IRFinder on " << s_bam << '\n';
+      delete CB_template;
+      delete SP_template;
+      delete ROI_template;
+      delete JC_template;
+      return(ret);
     } else {
       Rcout << s_bam << " processed\n";
     }
 	}
 
-	return(0);
+  delete CB_template;
+  delete SP_template;
+  delete ROI_template;
+  delete JC_template;
+  return(0);
 }
 
 #else
