@@ -1,3 +1,6 @@
+#ifndef CODE_MAPPABILITY
+#define CODE_MAPPABILITY
+
 #include "ReadBlockProcessor.h" // No need to include GZWriter.h as this is included in ReadBlockProcessor.h
 #include "BAM2blocks.h"
 #include "FastaReader.h"
@@ -16,4 +19,8 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
   int IRF_GenerateMappabilityRegions(std::string bam_file, std::string output_file, int threshold, int includeCov = 0, bool verbose = true);
 #else
   int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_txt, int threshold, std::string s_output_cov = "");	
+#endif
+
+int Set_Threads(int n_threads);
+
 #endif
