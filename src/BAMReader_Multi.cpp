@@ -314,8 +314,10 @@ unsigned int BAMReader_Multi::ProfileBAM(
   Rcout << "Checking whether bgzf blocks contain whole number of reads\n";
   while(i < temp_begins.size() && block_begins.size() < target_n_threads) {
     block_begins.push_back(temp_begins.at(i));
+    Rcout << "block " << temp_begins.at(i) << '\t';
     read_offsets.push_back(0);
     i+=divisor;
+    Rcout >> '\n';
   }
   bool is_self_contained = true;
   for(unsigned int j = 0; j < block_begins.size(); j++) {
@@ -344,6 +346,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
     delete temp_buffer;
   }
   if(is_self_contained) {
+    Rcout << "BAM is self contained\n";
   // if so, exit with these n blocks (where n == target_n_threads)
     // push EOF
     block_begins.push_back(temp_begins.at(temp_begins.size() - 1));
