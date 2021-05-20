@@ -67,7 +67,8 @@ make_example_NxtSE <- function() {
     # Save COV files
     file.copy(
         expr$cov_file,
-        file.path("../extdata", basename(expr$cov_file))
+        file.path("../extdata", basename(expr$cov_file)),
+        overwrite = TRUE
     )
     
     # De-identify COV files for validity:
