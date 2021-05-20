@@ -576,9 +576,12 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   std::string s_ref = reference_file;
 		
   if(verbose) {
-    Rcout << "Running IRFinder on " << s_bam << "\nReference: " << s_ref << "\n";
-    Rcout << "Output file: " << s_output_txt << "\t" << s_output_cov << "\n\n";
-    Rcout << "Reading reference file\n";
+    Rcout << "Running IRFinder on " << s_bam;
+    if(Has_OpenMP() != 0) Rcout << " with OpenMP ";
+    Rcout << "using " << use_threads << " threads"
+      << "\n" << "Reference: " << s_ref << "\n"
+      << "Output file: " << s_output_txt << "\t" << s_output_cov << "\n\n"
+      << "Reading reference file\n";
   }
 
   CoverageBlocksIRFinder * CB_template = new CoverageBlocksIRFinder;
