@@ -190,7 +190,7 @@ STAR_buildRef <- function(reference_path,
     if(!is.null(additional_args) && all(is.character(additional_args))) args = c(args, 
         additional_args)
 
-    system2(command = "STAR", args = args))
+    system2(command = "STAR", args = args)
 
     if(also_generate_mappability) {
         STAR_Mappability(
