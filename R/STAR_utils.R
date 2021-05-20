@@ -312,7 +312,7 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
 
             sample = samples[i]
             Expr_sample = Experiment[Experiment[, "sample"] == sample,]
-            if(paired) {
+            if(!paired) {
                 fastq_1 = Expr_sample[, "forward"]
                 fastq_2 = NULL        
             } else {
