@@ -159,7 +159,10 @@ unsigned int BAM2blocks::processPair(bam_read_core * read1, bam_read_core * read
     //reads do not intersect
     oBlocks.readCount = 2;
     debugstate.append( "-Long-");
-  }else if (read1->core.pos + r1_genome_len >= read2->core.pos + r2_genome_len){
+  }else if (read1->core.pos + r1_genome_len >= read2->core.pos + r2_genome_len &&
+      read1->core.pos < read2->core.pos){
+    // if read1->core.pos == read2->core.pos, then order matters:
+    // if r1_genome_len > r2_genome_len, will be short read, and intersect read if not
     cShortPairs++;
     // Read 2 is a short read & read 1 fully contains it (or perhaps just a trimmed read with two exactly complementary reads remaining).
     oBlocks.readCount = 1;
@@ -408,16 +411,13 @@ int BAM2blocks::processAll() {
                 if (reads[k].core.pos <= it_read->second->core.pos) {
                   //cout << "procesPair call1" << endl;        
                   totalNucleotides += processPair(&reads[k], &(*(it_read->second)));
-                  cReadsProcessed+=2;
-                  delete (it_read->second);
-                  spare_reads->erase(read_name);
                 }else{
                   //cout << "procesPair call2" << endl;                
                   totalNucleotides += processPair(&(*(it_read->second)), &reads[k]);
-                  cReadsProcessed+=2;
-                  delete (it_read->second);
-                  spare_reads->erase(read_name);
                 }
+                cReadsProcessed+=2;
+                delete (it_read->second);
+                spare_reads->erase(read_name);
               }
             } else {
               bam_read_core * store_read = new bam_read_core;
