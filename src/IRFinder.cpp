@@ -373,6 +373,8 @@ int IRF_core(std::string const &bam_file,
   BAM2blocks BB;  
   unsigned int n_bgzf_blocks = BB.openFile(&inbam, n_threads_to_use);
   // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
+	if(verbose) Rcout << "Profiled BAM file\n";
+
   
   // Assign children:
   std::vector<CoverageBlocksIRFinder*> oCB;

@@ -366,9 +366,6 @@ unsigned int BAMReader_Multi::ProfileBAM(
   uint64_t block_begin;
     
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
-  Progress p(IS_LENGTH, true);
-  size_t cursor = BAM_READS_BEGIN;
-  p.increment(cursor);
   while(!eof()) {
     buffer_chunk * temp_buffer = new buffer_chunk;
     block_begin = tellg();
@@ -389,7 +386,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
       }
       temp_begins.push_back(new_begin);
       // first_read_offsets.push_back(new_offset);
-      // Rcout << new_begin << '\t' << new_offset << '\n';
+      Rcout << new_begin << '\t' << new_offset << '\n';
       
       head_offset = 0;
       end_of_buffer = false;
@@ -422,8 +419,6 @@ unsigned int BAMReader_Multi::ProfileBAM(
       IS_EOF = 1; break;
     }
     delete temp_buffer;
-    p.increment((size_t)IN->tellg() - cursor);
-    cursor = (size_t)IN->tellg();    
     
     if(!break_at_read_head && !break_at_read_body) last_read_offset = 0;
     temp_last_read_offsets.push_back(last_read_offset);
