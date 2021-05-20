@@ -277,7 +277,7 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
     bgzf_size = u16.u + 1 - 2  - 16;
     
     IN->ignore(bgzf_size);
-    p.increment(IN->tellg() - cursor);
+    p.increment((size_t)IN->tellg() - cursor);
     cursor = IN->tellg();
   }
   IN->clear();
@@ -421,7 +421,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
       IS_EOF = 1; break;
     }
     delete temp_buffer;
-    p.increment(IN->tellg() - cursor);
+    p.increment((size_t)IN->tellg() - cursor);
     cursor = IN->tellg();    
     
     if(!break_at_read_head && !break_at_read_body) last_read_offset = 0;
