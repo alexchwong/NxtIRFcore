@@ -24,7 +24,7 @@
     # OpenMP version currently causes C stack usage errors. Disable for now
     if(Has_OpenMP() > 0 & Use_OpenMP) {
         # n_threads = min(n_threads, length(s_bam))
-        IRF_main_multithreaded(ref_file, s_bam, output_files, n_threads, verbose)
+        IRF_main_multi(ref_file, s_bam, output_files, n_threads, verbose)
     } else {
         # Use BiocParallel
         n_rounds = ceiling(length(s_bam) / floor(max_threads))
@@ -71,10 +71,12 @@
     bam_short = file.path(basename(dirname(bam)), basename(bam))
     if(overwrite ||
         !(file.exists(file_gz) | file.exists(file_cov))) {
-        IRF_main(bam, ref, out, verbose, n_threads)
+        ret = IRF_main(bam, ref, out, verbose, n_threads)
         # Check IRFinder returns all files successfully
-
-        if(!file.exists(file_gz)) {
+        if(ret != 0) {
+            .log(paste(
+                "IRFinder exited with errors, see error messages above"))
+        } else if(!file.exists(file_gz)) {
             .log(paste(
                 "IRFinder failed to produce", file_gz))
         } else if(!file.exists(file_cov)) {

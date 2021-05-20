@@ -362,23 +362,17 @@ int IRF_core(std::string const &bam_file,
     bool const verbose,
     int n_threads = 1
 ) {
-
-  #ifndef _OPENMP
-    unsigned int n_threads_to_use = 1;
-  #else
-    unsigned int n_threads_to_use = max(n_threads, 1);
-  #endif
-  
+  unsigned int n_threads_to_use = n_threads;   // Should be sorted out in calling function
+ 
   std::string myLine;
   
 	if(verbose) Rcout << "Processing BAM file\n";
+  
+  
+  std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
+  BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
+  
   BAM2blocks BB;  
-  
-  BAMReader_Multi inbam; // Rcout << "BAMReader_Multi created\n";
-  std::ifstream inbam_stream;
-  inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
-  inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
-  
   unsigned int n_bgzf_blocks = BB.openFile(&inbam, n_threads_to_use);
   // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
   
@@ -433,7 +427,6 @@ int IRF_core(std::string const &bam_file,
   }
   
   // BAM processing loop
-  
   Progress p(n_bgzf_blocks, verbose);
   // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
 #ifdef _OPENMP
@@ -453,6 +446,7 @@ int IRF_core(std::string const &bam_file,
       
       #pragma omp critical
       blocks_read_total += n_blocks_read;
+      
       // #pragma omp critical
       // Rcout << "Blocks read: " << n_blocks_read << '\n';
     }
@@ -471,22 +465,17 @@ int IRF_core(std::string const &bam_file,
     }
   }
 #endif
-  
+
+  inbam_stream.close();
   // Rcout << "BAM processing finished\n";
   
-  if(verbose && n_threads_to_use > 1) Rcout << "Compiling data from threads\n";
-
-  // Combine BB's and process spares
   if(n_threads_to_use > 1) {
+    if(verbose) Rcout << "Compiling data from threads\n";
+  // Combine BB's and process spares
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       BBchild.at(0)->processSpares(*BBchild.at(i));
     }
-  }
-  BBchild.at(0)->WriteOutput(myLine);
-  inbam_stream.close();
-
   // Combine objects:
-  if(n_threads_to_use > 1) {
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       oJC.at(0)->Combine(*oJC.at(i));
       oChr.at(0)->Combine(*oChr.at(i));
@@ -497,21 +486,19 @@ int IRF_core(std::string const &bam_file,
     }
   }
 
-  // Rcout << "Objects combined\n";
   // Write Coverage Binary file:
-  std::ofstream ofCOV; ofCOV.open(s_output_cov, std::ofstream::binary);  
-  covFile outCOV; outCOV.SetOutputHandle(&ofCOV);
-  oFM.at(0)->WriteBinary(&outCOV, verbose);
-  ofCOV.close();
+  std::ofstream ofCOV;                          ofCOV.open(s_output_cov, std::ofstream::binary);  
+  covFile outCOV;                               outCOV.SetOutputHandle(&ofCOV);
+  oFM.at(0)->WriteBinary(&outCOV, verbose);     ofCOV.close();
 
 // Write output to file:  
 	if(verbose) Rcout << "Writing output file\n";
 
-  std::ofstream out; out.open(s_output_txt, std::ios::binary);  // Open binary file
-  GZWriter outGZ; outGZ.SetOutputHandle(&out); // GZ compression
+  std::ofstream out;                            out.open(s_output_txt, std::ios::binary);  // Open binary file
+  GZWriter outGZ;                               outGZ.SetOutputHandle(&out); // GZ compression
 
 // Write stats here:
-
+  BBchild.at(0)->WriteOutput(myLine);
   outGZ.writeline("BAM_report\tValue"); outGZ.writestring(myLine); outGZ.writeline("");
 
   int directionality = oJC.at(0)->Directional(myLine);
@@ -571,6 +558,24 @@ int IRF_core(std::string const &bam_file,
   return(0);
 }
 
+int Set_Threads(int n_threads) {
+#ifdef _OPENMP
+  int use_threads = 1;
+	if(n_threads > 0 && n_threads <= omp_get_thread_limit()) {
+    use_threads = n_threads;
+	} else {
+		use_threads = omp_get_thread_limit();
+		if(use_threads < 1) {
+			use_threads = 1;
+		}
+	}
+	omp_set_num_threads(use_threads);
+  return(use_threads);
+#else
+	return(1);
+#endif
+}
+
 #ifndef GALAXY
 // [[Rcpp::export]]
 int IRF_main(std::string bam_file, std::string reference_file, std::string output_file, bool verbose = true, int n_threads = 1){
@@ -578,11 +583,13 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string outpu
   std::string s_output_txt = output_file + ".txt.gz";
   std::string s_output_cov = output_file + ".cov";
 #else
-int IRF_main(std::string bam_file, std::string reference_file, std::string s_output_txt, std::string s_output_cov){	
-	int n_threads = 1;
+int IRF_main(std::string bam_file, std::string reference_file, std::string s_output_txt, std::string s_output_cov, int n_threads = 1){
+	
   bool verbose = true;
 #endif
-
+  
+  int use_threads = Set_Threads(n_threads);
+  
   std::string s_bam = bam_file;
   std::string s_ref = reference_file;
 		
@@ -600,41 +607,28 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   int ret = 0;
   
   ret = IRF_ref(s_ref, *CB_template, *SP_template, *ROI_template, *JC_template, verbose);
-  if(ret != 0) return(ret);
-  
+  if(ret != 0) {
+    Rcout << "Reading Reference file failed. Check if IRFinder.ref.gz exists and is a valid NxtIRF-generated IRFinder reference\n";
+    return(ret);
+  }
   // main:
   ret = IRF_core(s_bam, s_output_txt, s_output_cov,
-    *CB_template, *SP_template, *ROI_template, *JC_template, verbose, n_threads);
+    *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
+    
+  if(ret != 0) Rcout << "Error occurred running IRFinder on " << s_bam << '\n';
   
   delete CB_template;
   delete SP_template;
   delete ROI_template;
   delete JC_template;
-  
   return(ret);
 }
 
 #ifndef GALAXY
-
-#ifndef _OPENMP
-int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, StringVector output_files, int max_threads, bool verbose = true){
-	Rcout << "NxtIRF was built without OpenMP; exiting...";
-	return(1);
-}
-#else
 // [[Rcpp::export]]
-int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, StringVector output_files, int max_threads, bool verbose = true){
+int IRF_main_multi(std::string reference_file, StringVector bam_files, StringVector output_files, int max_threads, bool verbose = true){
 	
-	int use_threads = 1;
-	if(max_threads > 0 && max_threads <= omp_get_thread_limit()) {
-    use_threads = max_threads;
-	} else {
-		use_threads = omp_get_thread_limit();
-		if(use_threads < 1) {
-			use_threads = 1;
-		}
-	}
-	omp_set_num_threads(use_threads);
+	int use_threads = Set_Threads(max_threads);
 
 	if(bam_files.size() != output_files.size() || bam_files.size() < 1) {
 		Rcout << "bam_files and output_files are of different sizes\n";
@@ -659,7 +653,10 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
   int ret = 0;
   
   ret = IRF_ref(s_ref, *CB_template, *SP_template, *ROI_template, *JC_template, false);
-  if(ret != 0) return(ret);
+  if(ret != 0) {
+    Rcout << "Reading Reference file failed. Check if IRFinder.ref.gz exists and is a valid NxtIRF-generated IRFinder reference\n";
+    return(ret);
+  }
 
 	Rcout << "Running IRFinder with OpenMP using " << use_threads << " threads\n";
 
@@ -680,7 +677,6 @@ int IRF_main_multithreaded(std::string reference_file, StringVector bam_files, S
 
 	return(0);
 }
-#endif
 
 #else
 // Galaxy main
