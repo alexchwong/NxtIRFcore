@@ -685,7 +685,7 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
     sort_and_collapse_temp();
     if(verbose)  Rcout << "Performing final sort of fragment maps\n";
 
-    Progress p(3 * chrs.size(), verbose);
+    // Progress p(3 * chrs.size(), verbose);
     for(unsigned int j = 0; j < 3; j++) {
       
 #ifdef _OPENMP
@@ -734,7 +734,7 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
 #ifdef _OPENMP
         #pragma omp critical
 #endif
-        p.increment(1);
+        // p.increment(1);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
       

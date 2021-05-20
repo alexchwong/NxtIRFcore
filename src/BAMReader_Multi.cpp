@@ -257,20 +257,25 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
   
   unsigned int bgzf_size = 0;
-  
+  unsigned int bgzf_check_threshold = 10000;    // Only check Gzip block every 10k runs
   while(!IN->eof() && bgzf_size != 10) {
     BGZF_begins.push_back(IN->tellg());
     
     stream_uint16 u16;
     char GzipCheck[16];
     
-    IN->read(GzipCheck, 16);
-    if(strncmp(bamGzipHead, GzipCheck, 16) != 0) {
-      Rcout << "This does not seem to be a legit BAM file\n";
-      IN->clear();
-      IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
-      return(-1);
+    if(BGZF_begins.size() % bgzf_check_threshold == 1) {
+      IN->read(GzipCheck, 16);
+      if(strncmp(bamGzipHead, GzipCheck, 16) != 0) {
+        Rcout << "This does not seem to be a legit BAM file\n";
+        IN->clear();
+        IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
+        return(-1);
+      }
+    } else {
+      IN->ignore(16);
     }
+
     IN->read(u16.c, 2);
     bgzf_size = u16.u + 1 - 2  - 16;
     
@@ -308,10 +313,10 @@ unsigned int BAMReader_Multi::ProfileBAM(
   // assign n blocks to check if they are self-contained bgzf (i.e. they start and end at read boundary)
   unsigned int divisor = (temp_begins.size()/ target_n_threads);
   unsigned int i = 0;
-  Rcout << "temp_begins.size() == " << temp_begins.size() <<
-    " target_n_threads " << target_n_threads <<
-    " divisor " << divisor << '\n';
-  Rcout << "Checking whether bgzf blocks contain whole number of reads\n";
+  // Rcout << "temp_begins.size() == " << temp_begins.size() <<
+    // " target_n_threads " << target_n_threads <<
+    // " divisor " << divisor << '\n';
+  if(verbose) Rcout << "Checking whether bgzf blocks contain whole number of reads\n";
   while(i < temp_begins.size() && block_begins.size() < target_n_threads) {
     block_begins.push_back(temp_begins.at(i));
     Rcout << "block " << temp_begins.at(i) << '\t';
@@ -346,14 +351,14 @@ unsigned int BAMReader_Multi::ProfileBAM(
     delete temp_buffer;
   }
   if(is_self_contained) {
-    Rcout << "BAM is self contained\n";
+    if(verbose) Rcout << "BAM is self contained\n";
   // if so, exit with these n blocks (where n == target_n_threads)
     // push EOF
     block_begins.push_back(temp_begins.at(temp_begins.size() - 1));
     read_offsets.push_back(0);
     return(temp_begins.size());
   } else {
-    Rcout << "BAM reads appear to be split across BGZF blocks, requiring full indexing...\n";
+    if(verbose) Rcout << "BAM reads appear to be split across BGZF blocks, requiring full indexing...\n";
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     temp_begins.clear(); block_begins.clear(); read_offsets.clear();    
   }
@@ -389,7 +394,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
       }
       temp_begins.push_back(new_begin);
       // first_read_offsets.push_back(new_offset);
-      Rcout << new_begin << '\t' << new_offset << '\n';
+      // Rcout << new_begin << '\t' << new_offset << '\n';
       
       head_offset = 0;
       end_of_buffer = false;
