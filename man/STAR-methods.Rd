@@ -17,6 +17,7 @@ STAR_buildRef(
   mappability_depth_threshold = 4,
   sjdbOverhang = 150,
   n_threads = 4,
+  additional_args = NULL,
   ...
 )
 
@@ -79,6 +80,9 @@ acceptor sequence on each side of the junctions. Ideally equal to
 
 \item{n_threads}{The number of threads to run the STAR aligner.}
 
+\item{additional_args}{A character vector of additional arguments to be
+parsed into STAR.}
+
 \item{...}{Additional arguments to be parsed into 
 \code{Mappability_GenReads()}}
 
@@ -108,9 +112,6 @@ If single reads are to be aligned, omit \code{fastq_2}}
 
 \item{memory_mode}{The parameter to be parsed to \code{--genomeLoad}; either
 \code{NoSharedMemory} or \code{LoadAndKeep} are used.}
-
-\item{additional_args}{A character vector of additional arguments to be
-parsed into STAR.}
 }
 \value{
 None. STAR will output files into the given output directories.
