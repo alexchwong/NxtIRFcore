@@ -26,8 +26,10 @@ class BAM2blocks {
     unsigned int processPair(bam_read_core * read1, bam_read_core * read2);
     unsigned int processSingle(bam_read_core * read1);
 
-  	unsigned int readBamHeader(std::vector<uint64_t> &block_begins, std::vector<unsigned int> &read_offsets,
-      unsigned int n_workers);  // implied by openFile. So perhaps should be private.
+  	unsigned int readBamHeader(
+      std::vector<uint64_t> &block_begins, 
+      std::vector<unsigned int> &read_offsets, bool verbose = false,
+      unsigned int n_workers = 1);  // implied by openFile. So perhaps should be private.
 
     // Statistics.
     unsigned long cReadsProcessed;
@@ -55,7 +57,8 @@ class BAM2blocks {
     std::map< std::string, bam_read_core* > * spare_reads;    
   public:
   	BAM2blocks(); ~BAM2blocks();
-  	unsigned int openFile(BAMReader_Multi * _IN, unsigned int n_workers);
+  	unsigned int openFile(BAMReader_Multi * _IN, bool verbose = false,
+      unsigned int n_workers = 1);
     void AttachReader(BAMReader_Multi * _IN);
     
     void ProvideTask(unsigned int thread_number, 

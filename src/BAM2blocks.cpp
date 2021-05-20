@@ -28,7 +28,7 @@ BAM2blocks::~BAM2blocks() {
   delete spare_reads;
 }
 
-unsigned int BAM2blocks::openFile(BAMReader_Multi * _IN, unsigned int n_workers) {
+unsigned int BAM2blocks::openFile(BAMReader_Multi * _IN, bool verbose, unsigned int n_workers) {
   // Change for multi-threading:
   // Only BBchild processes BAM reads from file input
   // BAM2blocks (parent) reads header, analyses file, and delegates tasks to children
@@ -38,7 +38,7 @@ unsigned int BAM2blocks::openFile(BAMReader_Multi * _IN, unsigned int n_workers)
   // So in IRFinder main, only 1 child reads file buffer at any one time
   // Decompression and read processing runs in parallel
   IN = _IN;
-  return(readBamHeader(block_begins, read_offsets, n_workers)); // readBamHeader needs to call the ChrMappingChange callbacks.
+  return(readBamHeader(block_begins, read_offsets, verbose, n_workers)); // readBamHeader needs to call the ChrMappingChange callbacks.
 }
 
 void BAM2blocks::AttachReader(BAMReader_Multi * _IN) {
@@ -48,6 +48,7 @@ void BAM2blocks::AttachReader(BAMReader_Multi * _IN) {
 unsigned int BAM2blocks::readBamHeader(
     std::vector<uint64_t> &block_begins, 
     std::vector<unsigned int> &read_offsets,
+    bool verbose,
     unsigned int n_workers
 ) {
   unsigned int n_bgzf = IN->readBamHeader(block_begins, read_offsets, n_workers);

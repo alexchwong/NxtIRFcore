@@ -209,6 +209,7 @@ void BAMReader_Multi::SetInputHandle(std::istream *in_stream) {
 unsigned int BAMReader_Multi::readBamHeader(
     std::vector<uint64_t> &block_begins, 
     std::vector<unsigned int> &read_offsets,
+    bool verbose,
     unsigned int n_workers) {
   char buffer[1000];
   std::string chrName;
@@ -240,7 +241,7 @@ unsigned int BAMReader_Multi::readBamHeader(
     BAM_BLOCK_CURSOR = BAM_READS_BEGIN;
   }
   
-  return(ProfileBAM(block_begins, read_offsets, n_workers));
+  return(ProfileBAM(block_begins, read_offsets, verbose, n_workers));
 }
 
 void BAMReader_Multi::fillChrs(std::vector<chr_entry> &chrs_dest) {
@@ -288,6 +289,7 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
 unsigned int BAMReader_Multi::ProfileBAM(
     std::vector<uint64_t> &block_begins, 
     std::vector<unsigned int> &read_offsets, 
+    bool verbose,
     unsigned int target_n_threads) {
       
   if(BAM_READS_BEGIN == 0) return(0);

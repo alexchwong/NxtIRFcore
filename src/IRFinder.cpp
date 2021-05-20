@@ -371,11 +371,9 @@ int IRF_core(std::string const &bam_file,
   BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
   
   BAM2blocks BB;  
-  unsigned int n_bgzf_blocks = BB.openFile(&inbam, n_threads_to_use);
+  unsigned int n_bgzf_blocks = BB.openFile(&inbam, verbose, n_threads_to_use);
   // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
-	if(verbose) Rcout << "Profiled BAM file\n";
-
-  
+ 
   // Assign children:
   std::vector<CoverageBlocksIRFinder*> oCB;
   std::vector<SpansPoint*> oSP;
