@@ -432,20 +432,21 @@ int IRF_core(std::string const &bam_file,
   unsigned int blocks_read_total = 0;
   #pragma omp parallel for
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    unsigned int n_blocks_read = 0;
-    while(!BRchild.at(i)->eob() && !p.check_abort()) {
+    unsigned int n_blocks_read = 1;
+    while(!BRchild.at(i)->eob() && !p.check_abort() && n_blocks_read > 0) {
       #pragma omp critical
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
       
-      BRchild.at(i)->decompress(100);
-      BBchild.at(i)->processAll();
-              
-      #pragma omp critical
-      blocks_read_total += n_blocks_read;
-      
-      #pragma omp critical
-      p.increment(n_blocks_read);
-      
+      if(n_blocks_read > 0) {
+        BRchild.at(i)->decompress(100);
+        BBchild.at(i)->processAll();
+                
+        #pragma omp critical
+        blocks_read_total += n_blocks_read;
+        
+        #pragma omp critical
+        p.increment(n_blocks_read);
+      }
       // Rcout << "Blocks read: " << n_blocks_read << '\n';
     }
   }

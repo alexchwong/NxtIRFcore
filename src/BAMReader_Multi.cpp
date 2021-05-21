@@ -467,6 +467,7 @@ int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
     if(IS_EOF == 1) return(i);
     if(BAM_BLOCK_CURSOR == end_block_offset && end_read_offset == 0) {
       IS_EOF = 1;
+      if(i == 0) IS_EOB = 1;
       return(i);
     }
     buffer.at(comp_buffer_count).SetBGZFPos(BAM_BLOCK_CURSOR);
@@ -474,6 +475,7 @@ int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
     if(ret != 0) {
       if(ret == 1) {
         IS_EOF = 1;
+        if(i == 0) IS_EOB = 1;
       } else {
         Rcout << "Error reading file, error code: " << ret << ", bgzf pos = " 
           << buffer.at(comp_buffer_count).GetBGZFPos() << '\n';
@@ -542,6 +544,9 @@ unsigned int BAMReader_Multi::read(char * dest, unsigned int len) {
           return(cursor);
         }
         buffer_pos++; // increment
+        if(buffer_pos < comp_buffer_count && !buffer.at(buffer_pos).is_decompressed()) {
+          decompress(1);
+        }
       }
     } // reading will always end with end of buffer being cleared
   }
