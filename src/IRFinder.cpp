@@ -371,7 +371,7 @@ int IRF_core(std::string const &bam_file,
   BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
   
   BAM2blocks BB;  
-  if(verbose) Rcout << "Identifying BGZFZ blocks in BAM file\n";
+  if(verbose) Rcout << "Identifying BGZF blocks in BAM file\n";
   unsigned int n_bgzf_blocks = BB.openFile(&inbam, verbose, n_threads_to_use);
   // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
  
@@ -527,18 +527,18 @@ int IRF_core(std::string const &bam_file,
   std::string myLine_Dir;
   std::string myLine_QC;
   
-  Rcout << "Writing ROIs\n";
+  // Rcout << "Writing ROIs\n";
   oROI.at(0)->WriteOutput(myLine_ROI, myLine_QC);
-  Rcout << "Writing Juncs\n";
+  // Rcout << "Writing Juncs\n";
 	oJC.at(0)->WriteOutput(myLine_JC, myLine_QC);
-  Rcout << "Writing Spans\n";
+  // Rcout << "Writing Spans\n";
 	oSP.at(0)->WriteOutput(myLine_SP, myLine_QC);
-  Rcout << "Writing Chrs\n";
+  // Rcout << "Writing Chrs\n";
 	oChr.at(0)->WriteOutput(myLine_Chr, myLine_QC);
-  Rcout << "Writing CoverageBlocks\n";
+  // Rcout << "Writing CoverageBlocks\n";
 	oCB.at(0)->WriteOutput(myLine_ND, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0), n_threads_to_use);
   if (directionality != 0) {
-    Rcout << "Writing Stranded CoverageBlocks\n";
+    // Rcout << "Writing Stranded CoverageBlocks\n";
     oCB.at(0)->WriteOutput(myLine_Dir, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0), n_threads_to_use, directionality); // Directional.
 	}
 
