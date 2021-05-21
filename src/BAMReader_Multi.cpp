@@ -311,7 +311,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
     return(0);
   }
   // assign n blocks to check if they are self-contained bgzf (i.e. they start and end at read boundary)
-  unsigned int divisor = (temp_begins.size()/ target_n_threads);
+  unsigned int divisor = 1 + (temp_begins.size()/ target_n_threads);
   unsigned int i = 0;
   // Rcout << "temp_begins.size() == " << temp_begins.size() <<
     // " target_n_threads " << target_n_threads <<
