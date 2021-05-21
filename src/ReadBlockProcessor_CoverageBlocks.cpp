@@ -249,6 +249,7 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC,
 	std::string KE = "known-exon";
 	
   unsigned int n_jobs = std::ceil(BEDrecords.size() / n_threads);
+  Rcout << "n_jobs = " << n_jobs << ", BEDrecords.size() = " << BEDrecords.size() << '\n';
 
 #ifdef _OPENMP
   #pragma omp parallel for
