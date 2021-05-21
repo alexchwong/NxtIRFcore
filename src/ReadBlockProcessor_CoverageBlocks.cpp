@@ -248,7 +248,7 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC,
 	double ID_AS = 0.0;
 	std::string KE = "known-exon";
 	
-  unsigned int n_jobs = std::ceil(BEDrecords.size() / n_threads);
+  unsigned int n_jobs = 1 + (BEDrecords.size() / n_threads);
   Rcout << "n_jobs = " << n_jobs << ", BEDrecords.size() = " << BEDrecords.size() << '\n';
 
 #ifdef _OPENMP
