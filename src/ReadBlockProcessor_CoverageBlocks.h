@@ -52,7 +52,7 @@ class CoverageBlocks : public ReadBlockProcessor {
 class CoverageBlocksIRFinder : public CoverageBlocks {
 	public:
 		void Combine(CoverageBlocksIRFinder &child);
-		int WriteOutput(std::string& output, std::string& QC, const JunctionCount &JC, const SpansPoint &SP, const FragmentsMap &FM, int directionality = 0) const;
+		int WriteOutput(std::string& output, std::string& QC, const JunctionCount &JC, const SpansPoint &SP, const FragmentsMap &FM, int n_threads = 1, int directionality = 0) const;
 };
 
 
