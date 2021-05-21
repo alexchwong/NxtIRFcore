@@ -433,7 +433,7 @@ int IRF_core(std::string const &bam_file,
   #pragma omp parallel for
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     unsigned int n_blocks_read = 0;
-    while(!BRchild.at(i)->eob() && p.increment(n_blocks_read)) {
+    while(!BRchild.at(i)->eob() && !p.check_abort()) {
       #pragma omp critical
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
       
@@ -442,24 +442,26 @@ int IRF_core(std::string const &bam_file,
               
       #pragma omp critical
       blocks_read_total += n_blocks_read;
-      // #pragma omp critical
+      
+      #pragma omp critical
+      p.increment(n_blocks_read);
+      
       // Rcout << "Blocks read: " << n_blocks_read << '\n';
     }
-    p.increment(n_blocks_read);
   }
 #else
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     unsigned int n_blocks_read = 0;
-    while(!BRchild.at(i)->eob() && p.increment(n_blocks_read)) {
+    while(!BRchild.at(i)->eob() && !p.check_abort()) {
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
       BRchild.at(i)->decompress(100);
       BBchild.at(i)->processAll();
+      p.increment(n_blocks_read);
     }
-    p.increment(n_blocks_read);
+    
   }
 #endif
-  int final_inc = max((int)(n_bgzf_blocks - blocks_read_total), 1);
-  if(!p.increment(final_inc)) {
+  if(p.check_abort()) {
     // interrupted:
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
       delete oJC.at(i);
@@ -473,6 +475,9 @@ int IRF_core(std::string const &bam_file,
     }
     return(-1);
   }
+
+  int final_inc = max((int)(n_bgzf_blocks - blocks_read_total), 1);
+  p.increment(final_inc);
 
   inbam_stream.close();
   // Rcout << "BAM processing finished\n";
