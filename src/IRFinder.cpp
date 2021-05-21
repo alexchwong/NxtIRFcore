@@ -441,7 +441,7 @@ int IRF_core(std::string const &bam_file,
         BRchild.at(i)->decompress(100);
         BBchild.at(i)->processAll();
                 
-        #pragma omp critical
+        #pragma omp atomic
         blocks_read_total += n_blocks_read;
         
         #pragma omp critical
@@ -536,10 +536,10 @@ int IRF_core(std::string const &bam_file,
   Rcout << "Writing Chrs\n";
 	oChr.at(0)->WriteOutput(myLine_Chr, myLine_QC);
   Rcout << "Writing CoverageBlocks\n";
-	oCB.at(0)->WriteOutput(myLine_ND, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0));
+	oCB.at(0)->WriteOutput(myLine_ND, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0), n_threads_to_use);
   if (directionality != 0) {
     Rcout << "Writing Stranded CoverageBlocks\n";
-    oCB.at(0)->WriteOutput(myLine_Dir, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0), directionality); // Directional.
+    oCB.at(0)->WriteOutput(myLine_Dir, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0), n_threads_to_use, directionality); // Directional.
 	}
 
   outGZ.writeline("QC\tValue"); outGZ.writestring(myLine_QC); outGZ.writeline("");
