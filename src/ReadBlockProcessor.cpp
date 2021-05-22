@@ -694,7 +694,7 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
       for(unsigned int i = 0; i < chrs.size(); i++) {
         auto itChr = &chrName_vec_new[j].at(i);
         auto itDest = &chrName_vec_final[j].at(i);
-        
+        itDest->resize(0);
         // sort
         std::sort(
           itChr->begin(),
@@ -715,7 +715,10 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
               old_loci = loci;
             }
             loci = it_pos->first;
-          } 
+          } else if(it_pos->first == 0 && it_pos->second > 0) {
+            // Special case if first coordinate is non-zero depth:
+            depth = it_pos->second;
+          }
           if(incremental) {
             depth += it_pos->second;
           } else {

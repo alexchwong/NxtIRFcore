@@ -2,9 +2,6 @@
 #include "BAMReader_Multi.h"
 #include <stdexcept>
 
-const char BAMReader_Multi::bamGzipHead[16+1] = 
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00";
-
 buffer_chunk::buffer_chunk() {
   bgzf_pos = 0;
   max_buffer = 0;
