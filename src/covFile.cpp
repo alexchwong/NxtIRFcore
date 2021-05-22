@@ -930,14 +930,14 @@ int covWriter::WriteFragmentsMap(std::vector< std::pair<unsigned int, int> > * v
   block_coord_starts.at(refID).resize(job_size);
   
 #ifdef _OPENMP
-      #pragma omp parallel for
+  #pragma omp parallel for
 #endif
   for(unsigned int i = 0; i < job_size; i++) {
     stream_int32 i32;
     stream_uint32 u32;
     // Start coordinate for this bgzf block
     block_coord_starts.at(refID).at(i) = (uint32_t)vec->at(i * vec_cap).first;
-    Rcout << "Block start at coord = " << vec->at(i * vec_cap).first << '\n';
+    // Rcout << "Block start at coord = " << vec->at(i * vec_cap).first << '\n';
     unsigned int cur_coord = vec->at(i * vec_cap).first;
     
     for(unsigned int j = i * vec_cap; j < (i+1) * vec_cap && j < vec_size; j++) {
@@ -1024,7 +1024,7 @@ int covWriter::WriteIndexToFile() {
   
   for(unsigned int i = 0; i < 3 * chrs.size(); i++) {
     if(block_coord_starts.at(i).size() == 0 || body.at(i).size() == 0) WriteEmptyEntry(i);
-    Rcout << "Index # bgzf blocks = " << block_coord_starts.at(i).size() << '\n';
+    // Rcout << "Index # bgzf blocks = " << block_coord_starts.at(i).size() << '\n';
     index_size = 0;   // Resets to zero for every refID
     index_buffer.resize(1);
     index_buffer.at(cur_buffer).SetPos(4); // Write the index size at the very end
@@ -1035,10 +1035,10 @@ int covWriter::WriteIndexToFile() {
         index_buffer.resize(index_buffer.size() + 1);
         cur_buffer++;
       }
-      u32.u = block_coord_starts.at(i).at(j); Rcout << "Block starts at " << u32.u << '\t';
+      u32.u = block_coord_starts.at(i).at(j); // Rcout << "Block starts at " << u32.u << '\t';
       index_buffer.at(cur_buffer).write(u32.c, 4);
       
-      u64.u = body_pos; Rcout << ", BGZF offset " << u64.u << '\n';
+      u64.u = body_pos; // Rcout << ", BGZF offset " << u64.u << '\n';
       index_buffer.at(cur_buffer).write(u64.c, 8);
       
       body_pos += body.at(i).at(j).getBGZFSize();   // Increment BGZF pos from start of body
