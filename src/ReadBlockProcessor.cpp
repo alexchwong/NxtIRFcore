@@ -900,11 +900,11 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
           }
           loci = it_pos->first;
         }
-        if(incremental) {
-          depth += it_pos->second;
-        } else {
+        // if(incremental) {
+          // depth += it_pos->second;
+        // } else {
           depth = it_pos->second;
-        }
+        // }
         if(it_pos->first == 0) {
           old_depth = depth;  // ensure never trigger write when first time it_pos->first != loci
         }       
@@ -927,7 +927,7 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
   
   if(!final_is_sorted) {
     final_is_sorted = true;
-    incremental = true;
+    // incremental = true;
   }
   os->FlushBody();
   return(0);  
