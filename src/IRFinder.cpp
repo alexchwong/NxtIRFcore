@@ -428,8 +428,9 @@ int IRF_core(std::string const &bam_file,
   // BAM processing loop
   Progress p(n_bgzf_blocks, verbose);
   // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
-#ifdef _OPENMP
   unsigned int blocks_read_total = 0;
+
+#ifdef _OPENMP
   #pragma omp parallel for
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     unsigned int n_blocks_read = 1;
@@ -457,6 +458,8 @@ int IRF_core(std::string const &bam_file,
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
       BRchild.at(i)->decompress(100);
       BBchild.at(i)->processAll();
+      
+      blocks_read_total += n_blocks_read;
       p.increment(n_blocks_read);
     }
     

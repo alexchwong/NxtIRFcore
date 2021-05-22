@@ -44,7 +44,7 @@ class BAM2blocks {
     unsigned long cSkippedReads;
     unsigned long cChimericReads;
 
-    bool error_detected;
+    // bool error_detected;
 
     bam_read_core reads[2];
     BAMReader_Multi * IN;  

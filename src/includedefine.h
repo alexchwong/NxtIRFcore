@@ -85,6 +85,22 @@ union bam_header {
   } magic;
 };
 
+
+struct core_32{
+  // uint32_t block_size;
+  int32_t refID;
+  int32_t pos;
+  uint8_t l_read_name;
+  uint8_t mapq;
+  uint16_t bin;
+  uint16_t n_cigar_op;
+  uint16_t flag;
+  uint32_t l_seq;
+  int32_t next_refID;
+  int32_t next_pos;
+  int32_t tlen;
+};
+    
 // TODO -- are structs best hidden inside the class? Does doing so push them into namespace of the class only?
 struct bam_read_core {
   union {
@@ -93,20 +109,7 @@ struct bam_read_core {
   };    
   union {
     char c[32];
-    struct {
-    // uint32_t block_size;
-    int32_t refID;
-    int32_t pos;
-    uint8_t l_read_name;
-    uint8_t mapq;
-    uint16_t bin;
-    uint16_t n_cigar_op;
-    uint16_t flag;
-    uint32_t l_seq;
-    int32_t next_refID;
-    int32_t next_pos;
-    int32_t tlen;
-    } core; // anonymous struct is now named.
+    core_32 core; // anonymous struct is now named.
   };
   char read_name[256];
   union {
