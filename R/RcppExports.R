@@ -25,19 +25,19 @@ IRF_gunzip_DF <- function(s_in, s_header_begin) {
     .Call(`_NxtIRF_IRF_gunzip_DF`, s_in, s_header_begin)
 }
 
-IRF_main <- function(bam_file, reference_file, output_file, verbose = TRUE) {
-    .Call(`_NxtIRF_IRF_main`, bam_file, reference_file, output_file, verbose)
+IRF_main <- function(bam_file, reference_file, output_file, verbose = TRUE, n_threads = 1L) {
+    .Call(`_NxtIRF_IRF_main`, bam_file, reference_file, output_file, verbose, n_threads)
 }
 
-IRF_main_multithreaded <- function(reference_file, bam_files, output_files, max_threads) {
-    .Call(`_NxtIRF_IRF_main_multithreaded`, reference_file, bam_files, output_files, max_threads)
+IRF_main_multi <- function(reference_file, bam_files, output_files, max_threads, verbose = TRUE) {
+    .Call(`_NxtIRF_IRF_main_multi`, reference_file, bam_files, output_files, max_threads, verbose)
 }
 
 IRF_GenerateMappabilityReads <- function(genome_file, out_fa, read_len, read_stride, error_pos) {
     .Call(`_NxtIRF_IRF_GenerateMappabilityReads`, genome_file, out_fa, read_len, read_stride, error_pos)
 }
 
-IRF_GenerateMappabilityRegions <- function(bam_file, output_file, threshold, includeCov, verbose) {
-    .Call(`_NxtIRF_IRF_GenerateMappabilityRegions`, bam_file, output_file, threshold, includeCov, verbose)
+IRF_GenerateMappabilityRegions <- function(bam_file, output_file, threshold, includeCov, verbose, n_threads = 1L) {
+    .Call(`_NxtIRF_IRF_GenerateMappabilityRegions`, bam_file, output_file, threshold, includeCov, verbose, n_threads)
 }
 

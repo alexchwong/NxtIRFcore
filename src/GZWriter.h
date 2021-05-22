@@ -12,10 +12,9 @@ private:
   char compressed_buffer[CHUNK_gz];
   
   char buffer[CHUNK_gz];
-  unsigned int bufferPos;
+  unsigned int bufferPos = 0;
   
 public:
-  GZWriter();
   void SetOutputHandle(std::ostream *out_stream);
 
   int writebuffer(const char * src, unsigned int len);
