@@ -124,7 +124,6 @@ private:
 	int sort_and_collapse_temp();
 
 	bool final_is_sorted = false;
-	bool incremental = true;
   
   vector<chr_entry> chrs;
 public:

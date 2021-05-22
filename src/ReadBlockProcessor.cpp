@@ -715,15 +715,12 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
               old_loci = loci;
             }
             loci = it_pos->first;
-          } else if(it_pos->first == 0 && it_pos->second > 0) {
-            // Special case if first coordinate is non-zero depth:
-            depth = it_pos->second;
           }
-          if(incremental) {
+          // if(incremental) {
             depth += it_pos->second;
-          } else {
-            depth = it_pos->second;
-          }
+          // } else {
+            // depth = it_pos->second;
+          // }
           if(it_pos->first == 0) {
             old_depth = depth;  // ensure never trigger write when first time it_pos->first != loci
           }       
@@ -740,10 +737,8 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
         // p.increment(1);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
-      
     }
     final_is_sorted = true;
-    incremental = false;
   }
   return(0);
 }
