@@ -1,6 +1,24 @@
 #include "Mappability.h"
 #include <cassert>
 
+int Set_Threads(int n_threads) {
+#ifdef _OPENMP
+  int use_threads = 1;
+	if(n_threads > 0 && n_threads <= omp_get_thread_limit()) {
+    use_threads = n_threads;
+	} else {
+		use_threads = omp_get_thread_limit();
+		if(use_threads < 1) {
+			use_threads = 1;
+		}
+	}
+	omp_set_num_threads(use_threads);
+  return(use_threads);
+#else
+	return(1);
+#endif
+}
+
 std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned int error_pos,
   unsigned int direction, unsigned int error_seed) {
   
@@ -190,7 +208,7 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
 
 #ifndef GALAXY
 // [[Rcpp::export]]
-int IRF_GenerateMappabilityRegions(std::string bam_file, std::string output_file, int threshold, int includeCov, bool verbose){
+int IRF_GenerateMappabilityRegions(std::string bam_file, std::string output_file, int threshold, int includeCov, bool verbose, int n_threads = 1){
   
   std::string s_output_txt = output_file + ".txt";
   std::string s_output_cov = output_file + ".cov";
@@ -198,51 +216,131 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string output_file
 int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_txt, int threshold, std::string s_output_cov){	
 	bool verbose = true;
 #endif
-  std::string s_inBAM = bam_file;
+
+  int use_threads = Set_Threads(n_threads);
+
+  unsigned int n_threads_to_use = (unsigned int)use_threads;   // Should be sorted out in calling function
+ 
+  std::string myLine;
+	if(verbose) Rcout << "Processing BAM file\n";
   
-  FragmentsMap oFragMap;
-  
-  BAM2blocks BB;
-  
-  BB.registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &oFragMap, std::placeholders::_1) );
-  BB.registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &oFragMap, std::placeholders::_1) );
-  
-  BAMReader inbam;
-  std::ifstream inbam_stream;
+
+  std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
+  BAMReader_Multi inbam;        
   if(bam_file == "-") {
+    n_threads_to_use = 1;   
+    // Will need to make modifications to ensure n_threads = 1 is compatible with streamed data
     inbam.SetInputHandle(&std::cin);        
   } else {
-    inbam_stream.open(s_inBAM, std::ifstream::binary);
+    inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
     inbam.SetInputHandle(&inbam_stream);    
   }
   
-  BB.openFile(&inbam);
+  BAM2blocks BB;  
+  unsigned int n_bgzf_blocks = BB.openFile(&inbam, n_threads_to_use);
+
+  std::vector<FragmentsMap*> oFM;
+  std::vector<BAM2blocks*> BBchild;
+  std::vector<BAMReader_Multi*> BRchild;
+
+  for(unsigned int i = 0; i < n_threads_to_use; i++) {
+    oFM.push_back(new FragmentsMap);
+    BBchild.push_back(new BAM2blocks);
+    BRchild.push_back(new BAMReader_Multi);
+
+    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &(*oFM.at(i)), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &(*oFM.at(i)), std::placeholders::_1) );
+
+    // Assign task:
+    uint64_t begin_bgzf; unsigned int begin_pos;
+    uint64_t end_bgzf; unsigned int end_pos;
+    BB.ProvideTask(i, begin_bgzf, begin_pos, end_bgzf, end_pos);
+    
+    BRchild.at(i)->AssignTask(&inbam_stream, begin_bgzf, begin_pos, end_bgzf, end_pos);
+    BRchild.at(i)->SetAutoLoad(false);
+    
+    BBchild.at(i)->AttachReader(BRchild.at(i));
+    BBchild.at(i)->TransferChrs(BB);
+  }
+  // BAM processing loop
+  Progress p(n_bgzf_blocks, verbose);
+  // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
+
+#ifdef _OPENMP
+  unsigned int blocks_read_total = 0;
+  #pragma omp parallel for
+  for(unsigned int i = 0; i < n_threads_to_use; i++) {
+    while(!BRchild.at(i)->eob()) {
+      unsigned int n_blocks_read = 0;
+      #pragma omp critical
+      n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
+      
+      BRchild.at(i)->decompress(100);
+      BBchild.at(i)->processAll();
+      
+      #pragma omp critical
+      p.increment(n_blocks_read);
+      
+      #pragma omp critical
+      blocks_read_total += n_blocks_read;
+      
+      // #pragma omp critical
+      // Rcout << "Blocks read: " << n_blocks_read << '\n';
+    }
+  }
+  if(blocks_read_total < n_bgzf_blocks) p.increment(n_bgzf_blocks - blocks_read_total);
   
-  std::string BBreport;
-  BB.processAll(BBreport, verbose);
+#else
+  for(unsigned int i = 0; i < n_threads_to_use; i++) {
+    while(!BRchild.at(i)->eob()) {
+      
+      int n_blocks_read = BRchild.at(i)->read_from_file(100);
+      BRchild.at(i)->decompress(100);
+      BBchild.at(i)->processAll();
+      
+      p.increment(n_blocks_read);
+    }
+  }
+#endif
+  inbam_stream.close();
+  // Rcout << "BAM processing finished\n";
+  
+  if(n_threads_to_use > 1) {
+    if(verbose) Rcout << "Compiling data from threads\n";
+  // Combine BB's and process spares
+    for(unsigned int i = 1; i < n_threads_to_use; i++) {
+      BBchild.at(0)->processSpares(*BBchild.at(i));
+    }
+  // Combine objects:
+    for(unsigned int i = 1; i < n_threads_to_use; i++) {
+      oFM.at(0)->Combine(*oFM.at(i));
+    }
+  }
+
   
 #ifndef GALAXY
   if(includeCov == 1) {
 #else
   if(!s_output_cov.empty()) {
 #endif
-    std::ofstream ofCOV;
-    ofCOV.open(s_output_cov, std::ofstream::binary);
-     
-    covFile outCOV;
-    outCOV.SetOutputHandle(&ofCOV);
-    
-    oFragMap.WriteBinary(&outCOV, verbose);
-    ofCOV.close();    
+   // Write Coverage Binary file:
+    std::ofstream ofCOV;                          ofCOV.open(s_output_cov, std::ofstream::binary);  
+    covFile outCOV;                               outCOV.SetOutputHandle(&ofCOV);
+    oFM.at(0)->WriteBinary(&outCOV, verbose);     ofCOV.close();
   }
   
   std::ofstream outFragsMap;
   outFragsMap.open(s_output_txt, std::ifstream::out);
 	
-  oFragMap.WriteOutput(&outFragsMap, threshold, verbose);
+  oFM.at(0)->WriteOutput(&outFragsMap, threshold, verbose);
   outFragsMap.flush(); outFragsMap.close();
 
+  // destroy objects:
+  for(unsigned int i = 0; i < n_threads_to_use; i++) {
+    delete oFM.at(i);
+    delete BRchild.at(i);
+    delete BBchild.at(i);
+  }
 
-  
   return(0);
 }

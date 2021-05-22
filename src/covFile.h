@@ -4,22 +4,17 @@ class covBuffer{
 	private:
     static const int bamGzipHeadLength = 16;  // +2 a uint16 with the full block length.
     static const char bamGzipHead[bamGzipHeadLength+1];
-    
-    char compressed_buffer[65536];
-    char buffer[65536];
+
+    // char compressed_buffer[65536];
+    // char buffer[65536];    
+    char * compressed_buffer;
+    char * buffer;
 
     unsigned long bufferPos;
     unsigned long bufferMax;
-
-	union stream_uint32 {
-		char c[4];
-		uint32_t u;
-	};
-	union stream_uint16 {
-		char c[2];
-		uint16_t u;
-	};
-
+    uint64_t l_file_buffer;
+    char * file_buffer;
+    uint64_t file_bufferPos;
   public:
     covBuffer();
     ~covBuffer();
@@ -27,9 +22,8 @@ class covBuffer{
     int write(char * src, unsigned int len);
     int WriteBuffer();
     
-    uint64_t l_file_buffer;
-    char * file_buffer;
-    uint64_t file_bufferPos;
+    char * get_buffer_ptr() { return file_buffer; };
+    uint64_t get_buffer_pos() { return file_bufferPos; };
 };
 
 class covFile {
@@ -40,8 +34,10 @@ class covFile {
 		static const int bamGzipHeadLength = 16;  // +2 a uint16 with the full block length.
 		static const char bamGzipHead[bamGzipHeadLength+1];
 
-    char compressed_buffer[65536];
-    char buffer[65536];
+    // char compressed_buffer[65536];
+    // char buffer[65536];
+    char * compressed_buffer;
+    char * buffer;
 
     unsigned long bufferPos;
     unsigned long bufferMax;
@@ -58,31 +54,17 @@ class covFile {
     
     size_t IS_LENGTH;
     size_t EOF_POS;
-        
-	union stream_int32 {
-		char c[4];
-		int32_t i;
-	};
-
-	union stream_uint64 {
-		char c[8];
-		uint64_t u;
-	};
-	union stream_uint32 {
-		char c[4];
-		uint32_t u;
-	};
-	union stream_uint16 {
-		char c[2];
-		uint16_t u;
-	};
-        
+       
     unsigned int out_cur_seqID;
     char * chr_index;
     uint32_t chr_index_alloc;
     uint32_t chr_index_pos;
     uint32_t chr_coord;
-        
+    
+    std::vector<std::string> chr_names;
+    std::vector<unsigned int> chr_lens;
+
+    covBuffer body;
   public:
     covFile();
     ~covFile();
@@ -111,8 +93,13 @@ class covFile {
     int WriteHeader(std::vector<std::string> s_chr, std::vector<int32_t> u_lens);
     int WriteEntry(unsigned int seqID, int value, unsigned int length);
 
-    std::vector<std::string> chr_names;
-    std::vector<unsigned int> chr_lens;
-    
-    covBuffer body;
+    int GetChrs(std::vector<chr_entry> &chrs) {
+      if(chr_names.size() > 0) {
+        for(unsigned int i = 0; i < chr_names.size(); i++) {
+          chrs.push_back(chr_entry(i, chr_names.at(i), chr_lens.at(i)));
+        }
+      }
+      return(0);
+    };
+
 };

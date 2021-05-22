@@ -8,7 +8,8 @@ GZReader::GZReader() {
 
 GZReader::~GZReader() {
   if(buffer != NULL) {
-    delete[] buffer;
+    // delete[] buffer;
+    free(buffer);
   }
 }
 
@@ -63,23 +64,24 @@ int GZReader::GetBuffer() {
       const char * error_string;
       error_string = gzerror (gz_in, & err);
       if (err) {
-        std::ostringstream oss;
-        oss << "Exception during zlib decompression: (" << err << ") " << error_string;
+        // std::ostringstream oss;
+        Rcout << "Exception during zlib decompression: (" << err << ") " << error_string;
         // throw(std::runtime_error(oss.str()));
+        free(data);
 				return(err);
       }
     }
   }
 
-  if(bufferLen > 0) {
+  // if(bufferLen > 0) {
     // reallocate buffer with bufferLen + curpos
     char *buffer_tmp;
     buffer = (char*)realloc(buffer_tmp = buffer, bufferLen + curpos);
     memcpy(&buffer[bufferLen], data, curpos);
-  } else { 
-    buffer = new char[curpos];
-    memcpy(buffer, data, curpos);
-  }
+  // } else { 
+    // buffer = (char*)realloc(buffer_tmp = buffer, curpos);
+    // memcpy(buffer, data, curpos);
+  // }
   bufferLen += curpos;
   free(data);
   if (gzeof (gz_in)) {
@@ -115,9 +117,10 @@ int GZReader::LoadGZ(std::string s_filename, bool asStream, bool lazy) {
           const char * error_string;
           error_string = gzerror (gz_in, & err);
           if (err) {
-            std::ostringstream oss;
-            oss << "Exception during zlib decompression: (" << err << ") " << error_string;
+            // std::ostringstream oss;
+            Rcout << "Exception during zlib decompression: (" << err << ") " << error_string;
             // throw(std::runtime_error(oss.str()));
+            free(data);
 						return(err);
           }
         }
@@ -126,7 +129,8 @@ int GZReader::LoadGZ(std::string s_filename, bool asStream, bool lazy) {
     if(asStream) {
       iss.str((char*)data);
     } else {
-      buffer = new char[curpos];
+      char *buffer_tmp;
+      buffer = (char*)realloc(buffer_tmp = buffer, curpos);
       memcpy(buffer, data, curpos);
       bufferLen = curpos;
     }

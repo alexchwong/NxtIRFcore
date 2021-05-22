@@ -1,9 +1,6 @@
 #include "GZWriter.h"
 #include <stdexcept>
 
-GZWriter::GZWriter() {
-  bufferPos = 0;
-}
 void GZWriter::SetOutputHandle(std::ostream *out_stream) {
   OUT = out_stream;
 }
@@ -60,8 +57,8 @@ int GZWriter::flush(bool final) {
     
     ret = deflateInit2(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY);
     if (ret != Z_OK) {
-      std::ostringstream oss;
-      oss << "Exception during zlib initialization: (" << ret << ") "  << strm.msg;
+      // std::ostringstream oss;
+      Rcout << "Exception during zlib initialization: (" << ret << ") "  << strm.msg;
       // throw(std::runtime_error(oss.str()));
 			return(ret);
     }
@@ -74,8 +71,8 @@ int GZWriter::flush(bool final) {
     ret = deflate(&strm, Z_FINISH);  
 
     if (ret != Z_OK && ret != Z_STREAM_END) {
-        std::ostringstream oss;
-        oss << "Exception during zlib deflate: (" << ret << ") " << strm.msg;
+        // std::ostringstream oss;
+        Rcout << "Exception during zlib deflate: (" << ret << ") " << strm.msg;
         // throw(std::runtime_error(oss.str()));
 				return(ret);
     }

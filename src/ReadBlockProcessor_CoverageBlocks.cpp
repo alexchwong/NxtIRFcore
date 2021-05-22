@@ -75,7 +75,7 @@ void CoverageBlocks::loadRef(std::istringstream &IN) {
 
 }
 
-void CoverageBlocks::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
+void CoverageBlocks::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
   for (unsigned int i = 0; i < chrmap.size(); i++) {
     chrs.push_back(chrmap.at(i));
   }
@@ -83,7 +83,7 @@ void CoverageBlocks::ChrMapUpdate(const std::vector<chr_index> &chrmap) {
 
 
 void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
-
+  // do nothing
 }
 
 // Using FragmentsMap
@@ -222,201 +222,235 @@ int CoverageBlocks::WriteOutput(std::string& output, const FragmentsMap &FM) con
 	return 0;
 }
 
+void CoverageBlocksIRFinder::Combine(CoverageBlocksIRFinder &child) {
+  // do nothing; combining not necessary
+}
 
-int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, const JunctionCount &JC, const SpansPoint &SP, const FragmentsMap &FM, int directionality) const {
-    std::ostringstream oss; std::ostringstream oss_qc; 
+int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, 
+    const JunctionCount &JC, const SpansPoint &SP, const FragmentsMap &FM, 
+     int n_threads, int directionality) const {
+  
+  if(n_threads < 1) return(-1);
+  
+  std::ostringstream oss_title; std::ostringstream oss_qc; 
+  std::vector<std::ostringstream> oss(n_threads);
+  
 	// Custom output function - related to the IRFinder needs
   if(directionality == 0) {
-    oss << "Nondir_Chr\tStart\tEnd\tName\tNull\tStrand\tExcludedBases\tCoverage\tIntronDepth\tIntronDepth25Percentile\tIntronDepth50Percentile\tIntronDepth75Percentile\tExonToIntronReadsLeft\tExonToIntronReadsRight\tIntronDepthFirst50bp\tIntronDepthLast50bp\tSpliceLeft\tSpliceRight\tSpliceExact\tIRratio\tWarnings\n";
+    oss_title << "Nondir_Chr\tStart\tEnd\tName\tNull\tStrand\tExcludedBases\tCoverage\tIntronDepth\tIntronDepth25Percentile\tIntronDepth50Percentile\tIntronDepth75Percentile\tExonToIntronReadsLeft\tExonToIntronReadsRight\tIntronDepthFirst50bp\tIntronDepthLast50bp\tSpliceLeft\tSpliceRight\tSpliceExact\tIRratio\tWarnings\n";
   } else {
-    oss << "Dir_Chr\tStart\tEnd\tName\tNull\tStrand\tExcludedBases\tCoverage\tIntronDepth\tIntronDepth25Percentile\tIntronDepth50Percentile\tIntronDepth75Percentile\tExonToIntronReadsLeft\tExonToIntronReadsRight\tIntronDepthFirst50bp\tIntronDepthLast50bp\tSpliceLeft\tSpliceRight\tSpliceExact\tIRratio\tWarnings\n";
+    oss_title << "Dir_Chr\tStart\tEnd\tName\tNull\tStrand\tExcludedBases\tCoverage\tIntronDepth\tIntronDepth25Percentile\tIntronDepth50Percentile\tIntronDepth75Percentile\tExonToIntronReadsLeft\tExonToIntronReadsRight\tIntronDepthFirst50bp\tIntronDepthLast50bp\tSpliceLeft\tSpliceRight\tSpliceExact\tIRratio\tWarnings\n";
   }      
-	unsigned int recordNumber = 0;
+	// unsigned int recordNumber = 0;
 	// IRBurden calculations
 	double ID_clean = 0.0;
 	double ID_KE = 0.0;
 	double ID_AS = 0.0;
 	std::string KE = "known-exon";
 	
-  unsigned int refID = 0;
-  bool chr_invalid = false;
-  std::string cur_chr = "";
+  unsigned int n_jobs = 1 + (BEDrecords.size() / n_threads);
+  // Rcout << "n_jobs = " << n_jobs << ", BEDrecords.size() = " << BEDrecords.size() << '\n';
+
+#ifdef _OPENMP
+  #pragma omp parallel for
+#endif  
+  for(unsigned int i = 0; i < (unsigned int)n_threads; i++) {
+    unsigned int refID = 0;
+    std::string cur_chr = "";
+    
+    for(unsigned int j = i * n_jobs; j < (i+1) * n_jobs && j < BEDrecords.size(); j++) {
+      auto BEDrec = BEDrecords.begin() + j;
+
+      if ((directionality != 0 && (0 == BEDrec->name.compare(0, 4, "dir/"))) || (directionality == 0 && (0 == BEDrec->name.compare(0, 3, "nd/")))) {
+        try {
+          unsigned int intronStart;
+          unsigned int intronEnd;
+          unsigned int exclBases;
+          double intronTrimmedMean;
+          double coverage;
+          bool measureDir;
+          unsigned int JCleft;
+          unsigned int JCright;
+          unsigned int JCexact;
+          unsigned int SPleft;
+          unsigned int SPright;
+
+          std::string s_buffer;
+          std::string s_name;
+          std::string s_ID;
+          std::string s_clean;
+
+          std::istringstream lineStream;
+          lineStream.str(BEDrec->name);
+          lineStream.ignore( numeric_limits<streamsize>::max(), '/' );
+          getline(lineStream, s_name, '/');
+          getline(lineStream, s_ID, '/');
+          lineStream.ignore( numeric_limits<streamsize>::max(), '/' );
+          lineStream.ignore( numeric_limits<streamsize>::max(), '/' );
+          getline(lineStream, s_buffer, '/');
+          intronStart = stol(s_buffer);
+          getline(lineStream, s_buffer, '/');
+          intronEnd = stol(s_buffer);
+          lineStream.ignore( numeric_limits<streamsize>::max(), '/' );
+          getline(lineStream, s_buffer, '/');
+          exclBases = stol(s_buffer);
+          getline(lineStream, s_clean, '/');
+
+    //1       860574  861258  nd/SAMD11/ENSG00000187634/+/2/860569/861301/732/121/anti-over   0       +       860574  861258  255,0,0 2       538,73  0,611
+    //1       860574  861296  dir/SAMD11/ENSG00000187634/+/2/860569/861301/732/83/clean       0       +       860574  861296  255,0,0 2       538,111 0,611
+
+          if(0 != BEDrec->chrName.compare(0, BEDrec->chrName.size(), cur_chr)) {
+            cur_chr = BEDrec->chrName;
+            auto it = find_if(chrs.begin(), chrs.end(), 
+              [&cur_chr](const chr_entry& obj) {return obj.chr_name == cur_chr;});
+            if(it != chrs.end()) {
+              refID = it->refID;
+            } else {
+              refID = chrs.size();
+            }
+          }
+
+          //eg: PHF13/ENSG00000116273/+/3/6676918/6679862/2944/10/clean
+          oss.at(i) << BEDrec->chrName << "\t" << intronStart << "\t" << intronEnd << "\t" << s_name << "/" << s_ID << "/" << s_clean << "\t0\t" << ((BEDrec->direction) ?  "+" : "-" ) << "\t";
+
+          measureDir = BEDrec->direction;
+          if (directionality == -1) {
+            measureDir = !BEDrec->direction;
+          }
+          bool debug = false;
+          // bool debug = (0 == s_ID.compare(0, 23, "ENST00000269305_Intron6"));
+          std::map<unsigned int,unsigned int> hist;
+          if (directionality == 0) {
+            fillHist(hist, refID, BEDrec->blocks, FM, debug);
+          }else{
+            fillHist(hist, refID, BEDrec->blocks, measureDir, FM, debug);
+          }
+          intronTrimmedMean = trimmedMeanFromHist(hist, 40, debug);
+          coverage = coverageFromHist(hist);
+          oss.at(i) << exclBases << "\t"
+            << coverage << "\t"
+            << intronTrimmedMean << "\t"
+            << percentileFromHist(hist, 25) << "\t"
+            << percentileFromHist(hist, 50) << "\t"
+            << percentileFromHist(hist, 75) << "\t";
+
+          if(s_clean.compare(0, 5, "clean") == 0) {
+#ifdef _OPENMP
+  #pragma omp atomic
+#endif  
+            ID_clean += intronTrimmedMean;				
+          } else if(s_clean.find(KE) != string::npos) {
+#ifdef _OPENMP
+  #pragma omp atomic
+#endif  
+            ID_KE += intronTrimmedMean;				
+          } else if(directionality == 0) {
+#ifdef _OPENMP
+  #pragma omp atomic
+#endif  
+            ID_AS += intronTrimmedMean;				
+          }
+
+          if (directionality != 0) {
+            SPleft = SP.lookup(BEDrec->chrName, intronStart, measureDir);
+            SPright = SP.lookup(BEDrec->chrName, intronEnd, measureDir);
+            oss.at(i) << SPleft << "\t"
+              << SPright << "\t";
+
+            hist.clear();
+            fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, measureDir, FM);
+            oss.at(i) << trimmedMeanFromHist(hist, 40) << "\t";
+            hist.clear();
+            fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, measureDir, FM);
+            oss.at(i) << trimmedMeanFromHist(hist, 40) << "\t";
+            JCleft = JC.lookupLeft(BEDrec->chrName, intronStart, measureDir);
+            JCright = JC.lookupRight(BEDrec->chrName, intronEnd, measureDir);
+            JCexact = JC.lookup(BEDrec->chrName, intronStart, intronEnd, measureDir);
+            oss.at(i) << JCleft << "\t"
+              << JCright << "\t"
+              << JCexact << "\t";
+          }else{
+            SPleft = SP.lookup(BEDrec->chrName, intronStart);
+            SPright = SP.lookup(BEDrec->chrName, intronEnd);
+            oss.at(i) << SPleft << "\t"
+              << SPright << "\t";			
+
+            hist.clear();
+            fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, FM);
+            oss.at(i) << trimmedMeanFromHist(hist, 40) << "\t";
+            hist.clear();
+            fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, FM);
+            oss.at(i) << trimmedMeanFromHist(hist, 40) << "\t";
+            JCleft = JC.lookupLeft(BEDrec->chrName, intronStart);
+            JCright = JC.lookupRight(BEDrec->chrName, intronEnd);
+            JCexact = JC.lookup(BEDrec->chrName, intronStart, intronEnd);
+            oss.at(i) << JCleft << "\t"
+              << JCright << "\t"
+              << JCexact << "\t";
+          }
+          if (intronTrimmedMean == 0 && JCleft == 0 && JCright == 0) {
+            oss.at(i) << "0" << "\t";
+          }else if (intronTrimmedMean < 1) {
+            oss.at(i) << ( coverage / (coverage + max(JCleft, JCright)) ) << "\t";
+          }else{
+            oss.at(i) << ( intronTrimmedMean /(intronTrimmedMean + max(JCleft, JCright)) ) << "\t";
+          }
+          
+          // Final column -- don't try to be tri-state. Just say if it is "not ok".
+          // Not ok due to:
+          //	- insufficient spliced depth
+          //  - insufficient exact spliced compared to in-exact spliced depth
+          //  - too much variation between depths & crossings.  ... hmm, but at low depth, high probability of this failing.
+          
+          // Can only make a strong exclude call on spliced depth. Describe on the tool website ways to make a call for IR def true / IR def false.
+  //				if (JCexact < 10 || JCexact*1.33333333 < max(JCleft, JCright) ) {
+  //					oss.at(i) << "-" << "\n";
+  //				}else{
+  //					oss.at(i) << "ok" << "\n";
+  //				}
+
+          if (JCexact + intronTrimmedMean < 10) {
+            oss.at(i) << "LowCover" << "\n";
+          }else if (JCexact < 4) {
+            oss.at(i) << "LowSplicing" << "\n";
+          }else if (JCexact*1.33333333 < max(JCleft, JCright) ) {
+            oss.at(i) << "MinorIsoform" << "\n";
+          // TODO: check, logic below. Crossing should differ by more than 2 & more than 50% before a fault is called.
+          }else if (  (max(SPleft, SPright) > intronTrimmedMean+2 && max(SPleft, SPright) > intronTrimmedMean*1.5 )
+              || (min(SPleft, SPright)+2 < intronTrimmedMean && min(SPleft, SPright)*1.5 < intronTrimmedMean ) ){
+            oss.at(i) << "NonUniformIntronCover" << "\n";
+          }else{
+            oss.at(i) << "-" << "\n";
+          }
+
+          
+        }catch (const std::out_of_range& e) {
+          #ifndef GALAXY
+            Rcout << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
+          #else
+            std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
+          #endif
+        }catch (const std::invalid_argument& e) {
+          #ifndef GALAXY
+            Rcout << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
+          #else
+            std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
+          #endif
+        }
+      }
+
+    }
+    
+  }
   
-	for (auto BEDrec : BEDrecords) {
-		recordNumber++;
+  
+	// for (auto BEDrec : BEDrecords) {
+		// recordNumber++;
 		// if name indicates it is a Dir/Non-dir record of interest - output it.
 		// We need to separate dir&non-dir by name. (.startswith)
-		if ((directionality != 0 && (0 == BEDrec.name.compare(0, 4, "dir/"))) || (directionality == 0 && (0 == BEDrec.name.compare(0, 3, "nd/")))) {
-			try {
-				unsigned int intronStart;
-				unsigned int intronEnd;
-				unsigned int exclBases;
-				double intronTrimmedMean;
-				double coverage;
-				bool measureDir;
-				unsigned int JCleft;
-				unsigned int JCright;
-				unsigned int JCexact;
-				unsigned int SPleft;
-				unsigned int SPright;
 
-				std::string s_buffer;
-				std::string s_name;
-				std::string s_ID;
-				std::string s_clean;
-
-				std::istringstream lineStream;
-				lineStream.str(BEDrec.name);
-				lineStream.ignore( numeric_limits<streamsize>::max(), '/' );
-				getline(lineStream, s_name, '/');
-				getline(lineStream, s_ID, '/');
-				lineStream.ignore( numeric_limits<streamsize>::max(), '/' );
-				lineStream.ignore( numeric_limits<streamsize>::max(), '/' );
-				getline(lineStream, s_buffer, '/');
-				intronStart = stol(s_buffer);
-				getline(lineStream, s_buffer, '/');
-				intronEnd = stol(s_buffer);
-				lineStream.ignore( numeric_limits<streamsize>::max(), '/' );
-				getline(lineStream, s_buffer, '/');
-				exclBases = stol(s_buffer);
-				getline(lineStream, s_clean, '/');
-
-	//1       860574  861258  nd/SAMD11/ENSG00000187634/+/2/860569/861301/732/121/anti-over   0       +       860574  861258  255,0,0 2       538,73  0,611
-	//1       860574  861296  dir/SAMD11/ENSG00000187634/+/2/860569/861301/732/83/clean       0       +       860574  861296  255,0,0 2       538,111 0,611
-
-        if(0 != BEDrec.chrName.compare(0, BEDrec.chrName.size(), cur_chr)) {
-          cur_chr = BEDrec.chrName;
-          auto it = find_if(chrs.begin(), chrs.end(), 
-            [&cur_chr](const chr_index& obj) {return obj.chr_name == cur_chr;});
-          if(it != chrs.end()) {
-            refID = it->refID;
-            chr_invalid = false;
-          } else {
-            chr_invalid = true;
-            refID = chrs.size();
-          }
-        }
-
-        //eg: PHF13/ENSG00000116273/+/3/6676918/6679862/2944/10/clean
-        oss << BEDrec.chrName << "\t" << intronStart << "\t" << intronEnd << "\t" << s_name << "/" << s_ID << "/" << s_clean << "\t0\t" << ((BEDrec.direction) ?  "+" : "-" ) << "\t";
-
-        measureDir = BEDrec.direction;
-        if (directionality == -1) {
-          measureDir = !BEDrec.direction;
-        }
-        bool debug = false;
-        // bool debug = (0 == s_ID.compare(0, 23, "ENST00000269305_Intron6"));
-        std::map<unsigned int,unsigned int> hist;
-        if (directionality == 0) {
-          fillHist(hist, refID, BEDrec.blocks, FM, debug);
-        }else{
-          fillHist(hist, refID, BEDrec.blocks, measureDir, FM, debug);
-        }
-        intronTrimmedMean = trimmedMeanFromHist(hist, 40, debug);
-        coverage = coverageFromHist(hist);
-        oss << exclBases << "\t"
-          << coverage << "\t"
-          << intronTrimmedMean << "\t"
-          << percentileFromHist(hist, 25) << "\t"
-          << percentileFromHist(hist, 50) << "\t"
-          << percentileFromHist(hist, 75) << "\t";
-
-        if(s_clean.compare(0, 5, "clean") == 0) {
-          ID_clean += intronTrimmedMean;				
-        } else if(s_clean.find(KE) != string::npos) {
-          ID_KE += intronTrimmedMean;				
-        } else if(directionality == 0) {
-          ID_AS += intronTrimmedMean;				
-        }
-
-        if (directionality != 0) {
-          SPleft = SP.lookup(BEDrec.chrName, intronStart, measureDir);
-          SPright = SP.lookup(BEDrec.chrName, intronEnd, measureDir);
-          oss << SPleft << "\t"
-            << SPright << "\t";
-
-          hist.clear();
-          fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, measureDir, FM);
-          oss << trimmedMeanFromHist(hist, 40) << "\t";
-          hist.clear();
-          fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, measureDir, FM);
-          oss << trimmedMeanFromHist(hist, 40) << "\t";
-          JCleft = JC.lookupLeft(BEDrec.chrName, intronStart, measureDir);
-          JCright = JC.lookupRight(BEDrec.chrName, intronEnd, measureDir);
-          JCexact = JC.lookup(BEDrec.chrName, intronStart, intronEnd, measureDir);
-          oss << JCleft << "\t"
-            << JCright << "\t"
-            << JCexact << "\t";
-        }else{
-          SPleft = SP.lookup(BEDrec.chrName, intronStart);
-          SPright = SP.lookup(BEDrec.chrName, intronEnd);
-          oss << SPleft << "\t"
-            << SPright << "\t";			
-
-          hist.clear();
-          fillHist(hist, refID, {{intronStart + 5, intronStart + 55}}, FM);
-          oss << trimmedMeanFromHist(hist, 40) << "\t";
-          hist.clear();
-          fillHist(hist, refID, {{intronEnd - 55, intronEnd - 5}}, FM);
-          oss << trimmedMeanFromHist(hist, 40) << "\t";
-          JCleft = JC.lookupLeft(BEDrec.chrName, intronStart);
-          JCright = JC.lookupRight(BEDrec.chrName, intronEnd);
-          JCexact = JC.lookup(BEDrec.chrName, intronStart, intronEnd);
-          oss << JCleft << "\t"
-            << JCright << "\t"
-            << JCexact << "\t";
-        }
-        if (intronTrimmedMean == 0 && JCleft == 0 && JCright == 0) {
-          oss << "0" << "\t";
-        }else if (intronTrimmedMean < 1) {
-          oss << ( coverage / (coverage + max(JCleft, JCright)) ) << "\t";
-        }else{
-          oss << ( intronTrimmedMean /(intronTrimmedMean + max(JCleft, JCright)) ) << "\t";
-        }
-        
-        // Final column -- don't try to be tri-state. Just say if it is "not ok".
-        // Not ok due to:
-        //	- insufficient spliced depth
-        //  - insufficient exact spliced compared to in-exact spliced depth
-        //  - too much variation between depths & crossings.  ... hmm, but at low depth, high probability of this failing.
-        
-        // Can only make a strong exclude call on spliced depth. Describe on the tool website ways to make a call for IR def true / IR def false.
-//				if (JCexact < 10 || JCexact*1.33333333 < max(JCleft, JCright) ) {
-//					oss << "-" << "\n";
-//				}else{
-//					oss << "ok" << "\n";
-//				}
-
-        if (JCexact + intronTrimmedMean < 10) {
-          oss << "LowCover" << "\n";
-        }else if (JCexact < 4) {
-          oss << "LowSplicing" << "\n";
-        }else if (JCexact*1.33333333 < max(JCleft, JCright) ) {
-          oss << "MinorIsoform" << "\n";
-        // TODO: check, logic below. Crossing should differ by more than 2 & more than 50% before a fault is called.
-        }else if (  (max(SPleft, SPright) > intronTrimmedMean+2 && max(SPleft, SPright) > intronTrimmedMean*1.5 )
-            || (min(SPleft, SPright)+2 < intronTrimmedMean && min(SPleft, SPright)*1.5 < intronTrimmedMean ) ){
-          oss << "NonUniformIntronCover" << "\n";
-        }else{
-          oss << "-" << "\n";
-        }
-
-				
-			}catch (const std::out_of_range& e) {
-        #ifndef GALAXY
-          Rcout << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";
-        #else
-          std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";
-        #endif
-      }catch (const std::invalid_argument& e) {
-        #ifndef GALAXY
-          Rcout << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";
-        #else
-          std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << recordNumber << "\n";
-        #endif
-			}
-		}
-	}
+	// }
+  
 	if(directionality == 0) {
 		oss_qc 	<< "Non-Directional Clean IntronDepth Sum" << "\t" << ID_clean << "\n"
 						<< "Non-Directional Known-Exon IntronDepth Sum" << "\t" << ID_KE << "\n"
@@ -426,15 +460,14 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, co
 						<< "Directional Known-Exon IntronDepth Sum" << "\t" << ID_KE << "\n";
 	}
 	
-  output = oss.str();
+  
+  output.append(oss_title.str());
+  for(unsigned int i = 0; i < (unsigned int)n_threads; i++) {
+    output.append(oss.at(i).str());
+  }
+
 	QC.append(oss_qc.str());
 	
 	return 0;
 }
 
-CoverageBlocks::~CoverageBlocks() {
-	// empty_map = new std::map<string, std::vector<CoverageBlock>>;
-	// chrName_CoverageBlocks.swap(*empty_map);
-	// delete empty_map;
-	// chrName_CoverageBlocks.clear();
-}

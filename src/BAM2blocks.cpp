@@ -5,58 +5,77 @@
 // using namespace std;
 
 BAM2blocks::BAM2blocks() {
-	oBlocks = FragmentBlocks(); //Right syntax to call the default constructor on an object variable, declared but not initialised?
+  oBlocks = FragmentBlocks(); //Right syntax to call the default constructor on an object variable, declared but not initialised?
 
-	cShortPairs = 0;
-	cIntersectPairs = 0;
-	cLongPairs = 0;
-	cSingleReads = 0;
-	cPairedReads = 0;
-	cErrorReads = 0;
-	cSkippedReads = 0;
-	cChimericReads = 0;
+  cReadsProcessed = 0;
+  totalNucleotides = 0;
+  cShortPairs = 0;
+  cIntersectPairs = 0;
+  cLongPairs = 0;
+  cSingleReads = 0;
+  cPairedReads = 0;
+  cErrorReads = 0;
+  cSkippedReads = 0;
+  cChimericReads = 0;
+  
+  spare_reads = new std::map< std::string, bam_read_core* >;
 }
 
 BAM2blocks::~BAM2blocks() {
-	delete spare_reads;
-}
-
-// OK.
-void BAM2blocks::readBamHeader() {
-  char buffer[1000];
-  std::string chrName;
-
-  bam_header bamhead;
-
-  IN->read(bamhead.c, BAM_HEADER_BYTES);
-
-  char * headertext = new char[bamhead.magic.l_text+1];
-  IN->read(headertext, bamhead.magic.l_text);
-  samHeader = string(headertext, bamhead.magic.l_text);
-  delete[] headertext;
-  
-  stream_int32 i32;
-  IN->read(i32.c ,4);
-  unsigned int n_chr = i32.i;
-
-
-  for (unsigned int i = 0; i < n_chr; i++) {
-    IN->read(i32.c ,4);
-    IN->read(buffer , i32.i);
-    chrName = string(buffer, i32.i-1);
-    chr_names.push_back(chrName);
-
-    IN->read(i32.c ,4);
-    chr_lens.push_back(i32.i);
-    chrs.push_back(chr_index(i, chrName, i32.i));
+  for(auto it = spare_reads->begin(); it != spare_reads->end(); it++) {
+    delete it->second;
   }
-  std::sort(chrs.begin(), chrs.end());
-  
-	for (auto & callback : callbacksChrMappingChange ) {
-		callback(chrs);
-	}
-  
+  delete spare_reads;
 }
+
+unsigned int BAM2blocks::openFile(BAMReader_Multi * _IN, bool verbose, unsigned int n_workers) {
+  // Change for multi-threading:
+  // Only BBchild processes BAM reads from file input
+  // BAM2blocks (parent) reads header, analyses file, and delegates tasks to children
+  // - so if running 1 thread, have 1 BAM2blocks and 1 BBchild
+  
+  // All BBchild(s) share the same file handle
+  // So in IRFinder main, only 1 child reads file buffer at any one time
+  // Decompression and read processing runs in parallel
+  IN = _IN;
+  return(readBamHeader(block_begins, read_offsets, verbose, n_workers)); // readBamHeader needs to call the ChrMappingChange callbacks.
+}
+
+void BAM2blocks::AttachReader(BAMReader_Multi * _IN) {
+  IN = _IN;
+}
+
+unsigned int BAM2blocks::readBamHeader(
+    std::vector<uint64_t> &block_begins, 
+    std::vector<unsigned int> &read_offsets,
+    bool verbose,
+    unsigned int n_workers
+) {
+  unsigned int n_bgzf = IN->readBamHeader(block_begins, read_offsets, verbose, n_workers);
+  IN->fillChrs(chrs);
+  return(n_bgzf);
+}
+
+void BAM2blocks::ProvideTask(unsigned int thread_number, 
+        uint64_t &begin_bgzf, unsigned int &begin_pos,
+        uint64_t &end_bgzf, unsigned int &end_pos
+) {
+  begin_bgzf = block_begins.at(thread_number);
+  begin_pos = read_offsets.at(thread_number);
+  end_bgzf = block_begins.at(thread_number + 1);
+  end_pos = read_offsets.at(thread_number + 1);
+}
+
+void BAM2blocks::TransferChrs(BAM2blocks& other) {
+  for(unsigned int i = 0; i < other.chrs.size(); i++) {
+    chrs.push_back(other.chrs.at(i));
+  }
+  for (auto & callback : callbacksChrMappingChange ) {
+    callback(chrs);
+  }
+  chrs_prepped = true;
+}
+
 
 void BAM2blocks::cigar2block(uint32_t * cigar, uint16_t n_cigar_op, std::vector<int> &starts, std::vector<int> &lens, int &ret_genome_len) {
   bool inBlock = true;
@@ -142,7 +161,11 @@ unsigned int BAM2blocks::processPair(bam_read_core * read1, bam_read_core * read
     oBlocks.readCount = 2;
     debugstate.append( "-Long-");
   }else if (read1->core.pos + r1_genome_len >= read2->core.pos + r2_genome_len){
-    cShortPairs++;
+    if(read1->core.pos == read2->core.pos && r1_genome_len > r2_genome_len) {
+      cIntersectPairs++;
+    } else {
+      cShortPairs++;
+    }    
     // Read 2 is a short read & read 1 fully contains it (or perhaps just a trimmed read with two exactly complementary reads remaining).
     oBlocks.readCount = 1;
     debugstate.append( "-Short-");    
@@ -183,35 +206,35 @@ unsigned int BAM2blocks::processPair(bam_read_core * read1, bam_read_core * read
     }
 
     if (!goodPair) {
-	    oBlocks.readCount = 2;
+      oBlocks.readCount = 2;
     }
   }
-	oBlocks.chr_id = read1->core.refID;
-	oBlocks.readStart[0] = read1->core.pos;
-	oBlocks.readEnd[0] = read1->core.pos + r1_genome_len;
-	oBlocks.readName.resize(read1->core.l_read_name - 1);
-	oBlocks.readName.replace(0, read1->core.l_read_name - 1, read1->read_name, read1->core.l_read_name - 1); // is this memory/speed efficient?
+  oBlocks.chr_id = read1->core.refID;
+  oBlocks.readStart[0] = read1->core.pos;
+  oBlocks.readEnd[0] = read1->core.pos + r1_genome_len;
+  oBlocks.readName.resize(read1->core.l_read_name - 1);
+  oBlocks.readName.replace(0, read1->core.l_read_name - 1, read1->read_name, read1->core.l_read_name - 1); // is this memory/speed efficient?
 
-	unsigned int totalBlockLen = 0;
-	for (auto blockLen: oBlocks.rLens[0]) {
-		totalBlockLen += blockLen;
-	}
-	if (oBlocks.readCount > 1) {
-		oBlocks.readStart[1] = read2->core.pos;
-		oBlocks.readEnd[1] = read2->core.pos + r2_genome_len;
-		for (auto blockLen: oBlocks.rLens[1]) {
-			totalBlockLen += blockLen;
-		}
-	}
-	//DEBUG:
-	oBlocks.readName.append(debugstate);
-	oBlocks.readName.append(to_string(oBlocks.readCount));
+  unsigned int totalBlockLen = 0;
+  for (auto blockLen: oBlocks.rLens[0]) {
+    totalBlockLen += blockLen;
+  }
+  if (oBlocks.readCount > 1) {
+    oBlocks.readStart[1] = read2->core.pos;
+    oBlocks.readEnd[1] = read2->core.pos + r2_genome_len;
+    for (auto blockLen: oBlocks.rLens[1]) {
+      totalBlockLen += blockLen;
+    }
+  }
+  //DEBUG:
+  oBlocks.readName.append(debugstate);
+  oBlocks.readName.append(to_string(oBlocks.readCount));
 // TODO - restructure -- we could instead do the manipulation from 2 reads-> 1 synthetic in a non-const callback.
 //        not required until that future flexibility is needed if part of the framework is repurposed.
-	for (auto & callback : callbacksProcessBlocks ) {
-		callback(oBlocks);
-	}
-	return totalBlockLen;
+  for (auto & callback : callbacksProcessBlocks ) {
+    callback(oBlocks);
+  }
+  return totalBlockLen;
 }
 
 
@@ -229,161 +252,201 @@ unsigned int BAM2blocks::processSingle(bam_read_core * read1) {
   cigar2block(read1->cigar, read1->core.n_cigar_op, oBlocks.rStarts[0], oBlocks.rLens[0], r1_genome_len);
   oBlocks.readCount = 1;
 
-	oBlocks.chr_id = read1->core.refID;
-	oBlocks.readStart[0] = read1->core.pos;
-	oBlocks.readEnd[0] = read1->core.pos + r1_genome_len;
-	oBlocks.readName.resize(read1->core.l_read_name - 1);
-	oBlocks.readName.replace(0, read1->core.l_read_name - 1, read1->read_name, read1->core.l_read_name - 1); // is this memory/speed efficient?
-	//DEBUG:
-	oBlocks.readName.append(debugstate);
-	oBlocks.readName.append(to_string(oBlocks.readCount));
-	//cout << "process pair - callbacks" << endl;  
-	for (auto & callback : callbacksProcessBlocks ) {
-		callback(oBlocks);
-	}
-	unsigned int totalBlockLen = 0;
-	for (auto blockLen: oBlocks.rLens[0]) {
-		totalBlockLen += blockLen;
-	}
-	return totalBlockLen;
+  oBlocks.chr_id = read1->core.refID;
+  oBlocks.readStart[0] = read1->core.pos;
+  oBlocks.readEnd[0] = read1->core.pos + r1_genome_len;
+  oBlocks.readName.resize(read1->core.l_read_name - 1);
+  oBlocks.readName.replace(0, read1->core.l_read_name - 1, read1->read_name, read1->core.l_read_name - 1); // is this memory/speed efficient?
+  //DEBUG:
+  oBlocks.readName.append(debugstate);
+  oBlocks.readName.append(to_string(oBlocks.readCount));
+  //cout << "process pair - callbacks" << endl;  
+  for (auto & callback : callbacksProcessBlocks ) {
+    callback(oBlocks);
+  }
+  unsigned int totalBlockLen = 0;
+  for (auto blockLen: oBlocks.rLens[0]) {
+    totalBlockLen += blockLen;
+  }
+  return totalBlockLen;
 }
 
+int BAM2blocks::WriteOutput(std::string& output) {
+  std::ostringstream oss;
+  cErrorReads = spare_reads->size();
+  oss << "Total reads processed\t" << cReadsProcessed << '\n';
+  oss << "Total nucleotides\t" << totalNucleotides << '\n';
+  oss << "Total singles processed\t" << cSingleReads << '\n';
+  oss << "Total pairs processed\t" << cShortPairs+cIntersectPairs+cLongPairs << '\n';
+  oss << "Short pairs\t" << cShortPairs << '\n';
+  oss << "Intersect pairs\t" << cIntersectPairs << '\n';
+  oss << "Long pairs\t" << cLongPairs << '\n';
+  oss << "Skipped reads\t" << cSkippedReads << '\n';
+  oss << "Chimeric reads\t" << cChimericReads << '\n';
+  oss << "Error / Unpaired reads\t" << cErrorReads << '\n';
+  output = oss.str();
+  return(0);
+}
 
+bam_read_core *  BAM2blocks::SupplyRead(std::string& read_name) {
+  // Supplies the pointer to the last spare read
+  // When called, transfer ownership of read to the parent BB
+  if(spare_reads->size() == 0) return(NULL);
+  auto it = spare_reads->begin();
+  read_name = it->first;
+  bam_read_core * read = it->second;
+  spare_reads->erase(it);
+  return(read);
+}
 
-int BAM2blocks::processAll(std::string& output, bool verbose) {
+int BAM2blocks::processSpares(BAM2blocks& other) {
+  // Combines two BB's, and processes any matching paired reads
+  cReadsProcessed += other.cReadsProcessed;
+  totalNucleotides += other.totalNucleotides;
+    
+  cShortPairs += other.cShortPairs;
+  cIntersectPairs += other.cIntersectPairs;
+  cLongPairs += other.cLongPairs;
+  cSingleReads += other.cSingleReads;
+  cPairedReads += other.cPairedReads;
+  cErrorReads += other.cErrorReads;
+  cSkippedReads += other.cSkippedReads;
+  cChimericReads += other.cChimericReads;
+  
+  while(1) {
+    bam_read_core * spare_read;
+    std::string read_name;
+    spare_read = other.SupplyRead(read_name);
+    
+    if(!spare_read) {
+      break;
+    }
+    
+    auto it_read = spare_reads->find(read_name);
+    if(it_read != spare_reads->end()){
+      cPairedReads ++;
+      if (spare_read->core.refID != it_read->second->core.refID) {
+        cChimericReads += 1;
+      } else {
+        // Rcout << "Read matched: " << read_name << '\n';
+        if (spare_read->core.pos <= it_read->second->core.pos) {    
+          totalNucleotides += processPair(&(*spare_read), &(*(it_read->second)));
+        } else{              
+          totalNucleotides += processPair(&(*(it_read->second)), &(*spare_read));
+        }
+        cReadsProcessed+=2;
+        delete (it_read->second);
+        spare_reads->erase(read_name);
+        delete spare_read;
+      }
+    } else {
+      spare_reads->insert({read_name, spare_read});
+    }
+  }
+  
+  return(0);
+}
 
-	unsigned long long totalNucleotides = 0;
-	unsigned long j = 0;
-	int idx = 0;
+int BAM2blocks::processAll() {
+  // Reads from BAMReader until finished; do not create output
+  unsigned int idx = 0;
   int ret = 0;
-	// int pair = 0;
-	//int bytesread = 0;
-	std::ostringstream oss;
-#ifndef GALAXY
-  uint64_t prev_bam_pos = IN->tellg();	// For progress bar
-	Progress p(IN->IS_LENGTH, verbose);
-#endif
+  bool any_reads_processed = false;
+  // Use map pointer spare_reads:
+  std::map< std::string, bam_read_core* > * new_spare_reads;  
 
-	// Use map pointer spare_reads:
-	spare_reads = new std::map< std::string, bam_read_core* >;
-	int32_t spare_reads_count = 0;
-	
-	while(1) {
-		ret |= IN->read(reads[idx].c_block_size, 4);
-		if (IN->eof()) {
-      cErrorReads = spare_reads_count;
-			oss << "Total reads processed\t" << j-1 << '\n';
-			oss << "Total nucleotides\t" << totalNucleotides << '\n';
-			oss << "Total singles processed\t" << cSingleReads << '\n';
-			oss << "Total pairs processed\t" << cShortPairs+cIntersectPairs+cLongPairs << '\n';
-			oss << "Short pairs\t" << cShortPairs << '\n';
-			oss << "Intersect pairs\t" << cIntersectPairs << '\n';
-			oss << "Long pairs\t" << cLongPairs << '\n';
-			oss << "Skipped reads\t" << cSkippedReads << '\n';
-			oss << "Chimeric reads\t" << cChimericReads << '\n';
-			oss << "Error / Unpaired reads\t" << cErrorReads << '\n';
-			oss << "Error detected on line\t" << "NA" << '\n';
-      output = oss.str();
-			return(0);   
-		} else if(IN->fail() || (ret != 0 && ret != 1)) {
-      cErrorReads = spare_reads_count;
-			// cerr << "Input error at line:" << j << ", return error (" << ret << ")\n";
-			// cerr << "Characters read on last read call:" << IN->gcount() << '\n';
-			oss << "Total reads processed\t" << j-1 << '\n';
-			oss << "Total nucleotides\t" << totalNucleotides << '\n';
-			oss << "Total singles processed\t" << cSingleReads << '\n';
-			oss << "Total pairs processed\t" << cShortPairs+cIntersectPairs+cLongPairs << '\n';
-			oss << "Short pairs\t" << cShortPairs << '\n';
-			oss << "Intersect pairs\t" << cIntersectPairs << '\n';
-			oss << "Long pairs\t" << cLongPairs << '\n';
-			oss << "Skipped reads\t" << cSkippedReads << '\n';
-			oss << "Chimeric reads\t" << cChimericReads << '\n';
-			oss << "Error / Unpaired reads\t" << cErrorReads << '\n';
-			oss << "Error detected on line\t" << j << '\n';
-      output = oss.str();
-			return(1);
-			//This is possibly also just about the end of the file (say an extra null byte).
-			//IN->gcount() knows how many characters were actually read last time.
-		}
+  while(1) {
+    ret = IN->read(reads[idx].c_block_size, 4);  // Should return 4 if all 4 bytes are read
+
+    if (IN->eob() || IN->fail() || (ret != 4)) {
+      // Bank the spare read:
+      // Rcout << "BAM2blocks::processAll ret == " << ret << '\n';
+      if(idx == 1 && spare_reads->size() == 0) {
+        std::string read_name = string(reads[0].read_name);
+        bam_read_core * store_read = new bam_read_core;
+        *(store_read) = reads[0];
+        spare_reads->insert({read_name, store_read});
+      }
+      cErrorReads = spare_reads->size();
+      if(!any_reads_processed) return(1);
+      return(0);   // This will happen if read fails - i.e. end of loaded buffer
+    } else {
+      any_reads_processed = true;
+    }
     if(reads[idx].block_size > BAM_READ_CORE_BYTES - 4) {
-      j++;
-      ret |= IN->read(reads[idx].c, BAM_READ_CORE_BYTES - 4);
-      ret |= IN->read(reads[idx].read_name, reads[idx].core.l_read_name);
-      ret |= IN->read(reads[idx].cigar_buffer, reads[idx].core.n_cigar_op*4);    
+      ret = IN->read(reads[idx].c, BAM_READ_CORE_BYTES - 4);
+      ret = IN->read(reads[idx].read_name, reads[idx].core.l_read_name);
+      ret = IN->read(reads[idx].cigar_buffer, reads[idx].core.n_cigar_op*4);    
       // debugs
-      ret |= IN->ignore(reads[idx].block_size - BAM_READ_CORE_BYTES + 4 - reads[idx].core.l_read_name - (reads[idx].core.n_cigar_op*4));
+      ret = IN->ignore(reads[idx].block_size - BAM_READ_CORE_BYTES + 4 - reads[idx].core.l_read_name - (reads[idx].core.n_cigar_op*4));
 
       if (reads[idx].core.flag & 0x904) {
-        /* If is an unmapped / secondary / supplementary alignment -- discard/overwrite */
+        // If is an unmapped / secondary / supplementary alignment -- discard/overwrite
         cSkippedReads ++;
       }else if (! (reads[idx].core.flag & 0x1)) {
-        /* If is a single read -- process it as a single -- then discard/overwrite */
+        // If is a single read -- process it as a single -- then discard/overwrite
         cSingleReads ++;
         totalNucleotides += processSingle(&reads[idx]);
+        cReadsProcessed++;
       }else{
-        /* If it is potentially a paired read, store it in our buffer, process the pair together when it is complete */
-
-				std::string read_name = string(reads[0].read_name);
-				auto it_read = spare_reads->find(read_name);
-				
-				if(it_read != spare_reads->end()){
-					cPairedReads ++;
-					if (reads[0].core.refID != it_read->second->core.refID) {
-						cChimericReads += 1;
-					} else {
-						if (reads[0].core.pos <= it_read->second->core.pos) {
-							//cout << "procesPair call1" << endl;        
-							totalNucleotides += processPair(&reads[0], &(*(it_read->second)));
-              delete (it_read->second);
-							spare_reads->erase(read_name);
-							spare_reads_count -= 1;
-						}else{
-							//cout << "procesPair call2" << endl;                
-							totalNucleotides += processPair(&(*(it_read->second)), &reads[0]);
-              delete (it_read->second);
-							spare_reads->erase(read_name);
-							spare_reads_count -= 1;
-						}
-					}
-				} else {
-						bam_read_core * store_read = new bam_read_core;
-						*(store_read) = reads[0];
-						spare_reads->insert({read_name, store_read});
-						spare_reads_count += 1;
-				}
+        if(idx == 0 && spare_reads->size() == 0) {
+          // If BAM is sorted by read name, then we don't need read size, simply use old system
+          idx++;
+        } else if(idx == 1 && spare_reads->size() == 0 && 
+            reads[0].core.l_read_name == reads[1].core.l_read_name &&
+            (0 == strncmp(reads[0].read_name, reads[1].read_name, reads[1].core.l_read_name))) {
+          cPairedReads ++;
+          totalNucleotides += processPair(&reads[0], &reads[1]);
+          cReadsProcessed+=2;
+          idx = 0;
+        } else {
+          // Likely a coordinate sorted BAM file:
+          for(unsigned int k = 0; k <= idx; k++) {
+            std::string read_name = string(reads[k].read_name);
+            auto it_read = spare_reads->find(read_name);
+            
+            if(it_read != spare_reads->end()){
+              cPairedReads ++;
+              if (reads[k].core.refID != it_read->second->core.refID) {
+                cChimericReads += 1;
+              } else {
+                if (reads[k].core.pos <= it_read->second->core.pos) {
+                  //cout << "procesPair call1" << endl;        
+                  totalNucleotides += processPair(&reads[k], &(*(it_read->second)));
+                }else{
+                  //cout << "procesPair call2" << endl;                
+                  totalNucleotides += processPair(&(*(it_read->second)), &reads[k]);
+                }
+                cReadsProcessed+=2;
+                delete (it_read->second);
+                spare_reads->erase(read_name);
+              }
+            } else {
+              bam_read_core * store_read = new bam_read_core;
+              *(store_read) = reads[k];
+              spare_reads->insert({read_name, store_read});
+            }
+          }
+          idx = 0;
+        }
       }
     }
-#ifndef GALAXY
-		if(verbose) {
-			if ( (cPairedReads + cSingleReads) % 1000000 == 0 ) {
-				p.increment((unsigned long)(IN->tellg() - prev_bam_pos));		
-				prev_bam_pos = IN->tellg();				
-			}
-		}
-#endif
-		if ( (cPairedReads + cSingleReads) % 1000000 == 0 ) {
-			// Clean map by swapping for a new one
-			new_spare_reads = new std::map< std::string, bam_read_core* >;
-			new_spare_reads->insert(spare_reads->begin(), spare_reads->end());
-			spare_reads->swap(*new_spare_reads);
-			delete new_spare_reads;
-		}
-	}
-	delete spare_reads;
-	return(0);
+
+    if ( (cPairedReads + cSingleReads) % 1000000 == 0 ) {
+      // Clean map by swapping for a new one
+      new_spare_reads = new std::map< std::string, bam_read_core* >;
+      new_spare_reads->insert(spare_reads->begin(), spare_reads->end());
+      spare_reads->swap(*new_spare_reads);
+      delete new_spare_reads;
+    }
+  }
+  return(0);
 }
 
-
-
-void BAM2blocks::openFile(BAMReader * _IN) {
-	IN = _IN;
-  	readBamHeader(); // readBamHeader needs to call the ChrMappingChange callbacks.
+void BAM2blocks::registerCallbackChrMappingChange( std::function<void(const std::vector<chr_entry> &)> callback ) {
+  callbacksChrMappingChange.push_back(callback);
 }
 
-void BAM2blocks::registerCallbackChrMappingChange( std::function<void(const std::vector<chr_index> &)> callback ) {
-	callbacksChrMappingChange.push_back(callback);
-}
-
-void BAM2blocks::registerCallbackProcessBlocks( std::function<void(const FragmentBlocks &)> callback ) {	
-	callbacksProcessBlocks.push_back(callback);
+void BAM2blocks::registerCallbackProcessBlocks( std::function<void(const FragmentBlocks &)> callback ) {  
+  callbacksProcessBlocks.push_back(callback);
 }

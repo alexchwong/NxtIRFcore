@@ -162,6 +162,7 @@ STAR_buildRef <- function(reference_path,
         mappability_depth_threshold = 4,
         sjdbOverhang = 150,
         n_threads = 4,
+        additional_args = NULL,
         ...
 ) {
     .validate_reference_resource(reference_path)
@@ -172,14 +173,24 @@ STAR_buildRef <- function(reference_path,
     transcripts.gtf <- .STAR_get_GTF(reference_path)
     # Build STAR using defaults
     .log(paste("Building STAR genome from", reference_path), type = "message")
-    system2(command = "STAR", args = c(
-        "--runMode", "genomeGenerate",
-        "--genomeDir", STAR_ref_path,
-        "--genomeFastaFiles", genome.fa,
-        "--sjdbGTFfile", transcripts.gtf,
-        "--sjdbOverhang", sjdbOverhang,
-        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE)
-    ))
+    
+    args = NULL
+    if(!("--runMode" %in% additional_args)) args = c("--runMode", "genomeGenerate")
+    if(!("--genomeDir" %in% additional_args)) args = c(args,
+        "--genomeDir", STAR_ref_path)
+    if(!("--genomeFastaFiles" %in% additional_args)) args = c(args,
+        "--genomeFastaFiles", genome.fa)
+    if(!("--sjdbGTFfile" %in% additional_args)) args = c(args,
+        "--sjdbGTFfile", transcripts.gtf)
+    if(!("--sjdbOverhang" %in% additional_args)) args = c(args,
+        "--sjdbOverhang", sjdbOverhang)
+    if(!("--runThreadN" %in% additional_args)) args = c(args,
+        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
+
+    if(!is.null(additional_args) && all(is.character(additional_args))) args = c(args, 
+        additional_args)
+
+    system2(command = "STAR", args = args)
 
     if(also_generate_mappability) {
         STAR_Mappability(
@@ -301,12 +312,12 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
 
             sample = samples[i]
             Expr_sample = Experiment[Experiment[, "sample"] == sample,]
-            if(paired) {
+            if(!paired) {
                 fastq_1 = Expr_sample[, "forward"]
                 fastq_2 = NULL        
             } else {
-                fastq_1 = Experiment[, "forward"]
-                fastq_2 = Experiment[, "reverse"]
+                fastq_1 = Expr_sample[, "forward"]
+                fastq_2 = Expr_sample[, "reverse"]
             }
             memory_mode = "LoadAndKeep"
             if(two_pass && pass == 1) {

@@ -49,12 +49,13 @@ NULL
 make_example_NxtSE <- function() {
     bams = NxtIRF_example_bams()
     BuildReference(
-      fasta = mock_genome(), gtf = mock_gtf(),
-      reference_path = file.path(tempdir(), "Reference")
+        fasta = mock_genome(), gtf = mock_gtf(),
+        reference_path = file.path(tempdir(), "Reference")
     )
     IRFinder(bams$BAM, bams$sample,
-      reference_path = file.path(tempdir(), "Reference"),
-      output_path = file.path(tempdir(), "IRFinder_output")
+        reference_path = file.path(tempdir(), "Reference"),
+        output_path = file.path(tempdir(), "IRFinder_output"),
+        overwrite = TRUE, n_threads = 1
     )
     expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
     CollateData(expr, 
@@ -66,7 +67,8 @@ make_example_NxtSE <- function() {
     # Save COV files
     file.copy(
         expr$cov_file,
-        file.path("../extdata", basename(expr$cov_file))
+        file.path("../extdata", basename(expr$cov_file)),
+        overwrite = TRUE
     )
     
     # De-identify COV files for validity:

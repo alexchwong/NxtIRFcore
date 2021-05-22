@@ -15,32 +15,27 @@ Chromosome sorted or not won't matter, as these get split into different vectors
 
 class ReadBlockProcessor {
 	public:
+    virtual ~ReadBlockProcessor() {}; // do nothing
 		virtual void ProcessBlocks(const FragmentBlocks &fragblock) = 0;
-		virtual void ChrMapUpdate(const std::vector<chr_index> &chrmap) = 0; //Maybe some of these funcs shouldn't be pure virtual - overloadable if needed, but default often ok.
+		virtual void ChrMapUpdate(const std::vector<chr_entry> &chrmap) = 0; //Maybe some of these funcs shouldn't be pure virtual - overloadable if needed, but default often ok.
 };
 
 class JunctionCount : public ReadBlockProcessor {
 	private:
-		std::map<string, std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>> * chrName_junc_count;
+		std::map<string, std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>> chrName_junc_count;
 		std::vector<std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]>*> chrID_junc_count;
 		//unsigned int[3] - 0, neg strand count; 1, pos strand count; 2 = expected direction from ref: 0=unknown, 1=neg, 2=pos.
 
-		std::map<string, std::map<unsigned int,unsigned int[2]>> * chrName_juncLeft_count;
+		std::map<string, std::map<unsigned int,unsigned int[2]>> chrName_juncLeft_count;
 		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncLeft_count;
 
-		std::map<string, std::map<unsigned int,unsigned int[2]>> * chrName_juncRight_count;
+		std::map<string, std::map<unsigned int,unsigned int[2]>> chrName_juncRight_count;
 		std::vector<std::map<unsigned int,unsigned int[2]>*> chrID_juncRight_count;
 		  //chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
-
-		std::map<std::pair<unsigned int,unsigned int>,unsigned int[3]> * new_map_junc;
-		std::map<unsigned int,unsigned int[2]> * new_map_junc_arm;
-		int32_t reads_processed = 0;
 	public:
-		JunctionCount();
-    ~JunctionCount();   // destructor
-
+		void Combine(const JunctionCount &child);
 		void ProcessBlocks(const FragmentBlocks &fragblock);
-		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;
 		void loadRef(std::istringstream &IN); //loadRef is optional, it allows directional detection to determine not just non-dir vs dir, but also which direction.
 
@@ -70,11 +65,11 @@ class SpansPoint : public ReadBlockProcessor {
 		char overhangTotal;
 		//chrID_... stores a fast access pointer to the appropriate structure in chrName_... 
 	public:
-        ~SpansPoint();
+		void Combine(const SpansPoint &child);
 		void setSpanLength(unsigned int overhang_left, unsigned int overhang_right);
 		void loadRef(std::istringstream &IN);
 		void ProcessBlocks(const FragmentBlocks &fragblock);
-		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		//void SetOutputStream(std::ostream *os);
 		int WriteOutput(std::string& output, std::string& QC) const;
 		unsigned int lookup(std::string ChrName, unsigned int pos, bool direction) const;
@@ -87,9 +82,9 @@ class FragmentsInChr : public ReadBlockProcessor {
 		std::map<string, std::vector<unsigned int>> chrName_count; //only expecting 2 items in our vector.
 		std::vector<std::vector<unsigned int>*> chrID_count;
 	public:
-        ~FragmentsInChr();
+		void Combine(const FragmentsInChr &child);
 		void ProcessBlocks(const FragmentBlocks &blocks);
-		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		int WriteOutput(std::string& output, std::string& QC) const;		
 };
 
@@ -110,9 +105,9 @@ class FragmentsInROI : public ReadBlockProcessor {
 		//   if pre-sorted, it may be easier to check for no overlapping blocks on read .. or can do this immediately after read with a single nested-walk.
 		std::map<string, std::vector<string>> chrName_ROI_text;
 	public:
-        ~FragmentsInROI();
+		void Combine(const FragmentsInROI &child);
 		void ProcessBlocks(const FragmentBlocks &blocks);
-		void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		void loadRef(std::istringstream &IN);
 		int WriteOutput(std::string& output, std::string& QC) const;		
 };
@@ -121,45 +116,24 @@ class FragmentsMap : public ReadBlockProcessor {
   // Counts mappability.
 private:
   // 0 = -, 1 = +, 2 = both
-/*	
-	// nested map
-  std::map<string, std::map<unsigned int, int> > chrName_count[3];
-  std::vector<std::map<unsigned int, int>*> chrID_count[3];
-*/
   std::vector< std::vector< std::pair<unsigned int, int> > > chrName_vec_final[3];
   std::vector< std::vector< std::pair<unsigned int, int> > > chrName_vec_new[3];
   std::vector< std::vector< std::pair<unsigned int, int> > > temp_chrName_vec_new[3];
-  
-	// vector pair
-  // std::map<string, std::vector< std::pair<unsigned int, int> > > chrName_vec[3];
-  // std::vector< std::vector< std::pair<unsigned int, int> >* > chrID_vec[3];
 
-	// vector pair temp
-  // std::map<string, std::vector< std::pair<unsigned int, int> > > temp_chrName_vec[3];
-  // std::vector< std::vector< std::pair<unsigned int, int> >* > temp_chrID_vec[3];
-  
-  union stream_uint32 {
-    char c[4];
-    uint32_t u;
-  };
-  union stream_int32 {
-    char c[4];
-    int32_t i;
-  };
-	
-	int chr_count = 0;
   uint32_t frag_count = 0;
 	int sort_and_collapse_temp();
 
 	bool final_is_sorted = false;
+	bool incremental = true;
   
-  vector<chr_index> chrs;
+  vector<chr_entry> chrs;
 public:
-  ~FragmentsMap() = default;
-  int sort_and_collapse_final(bool mark_as_final);
+	void Combine(FragmentsMap &child);
+	
+  int sort_and_collapse_final(bool verbose);
 
   void ProcessBlocks(const FragmentBlocks &blocks);
-  void ChrMapUpdate(const std::vector<chr_index> &chrmap);
+  void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
   int WriteOutput(std::ostream *os, int threshold = 4, bool verbose = false) ;
   int WriteBinary(covFile *os, bool verbose = false) ;
 
