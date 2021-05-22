@@ -808,6 +808,32 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
   }
 }
 
+int FragmentsMap::WriteBinary(covWriter *os, bool verbose)  {
+  if(!final_is_sorted) {
+    // if(verbose)  Rcout << "Performing final sort of fragment maps\n";
+    sort_and_collapse_final(verbose);   // Perform this separately as this is now multi-threaded
+  }
+  
+  if(verbose)  Rcout << "Writing COV file\n";
+
+  os->WriteHeader(chrs);
+
+  Progress p(3 * chrs.size(), verbose);
+  for(unsigned int j = 0; j < 3; j++) {
+    for(unsigned int i = 0; i < chrs.size(); i++) {
+      unsigned int refID = chrs[i].refID;
+      
+      std::vector< std::pair<unsigned int, int> > * itDest;
+      itDest = &chrName_vec_final[j].at(refID);
+      
+      os->WriteFragmentsMap(itDest, i, j);
+    }
+  }
+  
+  os->WriteToFile();
+  return(0);
+}
+
 
 int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
   // Write COV file as binary
