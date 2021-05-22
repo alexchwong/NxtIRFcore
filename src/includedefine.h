@@ -48,11 +48,19 @@ class chr_entry {
     unsigned int refID;
     std::string chr_name;
     int32_t chr_len;
+    
     chr_entry(unsigned int a, std::string b, int32_t c) {
       refID = a;
       chr_name = b;
       chr_len = c;
     };
+    
+    // copy constructor:
+    // chr_entry(chr_entry & other) {
+      // refID = other.refID;
+      // chr_name = other.chr_name;
+      // chr_len = other.chr_len;
+    // }
 };
 
 union stream_uint64 {
