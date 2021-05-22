@@ -60,7 +60,6 @@ class BAMReader_Multi {
     int n_bgzf = 1;  
     static const int BAM_HEADER_BYTES = 8;
     static const int BAM_READ_CORE_BYTES = 36;
-    static const char bamGzipHead[16+1];
     
     istream * IN;
     int IS_EOF;

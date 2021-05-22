@@ -1,17 +1,5 @@
 #include "covFile.h"
 
-const char covFile::bamEOF[covFile::bamEOFlength+1] =
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00";
-const char covFile::bamGzipHead[covFile::bamGzipHeadLength+1] = 
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00";
-const char covBuffer::bamGzipHead[covBuffer::bamGzipHeadLength+1] = 
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00";
-
-const char buffer_out_chunk::bamGzipHead[buffer_out_chunk::bamGzipHeadLength+1] = 
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00";
-const char buffer_out_chunk::bamEOF[buffer_out_chunk::bamEOFlength+1] =
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00";
-
 
 // Constructor
 covFile::covFile() {
@@ -174,7 +162,7 @@ void covFile::SetInputHandle(std::istream *in_stream) {
     // Check EOF bit
     IN->seekg (-bamEOFlength, std::ios_base::end);
     
-    char check_eof_buffer[covFile::bamEOFlength+1];
+    char check_eof_buffer[bamEOFlength+1];
     IN->read(check_eof_buffer, bamEOFlength);
          
     if(strncmp(check_eof_buffer, bamEOF, bamEOFlength) == 0) {
@@ -646,7 +634,7 @@ int covFile::FlushBody() {
   body.WriteBuffer();
 
   OUT->write(body.get_buffer_ptr(), body.get_buffer_pos());
-  OUT->write(covFile::bamEOF, covFile::bamEOFlength);
+  OUT->write(bamEOF, bamEOFlength);
   
   OUT->flush();
   return 0;
@@ -931,7 +919,7 @@ int covWriter::WriteFragmentsMap(std::vector< std::pair<unsigned int, int> > * v
     return(-1);
   }
   // Initialize the vector depending on vector size
-  unsigned int vec_cap = ((65536 - 18 - 8) / 12);
+  unsigned int vec_cap = ((65536 - 18 - 8) / 8);
   
   unsigned int vec_size = vec->size();
   unsigned int job_size = vec_size / vec_cap;
@@ -949,21 +937,31 @@ int covWriter::WriteFragmentsMap(std::vector< std::pair<unsigned int, int> > * v
     stream_uint32 u32;
     // Start coordinate for this bgzf block
     block_coord_starts.at(refID).at(i) = (uint32_t)vec->at(i * vec_cap).first;
+    Rcout << "Block start at coord = " << vec->at(i * vec_cap).first << '\n';
     unsigned int cur_coord = vec->at(i * vec_cap).first;
     
     for(unsigned int j = i * vec_cap; j < (i+1) * vec_cap && j < vec_size; j++) {
       
-      i32.i = vec->at(j).second;
-      body.at(refID).at(i).write(i32.c, 4);
-      
       // distance to next coord
       if(j == vec_size - 1) {
-        u32.u = chrs.at(chrID).chr_len - cur_coord;
+        if((unsigned int)chrs.at(chrID).chr_len > cur_coord) {
+          i32.i = vec->at(j).second;
+          body.at(refID).at(i).write(i32.c, 4);
+          
+          u32.u = (unsigned int)chrs.at(chrID).chr_len - cur_coord;
+          body.at(refID).at(i).write(u32.c, 4);
+        }
+        cur_coord = chrs.at(chrID).chr_len;   // This step is probably pointless
       } else {
-        u32.u = vec->at(j + 1).first - cur_coord;
+        if(vec->at(j + 1).first > cur_coord) {
+          i32.i = vec->at(j).second;
+          body.at(refID).at(i).write(i32.c, 4);
+          
+          u32.u = vec->at(j + 1).first - cur_coord;
+          body.at(refID).at(i).write(u32.c, 4);
+          cur_coord = vec->at(j + 1).first;
+        }
       }
-      body.at(refID).at(i).write(u32.c, 4);
-
     }
     body.at(refID).at(i).Compress();
   }
@@ -975,14 +973,17 @@ int covWriter::WriteHeaderToFile() {
   char zero = '\0';
   char wh_buffer[1000];
   std::string header_str = "COV\x01";
-
+  stream_uint32 u32;
+  
   buffer_out_chunk * header = new buffer_out_chunk;
   strncpy(wh_buffer, header_str.c_str(), 4);
   header->write(wh_buffer, 4);
   
+  u32.u = chrs.size();    // number of chroms
+  header->write(u32.c ,4);
+  
   for(unsigned int i = 0; i < chrs.size(); i++) {
     unsigned int chr_buf_len = 8 + 1 + chrs.at(i).chr_name.length();
-    stream_uint32 u32;
     
     // This is very unlikely to run
     if(header->IsAtCap(chr_buf_len)) {
@@ -1017,33 +1018,33 @@ int covWriter::WriteIndexToFile() {
   
   std::vector< buffer_out_chunk > index_buffer;
   
+  uint32_t index_size = 0;
   uint64_t body_pos = 0;
+  unsigned int cur_buffer = 0;
   
   for(unsigned int i = 0; i < 3 * chrs.size(); i++) {
     if(block_coord_starts.at(i).size() == 0 || body.at(i).size() == 0) WriteEmptyEntry(i);
-    
-    unsigned int cur_buffer = 0;
-    uint32_t index_size = 0;
+    Rcout << "Index # bgzf blocks = " << block_coord_starts.at(i).size() << '\n';
+    index_size = 0;   // Resets to zero for every refID
     index_buffer.resize(1);
     index_buffer.at(cur_buffer).SetPos(4); // Write the index size at the very end
-    
-    
+
     for(unsigned int j = 0; j < body.at(i).size(); j++) {
-      
       if(index_buffer.at(cur_buffer).IsAtCap(12)) {
         // index_buffer.at(cur_buffer).Compress();
         index_buffer.resize(index_buffer.size() + 1);
         cur_buffer++;
       }
-      u32.u = block_coord_starts.at(i).at(j);
+      u32.u = block_coord_starts.at(i).at(j); Rcout << "Block starts at " << u32.u << '\t';
       index_buffer.at(cur_buffer).write(u32.c, 4);
       
-      u64.u = body_pos;
-      body_pos += body.at(i).at(j).getBGZFSize();   // Increment BGZF pos from start of body
+      u64.u = body_pos; Rcout << ", BGZF offset " << u64.u << '\n';
       index_buffer.at(cur_buffer).write(u64.c, 8);
       
+      body_pos += body.at(i).at(j).getBGZFSize();   // Increment BGZF pos from start of body
       index_size += 12;
     }
+    
     u32.u = index_size;
     index_buffer.at(0).write_to_pos(u32.c, 4, 0);
     
@@ -1052,10 +1053,9 @@ int covWriter::WriteIndexToFile() {
       index_buffer.at(j).Compress();
       index_buffer.at(j).WriteToFile(OUT);
     }
-    
     index_buffer.clear();
   }
-  
+
   return(0);
 }
 
@@ -1077,5 +1077,9 @@ int covWriter::WriteToFile() {
       body.at(i).at(j).WriteToFile(OUT);
     }
   }
+
+  OUT->write(bamEOF, bamEOFlength);
+  OUT->flush();
+  
   return(0);
 }

@@ -2,11 +2,6 @@
 
 class covBuffer{
 	private:
-    static const int bamGzipHeadLength = 16;  // +2 a uint16 with the full block length.
-    static const char bamGzipHead[bamGzipHeadLength+1];
-
-    // char compressed_buffer[65536];
-    // char buffer[65536];    
     char * compressed_buffer;
     char * buffer;
 
@@ -28,14 +23,6 @@ class covBuffer{
 
 class covFile {
 	private:
- 		static const int bamEOFlength = 28;
-		static const char bamEOF[bamEOFlength+1];
-
-		static const int bamGzipHeadLength = 16;  // +2 a uint16 with the full block length.
-		static const char bamGzipHead[bamGzipHeadLength+1];
-
-    // char compressed_buffer[65536];
-    // char buffer[65536];
     char * compressed_buffer;
     char * buffer;
 
@@ -108,11 +95,7 @@ class buffer_out_chunk {
   private:
     static const int BUFFER_OUT_CAP = 65536 - 18 - 8;
 
- 		static const int bamEOFlength = 28;
-		static const char bamEOF[bamEOFlength+1];
 
-		static const int bamGzipHeadLength = 16;  // +2 a uint16 with the full block length.
-		static const char bamGzipHead[bamGzipHeadLength+1];
     
     char * buffer;
     char * compressed_buffer;
