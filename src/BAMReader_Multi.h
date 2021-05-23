@@ -116,6 +116,8 @@ class BAMReader_Multi {
     unsigned int ignore(unsigned int len);
 
     bool isReadable();
+    bool isReadableStrict();
+    bool GotoNextRead(bool strict = false);
     bool eof();
     bool eob();
     bool fail() {return(IN->fail());};
