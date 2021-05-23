@@ -374,7 +374,10 @@ int IRF_core(std::string const &bam_file,
   if(verbose) Rcout << "Identifying BGZF blocks in BAM file\n";
   unsigned int n_bgzf_blocks = BB.openFile(&inbam, verbose, n_threads_to_use);
   // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
- 
+  if(n_bgzf_blocks == 0) {
+    Rcout << "Error occurred profiling BAM file\n";
+    return(-1);
+  }
   // Assign children:
   std::vector<CoverageBlocksIRFinder*> oCB;
   std::vector<SpansPoint*> oSP;
