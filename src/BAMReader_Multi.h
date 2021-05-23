@@ -110,7 +110,7 @@ class BAMReader_Multi {
     int getBGZFstarts(std::vector<uint64_t> & BGZF_begins);
 
     int read_from_file(unsigned int n_blocks);
-    int decompress();
+    int decompress(bool allow_openmp = false);
     
     unsigned int read(char * dest, unsigned int len);  // returns the number of bytes actually read
     unsigned int ignore(unsigned int len);
