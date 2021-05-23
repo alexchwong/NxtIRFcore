@@ -356,11 +356,8 @@ int BAM2blocks::processAll() {
   std::map< std::string, bam_read_core* > * new_spare_reads;  
 
   while(1) {
-    ret = IN->read(reads[idx].c_block_size, 4);  // Should return 4 if all 4 bytes are read
-
-    if (IN->eob() || IN->fail() || (ret != 4)) {
-      // Bank the spare read:
-      // Rcout << "BAM2blocks::processAll ret == " << ret << '\n';
+    
+    if(!IN->isReadable()) {
       if(idx == 1 && spare_reads->size() == 0) {
         std::string read_name = string(reads[0].read_name);
         bam_read_core * store_read = new bam_read_core;
@@ -373,6 +370,7 @@ int BAM2blocks::processAll() {
     } else {
       any_reads_processed = true;
     }
+    ret = IN->read(reads[idx].c_block_size, 4);  // Should return 4 if all 4 bytes are read
     if(reads[idx].block_size > BAM_READ_CORE_BYTES - 4) {
       ret = IN->read(reads[idx].c, BAM_READ_CORE_BYTES - 4);
       ret = IN->read(reads[idx].read_name, reads[idx].core.l_read_name);
@@ -430,6 +428,15 @@ int BAM2blocks::processAll() {
           idx = 0;
         }
       }
+    } else {
+      // read doesn't make sense, exit
+      if(idx == 1 && spare_reads->size() == 0) {
+        std::string read_name = string(reads[0].read_name);
+        bam_read_core * store_read = new bam_read_core;
+        *(store_read) = reads[0];
+        spare_reads->insert({read_name, store_read});
+      }
+      return(-1);
     }
 
     if ( (cPairedReads + cSingleReads) % 1000000 == 0 ) {
