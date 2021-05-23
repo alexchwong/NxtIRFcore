@@ -14,8 +14,16 @@ buffer_chunk::buffer_chunk() {
 }
 
 buffer_chunk::~buffer_chunk() {
-  if(buffer) free(buffer);
-  if(decompressed_buffer) free(decompressed_buffer);
+  // if(buffer) free(buffer);
+  // if(decompressed_buffer) free(decompressed_buffer);
+  buffer = NULL;
+  decompressed_buffer = NULL;
+  decompressed = false;
+  bgzf_pos = 0;
+  max_buffer = 0;
+  max_decompressed = 0;
+  pos = 0;
+  end_pos = 65536;
 }
 
 int buffer_chunk::clear_buffer() {
@@ -24,6 +32,7 @@ int buffer_chunk::clear_buffer() {
   buffer = NULL;
   decompressed_buffer = NULL;
   decompressed = false;
+  bgzf_pos = 0;
   max_buffer = 0;
   max_decompressed = 0;
   pos = 0;
@@ -373,19 +382,18 @@ unsigned int BAMReader_Multi::ProfileBAM(
   // setwd("d:/Alex/Vignette/Cpp Optim/")
   // IRFinder("Aligned.out.bam", "test", file.path(tempdir(), "Reference"), verbose = TRUE)
   
-  if(IN->eof()) IN->clear(); SetAutoLoad(false);
+  if(IN->eof()) IN->clear();
+  SetAutoLoad(false);
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
   BAM_BLOCK_CURSOR = BAM_READS_BEGIN;
   while(read_from_file(100) > 0) {
-    Rcout << "Reading 100 blocks\t";
-    decompress();
-    Rcout << "Max cap is now at " << buffer_count << '\n';
+    decompress(true);
     if(buffer.at(buffer_pos).GetPos() > 0) {
-      Rcout << "Trying to go to the beginning of next buffer\n";
+      // Rcout << "Trying to go to the beginning of next buffer\n";
       if(!GotoNextRead(false)) break; // goes to the first full read of the next line     
     }
-    Rcout << "BGZF# " << buffer_pos << '\t';
-    Rcout << "Block read offset " << buffer.at(buffer_pos).GetPos() << '\n';
+    // Rcout << "BGZF# " << buffer_pos << '\t';
+    // Rcout << "Block read offset " << buffer.at(buffer_pos).GetPos() << '\n';
     temp_last_read_offsets.push_back(buffer.at(buffer_pos).GetPos()); // Gets current position of current buffer
     
     while(isReadable()) {
@@ -396,32 +404,33 @@ unsigned int BAMReader_Multi::ProfileBAM(
 
       // If ends at full read, ignore() automatically goes to pos zero of next buffer
       if(buffer.at(buffer_pos).GetPos() == 0) {   
-        if(IS_EOF == 1 && buffer_pos == comp_buffer_count - 1) {
-          IS_EOB = 1;
-          temp_last_read_offsets.push_back(0); Rcout << "EOF\n";   // Last push
-          break;
-        }
-        
         if(isReadable()) {
           temp_last_read_offsets.push_back(0); 
-          Rcout << "BGZF# " << buffer_pos << '\t';
-          Rcout << "Block read offset 0";   // First read is at zero of new bgzf
-        } else {
+          // Rcout << "BGZF# " << buffer_pos << '\t';
+          // Rcout << "Block read offset 0";   // First read is at zero of new bgzf
+        } else if(buffer.at(buffer_pos).is_eof_block()) {
+          temp_last_read_offsets.push_back(0);
           break;
         }
       } else {
         // Goto next read non-strictly (i.e. read across bgzf boundaries)
         // if this is not possible, then read some more buffers
+        if(buffer_pos == comp_buffer_count - 1) break;
         if(!GotoNextRead(false)) break; 
         temp_last_read_offsets.push_back(buffer.at(buffer_pos).GetPos()); // record next position
-        Rcout << "BGZF# " << buffer_pos << '\t';
-        Rcout << "Block read offset " << buffer.at(buffer_pos).GetPos() << '\n';
+        // Rcout << "BGZF# " << buffer_pos << '\t';
+        // Rcout << "Block read offset " << buffer.at(buffer_pos).GetPos() << '\n';
       }
     }
   }
-  Rcout << "Extended profiling finished\n";
-  if(temp_last_read_offsets.size() != temp_begins.size()) {
+  if(verbose) Rcout << "Extended profiling finished\n";
+  if(temp_last_read_offsets.size() == temp_begins.size() - 1) {
+    if(verbose) Rcout << "Pushing EOF block position\n";
+    temp_last_read_offsets.push_back(0); 
+  } else if(temp_last_read_offsets.size() != temp_begins.size()) {
     Rcout << "BGZF block counts mismatch between BGZF positions and first read positions\n";
+    Rcout << "temp_begins.size() " << temp_begins.size() << '\t'
+      << "temp_last_read_offsets.size() " << temp_last_read_offsets.size() << '\n';
     return(0);
   }
   
@@ -497,19 +506,35 @@ int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
   return(i);
 }
 
-int BAMReader_Multi::decompress() {
+int BAMReader_Multi::decompress(bool allow_openmp) {
   if(IS_EOB == 1) return(0);
-
-  // Rcout << "Decompressing blocks starting from " << buffer_count << '\n';
-  
-  for(unsigned int i = buffer_count; i < comp_buffer_count; i++) {
-    if(!buffer.at(i).is_decompressed() && !buffer.at(i).is_eof_block()) {
-      buffer.at(i).decompress();
-      buffer_count += 1;
-    } else {
-      break;
+  if(allow_openmp) {
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for(unsigned int i = buffer_count; i < comp_buffer_count; i++) {
+      if(!buffer.at(i).is_decompressed()) {
+        buffer.at(i).decompress();
+        
+#ifdef _OPENMP
+        # pragma omp atomic
+#endif
+        buffer_count += 1;
+      }
+    }
+  } else {
+    for(unsigned int i = buffer_count; i < comp_buffer_count; i++) {
+      if(!buffer.at(i).is_decompressed()) {
+        buffer.at(i).decompress();
+        buffer_count += 1;
+      }
     }
   }
+  
+  if(buffer_count != comp_buffer_count) {
+    Rcout << "Some buffers were not decompressed";
+  }
+
   // Rcout << "BAMReader_Multi " << n_blocks << " decompressed\n";
 
   return(0);
@@ -613,24 +638,33 @@ bool BAMReader_Multi::GotoNextRead(bool strict) {
     
     stream_uint32 u32;
     buffer.at(buffer_pos).peek(u32.c, 4);
-    if(buffer.at(buffer_pos).GetRemainingBytes() < 4 + u32.u) return(false);
+    if(buffer.at(buffer_pos).GetRemainingBytes() <= 4 + u32.u) return(false);
     
     ignore(4 + u32.u);
     return(true);
   } else {
-    if(buffer_pos < buffer_count - 1 && !buffer.at(buffer_pos + 1).is_eof_block()) {
+    if(buffer_pos >= buffer_count) return(false);
+    if(buffer_pos == buffer_count - 2 && buffer.at(buffer_count - 1).is_eof_block()) {
+      // cautious
+      if(buffer.at(buffer_pos).GetRemainingBytes() < 4) return(false);
+
+      stream_uint32 u32;
+      buffer.at(buffer_pos).peek(u32.c, 4);
+      if(buffer.at(buffer_pos).GetRemainingBytes() <= 4 + u32.u) return(false);
+      ignore(4 + u32.u);
+      return(true);
+    } else if(buffer_pos < buffer_count - 1) {
       // Doable:
       stream_uint32 u32;
       if(read(u32.c, 4) < 4) Rcout << "Unable to read 4 bytes when supposed to\n";
       if(ignore(u32.u) < u32.u) Rcout << "Unable to read rest of read when supposed to\n";
       return(true);
     } else {
-      if(buffer_pos >= buffer_count) return(false);
       if(buffer.at(buffer_pos).GetRemainingBytes() < 4) return(false);
 
       stream_uint32 u32;
       buffer.at(buffer_pos).peek(u32.c, 4);
-      if(buffer.at(buffer_pos).GetRemainingBytes() < 4 + u32.u) return(false);
+      if(buffer.at(buffer_pos).GetRemainingBytes() <= 4 + u32.u) return(false);
 
       ignore(4 + u32.u);
       return(true);
