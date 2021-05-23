@@ -32,6 +32,7 @@ class buffer_chunk {
     }
     
     unsigned int GetPos() { return(pos); };
+    unsigned int GetRemainingBytes() { return(max_decompressed - pos); };
     unsigned int GetBGZFPos() { return(bgzf_pos); };
     unsigned int SetPos(unsigned int pos_to_set) {
       pos = pos_to_set;
@@ -51,6 +52,7 @@ class buffer_chunk {
     unsigned int GetMaxBufferDecompressed() { return(max_decompressed); };
     
     unsigned int read(char * dest, unsigned int len);  // returns the number of bytes actually read
+    unsigned int peek(char * dest, unsigned int len);  // same as read but does not move cursor
     unsigned int ignore(unsigned int len);
 };
 
@@ -108,11 +110,12 @@ class BAMReader_Multi {
     int getBGZFstarts(std::vector<uint64_t> & BGZF_begins);
 
     int read_from_file(unsigned int n_blocks);
-    int decompress(unsigned int n_blocks);
+    int decompress();
     
     unsigned int read(char * dest, unsigned int len);  // returns the number of bytes actually read
     unsigned int ignore(unsigned int len);
 
+    bool isReadable();
     bool eof();
     bool eob();
     bool fail() {return(IN->fail());};

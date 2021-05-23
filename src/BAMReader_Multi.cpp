@@ -110,6 +110,16 @@ int buffer_chunk::decompress() {
   return(0);
 }
 
+unsigned int buffer_chunk::peek(char * dest, unsigned int len) {  
+  if(!is_decompressed()) return(0);
+  if(pos >= max_decompressed) return(0);
+  
+  unsigned int bytes_to_read = min(max_decompressed, pos + len) - pos;
+  memcpy(dest, decompressed_buffer + pos, bytes_to_read);
+  // pos += bytes_to_read;
+  return(bytes_to_read);
+}
+
 unsigned int buffer_chunk::read(char * dest, unsigned int len) {  
   if(!is_decompressed()) return(0);
   if(pos >= max_decompressed) return(0);
@@ -502,16 +512,19 @@ int BAMReader_Multi::read_from_file(unsigned int n_blocks) {
   return(i);
 }
 
-int BAMReader_Multi::decompress(unsigned int n_blocks) {
+int BAMReader_Multi::decompress() {
   if(IS_EOB == 1) return(0);
-  unsigned int end_blocks = min(comp_buffer_count, n_blocks + buffer_count);
 
   // Rcout << "Decompressing blocks starting from " << buffer_count << '\n';
   
-  for(unsigned int i = buffer_count; i < end_blocks; i++) {
-    if(!buffer.at(i).is_decompressed()) buffer.at(i).decompress();
+  for(unsigned int i = buffer_count; i < comp_buffer_count; i++) {
+    if(!buffer.at(i).is_decompressed() && !buffer.at(i).is_eof_block()) {
+      buffer.at(i).decompress();
+      buffer_count += 1;
+    } else {
+      break;
+    }
   }
-  buffer_count = end_blocks;
   // Rcout << "BAMReader_Multi " << n_blocks << " decompressed\n";
 
   return(0);
@@ -525,7 +538,7 @@ unsigned int BAMReader_Multi::read(char * dest, unsigned int len) {
     if(buffer_pos == comp_buffer_count && IS_EOF != 1) {
       if(auto_load_data) {
         read_from_file(n_bgzf);
-        decompress(n_bgzf);        
+        decompress();        
       } else {
         return(cursor);
       }
@@ -542,7 +555,7 @@ unsigned int BAMReader_Multi::read(char * dest, unsigned int len) {
         }
         buffer_pos++; // increment
         if(buffer_pos < comp_buffer_count && !buffer.at(buffer_pos).is_decompressed()) {
-          decompress(1);
+          decompress();
         }
       }
     } // reading will always end with end of buffer being cleared
@@ -558,7 +571,7 @@ unsigned int BAMReader_Multi::ignore(unsigned int len) {
     if(buffer_pos == comp_buffer_count && IS_EOF != 1) {
       if(auto_load_data) {
         read_from_file(n_bgzf);
-        decompress(n_bgzf);        
+        decompress();        
       } else {
         return(cursor);
       }
@@ -578,6 +591,21 @@ unsigned int BAMReader_Multi::ignore(unsigned int len) {
     } // reading will always end with end of buffer being cleared
   }
   return(cursor);
+}
+
+bool BAMReader_Multi::isReadable() {
+  // If not last decompressed buffer:
+  if(buffer_pos < buffer_count - 1) return(true);
+  if(buffer_pos >= buffer_count) return(false);
+  // If next buffer is not EOF buffer:
+  // Else, buffer is last availabl
+  if(buffer.at(buffer_pos).GetRemainingBytes() < 4) return(false);
+  
+  stream_uint32 u32;
+  buffer.at(buffer_pos).peek(u32.c, 4);
+  if(buffer.at(buffer_pos).GetRemainingBytes() < 4 + u32.u) return(false);
+  
+  return(true);
 }
 
 bool BAMReader_Multi::eof() {

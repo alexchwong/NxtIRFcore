@@ -429,19 +429,25 @@ int IRF_core(std::string const &bam_file,
   Progress p(n_bgzf_blocks, verbose);
   // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
   unsigned int blocks_read_total = 0;
-
+  int ret = 0;
 #ifdef _OPENMP
   #pragma omp parallel for
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     unsigned int n_blocks_read = 1;
-    while(!BRchild.at(i)->eob() && !p.check_abort() && n_blocks_read > 0) {
+    int ret2 = 0;
+    while(!BRchild.at(i)->eob() && !p.check_abort() && n_blocks_read > 0 && ret == 0) {
       #pragma omp critical
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
       
       if(n_blocks_read > 0) {
-        BRchild.at(i)->decompress(100);
-        BBchild.at(i)->processAll();
-                
+        BRchild.at(i)->decompress();
+        ret2 = BBchild.at(i)->processAll();
+        
+        if(ret2 == -1) {
+          #pragma omp critical
+          ret = -1;    // abort if broken reads detected
+        }
+        
         #pragma omp atomic
         blocks_read_total += n_blocks_read;
         
@@ -454,10 +460,10 @@ int IRF_core(std::string const &bam_file,
 #else
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     unsigned int n_blocks_read = 0;
-    while(!BRchild.at(i)->eob() && !p.check_abort()) {
+    while(!BRchild.at(i)->eob() && !p.check_abort() && ret == 0) {
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
-      BRchild.at(i)->decompress(100);
-      BBchild.at(i)->processAll();
+      BRchild.at(i)->decompress();
+      ret = BBchild.at(i)->processAll();
       
       blocks_read_total += n_blocks_read;
       p.increment(n_blocks_read);

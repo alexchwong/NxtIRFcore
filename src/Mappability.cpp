@@ -275,7 +275,7 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
       #pragma omp critical
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
       
-      BRchild.at(i)->decompress(100);
+      BRchild.at(i)->decompress();
       BBchild.at(i)->processAll();
       
       #pragma omp critical
@@ -295,7 +295,7 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
     while(!BRchild.at(i)->eob()) {
       
       int n_blocks_read = BRchild.at(i)->read_from_file(100);
-      BRchild.at(i)->decompress(100);
+      BRchild.at(i)->decompress();
       BBchild.at(i)->processAll();
       
       p.increment(n_blocks_read);
