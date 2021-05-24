@@ -616,16 +616,29 @@ unsigned int BAMReader_Multi::ignore(unsigned int len) {
 
 bool BAMReader_Multi::isReadable() {
   // If not last decompressed buffer:
-  if(buffer_pos < buffer_count - 1) return(true);
+  if(buffer_pos < buffer_count - 2) return(true);
   if(buffer_pos >= buffer_count) return(false);
   // If next buffer is not EOF buffer:
-  // Else, buffer is last availabl
-  if(buffer.at(buffer_pos).GetRemainingBytes() < 4) return(false);
+  // Else, buffer is last available
   
   stream_uint32 u32;
-  buffer.at(buffer_pos).peek(u32.c, 4);
-  if(buffer.at(buffer_pos).GetRemainingBytes() < 4 + u32.u) return(false);
   
+  if(buffer_pos == buffer_count - 2) {
+    if(buffer.at(buffer_pos).GetRemainingBytes() +
+      buffer.at(buffer_pos + 1).GetRemainingBytes() < 4) return(false);
+    
+    buffer.at(buffer_pos).peek(u32.c, 4);
+    
+    if(buffer.at(buffer_pos).GetRemainingBytes() +
+      buffer.at(buffer_pos + 1).GetRemainingBytes() < 4 + u32.u) return(false);
+  } else {
+    if(buffer.at(buffer_pos).GetRemainingBytes() < 4) return(false);
+    
+    buffer.at(buffer_pos).peek(u32.c, 4);
+    
+    if(buffer.at(buffer_pos).GetRemainingBytes() < 4 + u32.u) return(false);
+  }
+
   return(true);
 }
 
