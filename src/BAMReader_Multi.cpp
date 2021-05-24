@@ -438,7 +438,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
   }
   if(verbose) Rcout << "Extended profiling finished\n";
   if(temp_last_read_offsets.size() == temp_begins.size() - 1) {
-    if(verbose) Rcout << "Pushing EOF block position\n";
+    // if(verbose) Rcout << "Pushing EOF block position\n";
     temp_last_read_offsets.push_back(0); 
   } else if(temp_last_read_offsets.size() != temp_begins.size()) {
     Rcout << "BGZF block counts mismatch between BGZF positions and first read positions\n";
