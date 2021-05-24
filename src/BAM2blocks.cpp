@@ -371,6 +371,7 @@ int BAM2blocks::processAll() {
       any_reads_processed = true;
     }
     ret = IN->read(reads[idx].c_block_size, 4);  // Should return 4 if all 4 bytes are read
+    if(ret < 4) break;
     if(reads[idx].block_size > BAM_READ_CORE_BYTES - 4) {
       ret = IN->read(reads[idx].c, BAM_READ_CORE_BYTES - 4);
       ret = IN->read(reads[idx].read_name, reads[idx].core.l_read_name);
@@ -446,6 +447,10 @@ int BAM2blocks::processAll() {
       spare_reads->swap(*new_spare_reads);
       delete new_spare_reads;
     }
+  }
+  if(ret < 4) {
+    Rcout << "Error occurred in BAM2Blocks processAll - likely a bug\n";
+    return(-1);
   }
   return(0);
 }
