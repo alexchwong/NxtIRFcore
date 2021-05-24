@@ -819,6 +819,7 @@ int FragmentsMap::WriteBinary(covWriter *os, bool verbose)  {
       itDest = &chrName_vec_final[j].at(refID);
       
       os->WriteFragmentsMap(itDest, i, j);
+      p.increment(1);
     }
   }
   

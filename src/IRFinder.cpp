@@ -500,6 +500,8 @@ int IRF_core(std::string const &bam_file,
   // Combine BB's and process spares
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       BBchild.at(0)->processSpares(*BBchild.at(i));
+      delete BBchild.at(i);
+      delete BRchild.at(i);
     }
   // Combine objects:
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
@@ -509,6 +511,13 @@ int IRF_core(std::string const &bam_file,
       oROI.at(0)->Combine(*oROI.at(i));
       oCB.at(0)->Combine(*oCB.at(i));
       oFM.at(0)->Combine(*oFM.at(i));
+      
+      delete oJC.at(i);
+      delete oChr.at(i);
+      delete oSP.at(i);
+      delete oROI.at(i);
+      delete oCB.at(i);
+      delete oFM.at(i);
     }
   }
 
@@ -577,16 +586,16 @@ int IRF_core(std::string const &bam_file,
   out.flush(); out.close();
   
   // destroy objects:
-  for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    delete oJC.at(i);
-    delete oChr.at(i);
-    delete oSP.at(i);
-    delete oROI.at(i);
-    delete oCB.at(i);
-    delete oFM.at(i);
-    delete BRchild.at(i);
-    delete BBchild.at(i);
-  }
+
+  delete oJC.at(0);
+  delete oChr.at(0);
+  delete oSP.at(0);
+  delete oROI.at(0);
+  delete oCB.at(0);
+  delete oFM.at(0);
+  delete BRchild.at(0);
+  delete BBchild.at(0);
+
   return(0);
 }
 
