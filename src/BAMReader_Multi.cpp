@@ -195,9 +195,9 @@ void BAMReader_Multi::AssignTask(std::istream *in_stream,
   end_read_offset = end_offset;
   
   BAM_BLOCK_CURSOR = block_begin; 
-  Rcout << "block begin: " << BAM_BLOCK_CURSOR << '\n';
-  Rcout << begin_block_offset << " " << begin_read_offset
-    << ", " << end_block_offset << " " << end_read_offset << '\n';
+  // Rcout << "block begin: " << BAM_BLOCK_CURSOR << '\n';
+  // Rcout << begin_block_offset << " " << begin_read_offset
+    // << ", " << end_block_offset << " " << end_read_offset << '\n';
   
   IN = in_stream;
 }
