@@ -386,8 +386,13 @@ unsigned int BAMReader_Multi::ProfileBAM(
   SetAutoLoad(false);
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
   BAM_BLOCK_CURSOR = BAM_READS_BEGIN;
+  
+  Progress p(temp_begins.size(), verbose);
+  
   while(read_from_file(100) > 0) {
+    p.increment(comp_buffer_count - buffer_count);
     decompress(true);
+    
     if(buffer.at(buffer_pos).GetPos() > 0) {
       // Rcout << "Trying to go to the beginning of next buffer\n";
       if(!GotoNextRead(false)) break; // goes to the first full read of the next line     
@@ -515,12 +520,11 @@ int BAMReader_Multi::decompress(bool allow_openmp) {
     for(unsigned int i = buffer_count; i < comp_buffer_count; i++) {
       if(!buffer.at(i).is_decompressed()) {
         buffer.at(i).decompress();
-        
-#ifdef _OPENMP
-        # pragma omp atomic
-#endif
-        buffer_count += 1;
       }
+    }
+    
+    for(unsigned int i = buffer_count; i < comp_buffer_count; i++) {
+      if(buffer.at(i).is_decompressed()) buffer_count+=1;
     }
   } else {
     for(unsigned int i = buffer_count; i < comp_buffer_count; i++) {
