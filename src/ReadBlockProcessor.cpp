@@ -685,13 +685,13 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
     sort_and_collapse_temp();
     if(verbose)  Rcout << "Performing final sort of fragment maps\n";
 
-    // Progress p(3 * chrs.size(), verbose);
-    for(unsigned int j = 0; j < 3; j++) {
-      
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
-      for(unsigned int i = 0; i < chrs.size(); i++) {
+    for(unsigned int k = 0; k < 3 * chrs.size(); k++) {
+      unsigned int j = k / chrs.size();
+      unsigned int i = k - (j * chrs.size());
+      
         auto itChr = &chrName_vec_new[j].at(i);
         auto itDest = &chrName_vec_final[j].at(i);
         itDest->resize(0);
@@ -731,12 +731,6 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
         }
         itChr->clear();
         
-#ifdef _OPENMP
-        #pragma omp critical
-#endif
-        // p.increment(1);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      }
     }
     final_is_sorted = true;
   }
