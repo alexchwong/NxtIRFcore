@@ -432,7 +432,11 @@ int BAM2blocks::processAll() {
             reads[0].core.l_read_name == reads[1].core.l_read_name &&
             (0 == strncmp(reads[0].read_name, reads[1].read_name, reads[1].core.l_read_name))) {
           cPairedReads ++;
-          totalNucleotides += processPair(&reads[0], &reads[1]);
+          if (reads[0].core.pos <= reads[1].core.pos) {
+            totalNucleotides += processPair(&reads[0], &reads[1]);
+          } else {
+            totalNucleotides += processPair(&reads[1], &reads[0]);
+          }
           cReadsProcessed+=2;
           idx = 0;
         } else {
