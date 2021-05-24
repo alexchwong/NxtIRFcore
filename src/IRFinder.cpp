@@ -374,7 +374,10 @@ int IRF_core(std::string const &bam_file,
   if(verbose) Rcout << "Identifying BGZF blocks in BAM file\n";
   unsigned int n_bgzf_blocks = BB.openFile(&inbam, verbose, n_threads_to_use);
   // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
- 
+  if(n_bgzf_blocks == 0) {
+    Rcout << "Error occurred profiling BAM file\n";
+    return(-1);
+  }
   // Assign children:
   std::vector<CoverageBlocksIRFinder*> oCB;
   std::vector<SpansPoint*> oSP;
@@ -429,19 +432,25 @@ int IRF_core(std::string const &bam_file,
   Progress p(n_bgzf_blocks, verbose);
   // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
   unsigned int blocks_read_total = 0;
-
+  int ret = 0;
 #ifdef _OPENMP
   #pragma omp parallel for
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     unsigned int n_blocks_read = 1;
-    while(!BRchild.at(i)->eob() && !p.check_abort() && n_blocks_read > 0) {
+    int ret2 = 0;
+    while(!BRchild.at(i)->eob() && !p.check_abort() && n_blocks_read > 0 && ret == 0) {
       #pragma omp critical
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
       
       if(n_blocks_read > 0) {
-        BRchild.at(i)->decompress(100);
-        BBchild.at(i)->processAll();
-                
+        BRchild.at(i)->decompress();
+        ret2 = BBchild.at(i)->processAll();
+        
+        if(ret2 == -1) {
+          #pragma omp critical
+          ret = -1;    // abort if broken reads detected
+        }
+        
         #pragma omp atomic
         blocks_read_total += n_blocks_read;
         
@@ -454,10 +463,10 @@ int IRF_core(std::string const &bam_file,
 #else
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     unsigned int n_blocks_read = 0;
-    while(!BRchild.at(i)->eob() && !p.check_abort()) {
+    while(!BRchild.at(i)->eob() && !p.check_abort() && ret == 0) {
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
-      BRchild.at(i)->decompress(100);
-      BBchild.at(i)->processAll();
+      BRchild.at(i)->decompress();
+      ret = BBchild.at(i)->processAll();
       
       blocks_read_total += n_blocks_read;
       p.increment(n_blocks_read);
@@ -491,6 +500,8 @@ int IRF_core(std::string const &bam_file,
   // Combine BB's and process spares
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       BBchild.at(0)->processSpares(*BBchild.at(i));
+      delete BBchild.at(i);
+      delete BRchild.at(i);
     }
   // Combine objects:
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
@@ -500,12 +511,19 @@ int IRF_core(std::string const &bam_file,
       oROI.at(0)->Combine(*oROI.at(i));
       oCB.at(0)->Combine(*oCB.at(i));
       oFM.at(0)->Combine(*oFM.at(i));
+      
+      delete oJC.at(i);
+      delete oChr.at(i);
+      delete oSP.at(i);
+      delete oROI.at(i);
+      delete oCB.at(i);
+      delete oFM.at(i);
     }
   }
 
   // Write Coverage Binary file:
   std::ofstream ofCOV;                          ofCOV.open(s_output_cov, std::ofstream::binary);  
-  covFile outCOV;                               outCOV.SetOutputHandle(&ofCOV);
+  covWriter outCOV;                             outCOV.SetOutputHandle(&ofCOV);
   oFM.at(0)->WriteBinary(&outCOV, verbose);     ofCOV.close();
 
 // Write output to file:  
@@ -568,16 +586,16 @@ int IRF_core(std::string const &bam_file,
   out.flush(); out.close();
   
   // destroy objects:
-  for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    delete oJC.at(i);
-    delete oChr.at(i);
-    delete oSP.at(i);
-    delete oROI.at(i);
-    delete oCB.at(i);
-    delete oFM.at(i);
-    delete BRchild.at(i);
-    delete BBchild.at(i);
-  }
+
+  delete oJC.at(0);
+  delete oChr.at(0);
+  delete oSP.at(0);
+  delete oROI.at(0);
+  delete oCB.at(0);
+  delete oFM.at(0);
+  delete BRchild.at(0);
+  delete BBchild.at(0);
+
   return(0);
 }
 

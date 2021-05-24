@@ -131,38 +131,47 @@ unsigned int BAM2blocks::processPair(bam_read_core * read1, bam_read_core * read
   //int r1_blocks;
   int r2_genome_len;
 
+  bam_read_core * r1 = read1;
+  bam_read_core * r2 = read2;
+  
   string debugstate;
 
   //int r2_blocks;
   //char dir;
 
-  if (read1->core.flag & 0x40) {
+  if (r1->core.flag & 0x40) {
     //this is first of pair.
-    if (read1->core.flag & 0x10) {
+    if (r1->core.flag & 0x10) {
       oBlocks.direction = 0;
     }else{
       oBlocks.direction = 1;
     }
   }else{
-    if (read1->core.flag & 0x20) {
+    if (r1->core.flag & 0x20) {
       oBlocks.direction = 0;
     }else{
       oBlocks.direction = 1;
     }
   }
 
+  cigar2block(r1->cigar, r1->core.n_cigar_op, oBlocks.rStarts[0], oBlocks.rLens[0], r1_genome_len);
+  cigar2block(r2->cigar, r2->core.n_cigar_op, oBlocks.rStarts[1], oBlocks.rLens[1], r2_genome_len);
 
-  cigar2block(read1->cigar, read1->core.n_cigar_op, oBlocks.rStarts[0], oBlocks.rLens[0], r1_genome_len);
-  cigar2block(read2->cigar, read2->core.n_cigar_op, oBlocks.rStarts[1], oBlocks.rLens[1], r2_genome_len);
+  bool merge_reads = false;
+  bool swap_reads = false;
+  bool goodPair = true;
 
-  if (read1->core.pos + r1_genome_len < read2->core.pos) {
+  
+  if (r1->core.pos + r1_genome_len < r2->core.pos) {
     cLongPairs++;
     //reads do not intersect
     oBlocks.readCount = 2;
     debugstate.append( "-Long-");
-  }else if (read1->core.pos + r1_genome_len >= read2->core.pos + r2_genome_len){
-    if(read1->core.pos == read2->core.pos && r1_genome_len > r2_genome_len) {
+  }else if (r1->core.pos + r1_genome_len >= r2->core.pos + r2_genome_len){
+    if(r1->core.pos == r2->core.pos && r1_genome_len > r2_genome_len) {
       cIntersectPairs++;
+      swap_reads = true;
+      merge_reads = true;
     } else {
       cShortPairs++;
     }    
@@ -172,15 +181,43 @@ unsigned int BAM2blocks::processPair(bam_read_core * read1, bam_read_core * read
   }else{
     debugstate.append( "-Intersect-");
     cIntersectPairs++;
-    bool goodPair = true;
+    
     oBlocks.readCount = 1;
+    merge_reads = true;
+  }
+  
+  if(swap_reads) {
+    // recalculate blocks based on read1 <-> read2
+    r2 = read1;
+    r1 = read2;
+    
+    if (r1->core.flag & 0x40) {
+      //this is first of pair.
+      if (r1->core.flag & 0x10) {
+        oBlocks.direction = 0;
+      }else{
+        oBlocks.direction = 1;
+      }
+    }else{
+      if (r1->core.flag & 0x20) {
+        oBlocks.direction = 0;
+      }else{
+        oBlocks.direction = 1;
+      }
+    }
+
+    cigar2block(r1->cigar, r1->core.n_cigar_op, oBlocks.rStarts[0], oBlocks.rLens[0], r1_genome_len);
+    cigar2block(r2->cigar, r2->core.n_cigar_op, oBlocks.rStarts[1], oBlocks.rLens[1], r2_genome_len);
+  }
+  
+  if(merge_reads) {
     // We have two reads that intersect - construct just one complete fragment.
 
 // Guaranteed assumptions:
 //   Read 1 starts to the left of Read 2.
 //   Read 2 end extends beyond the end of Read 1 end.
-    int r1pos = read1->core.pos;
-    int r2pos = read2->core.pos;
+    int r1pos = r1->core.pos;
+    int r2pos = r2->core.pos;
     for (unsigned int i = 0; i < oBlocks.rStarts[0].size(); i++) {
         if (r1pos + oBlocks.rStarts[0][i] + oBlocks.rLens[0][i] >= r2pos) {
           if (r1pos + oBlocks.rStarts[0][i] <= r2pos) {
@@ -209,19 +246,19 @@ unsigned int BAM2blocks::processPair(bam_read_core * read1, bam_read_core * read
       oBlocks.readCount = 2;
     }
   }
-  oBlocks.chr_id = read1->core.refID;
-  oBlocks.readStart[0] = read1->core.pos;
-  oBlocks.readEnd[0] = read1->core.pos + r1_genome_len;
-  oBlocks.readName.resize(read1->core.l_read_name - 1);
-  oBlocks.readName.replace(0, read1->core.l_read_name - 1, read1->read_name, read1->core.l_read_name - 1); // is this memory/speed efficient?
+  oBlocks.chr_id = r1->core.refID;
+  oBlocks.readStart[0] = r1->core.pos;
+  oBlocks.readEnd[0] = r1->core.pos + r1_genome_len;
+  oBlocks.readName.resize(r1->core.l_read_name - 1);
+  oBlocks.readName.replace(0, r1->core.l_read_name - 1, r1->read_name, r1->core.l_read_name - 1); // is this memory/speed efficient?
 
   unsigned int totalBlockLen = 0;
   for (auto blockLen: oBlocks.rLens[0]) {
     totalBlockLen += blockLen;
   }
   if (oBlocks.readCount > 1) {
-    oBlocks.readStart[1] = read2->core.pos;
-    oBlocks.readEnd[1] = read2->core.pos + r2_genome_len;
+    oBlocks.readStart[1] = r2->core.pos;
+    oBlocks.readEnd[1] = r2->core.pos + r2_genome_len;
     for (auto blockLen: oBlocks.rLens[1]) {
       totalBlockLen += blockLen;
     }
@@ -356,11 +393,8 @@ int BAM2blocks::processAll() {
   std::map< std::string, bam_read_core* > * new_spare_reads;  
 
   while(1) {
-    ret = IN->read(reads[idx].c_block_size, 4);  // Should return 4 if all 4 bytes are read
-
-    if (IN->eob() || IN->fail() || (ret != 4)) {
-      // Bank the spare read:
-      // Rcout << "BAM2blocks::processAll ret == " << ret << '\n';
+    
+    if(!IN->isReadable()) {
       if(idx == 1 && spare_reads->size() == 0) {
         std::string read_name = string(reads[0].read_name);
         bam_read_core * store_read = new bam_read_core;
@@ -373,6 +407,8 @@ int BAM2blocks::processAll() {
     } else {
       any_reads_processed = true;
     }
+    ret = IN->read(reads[idx].c_block_size, 4);  // Should return 4 if all 4 bytes are read
+    if(ret < 4) break;
     if(reads[idx].block_size > BAM_READ_CORE_BYTES - 4) {
       ret = IN->read(reads[idx].c, BAM_READ_CORE_BYTES - 4);
       ret = IN->read(reads[idx].read_name, reads[idx].core.l_read_name);
@@ -396,7 +432,11 @@ int BAM2blocks::processAll() {
             reads[0].core.l_read_name == reads[1].core.l_read_name &&
             (0 == strncmp(reads[0].read_name, reads[1].read_name, reads[1].core.l_read_name))) {
           cPairedReads ++;
-          totalNucleotides += processPair(&reads[0], &reads[1]);
+          if (reads[0].core.pos <= reads[1].core.pos) {
+            totalNucleotides += processPair(&reads[0], &reads[1]);
+          } else {
+            totalNucleotides += processPair(&reads[1], &reads[0]);
+          }
           cReadsProcessed+=2;
           idx = 0;
         } else {
@@ -430,6 +470,15 @@ int BAM2blocks::processAll() {
           idx = 0;
         }
       }
+    } else {
+      // read doesn't make sense, exit
+      if(idx == 1 && spare_reads->size() == 0) {
+        std::string read_name = string(reads[0].read_name);
+        bam_read_core * store_read = new bam_read_core;
+        *(store_read) = reads[0];
+        spare_reads->insert({read_name, store_read});
+      }
+      return(-1);
     }
 
     if ( (cPairedReads + cSingleReads) % 1000000 == 0 ) {
@@ -439,6 +488,10 @@ int BAM2blocks::processAll() {
       spare_reads->swap(*new_spare_reads);
       delete new_spare_reads;
     }
+  }
+  if(ret < 4) {
+    Rcout << "Error occurred in BAM2Blocks processAll - likely a bug\n";
+    return(-1);
   }
   return(0);
 }

@@ -2,11 +2,6 @@
 
 class covBuffer{
 	private:
-    static const int bamGzipHeadLength = 16;  // +2 a uint16 with the full block length.
-    static const char bamGzipHead[bamGzipHeadLength+1];
-
-    // char compressed_buffer[65536];
-    // char buffer[65536];    
     char * compressed_buffer;
     char * buffer;
 
@@ -28,14 +23,6 @@ class covBuffer{
 
 class covFile {
 	private:
- 		static const int bamEOFlength = 28;
-		static const char bamEOF[bamEOFlength+1];
-
-		static const int bamGzipHeadLength = 16;  // +2 a uint16 with the full block length.
-		static const char bamGzipHead[bamGzipHeadLength+1];
-
-    // char compressed_buffer[65536];
-    // char buffer[65536];
     char * compressed_buffer;
     char * buffer;
 
@@ -102,4 +89,78 @@ class covFile {
       return(0);
     };
 
+};
+
+class buffer_out_chunk {
+  private:
+    static const int BUFFER_OUT_CAP = 65536 - 18 - 8;
+
+
+    
+    char * buffer;
+    char * compressed_buffer;
+    
+    unsigned int buffer_pos = 0;
+    unsigned int buffer_size = 0;   // number of bytes that need to be compressed
+    
+    unsigned int compressed_size = 0;   // number of bytes compressed that need to be written out
+    
+  public:
+    buffer_out_chunk();
+    ~buffer_out_chunk();
+
+    unsigned int getBGZFSize() { return(compressed_size); };
+    unsigned int write(char * src, unsigned int len);
+
+    int Compress();
+    int WriteToFile(ostream * OUT);
+    
+    unsigned int SetPos(unsigned int pos) {
+      if(pos >= BUFFER_OUT_CAP) return(buffer_pos);
+      buffer_pos = pos;
+      if(pos > buffer_size) {
+        buffer_size = pos;
+      }
+      return(pos);
+    };
+    unsigned int GetPos() { return(buffer_pos); };
+    
+    unsigned int write_to_pos(char * src, unsigned int len, unsigned int pos) {
+      if(len + pos > BUFFER_OUT_CAP) return(0);
+      SetPos(pos);
+      return(write(src, len));
+    };
+    
+    bool IsAtCap(unsigned int len) {
+      if(len + buffer_pos >= BUFFER_OUT_CAP) return(true);
+      return(false);
+    }
+};
+
+class covWriter {
+  private:
+    ostream * OUT;
+    
+    std::vector<chr_entry> chrs;
+    
+    // When chrs is set, initialize these:
+    std::vector< std::vector<buffer_out_chunk> > body;    // The buffers
+    std::vector< std::vector<uint32_t> > block_coord_starts;    // The start coords of each bgzf
+  public:
+    covWriter();
+    ~covWriter();
+    
+    void SetOutputHandle(std::ostream *out_stream);
+    
+    int WriteHeader(std::vector<chr_entry> chrs_to_copy);
+  
+    int WriteFragmentsMap(std::vector< std::pair<unsigned int, int> > * vec, 
+        unsigned int chrID, unsigned int strand);
+    int WriteEmptyEntry(unsigned int refID);
+    int WriteEmptyEntry(unsigned int chrID, unsigned int strand) {
+      return(WriteEmptyEntry(chrID + chrs.size() * strand)); };
+    
+    int WriteHeaderToFile();
+    int WriteIndexToFile();
+    int WriteToFile();
 };
