@@ -571,7 +571,9 @@ unsigned int BAMReader_Multi::read(char * dest, unsigned int len) {
     if(buffer.at(buffer_pos).is_at_end()) {
       buffer.at(buffer_pos).clear_buffer(); // destroy current buffer
       buffer_pos++; // increment
-      if(IS_EOF == 1 && buffer_pos == comp_buffer_count - 1) {
+      if(buffer_pos == comp_buffer_count) return(cursor);
+      if(IS_EOF == 1 && buffer_pos == comp_buffer_count - 1 && 
+          buffer.at(buffer_pos).GetRemainingBytes() == 0) {
         IS_EOB = 1; // Rcout << "EOB reached\n";
         return(cursor);
       }
@@ -604,7 +606,9 @@ unsigned int BAMReader_Multi::peek(char * dest, unsigned int len) {
     if(buffer.at(temp_buffer_pos).is_at_end()) {
       // buffer.at(buffer_pos).clear_buffer(); // destroy current buffer
       temp_buffer_pos++; // increment
-      if(IS_EOF == 1 && temp_buffer_pos == comp_buffer_count - 1) {
+      if(temp_buffer_pos == comp_buffer_count) return(cursor);
+      if(IS_EOF == 1 && temp_buffer_pos == comp_buffer_count - 1 &&
+          buffer.at(temp_buffer_pos).GetRemainingBytes() == 0) {
         // IS_EOB = 1; // Rcout << "EOB reached\n";
         return(cursor);
       }
@@ -633,15 +637,18 @@ unsigned int BAMReader_Multi::ignore(unsigned int len) {
     if(!buffer.at(buffer_pos).is_eof_block()) {
       cursor += buffer.at(buffer_pos).ignore(len - cursor);
     }
-    if(buffer_pos < comp_buffer_count) {
-      if(buffer.at(buffer_pos).is_at_end()) {
-        buffer.at(buffer_pos).clear_buffer(); // destroy current buffer
-        if(IS_EOF == 1 && buffer_pos == comp_buffer_count - 1) {
-          IS_EOB = 1; // Rcout << "EOB reached\n";
-          return(cursor);
-        }
-        buffer_pos++; // increment
+    if(buffer.at(buffer_pos).is_at_end()) {
+      buffer.at(buffer_pos).clear_buffer(); // destroy current buffer
+      buffer_pos++; // increment
+      if(buffer_pos == comp_buffer_count) return(cursor);
+      if(IS_EOF == 1 && buffer_pos == comp_buffer_count - 1 && 
+          buffer.at(buffer_pos).GetRemainingBytes() == 0) {
+        IS_EOB = 1; // Rcout << "EOB reached\n";
+        return(cursor);
       }
+      // if(buffer_pos < comp_buffer_count && !buffer.at(buffer_pos).is_decompressed()) {
+        // decompress();
+      // }
     } // reading will always end with end of buffer being cleared
   }
   return(cursor);
