@@ -114,7 +114,8 @@ class BAMReader_Multi {
     
     unsigned int read(char * dest, unsigned int len);  // returns the number of bytes actually read
     unsigned int ignore(unsigned int len);
-
+    unsigned int peek(char * dest, unsigned int len) ;
+    
     bool isReadable();
     bool isReadableStrict();
     bool GotoNextRead(bool strict = false);

@@ -575,9 +575,42 @@ unsigned int BAMReader_Multi::read(char * dest, unsigned int len) {
         IS_EOB = 1; // Rcout << "EOB reached\n";
         return(cursor);
       }
-      if(buffer_pos < comp_buffer_count && !buffer.at(buffer_pos).is_decompressed()) {
+      // if(buffer_pos < comp_buffer_count && !buffer.at(buffer_pos).is_decompressed()) {
+        // decompress();
+      // }
+    } // reading will always end with end of buffer being cleared
+
+  }
+  return(cursor);
+}
+
+unsigned int BAMReader_Multi::peek(char * dest, unsigned int len) {  
+  // Read from current buffer
+  unsigned int cursor = 0;
+  unsigned int temp_buffer_pos = buffer_pos;
+  if(IS_EOB == 1) return(cursor);
+  while(cursor < len) {
+    if(temp_buffer_pos == comp_buffer_count && IS_EOF != 1) {
+      if(auto_load_data) {
+        read_from_file(n_bgzf);
         decompress();
+      } else {
+        return(cursor);
       }
+    } // reading will always start with reading buffer if current is empty
+    if(!buffer.at(temp_buffer_pos).is_eof_block()) {
+      cursor += buffer.at(temp_buffer_pos).peek(dest + cursor, len - cursor);
+    }
+    if(buffer.at(temp_buffer_pos).is_at_end()) {
+      // buffer.at(buffer_pos).clear_buffer(); // destroy current buffer
+      temp_buffer_pos++; // increment
+      if(IS_EOF == 1 && temp_buffer_pos == comp_buffer_count - 1) {
+        // IS_EOB = 1; // Rcout << "EOB reached\n";
+        return(cursor);
+      }
+      // if(buffer_pos < comp_buffer_count && !buffer.at(buffer_pos).is_decompressed()) {
+        // decompress();
+      // }
     } // reading will always end with end of buffer being cleared
 
   }
@@ -627,14 +660,14 @@ bool BAMReader_Multi::isReadable() {
     if(buffer.at(buffer_pos).GetRemainingBytes() +
       buffer.at(buffer_pos + 1).GetRemainingBytes() < 4) return(false);
     
-    buffer.at(buffer_pos).peek(u32.c, 4);
+    peek(u32.c, 4);
     
     if(buffer.at(buffer_pos).GetRemainingBytes() +
       buffer.at(buffer_pos + 1).GetRemainingBytes() < 4 + u32.u) return(false);
   } else {
     if(buffer.at(buffer_pos).GetRemainingBytes() < 4) return(false);
     
-    buffer.at(buffer_pos).peek(u32.c, 4);
+    peek(u32.c, 4);
     
     if(buffer.at(buffer_pos).GetRemainingBytes() < 4 + u32.u) return(false);
   }
