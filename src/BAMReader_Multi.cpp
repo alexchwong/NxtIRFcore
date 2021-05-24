@@ -195,9 +195,9 @@ void BAMReader_Multi::AssignTask(std::istream *in_stream,
   end_read_offset = end_offset;
   
   BAM_BLOCK_CURSOR = block_begin; 
-  // Rcout << "block begin: " << BAM_BLOCK_CURSOR << '\n';
-  // Rcout << begin_block_offset << " " << begin_read_offset
-    // << ", " << end_block_offset << " " << end_read_offset << '\n';
+  Rcout << "block begin: " << BAM_BLOCK_CURSOR << '\n';
+  Rcout << begin_block_offset << " " << begin_read_offset
+    << ", " << end_block_offset << " " << end_read_offset << '\n';
   
   IN = in_stream;
 }
@@ -341,6 +341,14 @@ unsigned int BAMReader_Multi::ProfileBAM(
     // Rcout << '\n';
   }
   bool is_self_contained = true;
+  
+  if(target_n_threads == 1) {
+    // No need to profile
+    block_begins.push_back(temp_begins.at(temp_begins.size() - 1));
+    read_offsets.push_back(0);
+    return(temp_begins.size());    
+  }
+  
   for(unsigned int j = 0; j < block_begins.size(); j++) {
     buffer_chunk * temp_buffer = new buffer_chunk;
     
