@@ -2,12 +2,6 @@
 #include "BAMReader.h"
 #include <stdexcept>
 
-
-const char BAMReader::bamEOF[BAMReader::bamEOFlength+1] =
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00";
-const char BAMReader::bamGzipHead[BAMReader::bamGzipHeadLength+1] = 
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00";
-
 // Constructor
 BAMReader::BAMReader() {
     bufferPos = 0;
@@ -34,18 +28,6 @@ void BAMReader::SetInputHandle(std::istream *in_stream) {
     IS_LENGTH = IN->tellg();
     IN->seekg (0, std::ios_base::beg);    
   }
-  // IN->seekg (-bamEOFlength, std::ios_base::end);
-  
-  // char check_eof_buffer[BAMReader::bamEOFlength+1];
-  // IN->read(check_eof_buffer, bamEOFlength);
-       
-  // if(strncmp(check_eof_buffer, bamEOF, bamEOFlength) == 0) {
-      // EOF_POS = IS_LENGTH - bamEOFlength;
-  // } else {
-      // Rcout << "EOF bit not detected\n";
-      // EOF_POS = 0;
-  // }
-  // IN->seekg (0, std::ios_base::beg);    
 }
 
 int BAMReader::LoadBuffer() {

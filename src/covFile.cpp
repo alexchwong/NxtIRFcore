@@ -1,11 +1,5 @@
 #include "covFile.h"
 
-const char covFile::bamEOF[covFile::bamEOFlength+1] =
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00";
-const char covFile::bamGzipHead[covFile::bamGzipHeadLength+1] = 
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00";
-const char covBuffer::bamGzipHead[covBuffer::bamGzipHeadLength+1] = 
-		"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00";
 
 // Constructor
 covFile::covFile() {
@@ -168,7 +162,7 @@ void covFile::SetInputHandle(std::istream *in_stream) {
     // Check EOF bit
     IN->seekg (-bamEOFlength, std::ios_base::end);
     
-    char check_eof_buffer[covFile::bamEOFlength+1];
+    char check_eof_buffer[bamEOFlength+1];
     IN->read(check_eof_buffer, bamEOFlength);
          
     if(strncmp(check_eof_buffer, bamEOF, bamEOFlength) == 0) {
@@ -640,7 +634,7 @@ int covFile::FlushBody() {
   body.WriteBuffer();
 
   OUT->write(body.get_buffer_ptr(), body.get_buffer_pos());
-  OUT->write(covFile::bamEOF, covFile::bamEOFlength);
+  OUT->write(bamEOF, bamEOFlength);
   
   OUT->flush();
   return 0;
@@ -771,3 +765,321 @@ int covFile::WriteEntry(unsigned int seqID, int value, unsigned int length) {
 }
 
 
+buffer_out_chunk::buffer_out_chunk() {
+  buffer = (char*)malloc(65536);
+  // leave compressed buffer uninitialized until needed
+}
+
+// Destructor
+buffer_out_chunk::~buffer_out_chunk() {
+  if(buffer) free(buffer);
+  if(compressed_buffer) free(compressed_buffer);
+}
+
+unsigned int buffer_out_chunk::write(char * src, unsigned int len) {
+  if(buffer_pos + len > BUFFER_OUT_CAP) return(0);
+  
+  memcpy(buffer + buffer_pos, src, len);
+  buffer_pos += len;
+  if(buffer_pos > buffer_size) buffer_size = buffer_pos;
+  return(len);
+}
+
+int buffer_out_chunk::WriteToFile(ostream * OUT) {
+  if(compressed_size == 0) return(Z_DATA_ERROR);
+  OUT->write(compressed_buffer, compressed_size);
+  free(compressed_buffer);
+  compressed_size = 0;
+  compressed_buffer = NULL;
+  return(0);
+}
+
+int buffer_out_chunk::Compress() {
+  if(buffer_size < 1) return(Z_DATA_ERROR);
+  if(buffer_size > BUFFER_OUT_CAP) return(Z_DATA_ERROR);
+  
+  stream_uint16 u16;
+  stream_uint32 u32;
+  uint32_t crc;
+  z_stream zs;
+  
+  char * temp_comp_buffer;
+  temp_comp_buffer = (char*)malloc(65536);
+
+  zs.zalloc = NULL; zs.zfree = NULL;
+  zs.msg = NULL;
+  zs.next_in  = (Bytef*)buffer;
+  zs.avail_in = buffer_size;
+  zs.next_out = (Bytef*)temp_comp_buffer;
+  zs.avail_out = 65536 - 18 - 8;
+  int ret = deflateInit2(&zs, 6, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY); // -15 to disable zlib header/footer
+
+  ret = deflate(&zs, Z_FINISH);
+  ret = deflateEnd(&zs);
+  
+  int block_len = zs.total_out + 18 + 8;
+  
+  // Initialize compressed buffer
+  compressed_buffer = (char*)malloc(block_len + 1);
+
+  memcpy(compressed_buffer, &bamGzipHead[0], 16);
+
+  u16.u = block_len - 1;
+  memcpy(compressed_buffer + 16, &u16.c[0], 2);
+  
+  memcpy(compressed_buffer + 18, temp_comp_buffer, zs.total_out);
+
+  crc = crc32(crc32(0L, NULL, 0L), (Bytef*)buffer, buffer_size);
+  u32.u = crc;
+  memcpy(compressed_buffer + 18 + zs.total_out, &u32.c[0], 4);
+
+  u32.u = buffer_size;
+  memcpy(compressed_buffer + 18 + zs.total_out + 4, &u32.c[0], 4);
+
+  // Now that compressed buffer is done, remove buffer to save memory:
+  free(buffer);
+  buffer = NULL;
+  
+  compressed_size = block_len;
+
+  return(ret);
+}
+
+covWriter::covWriter() {
+  // do nothing for now
+}
+
+covWriter::~covWriter() {
+  // also do nothing
+}
+
+void covWriter::SetOutputHandle(std::ostream *out_stream) {
+  OUT = out_stream;
+}
+
+int covWriter::WriteHeader(std::vector<chr_entry> chrs_to_copy) {
+  for(auto chr : chrs_to_copy) {
+    chrs.push_back(chr);
+  }
+
+  // Now initialise vectors:
+  block_coord_starts.resize(chrs.size() * 3);
+  body.resize(chrs.size() * 3);
+
+  // Make sure stuff within is empty:
+  for(unsigned int i = 0; i < chrs.size() * 3; i++) {
+    block_coord_starts.at(i).resize(0);
+    body.at(i).resize(0);
+  }
+  
+  return 0;
+}
+
+int covWriter::WriteEmptyEntry(unsigned int refID) {
+  if(chrs.size() == 0) {
+    Rcout << "ERROR: COV header missing\n";
+    return(-1);
+  }
+  if(refID >= 3 * chrs.size()) {
+    Rcout << "ERROR: Invalid chrID parsed to covWriter\n";
+    return(-1);
+  }
+
+  unsigned int chrID = refID;
+  while(chrID > chrs.size()) chrID -= chrs.size();
+
+  body.at(refID).resize(1);
+  block_coord_starts.at(refID).resize(1);
+  
+  // Initialize value
+  block_coord_starts.at(refID).at(0) = 0;
+
+  stream_int32 i32;
+  stream_uint32 u32;
+
+  i32.i = 0;
+  body.at(refID).at(0).write(i32.c, 4);
+
+  u32.u = chrs.at(chrID).chr_len;
+  body.at(refID).at(0).write(u32.c, 4);
+  
+  body.at(refID).at(0).Compress();
+  
+  return(0);
+}
+
+int covWriter::WriteFragmentsMap(std::vector< std::pair<unsigned int, int> > * vec, 
+        unsigned int chrID, unsigned int strand) {
+  if(chrs.size() == 0) {
+    Rcout << "ERROR: COV header missing\n";
+    return(-1);
+  }
+  if(chrID >= chrs.size()) {
+    Rcout << "ERROR: Invalid chrID parsed to covWriter\n";
+    return(-1);
+  }
+  // Initialize the vector depending on vector size
+  unsigned int vec_cap = ((65536 - 18 - 8) / 8);
+  
+  unsigned int vec_size = vec->size();
+  unsigned int job_size = vec_size / vec_cap;
+  if(job_size * vec_cap < vec_size) job_size++;
+  
+  unsigned int refID = chrID + chrs.size() * strand;
+  body.at(refID).resize(job_size);
+  block_coord_starts.at(refID).resize(job_size);
+  
+#ifdef _OPENMP
+  #pragma omp parallel for
+#endif
+  for(unsigned int i = 0; i < job_size; i++) {
+    stream_int32 i32;
+    stream_uint32 u32;
+    // Start coordinate for this bgzf block
+    block_coord_starts.at(refID).at(i) = (uint32_t)vec->at(i * vec_cap).first;
+    // Rcout << "Block start at coord = " << vec->at(i * vec_cap).first << '\n';
+    unsigned int cur_coord = vec->at(i * vec_cap).first;
+    
+    for(unsigned int j = i * vec_cap; j < (i+1) * vec_cap && j < vec_size; j++) {
+      
+      // distance to next coord
+      if(j == vec_size - 1) {
+        if((unsigned int)chrs.at(chrID).chr_len > cur_coord) {
+          i32.i = vec->at(j).second;
+          body.at(refID).at(i).write(i32.c, 4);
+          
+          u32.u = (unsigned int)chrs.at(chrID).chr_len - cur_coord;
+          body.at(refID).at(i).write(u32.c, 4);
+        }
+        cur_coord = chrs.at(chrID).chr_len;   // This step is probably pointless
+      } else {
+        if(vec->at(j + 1).first > cur_coord) {
+          i32.i = vec->at(j).second;
+          body.at(refID).at(i).write(i32.c, 4);
+          
+          u32.u = vec->at(j + 1).first - cur_coord;
+          body.at(refID).at(i).write(u32.c, 4);
+          cur_coord = vec->at(j + 1).first;
+        }
+      }
+    }
+    body.at(refID).at(i).Compress();
+  }
+  return(0);
+}
+
+int covWriter::WriteHeaderToFile() {
+  // Write the header to file:
+  char zero = '\0';
+  char wh_buffer[1000];
+  std::string header_str = "COV\x01";
+  stream_uint32 u32;
+  
+  buffer_out_chunk * header = new buffer_out_chunk;
+  strncpy(wh_buffer, header_str.c_str(), 4);
+  header->write(wh_buffer, 4);
+  
+  u32.u = chrs.size();    // number of chroms
+  header->write(u32.c ,4);
+  
+  for(unsigned int i = 0; i < chrs.size(); i++) {
+    unsigned int chr_buf_len = 8 + 1 + chrs.at(i).chr_name.length();
+    
+    // This is very unlikely to run
+    if(header->IsAtCap(chr_buf_len)) {
+      header->Compress();
+      header->WriteToFile(OUT);
+      delete header;
+      
+      header = new buffer_out_chunk;
+    }
+    
+    u32.u = chrs.at(i).chr_name.length() + 1;
+    header->write(u32.c, 4);
+    
+    strncpy(wh_buffer, chrs.at(i).chr_name.c_str(), chrs.at(i).chr_name.length());
+    header->write(wh_buffer, chrs.at(i).chr_name.length());
+    header->write(&zero, 1);
+
+    u32.u = chrs.at(i).chr_len;
+    header->write(u32.c ,4);
+  }
+
+  header->Compress();
+  header->WriteToFile(OUT);
+  delete header;
+  
+  return(0);
+}
+
+int covWriter::WriteIndexToFile() {
+  stream_uint32 u32;
+  stream_uint64 u64;
+  
+  std::vector< buffer_out_chunk > index_buffer;
+  
+  uint32_t index_size = 0;
+  uint64_t body_pos = 0;
+  unsigned int cur_buffer = 0;
+  
+  for(unsigned int i = 0; i < 3 * chrs.size(); i++) {
+    if(block_coord_starts.at(i).size() == 0 || body.at(i).size() == 0) WriteEmptyEntry(i);
+    // Rcout << "Index # bgzf blocks = " << block_coord_starts.at(i).size() << '\n';
+    index_size = 0;   // Resets to zero for every refID
+    index_buffer.resize(1);
+    index_buffer.at(cur_buffer).SetPos(4); // Write the index size at the very end
+
+    for(unsigned int j = 0; j < body.at(i).size(); j++) {
+      if(index_buffer.at(cur_buffer).IsAtCap(12)) {
+        // index_buffer.at(cur_buffer).Compress();
+        index_buffer.resize(index_buffer.size() + 1);
+        cur_buffer++;
+      }
+      u32.u = block_coord_starts.at(i).at(j); // Rcout << "Block starts at " << u32.u << '\t';
+      index_buffer.at(cur_buffer).write(u32.c, 4);
+      
+      u64.u = body_pos; // Rcout << ", BGZF offset " << u64.u << '\n';
+      index_buffer.at(cur_buffer).write(u64.c, 8);
+      
+      body_pos += body.at(i).at(j).getBGZFSize();   // Increment BGZF pos from start of body
+      index_size += 12;
+    }
+    
+    u32.u = index_size;
+    index_buffer.at(0).write_to_pos(u32.c, 4, 0);
+    
+    // Write all index buffers to file
+    for(unsigned int j = 0; j < index_buffer.size(); j++) {
+      index_buffer.at(j).Compress();
+      index_buffer.at(j).WriteToFile(OUT);
+    }
+    index_buffer.clear();
+  }
+
+  return(0);
+}
+
+int covWriter::WriteToFile() {
+  if(!OUT) {
+    Rcout << "No COV file set to write to";
+    return(-1);
+  }
+  if(chrs.size() == 0) {
+    Rcout << "ERROR: COV header missing\n";
+    return(-1);
+  }
+  
+  WriteHeaderToFile();
+  WriteIndexToFile();
+
+  for(unsigned int i = 0; i < 3 * chrs.size(); i++) {
+    for(unsigned int j = 0; j < body.at(i).size(); j++) {
+      body.at(i).at(j).WriteToFile(OUT);
+    }
+  }
+
+  OUT->write(bamEOF, bamEOFlength);
+  OUT->flush();
+  
+  return(0);
+}

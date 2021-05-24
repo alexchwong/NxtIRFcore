@@ -18,12 +18,6 @@ class BAMReader {
     int IS_FAIL;
     size_t IS_LENGTH;
         
- 		static const int bamEOFlength = 28;
-		static const char bamEOF[bamEOFlength+1];
-
-		static const int bamGzipHeadLength = 16;  // +2 a uint16 with the full block length.
-		static const char bamGzipHead[bamGzipHeadLength+1];
-
   public:
     BAMReader();
     ~BAMReader();

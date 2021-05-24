@@ -685,16 +685,16 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
     sort_and_collapse_temp();
     if(verbose)  Rcout << "Performing final sort of fragment maps\n";
 
-    // Progress p(3 * chrs.size(), verbose);
-    for(unsigned int j = 0; j < 3; j++) {
-      
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
-      for(unsigned int i = 0; i < chrs.size(); i++) {
+    for(unsigned int k = 0; k < 3 * chrs.size(); k++) {
+      unsigned int j = k / chrs.size();
+      unsigned int i = k - (j * chrs.size());
+      
         auto itChr = &chrName_vec_new[j].at(i);
         auto itDest = &chrName_vec_final[j].at(i);
-        
+        itDest->resize(0);
         // sort
         std::sort(
           itChr->begin(),
@@ -715,12 +715,12 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
               old_loci = loci;
             }
             loci = it_pos->first;
-          } 
-          if(incremental) {
-            depth += it_pos->second;
-          } else {
-            depth = it_pos->second;
           }
+          // if(incremental) {
+            depth += it_pos->second;
+          // } else {
+            // depth = it_pos->second;
+          // }
           if(it_pos->first == 0) {
             old_depth = depth;  // ensure never trigger write when first time it_pos->first != loci
           }       
@@ -731,16 +731,8 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
         }
         itChr->clear();
         
-#ifdef _OPENMP
-        #pragma omp critical
-#endif
-        // p.increment(1);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      }
-      
     }
     final_is_sorted = true;
-    incremental = false;
   }
   return(0);
 }
@@ -806,6 +798,33 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
     cursor = it_pos->first;
     depth = it_pos->second;
   }
+}
+
+int FragmentsMap::WriteBinary(covWriter *os, bool verbose)  {
+  if(!final_is_sorted) {
+    // if(verbose)  Rcout << "Performing final sort of fragment maps\n";
+    sort_and_collapse_final(verbose);   // Perform this separately as this is now multi-threaded
+  }
+  
+  if(verbose)  Rcout << "Writing COV file\n";
+
+  os->WriteHeader(chrs);
+
+  Progress p(3 * chrs.size(), verbose);
+  for(unsigned int j = 0; j < 3; j++) {
+    for(unsigned int i = 0; i < chrs.size(); i++) {
+      unsigned int refID = chrs[i].refID;
+      
+      std::vector< std::pair<unsigned int, int> > * itDest;
+      itDest = &chrName_vec_final[j].at(refID);
+      
+      os->WriteFragmentsMap(itDest, i, j);
+      p.increment(1);
+    }
+  }
+  
+  os->WriteToFile();
+  return(0);
 }
 
 
@@ -876,11 +895,11 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
           }
           loci = it_pos->first;
         }
-        if(incremental) {
-          depth += it_pos->second;
-        } else {
+        // if(incremental) {
+          // depth += it_pos->second;
+        // } else {
           depth = it_pos->second;
-        }
+        // }
         if(it_pos->first == 0) {
           old_depth = depth;  // ensure never trigger write when first time it_pos->first != loci
         }       
@@ -903,7 +922,7 @@ int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
   
   if(!final_is_sorted) {
     final_is_sorted = true;
-    incremental = true;
+    // incremental = true;
   }
   os->FlushBody();
   return(0);  
