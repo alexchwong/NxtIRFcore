@@ -227,14 +227,14 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
 
   std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
   BAMReader_Multi inbam;        
-  if(bam_file == "-") {
-    n_threads_to_use = 1;   
+  // if(bam_file == "-") {
+    // n_threads_to_use = 1;   
     // Will need to make modifications to ensure n_threads = 1 is compatible with streamed data
-    inbam.SetInputHandle(&std::cin);        
-  } else {
+    // inbam.SetInputHandle(&std::cin);        
+  // } else {
     inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
     inbam.SetInputHandle(&inbam_stream);    
-  }
+  // }
   
   BAM2blocks BB;  
   unsigned int n_bgzf_blocks = BB.openFile(&inbam, n_threads_to_use);

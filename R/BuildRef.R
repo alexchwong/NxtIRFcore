@@ -3602,8 +3602,8 @@ Mappability_GenReads <- function(reference_path, fasta_file,
 #' @export
 Mappability_CalculateExclusions <- function(reference_path, 
         aligned_bam = file.path(reference_path, "Mappability", 
-            "Aligned.out.bam", n_threads = 1), 
-        threshold = 4) {
+            "Aligned.out.bam"), 
+        threshold = 4, n_threads = 1) {
     if(!file.exists(aligned_bam)) {
         .log(paste("In Mappability_CalculateExclusions(),",
             aligned_bam, "BAM file does not exist"))
