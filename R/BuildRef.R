@@ -3616,10 +3616,10 @@ Mappability_CalculateExclusions <- function(reference_path,
     .log(paste("Calculating Mappability Exclusion regions from:",
         aligned_bam), type = "message")
     run_IRFinder_MapExclusionRegions(
-        normalizePath(aligned_bam),
-        output_file,
+        bamfile = normalizePath(aligned_bam),
+        output_file = output_file,
         threshold = threshold,
-        n_threads
+        n_threads = n_threads
     )
 }
 
