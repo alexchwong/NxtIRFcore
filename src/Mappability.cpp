@@ -265,31 +265,36 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
   // BAM processing loop
   Progress p(n_bgzf_blocks, verbose);
   // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
-
-#ifdef _OPENMP
   unsigned int blocks_read_total = 0;
+  int ret = 0;
+#ifdef _OPENMP
   #pragma omp parallel for
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    while(!BRchild.at(i)->eob()) {
-      unsigned int n_blocks_read = 0;
+    unsigned int n_blocks_read = 1;
+    int ret2 = 0;
+    while(!BRchild.at(i)->eob() && !p.check_abort() && n_blocks_read > 0 && ret == 0) {
       #pragma omp critical
       n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
       
-      BRchild.at(i)->decompress();
-      BBchild.at(i)->processAll();
-      
-      #pragma omp critical
-      p.increment(n_blocks_read);
-      
-      #pragma omp critical
-      blocks_read_total += n_blocks_read;
-      
-      // #pragma omp critical
+      if(n_blocks_read > 0) {
+        BRchild.at(i)->decompress();
+        ret2 = BBchild.at(i)->processAll();
+        
+        if(ret2 == -1) {
+          #pragma omp critical
+          ret = -1;    // abort if broken reads detected
+        }
+        
+        #pragma omp atomic
+        blocks_read_total += n_blocks_read;
+        
+        #pragma omp critical
+        p.increment(n_blocks_read);
+      }
       // Rcout << "Blocks read: " << n_blocks_read << '\n';
     }
   }
-  if(blocks_read_total < n_bgzf_blocks) p.increment(n_bgzf_blocks - blocks_read_total);
-  
+
 #else
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     while(!BRchild.at(i)->eob()) {
@@ -302,6 +307,19 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
     }
   }
 #endif
+  if(p.check_abort()) {
+    // interrupted:
+    for(unsigned int i = 0; i < n_threads_to_use; i++) {
+      delete oFM.at(i);
+      delete BRchild.at(i);
+      delete BBchild.at(i);
+    }
+    return(-1);
+  }
+
+  int final_inc = max((int)(n_bgzf_blocks - blocks_read_total), 1);
+  p.increment(final_inc);
+
   inbam_stream.close();
   // Rcout << "BAM processing finished\n";
   
@@ -310,10 +328,14 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
   // Combine BB's and process spares
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       BBchild.at(0)->processSpares(*BBchild.at(i));
+      delete BBchild.at(i);
+      delete BRchild.at(i);
     }
   // Combine objects:
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       oFM.at(0)->Combine(*oFM.at(i));
+      
+      delete oFM.at(i);
     }
   }
 
@@ -336,11 +358,11 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
   outFragsMap.flush(); outFragsMap.close();
 
   // destroy objects:
-  for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    delete oFM.at(i);
-    delete BRchild.at(i);
-    delete BBchild.at(i);
-  }
+  // for(unsigned int i = 0; i < n_threads_to_use; i++) {
+    delete oFM.at(0);
+    delete BRchild.at(0);
+    delete BBchild.at(0);
+  // }
 
   return(0);
 }
