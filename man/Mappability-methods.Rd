@@ -17,9 +17,9 @@ Mappability_GenReads(
 
 Mappability_CalculateExclusions(
   reference_path,
-  aligned_bam = file.path(reference_path, "Mappability", "Aligned.out.bam", n_threads =
-    1),
-  threshold = 4
+  aligned_bam = file.path(reference_path, "Mappability", "Aligned.out.bam"),
+  threshold = 4,
+  n_threads = 1
 )
 }
 \arguments{
