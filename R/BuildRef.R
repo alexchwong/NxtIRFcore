@@ -3509,6 +3509,8 @@ Get_GTF_file <- function(reference_path) {
 #'   aligner of choice.
 #' @param threshold Regions with this read depth (or below) are defined as low
 #'   mappability regions.
+#' @param n_threads The number of threads used to calculate mappability
+#'   exclusion regions from aligned bam file of synthetic reads.
 #' @return None. `Mappability_GenReads()` writes `MappabilityReads.fa`
 #'   to the given `reference_path`. `Mappability_CalculateExclusions()` writes
 #'   its output BED file as named by `output_file` inside `reference_path`,
@@ -3600,7 +3602,7 @@ Mappability_GenReads <- function(reference_path, fasta_file,
 #' @export
 Mappability_CalculateExclusions <- function(reference_path, 
         aligned_bam = file.path(reference_path, "Mappability", 
-            "Aligned.out.bam"), 
+            "Aligned.out.bam", n_threads = 1), 
         threshold = 4) {
     if(!file.exists(aligned_bam)) {
         .log(paste("In Mappability_CalculateExclusions(),",
@@ -3616,7 +3618,8 @@ Mappability_CalculateExclusions <- function(reference_path,
     run_IRFinder_MapExclusionRegions(
         normalizePath(aligned_bam),
         output_file,
-        threshold = threshold
+        threshold = threshold,
+        n_threads
     )
 }
 

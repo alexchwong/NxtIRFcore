@@ -17,7 +17,8 @@ Mappability_GenReads(
 
 Mappability_CalculateExclusions(
   reference_path,
-  aligned_bam = file.path(reference_path, "Mappability", "Aligned.out.bam"),
+  aligned_bam = file.path(reference_path, "Mappability", "Aligned.out.bam", n_threads =
+    1),
   threshold = 4
 )
 }
@@ -41,6 +42,9 @@ aligner of choice.}
 
 \item{threshold}{Regions with this read depth (or below) are defined as low
 mappability regions.}
+
+\item{n_threads}{The number of threads used to calculate mappability
+exclusion regions from aligned bam file of synthetic reads.}
 }
 \value{
 None. \code{Mappability_GenReads()} writes \code{MappabilityReads.fa}
