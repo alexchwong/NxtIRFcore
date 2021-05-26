@@ -188,7 +188,7 @@ run_IRFinder_GenerateMapReads = function(genome.fa = "", out.fa,
 }
 
 run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file, 
-        threshold = 4, includeCov = FALSE) {
+        threshold = 4, includeCov = FALSE, n_threads = 1) {
     s_bam = normalizePath(bamfile)
     if(!file.exists(s_bam)) {
         .log(paste("In run_IRFinder_MapExclusionRegions(),",
@@ -199,7 +199,7 @@ run_IRFinder_MapExclusionRegions = function(bamfile = "", output_file,
             output_file,
             threshold = threshold,
             includeCov = includeCov,
-            verbose = TRUE
+            verbose = TRUE, n_threads
         )
     )
 }
