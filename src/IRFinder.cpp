@@ -462,12 +462,16 @@ int IRF_core(std::string const &bam_file,
   }
 #else
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    while(!BRchild.at(i)->eob()) {
+    unsigned int n_blocks_read = 0;
+    while(!BRchild.at(i)->eob() && !p.check_abort() && ret == 0) {
       
-      int n_blocks_read = BRchild.at(i)->read_from_file(100);
+      n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
+      if(n_blocks_read == 0) break;
+      
       BRchild.at(i)->decompress();
-      BBchild.at(i)->processAll();
+      ret = BBchild.at(i)->processAll();
       
+      blocks_read_total += n_blocks_read;
       p.increment(n_blocks_read);
     }
   }
