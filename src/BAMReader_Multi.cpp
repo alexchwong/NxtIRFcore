@@ -266,14 +266,20 @@ void BAMReader_Multi::fillChrs(std::vector<chr_entry> &chrs_dest) {
   }
 }
 
-int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
+int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins, bool verbose) {
   BGZF_begins.clear();
   
   IN->clear();
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
   
+  // Min 100Mb file to bother showing any progress
+  bool verbose_2 = verbose && (IS_LENGTH > 100000000);
+  
   unsigned int bgzf_size = 0;
   unsigned int bgzf_check_threshold = 10000;    // Only check Gzip block every 10k runs
+  Progress p(IS_LENGTH, verbose_2);
+  p.increment(BAM_READS_BEGIN);
+  uint64_t last_reported_pos = BAM_READS_BEGIN;
   while(!IN->eof() && bgzf_size != 10) {
     BGZF_begins.push_back(IN->tellg());
     // Rcout << "BGZF pos " << IN->tellg() << '\t';
@@ -289,6 +295,8 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
         return(-1);
       }
       free(GzipCheck);
+      p.increment((uint64_t)IN->tellg() - last_reported_pos);
+      last_reported_pos = IN->tellg();
     } else {
       // IN->ignore(16);
       IN->seekg (16, std::ios_base::cur);
@@ -300,6 +308,7 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
     // IN->ignore(bgzf_size);
     IN->seekg (bgzf_size, std::ios_base::cur);
   }
+  p.increment(IS_LENGTH - last_reported_pos);
   IN->clear();
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
   
@@ -325,7 +334,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
   // unsigned int bytes_read;
 
   // scan file to obtain a list of bgzf offsets
-  int ret = getBGZFstarts(temp_begins);
+  int ret = getBGZFstarts(temp_begins, verbose);
   if(ret != 0) {
     return(0);
   }
