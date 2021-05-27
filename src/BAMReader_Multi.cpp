@@ -159,6 +159,9 @@ BAMReader_Multi::BAMReader_Multi() {
   BAM_READS_BEGIN = 0;
   BAM_BLOCK_CURSOR = 0;
   IN = NULL;
+#ifdef __linux__
+  posix_fadvise(POSIX_FADV_DONTNEED);
+#endif
 }
 
 BAMReader_Multi::BAMReader_Multi(uint64_t block_begin, unsigned int begin_offset,
