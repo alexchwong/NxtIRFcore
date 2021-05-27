@@ -979,7 +979,7 @@ int FragmentsMap::WriteOutput(std::ostream *os,
         }
       } else {
         if(covered) {
-          *os << chrs[i].chr_len << "\t"
+          *os << chrs[i].chr_name << "\t"
               << it_pos->first << "\t";
           covered = false;
         }
