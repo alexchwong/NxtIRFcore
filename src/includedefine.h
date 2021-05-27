@@ -29,7 +29,6 @@
 // Tell Linux not to cache the large files:
 #ifdef __linux__
 #include <fcntl.h>
-posix_fadvise(POSIX_FADV_DONTNEED);
 #endif
 
 //__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
