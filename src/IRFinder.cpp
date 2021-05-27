@@ -371,7 +371,7 @@ int IRF_core(std::string const &bam_file,
   BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
   
   BAM2blocks BB;  
-  if(verbose) Rcout << "Identifying BGZF blocks in BAM file\n";
+  if(verbose) Rcout << "Caching and profiling BAM file\n";
   unsigned int n_bgzf_blocks = BB.openFile(&inbam, verbose, n_threads_to_use);
   // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
   if(n_bgzf_blocks == 0) {
