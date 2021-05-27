@@ -395,6 +395,7 @@ STAR_align_fastq <- function(
     if(!("--outFileNamePrefix" %in% additional_args)) args = c(args, "--outFileNamePrefix", 
         paste0(BAM_output_path, "/"))
     if(!("--outStd" %in% additional_args)) args = c(args, "--outStd", "Log")
+    if(!("--outBAMcompression" %in% additional_args)) args = c(args, "--outBAMcompression", "6")
     if(!("--outSAMstrandField" %in% additional_args)) args = c(args, "--outSAMstrandField", 
         "intronMotif")
     if(!("--outSAMunmapped" %in% additional_args)) args = c(args, "--outSAMunmapped", "None")
