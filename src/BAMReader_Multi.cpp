@@ -266,97 +266,10 @@ void BAMReader_Multi::fillChrs(std::vector<chr_entry> &chrs_dest) {
   }
 }
 
-int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins,
-    unsigned int target_n_threads) {
-  
+int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
   BGZF_begins.clear();
-  IN->clear();
-  // multi-threaded initial profiling of bgzf blocks
-
-#ifdef _OPENMP
-  std::vector<uint64_t> file_pos_starts;
-  uint64_t inc = (IS_LENGTH - BAM_READS_BEGIN) / target_n_threads;
-  for(uint64_t i = BAM_READS_BEGIN; i < IS_LENGTH; i+=inc) {
-    file_pos_starts.push_back(i);
-  }
-  if(file_pos_starts.size() != target_n_threads) {
-    Rcout << "Error assigning file starts to profile\n";
-    return(-1);
-  }
-  file_pos_starts.push_back(IS_LENGTH);
-
-  bool loop_error = false;
-
-  #pragma omp parallel for
-  for(unsigned int j = 0; j < target_n_threads; j++) {
-    std::vector<uint64_t> temp_BGZF_starts;
-    uint64_t file_cursor = file_pos_starts.at(j);
-    char * GzipCheck = (char*)malloc(16);
-    // Seek to cursor
-    #pragma omp critical
-    while(1) {
-      IN->seekg(file_cursor, std::ios_base::beg);
-      IN->read(GzipCheck, 16);
-      if(strncmp(bamGzipHead, GzipCheck, 16) != 0) {
-        break;
-      } else {
-        file_cursor++;
-        if(file_cursor - file_pos_starts.at(j) >= 65536) {
-          Rcout << "Thread " << j << " unable to find next BGZF block";
-          break;
-        }
-      }
-    }
-    
-    if(file_cursor - file_pos_starts.at(j) < 65536) {
-
-      stream_uint16 u16;
-      unsigned int bgzf_check_threshold = 10000;
-
-      while(!loop_error && file_cursor < file_pos_starts.at(j+1)) {
-        temp_BGZF_starts.push_back(file_cursor);
-        
-        #pragma omp critical
-        if(temp_BGZF_starts.size() % bgzf_check_threshold == 1) {
-          IN->seekg(file_cursor, std::ios_base::beg);
-          IN->read(GzipCheck, 16);
-          if(strncmp(bamGzipHead, GzipCheck, 16) != 0) {
-            Rcout << "This does not seem to be a legit BAM file\n";
-            loop_error = true;
-          }
-          IN->read(u16.c, 2);
-        } else {
-          IN->seekg(file_cursor+16, std::ios_base::beg);
-          IN->read(u16.c, 2);
-        }
-
-        file_cursor += u16.u + 1;
-      }
-    } else {
-      #pragma omp critical
-      loop_error = true;
-    }
-    
-    #pragma omp critical
-    for(unsigned int k = 0; k < temp_BGZF_starts.size(); k++) {
-      BGZF_begins.push_back(temp_BGZF_starts.at(k));
-    }
-    
-    free(GzipCheck);
-  }
-  if(!loop_error) {
-    sort(BGZF_begins.begin(), BGZF_begins.end());
-    Rcout << "Last BGZF block is " << IS_LENGTH - BGZF_begins.at(BGZF_begins.size() - 1)
-      << " bytes from EOF\n";
-    IN->clear();
-    IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
-    return(0);
-  } else {
-    BGZF_begins.clear();
-    return(-1);
-  }
   
-#else
+  IN->clear();
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
   
   unsigned int bgzf_size = 0;
@@ -395,7 +308,6 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins,
   } else {
     return(-1);
   }
-#endif
 }
 
 unsigned int BAMReader_Multi::ProfileBAM(
@@ -413,7 +325,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
   // unsigned int bytes_read;
 
   // scan file to obtain a list of bgzf offsets
-  int ret = getBGZFstarts(temp_begins, target_n_threads);
+  int ret = getBGZFstarts(temp_begins);
   if(ret != 0) {
     return(0);
   }
