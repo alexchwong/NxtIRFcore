@@ -278,9 +278,9 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
     BGZF_begins.push_back(IN->tellg());
     // Rcout << "BGZF pos " << IN->tellg() << '\t';
     stream_uint16 u16;
-    char GzipCheck[16];
     
     if(BGZF_begins.size() % bgzf_check_threshold == 1) {
+      char * GzipCheck = (char*)malloc(16);
       IN->read(GzipCheck, 16);
       if(strncmp(bamGzipHead, GzipCheck, 16) != 0) {
         Rcout << "This does not seem to be a legit BAM file\n";
@@ -288,14 +288,17 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins) {
         IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
         return(-1);
       }
+      free(GzipCheck);
     } else {
-      IN->ignore(16);
+      // IN->ignore(16);
+      IN->seekg (16, std::ios_base::cur);
     }
 
     IN->read(u16.c, 2);
     bgzf_size = u16.u + 1 - 2  - 16;
     // Rcout << " bgzf_size " << bgzf_size << '\n';
-    IN->ignore(bgzf_size);
+    // IN->ignore(bgzf_size);
+    IN->seekg (bgzf_size, std::ios_base::cur);
   }
   IN->clear();
   IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
