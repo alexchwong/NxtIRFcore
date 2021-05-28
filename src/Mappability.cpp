@@ -219,26 +219,24 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
 
   int use_threads = Set_Threads(n_threads);
 
-  unsigned int n_threads_to_use = (unsigned int)use_threads;   // Should be sorted out in calling function
+  unsigned int n_threads_to_use = (unsigned int)n_threads;   // Should be sorted out in calling function
  
   std::string myLine;
-	if(verbose) Rcout << "Processing BAM file\n";
+	if(verbose) Rcout << "Calculating Mappability Exclusions from aligned synthetic reads in BAM file " << bam_file << "\n";
   
-
+  
   std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
-  BAMReader_Multi inbam;        
-  // if(bam_file == "-") {
-    // n_threads_to_use = 1;   
-    // Will need to make modifications to ensure n_threads = 1 is compatible with streamed data
-    // inbam.SetInputHandle(&std::cin);        
-  // } else {
-    inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
-    inbam.SetInputHandle(&inbam_stream);    
-  // }
+  BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
   
   BAM2blocks BB;  
-  unsigned int n_bgzf_blocks = BB.openFile(&inbam, n_threads_to_use);
-
+  if(verbose) Rcout << "Identifying BGZF blocks in BAM file\n";
+  unsigned int n_bgzf_blocks = BB.openFile(&inbam, verbose, n_threads_to_use);
+  // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
+  if(n_bgzf_blocks == 0) {
+    Rcout << "Error occurred profiling BAM file\n";
+    return(-1);
+  }
+  // Assign children:
   std::vector<FragmentsMap*> oFM;
   std::vector<BAM2blocks*> BBchild;
   std::vector<BAMReader_Multi*> BRchild;
@@ -262,6 +260,7 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
     BBchild.at(i)->AttachReader(BRchild.at(i));
     BBchild.at(i)->TransferChrs(BB);
   }
+  
   // BAM processing loop
   Progress p(n_bgzf_blocks, verbose);
   // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
@@ -294,15 +293,18 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
       // Rcout << "Blocks read: " << n_blocks_read << '\n';
     }
   }
-
 #else
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    while(!BRchild.at(i)->eob()) {
+    unsigned int n_blocks_read = 0;
+    while(!BRchild.at(i)->eob() && !p.check_abort() && ret == 0) {
       
-      int n_blocks_read = BRchild.at(i)->read_from_file(100);
+      n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
+      if(n_blocks_read == 0) break;
+      
       BRchild.at(i)->decompress();
-      BBchild.at(i)->processAll();
+      ret = BBchild.at(i)->processAll();
       
+      blocks_read_total += n_blocks_read;
       p.increment(n_blocks_read);
     }
   }
@@ -334,12 +336,11 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
   // Combine objects:
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       oFM.at(0)->Combine(*oFM.at(i));
-      
+
       delete oFM.at(i);
     }
   }
 
-  
 #ifndef GALAXY
   if(includeCov == 1) {
 #else
