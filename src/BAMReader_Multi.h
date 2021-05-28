@@ -108,7 +108,9 @@ class BAMReader_Multi {
       unsigned int target_n_threads = 1);
 
     int getBGZFstarts(std::vector<uint64_t> & BGZF_begins, bool verbose = false);
-
+#ifdef _OPENMP
+    int getBGZFstarts_OpenMP(std::vector<uint64_t> & BGZF_begins, bool verbose = false, unsigned int n_threads = 1);
+#endif
     int read_from_file(unsigned int n_blocks);
     int decompress(bool allow_openmp = false);
     
