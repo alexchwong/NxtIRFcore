@@ -107,7 +107,7 @@ class BAMReader_Multi {
       std::vector<unsigned int> &read_offsets, bool verbose,
       unsigned int target_n_threads = 1);
 
-    int getBGZFstarts(std::vector<uint64_t> & BGZF_begins);
+    int getBGZFstarts(std::vector<uint64_t> & BGZF_begins, bool verbose = false);
 
     int read_from_file(unsigned int n_blocks);
     int decompress(bool allow_openmp = false);

@@ -26,6 +26,9 @@
 #include <omp.h>
 #endif
 
+// Tell Linux not to cache the large files:
+
+
 //__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
 
 
