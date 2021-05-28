@@ -266,8 +266,6 @@ void BAMReader_Multi::fillChrs(std::vector<chr_entry> &chrs_dest) {
   }
 }
 
-
-
 int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins, bool verbose) {
   BGZF_begins.clear();
   
@@ -321,162 +319,6 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins, bool ver
   }
 }
 
-#ifdef _OPENMP
-
-int BAMReader_Multi::getBGZFstarts_OpenMP(std::vector<uint64_t> & BGZF_begins, bool verbose, unsigned int n_threads) {
-  // Rcout << "Running getBGZFstarts_OpenMP\n";
-  
-  BGZF_begins.clear();
-  
-  IN->clear();
-  IN->seekg (BAM_READS_BEGIN, std::ios_base::beg);
-  
-  unsigned int bgzf_check_threshold = 10000;    // Only check Gzip block every 10k runs
-  Progress p(IS_LENGTH, verbose);
-  p.increment(BAM_READS_BEGIN);
-  
-  uint64_t last_reported_pos = BAM_READS_BEGIN;
-  uint64_t step = 1 + (IS_LENGTH - BAM_READS_BEGIN) / n_threads;
-  std::vector<uint64_t> file_starts;
-  while(last_reported_pos < IS_LENGTH) {
-    // Rcout << "File starts " << last_reported_pos << '\n';
-    file_starts.push_back(last_reported_pos);
-    last_reported_pos += step;
-  }
-  file_starts.push_back(IS_LENGTH);
-  // Rcout << "file_starts length = " << file_starts.size() << '\n';
-  
-  std::vector<char*> chunk_buf;
-
-  for(unsigned int i = 0; i < n_threads; i++) {
-    chunk_buf.push_back((char *)realloc(NULL,10000000));
-  }
-  
-  #pragma omp parallel for
-  for(unsigned int i = 0; i < n_threads; i++) {
-    std::vector<uint64_t> temp_bgzf_starts;
-    bool at_bgzf = false;
-    unsigned bgzf_block_checks = 0;
-    // read 50 Mb at a time
-    
-    stream_uint16 u16;
-    
-    uint64_t file_pos = file_starts.at(i);
-    uint64_t read_pos = 0;
-    uint64_t amt_to_read = 0;
-    // Read file into buffer
-    
-    // amt_to_read = min(file_starts.at(i+1) - file_pos, (uint64_t)10000000);
-    
-    while(file_pos + read_pos < file_starts.at(i+1)) {
-      if(read_pos + 65536 > amt_to_read && amt_to_read == 10000000) {
-        read_pos -= (amt_to_read - (uint64_t)65536);
-        file_pos += (amt_to_read - (uint64_t)65536);
-        
-        #pragma omp critical
-        {
-          amt_to_read = min(file_starts.at(i+1) - file_pos, (uint64_t)10000000);
-          IN->seekg(file_pos, std::ios_base::beg);
-          IN->read(chunk_buf.at(i), (int64_t)amt_to_read);
-          if(IN->eof()) IN->clear();
-          p.increment(amt_to_read - (uint64_t)65536);
-        }
-      } else if(amt_to_read == 0) {
-        #pragma omp critical
-        {
-          amt_to_read = min(file_starts.at(i+1) - file_pos, (uint64_t)10000000);
-          IN->seekg(file_pos, std::ios_base::beg);
-          IN->read(chunk_buf.at(i), (int64_t)amt_to_read);
-          if(IN->eof()) IN->clear();
-          p.increment(amt_to_read);
-        }
-      } // else cannot read any more anyway
-
-      // Increment until start of first bgzf
-      while(!at_bgzf) {
-        // GzipCheck = chunk_buf + read_pos;
-        
-        if(strncmp(bamGzipHead, chunk_buf.at(i) + (unsigned int)read_pos, 16) == 0) {
-          at_bgzf = true;
-          // Rcout << "Found first bgzf block\n";
-          // Check subsequent 5 bgzf blocks
-          uint64_t temp_pos = read_pos;
-          while(bgzf_block_checks < 5) {
-            memcpy(u16.c, chunk_buf.at(i) + (unsigned int)temp_pos + 16, 2);
-            temp_pos += u16.u + 1;
-            
-            // GzipCheck = chunk_buf + temp_pos;
-            if(strncmp(bamGzipHead, chunk_buf.at(i) + (unsigned int)temp_pos, 16) == 0) {
-              bgzf_block_checks++;
-            } else {
-              break;
-            }
-          }
-          if(bgzf_block_checks == 5) break; // This means subsequent 5 bgzf blocks are also good
-        } else {
-          read_pos++;
-        }
-        if(read_pos > 65535) {
-          Rcout << "Could not find bgzf block begin\n";
-          break;
-        }
-      }
-      
-      if(!at_bgzf) {
-        break;
-      } else {        
-        // Check bgzf integrity every 10000 blocks
-        if(temp_bgzf_starts.size() > bgzf_check_threshold && temp_bgzf_starts.size() % bgzf_check_threshold == 0) {
-          // GzipCheck = chunk_buf + read_pos;
-          if(strncmp(bamGzipHead, chunk_buf.at(i) + (unsigned int)read_pos, 16) != 0) {
-            at_bgzf = false;
-            break;
-          }
-        }
-      }
-      // Now we are at beginning of bgzf
-      temp_bgzf_starts.push_back(read_pos + file_pos);  // push first bgzf block  
-      
-      // Goto next block
-      if(read_pos + 18 <= amt_to_read) {
-        memcpy(u16.c, chunk_buf.at(i) + (unsigned int)read_pos + 16, 2);
-        read_pos += u16.u + 1;
-      } else if(file_pos + read_pos + 18 < file_starts.at(i+1)) {
-        // Read just a little bit extra to get those two bytes:
-        #pragma omp critical
-        {
-          IN->seekg(file_pos + read_pos + 16, std::ios_base::beg);
-          IN->read(u16.c, 2);
-          read_pos += u16.u + 1;
-        }
-      }
-    }
-
-    free(chunk_buf.at(i));
-    
-    if(at_bgzf) {
-      #pragma omp critical
-      for(unsigned int j = 0; j < temp_bgzf_starts.size(); j++) {
-        BGZF_begins.push_back(temp_bgzf_starts.at(j));
-        // Rcout << "BGZF file pos: " << temp_bgzf_starts.at(j) << '\n';
-      }
-    }
-  }
-  
-  sort(BGZF_begins.begin(), BGZF_begins.end());
-  
-  // Rcout << "EOF block length: " << IS_LENGTH - BGZF_begins.at(BGZF_begins.size() - 1) << '\n';
-  if(IS_LENGTH - BGZF_begins.at(BGZF_begins.size() - 1) == 28) {
-    return(0);
-  } else {
-    Rcout << "Last block is not an empty BGZF block - likely truncated BAM\n";
-    return(-1);
-  }
-  
-}
-
-#endif
-
 unsigned int BAMReader_Multi::ProfileBAM(
     std::vector<uint64_t> &block_begins, 
     std::vector<unsigned int> &read_offsets, 
@@ -492,18 +334,7 @@ unsigned int BAMReader_Multi::ProfileBAM(
   // unsigned int bytes_read;
 
   // scan file to obtain a list of bgzf offsets
-  #ifdef _OPENMP
-    int ret = 0;
-    // Rcout << "IS_LENGTH = " << IS_LENGTH << '\n';
-    if(IS_LENGTH > 100000000 && target_n_threads > 1) {
-      ret = getBGZFstarts_OpenMP(temp_begins, verbose, target_n_threads);
-    } else {
-      ret = getBGZFstarts(temp_begins, verbose);
-    }
-  #else
-    int ret = getBGZFstarts(temp_begins, verbose);
-  #endif
-  
+  int ret = getBGZFstarts(temp_begins, verbose);
   if(ret != 0) {
     return(0);
   }
