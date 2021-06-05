@@ -3,7 +3,7 @@
 
 #include "FragmentBlocks.h"
 
-#include "BAMReader_Multi.h"
+// #include "BAMReader_Multi.h"
 
 
 /* Little Endian .. for big endian each group of 4 bytes needs to be reversed before individual members are accessed. */
@@ -23,8 +23,8 @@ class BAM2blocks {
 
     void cigar2block(uint32_t * cigar, uint16_t n_cigar_op, std::vector<int> &starts, std::vector<int> &lens, int &ret_genome_len);
 
-    unsigned int processPair(bam_read_core * read1, bam_read_core * read2);
-    unsigned int processSingle(bam_read_core * read1);
+    unsigned int processPair(pbam1_t * read1, pbam1_t * read2);
+    unsigned int processSingle(pbam1_t * read1);
 
   	unsigned int readBamHeader(
       std::vector<uint64_t> &block_begins, 
@@ -46,32 +46,25 @@ class BAM2blocks {
 
     // bool error_detected;
 
-    bam_read_core reads[2];
-    BAMReader_Multi * IN;  
+    pbam1_t reads[2];
+    pbam_in * IN;  
     std::vector<chr_entry> chrs;
     bool chrs_prepped = false;
 
     std::vector<uint64_t> block_begins;
     std::vector<unsigned int> read_offsets;
 
-    std::map< std::string, bam_read_core* > * spare_reads;    
+    std::map< std::string, pbam1_t* > * spare_reads;
+    pbam1_t * SupplyRead(std::string& read_name);    
+    int realizeSpareReads();
   public:
   	BAM2blocks(); ~BAM2blocks();
-  	unsigned int openFile(BAMReader_Multi * _IN, bool verbose = false,
-      unsigned int n_workers = 1);
-    void AttachReader(BAMReader_Multi * _IN);
-    
-    void ProvideTask(unsigned int thread_number, 
-        uint64_t &begin_bgzf, unsigned int &begin_pos,
-        uint64_t &end_bgzf, unsigned int &end_pos     
-    );
-    void TransferChrs(BAM2blocks& other);
-  	int processAll();
+  	unsigned int openFile(pbam_in * _IN);
+
+  	int processAll(unsigned int thread_number = 0);
   	int processSpares(BAM2blocks& other);
 
   	int WriteOutput(std::string& output);
-
-    bam_read_core * SupplyRead(std::string& read_name);
 
     void registerCallbackChrMappingChange( std::function<void(const std::vector<chr_entry> &)> callback );
     void registerCallbackProcessBlocks( std::function<void(const FragmentBlocks &)> callback );
