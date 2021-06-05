@@ -298,15 +298,15 @@ int BAMReader_Multi::getBGZFstarts(std::vector<uint64_t> & BGZF_begins, bool ver
       p.increment((uint64_t)IN->tellg() - last_reported_pos);
       last_reported_pos = IN->tellg();
     } else {
-      // IN->ignore(16);
-      IN->seekg (16, std::ios_base::cur);
+      IN->ignore(16);
+      // IN->seekg (16, std::ios_base::cur);
     }
 
     IN->read(u16.c, 2);
     bgzf_size = u16.u + 1 - 2  - 16;
     // Rcout << " bgzf_size " << bgzf_size << '\n';
-    // IN->ignore(bgzf_size);
-    IN->seekg (bgzf_size, std::ios_base::cur);
+    IN->ignore(bgzf_size);
+    // IN->seekg (bgzf_size, std::ios_base::cur);
   }
   p.increment(IS_LENGTH - last_reported_pos);
   IN->clear();
