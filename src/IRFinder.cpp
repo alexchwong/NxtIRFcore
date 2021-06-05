@@ -425,8 +425,9 @@ int IRF_core(std::string const &bam_file,
     #pragma omp parallel for num_threads(n_threads_to_use) schedule(static,1)
     #endif
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
-      BBchild.at(i)->processAll();
+      BBchild.at(i)->processAll(i);
     }
+    
   }
 
   if(p.check_abort()) {

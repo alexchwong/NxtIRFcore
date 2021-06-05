@@ -16,7 +16,7 @@ Description: Interactively analyses Intron Retention and Alternative Splicing
     pipelines for downstream analysis and publication-ready visualisation tools.
 License: MIT + file LICENSE
 Depends:
-  R (>= 4.0.0), ParaBAM
+  R (>= 4.0.0)
 Imports:
 	methods, stats, utils, graphics, R.utils, magrittr, tools,
 	Rcpp (>= 1.0.5),
