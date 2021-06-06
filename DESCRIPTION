@@ -53,6 +53,8 @@ Imports:
 	SummarizedExperiment,
 	S4Vectors,
 	XML
+Remotes:
+  alexchwong/ParaBAM
 LinkingTo: Rcpp, zlibbioc, RcppProgress, ParaBAM
 Suggests: 
     knitr, rmarkdown, pheatmap,
