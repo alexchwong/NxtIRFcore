@@ -369,7 +369,7 @@ int IRF_core(std::string const &bam_file,
   
   std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
   // BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
-  pbam_in inbam((size_t)1000000000, (size_t)2000000000, 5);
+  pbam_in inbam((size_t)1000000000, (size_t)1000000000, 5);
   inbam.SetInputHandle(&inbam_stream, n_threads_to_use);
   
   // TODO: Abort here if BAM corrupt
