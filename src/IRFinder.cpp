@@ -368,17 +368,12 @@ int IRF_core(std::string const &bam_file,
   
   
   std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
-  BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
+  // BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
+  pbam_in inbam((size_t)1000000000, (size_t)1000000000, 5);
+  inbam.SetInputHandle(&inbam_stream, n_threads_to_use);
   
-  BAM2blocks BB;  
-  if(verbose) Rcout << "Caching and profiling BAM file\n";
-  unsigned int n_bgzf_blocks = BB.openFile(&inbam, verbose, n_threads_to_use);
-  // This step writes chrs to BB, and BB obtains bgzf block positions for each worker
-  if(n_bgzf_blocks == 0) {
-    Rcout << "Error occurred profiling BAM file\n";
-    return(-1);
-  }
-  // Assign children:
+  // TODO: Abort here if BAM corrupt
+  
   std::vector<CoverageBlocksIRFinder*> oCB;
   std::vector<SpansPoint*> oSP;
   std::vector<FragmentsInROI*> oROI;
@@ -386,7 +381,6 @@ int IRF_core(std::string const &bam_file,
   std::vector<JunctionCount*> oJC;
   std::vector<FragmentsMap*> oFM;
   std::vector<BAM2blocks*> BBchild;
-  std::vector<BAMReader_Multi*> BRchild;
 
   for(unsigned int i = 0; i < n_threads_to_use; i++) {
     oCB.push_back(new CoverageBlocksIRFinder(CB_template));
@@ -396,7 +390,6 @@ int IRF_core(std::string const &bam_file,
     oJC.push_back(new JunctionCount(JC_template));
     oFM.push_back(new FragmentsMap);
     BBchild.push_back(new BAM2blocks);
-    BRchild.push_back(new BAMReader_Multi);
 
     BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&JunctionCount::ChrMapUpdate, &(*oJC.at(i)), std::placeholders::_1) );
     BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&JunctionCount::ProcessBlocks, &(*oJC.at(i)), std::placeholders::_1) );
@@ -416,66 +409,27 @@ int IRF_core(std::string const &bam_file,
     BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &(*oFM.at(i)), std::placeholders::_1) );
     BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &(*oFM.at(i)), std::placeholders::_1) );
 
-    // Assign task:
-    uint64_t begin_bgzf; unsigned int begin_pos;
-    uint64_t end_bgzf; unsigned int end_pos;
-    BB.ProvideTask(i, begin_bgzf, begin_pos, end_bgzf, end_pos);
-    
-    BRchild.at(i)->AssignTask(&inbam_stream, begin_bgzf, begin_pos, end_bgzf, end_pos);
-    BRchild.at(i)->SetAutoLoad(false);
-    
-    BBchild.at(i)->AttachReader(BRchild.at(i));
-    BBchild.at(i)->TransferChrs(BB);
+    BBchild.at(i)->openFile(&inbam);
   }
   
   // BAM processing loop
-  Progress p(n_bgzf_blocks, verbose);
+  Progress p(inbam.GetFileSize(), verbose);
   // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
-  unsigned int blocks_read_total = 0;
-  int ret = 0;
-#ifdef _OPENMP
-  #pragma omp parallel for
-  for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    unsigned int n_blocks_read = 1;
-    int ret2 = 0;
-    while(!BRchild.at(i)->eob() && !p.check_abort() && n_blocks_read > 0 && ret == 0) {
-      #pragma omp critical
-      n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
-      
-      if(n_blocks_read > 0) {
-        BRchild.at(i)->decompress();
-        ret2 = BBchild.at(i)->processAll();
-        
-        if(ret2 == -1) {
-          #pragma omp critical
-          ret = -1;    // abort if broken reads detected
-        }
-        
-        #pragma omp atomic
-        blocks_read_total += n_blocks_read;
-        
-        #pragma omp critical
-        p.increment(n_blocks_read);
-      }
-      // Rcout << "Blocks read: " << n_blocks_read << '\n';
+  // unsigned int blocks_read_total = 0;
+  // int ret = 0;
+
+  while(0 == inbam.fillReads() && !p.check_abort()) {
+    p.increment(inbam.IncProgress());
+    
+    #ifdef _OPENMP
+    #pragma omp parallel for num_threads(n_threads_to_use) schedule(static,1)
+    #endif
+    for(unsigned int i = 0; i < n_threads_to_use; i++) {
+      BBchild.at(i)->processAll(i);
     }
+    
   }
-#else
-  for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    unsigned int n_blocks_read = 0;
-    while(!BRchild.at(i)->eob() && !p.check_abort() && ret == 0) {
-      
-      n_blocks_read = (unsigned int)BRchild.at(i)->read_from_file(100);
-      if(n_blocks_read == 0) break;
-      
-      BRchild.at(i)->decompress();
-      ret = BBchild.at(i)->processAll();
-      
-      blocks_read_total += n_blocks_read;
-      p.increment(n_blocks_read);
-    }
-  }
-#endif
+
   if(p.check_abort()) {
     // interrupted:
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
@@ -485,14 +439,10 @@ int IRF_core(std::string const &bam_file,
       delete oROI.at(i);
       delete oCB.at(i);
       delete oFM.at(i);
-      delete BRchild.at(i);
       delete BBchild.at(i);
     }
     return(-1);
   }
-
-  int final_inc = max((int)(n_bgzf_blocks - blocks_read_total), 1);
-  p.increment(final_inc);
 
   inbam_stream.close();
   // Rcout << "BAM processing finished\n";
@@ -503,7 +453,6 @@ int IRF_core(std::string const &bam_file,
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       BBchild.at(0)->processSpares(*BBchild.at(i));
       delete BBchild.at(i);
-      delete BRchild.at(i);
     }
   // Combine objects:
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
@@ -595,7 +544,6 @@ int IRF_core(std::string const &bam_file,
   delete oROI.at(0);
   delete oCB.at(0);
   delete oFM.at(0);
-  delete BRchild.at(0);
   delete BBchild.at(0);
 
   return(0);
