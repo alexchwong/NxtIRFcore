@@ -1,4 +1,4 @@
-#' @useDynLib NxtIRF, .registration = TRUE 
+#' @useDynLib NxtIRFcore, .registration = TRUE 
 #' @importFrom magrittr %>%
 #' @import data.table
 #' @import shiny
