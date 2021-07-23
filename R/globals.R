@@ -222,8 +222,12 @@ dash_withProgress <- function(expr, min = 0, max = 1,
                 value = value, message = message, detail = detail,
                 env = env, quoted = quoted       
             )
+        } else {
+            if (!quoted) expr <- substitute(expr)
+            eval(expr, env)
         }
     } else {
+        if (!quoted) expr <- substitute(expr)
         eval(expr, env)
     }
 }
