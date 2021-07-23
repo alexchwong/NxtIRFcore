@@ -1,28 +1,27 @@
 #' @useDynLib NxtIRFcore, .registration = TRUE 
-#' @importFrom magrittr %>%
-#' @import data.table
-#' @import ggplot2
-#' @importFrom tools R_user_dir
 #' @importFrom methods as is coerce callNextMethod new
-#' @importFrom graphics text
 #' @importFrom stats as.formula model.matrix qt runif na.omit prcomp
 #' @importFrom utils download.file packageVersion getFromNamespace
 #' @importFrom utils setTxtProgressBar txtProgressBar
+#' @importFrom R.utils gzip
+#' @importFrom magrittr %>%
+#' @importFrom tools R_user_dir
 #' @importFrom Rcpp evalCpp
+#' @import data.table
+#' @importFrom fst read.fst write.fst
+#' @import ggplot2
 #' @importFrom AnnotationHub AnnotationHub cache
+#' @importFrom ExperimentHub ExperimentHub
 #' @importFrom BiocFileCache BiocFileCache bfcrpath bfcquery
 #' @importFrom BiocGenerics start end width strand
 #' @importFrom BiocGenerics nrow ncol rbind cbind
-#' @importFrom Biostrings getSeq readDNAStringSet DNAStringSet translate 
-#' @importFrom Biostrings replaceAmbiguities type
 #' @importFrom BiocParallel SnowParam MulticoreParam SerialParam
 #' @importFrom BiocParallel bpparam bplapply
+#' @importFrom Biostrings getSeq readDNAStringSet DNAStringSet translate 
+#' @importFrom Biostrings replaceAmbiguities type
 #' @importFrom DelayedArray qlogis plogis rowMeans DelayedArray
 #' @importFrom DelayedMatrixStats rowSds colVars
-#' @importFrom ExperimentHub ExperimentHub
-#' @importFrom fst read.fst write.fst
 #' @importFrom genefilter rowttests
-#' @importFrom grDevices colorRampPalette
 #' @importFrom GenomeInfoDb sortSeqlevels seqinfo seqlengths seqlevels<- 
 #' @importFrom GenomeInfoDb seqlevels
 #' @importFrom GenomicRanges GRanges reduce findOverlaps 
@@ -31,7 +30,6 @@
 #' @importFrom GenomicRanges flank setdiff seqnames psetdiff disjoin mcols<- 
 #' @importFrom GenomicRanges strand<- seqnames<-
 #' @importFrom HDF5Array HDF5Array writeHDF5Array h5writeDimnames 
-#' @importFrom heatmaply heatmaply
 #' @importFrom httr HEAD GET status_code
 #' @importFrom IRanges IRanges Views RleList
 #' @importFrom openssl md5
@@ -39,10 +37,8 @@
 #' @importFrom plotly config layout plotlyOutput event_data ggplotly 
 #' @importFrom plotly plotlyProxy plotlyProxyInvoke renderPlotly subplot 
 #' @importFrom plotly highlight
-#' @importFrom R.utils gzip
-#' @importFrom rtracklayer import export TwoBitFile track
-#' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom rhdf5 h5createFile h5createDataset h5delete h5write h5createGroup
+#' @importFrom rtracklayer import export TwoBitFile track
 #' @importFrom stringr str_locate
 #' @importFrom SummarizedExperiment SummarizedExperiment 
 #' @importFrom SummarizedExperiment rowData colData rowData<- colData<-
@@ -51,7 +47,6 @@
 #' @importFrom S4Vectors coolcat metadata Rle metadata<- SimpleList 
 #' @importFrom S4Vectors endoapply from to setValidity2 DataFrame
 #' @importFrom S4Vectors bindCOLS bindROWS getListElement setListElement
-#' @importFrom XML getHTMLLinks
 #' @importClassesFrom SummarizedExperiment SummarizedExperiment
 #' @importClassesFrom S4Vectors DataFrame
 NULL
