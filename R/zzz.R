@@ -142,8 +142,8 @@ NxtIRF_example_bams <- function() {
 #' @export
 NxtIRF_example_NxtSE <- function() {
     se = readRDS(system.file("extdata", 
-        "example_NxtSE.Rds", package = "NxtIRF"))
-    covs = Find_Samples(system.file("extdata", package = "NxtIRF"), ".cov")
+        "example_NxtSE.Rds", package = "NxtIRFcore"))
+    covs = Find_Samples(system.file("extdata", package = "NxtIRFcore"), ".cov")
     covfile(se) <- covs$path
     se
 }
@@ -202,7 +202,7 @@ NxtIRF_example_NxtSE <- function() {
 .fetch_files_from_urls <- function(urls, filenames, destination_path,
         bfc_only = FALSE) {
     # No error checking
-    cache <- tools::R_user_dir(package = "NxtIRF", which="cache")
+    cache <- tools::R_user_dir(package = "NxtIRFcore", which="cache")
     bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
     files = c()
     paths = c()
@@ -327,7 +327,7 @@ NxtIRF_example_NxtSE <- function() {
     }
     # Make a copy to local hub for quicker access next time
     # (as AnnotationHub and ExperimentHub are slow!)
-    cache <- tools::R_user_dir(package = "NxtIRF", which="cache")
+    cache <- tools::R_user_dir(package = "NxtIRFcore", which="cache")
     bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
     for(i in seq_len(length(urls))) {
         url = urls[i]

@@ -70,27 +70,11 @@ Collate: AllImports.R
 	NxtSE-methods.R
 	zzz.R
 	wrappers.R
+	Coverage.R
+	utils.R
 	BuildRef.R
 	DE_IR.R
 	CollateData.R
-	filterModules_shiny.R
-	dash_settings.R
-	dash_utils.R
-	dash_ref_new_ui.R
-	dash_ref_new_server.R
-	dash_expr_ui.R
-	dash_expr_server.R
-	dash_QC.R
-	dash_filters.R
-	dash_DE_ui.R
-	dash_DE_server.R
-	dash_vis_ui.R
-	dash_vis_server.R
-	dash_cov_ui.R
-	dash_cov_server.R
-	dash_ui.R
-	dash_server.R
-	dash.R
 	STAR_utils.R
 Encoding: UTF-8
 RoxygenNote: 7.1.1
