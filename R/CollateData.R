@@ -784,8 +784,8 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         file.path(norm_output_path, "annotation", "IR.fst"))
     write.fst(as.data.frame(Splice.Anno), 
         file.path(norm_output_path, "annotation", "Splice.fst"))      
-    .collateData_rowEvent(irf.common, Splice.Anno, 
-        norm_output_path, reference_path)
+    # .collateData_rowEvent(irf.common, Splice.Anno, 
+        # norm_output_path, reference_path)
     # Write junc_PSI index
     junc_PSI = junc.common[, c("seqnames", "start", "end", "strand")]
     write.fst(junc_PSI, file.path(norm_output_path, "junc_PSI_index.fst"))
