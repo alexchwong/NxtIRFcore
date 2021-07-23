@@ -332,13 +332,9 @@ BuildReference <- function(
     gc()
     # Annotate IR-NMD
     dash_progress("Annotating IR-NMD", N)
-    if(!is.null(shiny::getDefaultReactiveDomain())) {
-        withProgress(message = 'Determining NMD Transcripts', value = 0, {
-            .gen_nmd(reference_path, reference_data$genome)
-        })
-    } else {
+    dash_withProgress(message = 'Determining NMD Transcripts', value = 0, {
         .gen_nmd(reference_path, reference_data$genome)
-    }
+    })
     # Annotating Alternative Splicing Events
     dash_progress("Annotating Splice Events", N)
     .gen_splice(reference_path, reference_data$genome)

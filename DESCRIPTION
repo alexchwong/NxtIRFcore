@@ -21,11 +21,6 @@ Imports:
 	Rcpp (>= 1.0.5),
 	data.table,
 	fst,
-	shiny,
-	shinyFiles,
-	shinyWidgets,
-	shinydashboard,
-	rhandsontable,
 	ggplot2,
 	AnnotationHub, ExperimentHub, BiocFileCache,
 	BiocGenerics,
@@ -33,7 +28,6 @@ Imports:
 	BiocParallel,
 	DelayedArray,
 	DelayedMatrixStats,
-	DT,
 	genefilter,
 	grDevices,
 	GenomeInfoDb,
@@ -56,7 +50,7 @@ Remotes:
   alexchwong/ParaBAM
 LinkingTo: Rcpp, zlibbioc, RcppProgress, ParaBAM
 Suggests: 
-    knitr, rmarkdown, pheatmap,
+    knitr, rmarkdown, pheatmap, shiny,
     DESeq2, limma, Rsubread, testthat (>= 3.0.0)
 VignetteBuilder: knitr
 biocViews: Software, Transcriptomics, RNASeq, AlternativeSplicing, Coverage, 
