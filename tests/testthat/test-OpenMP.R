@@ -1,5 +1,5 @@
 test_that("NxtIRF OpenMP produces same output regardless of threads", {
-    n_threads = NxtIRF:::Has_OpenMP()
+    n_threads = NxtIRFcore:::Has_OpenMP()
     if(n_threads == 0) {
         message("NxtIRF was compiled without OpenMP")
         return(TRUE)

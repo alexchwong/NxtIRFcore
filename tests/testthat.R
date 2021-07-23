@@ -1,6 +1,6 @@
 library(testthat)
-library(NxtIRF)
+library(NxtIRFcore)
 
-test_check("NxtIRF")
+test_check("NxtIRFcore")
 
 # bump to trigger r cmd check
