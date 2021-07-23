@@ -48,13 +48,13 @@
 #'   individual samples or across samples grouped by user-specified conditions
 #' }
 #' 
-#' See \code{vignette("NxtIRF")} for worked examples on how to use NxtIRF
+#' See \code{vignette("NxtIRFcore")} for worked examples on how to use NxtIRF
 #' 
 #' @author Alex Wong, Ulf Schmitz, William Ritchie
 #' 
 #' @docType package
-#' @name NxtIRF-package
-#' @aliases NxtIRF-package
+#' @name NxtIRFcore-package
+#' @aliases NxtIRFcore-package
 #' @keywords package
 #' @md
 NULL
@@ -332,13 +332,9 @@ BuildReference <- function(
     gc()
     # Annotate IR-NMD
     dash_progress("Annotating IR-NMD", N)
-    if(!is.null(shiny::getDefaultReactiveDomain())) {
-        withProgress(message = 'Determining NMD Transcripts', value = 0, {
-            .gen_nmd(reference_path, reference_data$genome)
-        })
-    } else {
+    dash_withProgress(message = 'Determining NMD Transcripts', value = 0, {
         .gen_nmd(reference_path, reference_data$genome)
-    }
+    })
     # Annotating Alternative Splicing Events
     dash_progress("Annotating Splice Events", N)
     .gen_splice(reference_path, reference_data$genome)
@@ -374,22 +370,22 @@ GetNonPolyARef <- function(genome_type) {
     if (genome_type == "hg38") {
         nonPolyAFile <- system.file(
             "extra-input-files/Human_hg38_nonPolyA_ROI.bed",
-            package = "NxtIRF"
+            package = "NxtIRFcore"
         )
     } else if (genome_type == "hg19") {
         nonPolyAFile <- system.file(
             "extra-input-files/Human_hg19_nonPolyA_ROI.bed",
-            package = "NxtIRF"
+            package = "NxtIRFcore"
         )
     } else if (genome_type == "mm10") {
         nonPolyAFile <- system.file(
             "extra-input-files/Mouse_mm10_nonPolyA_ROI.bed",
-            package = "NxtIRF"
+            package = "NxtIRFcore"
         )
     } else if (genome_type == "mm9") {
         nonPolyAFile <- system.file(
             "extra-input-files/Mouse_mm9_nonPolyA_ROI.bed",
-            package = "NxtIRF"
+            package = "NxtIRFcore"
         )
     } else {
         nonPolyAFile <- ""
@@ -986,7 +982,7 @@ Get_GTF_file <- function(reference_path) {
     } else if ( any(startsWith(file, c("http", "ftp")))) {
         url <- file
         # BiocFileCache this and return file path
-        cache <- tools::R_user_dir(package = "NxtIRF", which="cache")
+        cache <- tools::R_user_dir(package = "NxtIRFcore", which="cache")
         bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
         path <- BiocFileCache::bfcrpath(bfc, url)
         return(unname(path))

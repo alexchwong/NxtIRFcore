@@ -1,5 +1,5 @@
 ---
-title: 'NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis'
+title: 'NxtIRFcore: Interactive Differential Alternative Splicing and Intron Retention analysis'
 author: "Alex Chit Hei Wong"
 date: "`r format(Sys.Date(), '%m/%d/%Y')`"
 abstract: >
@@ -27,7 +27,7 @@ output:
     rmarkdown::html_document:
         toc: true
 vignette: >
-    %\VignetteIndexEntry{NxtIRF: Interactive Differential Alternative Splicing and Intron Retention analysis}
+    %\VignetteIndexEntry{NxtIRFcore: Interactive Differential Alternative Splicing and Intron Retention analysis}
     %\VignetteEngine{knitr::rmarkdown}
     %\usepackage[utf8]{inputenc}
 ---
@@ -48,7 +48,7 @@ First, load the NxtIRF package and make a copy of the NxtIRF example reference
 FASTA and GTF files:
 
 ```{r, results = FALSE, message = FALSE, warning = FALSE}
-library(NxtIRF)
+library(NxtIRFcore)
 mock_genome(".") # Copies NxtIRF mock genome as example
 mock_gtf(".") # Copies NxtIRF mock GTF file as example
 ```

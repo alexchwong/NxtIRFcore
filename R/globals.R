@@ -196,8 +196,39 @@ dash_progress <- function(message = "", total_items = 1, add_msg = FALSE) {
     if(add_msg) {
         message(message)
     }
-    if(!is.null(shiny::getDefaultReactiveDomain())) {
-        shiny::incProgress(1/total_items, message = message)
+    has_shiny = NxtIRF.CheckPackageInstalled(
+        package = "shiny", returntype = "silent")
+    if(has_shiny) {
+        session = shiny::getDefaultReactiveDomain()
+        if(!is.null(session)) {
+            shiny::incProgress(1/total_items, message = message)
+        }
+    }
+}
+
+dash_withProgress <- function(expr, min = 0, max = 1,
+    value = min + (max - min) * 0.1,
+    message = NULL, detail = NULL,
+    # style = getShinyOption("progress.style", default = "notification"),
+    # session = getDefaultReactiveDomain(),
+    env = parent.frame(), quoted = FALSE) {
+
+    has_shiny = NxtIRF.CheckPackageInstalled(
+        package = "shiny", returntype = "silent")
+    if(has_shiny) {
+        session = shiny::getDefaultReactiveDomain()
+        if(!is.null(session)) {
+            shiny::withProgress(expr = expr, min = min, max = max,
+                value = value, message = message, detail = detail,
+                env = env, quoted = quoted       
+            )
+        } else {
+            if (!quoted) expr <- substitute(expr)
+            eval(expr, env)
+        }
+    } else {
+        if (!quoted) expr <- substitute(expr)
+        eval(expr, env)
     }
 }
 
