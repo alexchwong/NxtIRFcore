@@ -14,8 +14,6 @@ Description: Interactively analyses Intron Retention and Alternative Splicing
     multi-platform compatibility. In addition, NxtIRF provides convenient 
     pipelines for downstream analysis and publication-ready visualisation tools.
 License: MIT + file LICENSE
-Depends:
-  R (>= 4.0.0)
 Imports:
 	methods, stats, utils, R.utils, magrittr, tools,
 	Rcpp (>= 1.0.5),
@@ -41,7 +39,7 @@ Imports:
 	rtracklayer,
 	stringr,
 	SummarizedExperiment,
-	S4Vectors, 
+	S4Vectors
 Remotes:
   alexchwong/ParaBAM
 LinkingTo: Rcpp, zlibbioc, RcppProgress, ParaBAM

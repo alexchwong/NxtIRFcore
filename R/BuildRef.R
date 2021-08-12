@@ -80,10 +80,10 @@ NULL
 #' 2. AnnotationHub genome and gene annotation (Ensembl): supply the names of
 #'    the genome sequence and gene annotations  \cr\cr
 #'
-#' @param reference_path (REQUIRED) The directory to store the reference files
+#' @param reference_path The directory to store the reference files
 #' @param fasta The file path or web link to the user-supplied genome
 #'   FASTA file. Alternatively, the name of the AnnotationHub record containing
-#'   the genome FASTA resource (Ensembl - TwoBit file resource).
+#'   the genome resource (for Ensembl, this is a TwoBit file).
 #' @param gtf The file path or web link  to the user-supplied transcript 
 #'   GTF file (or gzipped GTF file). Alternatively, the name of the
 #'   AnnotationHub record containing the transcript GTF file
@@ -107,18 +107,19 @@ NULL
 #'   unless `overwrite_resource` is set to TRUE.
 #' @param ... In GetReferenceResource(), if `generate_mappability_reads` is set
 #'   to `TRUE`, additional arguments to parse to `Mappability_GenReads()`
+#'   See \link{Mappability-methods}.
 #' @param genome_type Allows `BuildReference()` to select default 
 #'   `nonPolyARef` and `MappabilityRef` for selected genomes. Allowed options 
-#'   include: 'hg38', 'hg19', 'mm9', 'mm10'.
-#'   Omit this parameter, or set to any other value to manually set the
-#'   `nonPolyARef` and `MappabilityRef` files. Use `GetNonPolyARef()` and
+#'   are: 'hg38', 'hg19', 'mm9', 'mm10'.
+#'   Note that the user can still set `nonPolyARef` and `MappabilityRef` values
+#'   to override the default files. Alternatively, use `GetNonPolyARef()` and
 #'   `GetMappabilityRef()` to retrieve NxtIRF-supplied default files
 #'   for the supported chromosomes (see examples below).
 #' @param nonPolyARef A BED file (3 unnamed columns containing chromosome, 
 #'   start and end coordinates) of regions defining known non-polyadenylated 
 #'   transcripts. This file is used for QC analysis of IRFinder-processed files 
 #'   to measure Poly-A enrichment quality of samples. Leave blank to not use a 
-#'   `nonPolyARef` file (or to use default - see `genome_type`)
+#'   `nonPolyARef` file (or to use default - see `genome_type`).
 #' @param MappabilityRef A BED file (3 unnamed columns containing chromosome, 
 #'   start and end coordinates) of poorly-mapped regions due to repeat elements 
 #'   in the genome. We recommend using the default Mappability files supplied 
@@ -126,8 +127,8 @@ NULL
 #'   running `Mappability_GenReads()` on the genome sequence, followed by 
 #'   alignment of the produced fasta file to an aligner of choice (e.g. STAR, 
 #'   HISAT2). The aligned sequences (as BAM file) should then be analysed using 
-#'   `Mappability_CalculateExclusions()`, which will provide the Mappability file to be 
-#'   used here.
+#'   `Mappability_CalculateExclusions()`, which will provide the Mappability 
+#'   file to be used here.
 #' @param BlacklistRef A BED file (3 unnamed columns containing chromosome, 
 #'   start and end coordinates) of regions to be otherwise excluded from IR 
 #'   analysis. Leave blank to not use a `BlacklistRef` file.
@@ -139,7 +140,7 @@ NULL
 #' @param n_threads The number of threads used to generate the STAR reference
 #'   and mappability calculations. Multi-threading is not used for NxtIRF
 #'   reference generation (but multiple cores are utilised by data.table
-#'   and fst packages automatically, where available)
+#'   and fst packages automatically, where available). See [STAR-methods]
 #' @return Nothing. The created reference will be written to the given 
 #'   directory. 
 #'   This includes:
@@ -256,9 +257,22 @@ NULL
 #'     genome_type = "hg38", 
 #'     convert_chromosome_names = chrom.df[, c("Ensembl", "UCSC")]
 #' )
+#'
+#' # One-step generation of NxtIRF and STAR references, using 4 threads.
+#' # NB: requires a linux-based system with STAR installed.
+#'
+#' BuildReference_Full(
+#'     reference_path = "./Reference_with_STAR",
+#'     fasta = "genome.fa", gtf = "transcripts.gtf"
+#'     genome_type = "hg38",
+#'     n_threads = 4
+#' )
+#'
 #' }
-#' @seealso [Mappability_GenReads], [Mappability_CalculateExclusions], 
-#' \link[AnnotationHub]{AnnotationHub}
+#' @seealso 
+#' [Mappability-methods]\cr\cr
+#' [STAR-methods]\cr\cr
+#' \link[AnnotationHub]{AnnotationHub}\cr\cr
 #' @name BuildReference
 #' @md
 NULL
@@ -3471,6 +3485,38 @@ Get_GTF_file <- function(reference_path) {
         c(paste0(c("DNA_casette_", "AA_casette_"), toupper(isoform))) := 
         list(get("DNA_seq"), get("AA_seq"))]
     return(AS_Table.Extended)
+}
+
+#' @describeIn BuildReference One-step function that fetches resources,
+#'   creates a STAR reference (including mappability calculations), then
+#'   creates the NxtIRF reference
+#' @export
+BuildReference_Full <- function(
+        reference_path,
+        fasta, gtf,
+        convert_chromosome_names = NULL,
+        overwrite_resource = FALSE,
+        genome_type = genome_type,
+        nonPolyARef = "", MappabilityRef = "", BlacklistRef = "", 
+        UseExtendedTranscripts = TRUE,
+        n_threads = 4
+) {
+    GetReferenceResource(reference_path = reference_path,
+        fasta = fasta, gtf = gtf,
+        generate_mappability_reads = TRUE,
+        convert_chromosome_names = convert_chromosome_names,
+        overwrite_resource = overwrite_resource)
+    
+    STAR_buildRef(reference_path = reference_path, 
+        also_generate_mappability = TRUE, 
+        n_threads = n_threads)
+
+    BuildReference(reference_path = reference_path,
+        genome_type = genome_type,
+        nonPolyARef = nonPolyARef, 
+        MappabilityRef = MappabilityRef, 
+        BlacklistRef = BlacklistRef, 
+        UseExtendedTranscripts = UseExtendedTranscripts)
 }
 
 #' Creates a custom Mappability Exclusion BED file
