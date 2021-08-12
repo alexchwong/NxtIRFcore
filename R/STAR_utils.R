@@ -441,6 +441,9 @@ STAR_align_fastq <- function(
         .log(paste("STAR version < 2.5.0 is not supported;",
             "current version:", star_version), type = type)
     }
+    if(!is.null(star_version) && star_version >= "2.5.0") {
+        .log(paste("STAR version", star_version), type = "message")
+    }
 }
 
 .validate_STAR_reference <- function(STAR_ref_path) {

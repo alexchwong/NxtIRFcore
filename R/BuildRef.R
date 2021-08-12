@@ -3497,7 +3497,8 @@ BuildReference_Full <- function(
         convert_chromosome_names = NULL,
         overwrite_resource = FALSE,
         genome_type = genome_type,
-        nonPolyARef = "", MappabilityRef = "", BlacklistRef = "", 
+        nonPolyARef = GetNonPolyARef(genome_type), 
+        BlacklistRef = "", 
         UseExtendedTranscripts = TRUE,
         n_threads = 4
 ) {
