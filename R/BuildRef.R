@@ -3515,7 +3515,7 @@ BuildReference_Full <- function(
     BuildReference(reference_path = reference_path,
         genome_type = genome_type,
         nonPolyARef = nonPolyARef, 
-        MappabilityRef = MappabilityRef, 
+        # MappabilityRef = MappabilityRef, 
         BlacklistRef = BlacklistRef, 
         UseExtendedTranscripts = UseExtendedTranscripts)
 }

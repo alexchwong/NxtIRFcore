@@ -42,8 +42,7 @@ BuildReference_Full(
   convert_chromosome_names = NULL,
   overwrite_resource = FALSE,
   genome_type = genome_type,
-  nonPolyARef = "",
-  MappabilityRef = "",
+  nonPolyARef = GetNonPolyARef(genome_type),
   BlacklistRef = "",
   UseExtendedTranscripts = TRUE,
   n_threads = 4
