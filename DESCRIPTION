@@ -45,7 +45,7 @@ Remotes:
 LinkingTo: Rcpp, zlibbioc, RcppProgress, ParaBAM
 Suggests: 
     knitr, rmarkdown, pheatmap, shiny,
-    DESeq2, limma, Rsubread, testthat (>= 3.0.0)
+    DESeq2, limma, DoubleExpSeq, Rsubread, testthat (>= 3.0.0)
 VignetteBuilder: knitr
 biocViews: Software, Transcriptomics, RNASeq, AlternativeSplicing, Coverage, 
   DifferentialSplicing

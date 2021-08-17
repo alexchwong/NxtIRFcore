@@ -38,7 +38,8 @@
 
 
 
-#' Use Limma or DESeq2 to test for differential ASEs (Alternative Splice Events)
+#' Use Limma, DESeq2 or DoubleExpSeq to test for differential ASEs 
+#'   (Alternative Splice Events)
 #'
 #' @param se The SummarizedExperiment object created by `MakeSE()`. To reduce
 #'   runtime and false negatives due to multiple testing issues, please filter
@@ -49,8 +50,8 @@
 #'   the "treatment" condition
 #' @param test_denom The condition in which to test against for differential 
 #'   ASE. Usually the "control" condition
-#' @param batch1,batch2 One or two columns containing batch information to 
-#'   normalise against (can be omitted)
+#' @param batch1,batch2 (Limma and DESeq2 only) One or two columns containing 
+#'   batch information to normalise against (can be omitted).
 #' @param filter_antiover Whether to filter out IR events that overlap 
 #'   antisense genes (for unstranded RNAseq protocols)
 #' @param filter_antinear Whether to filter out IR events near but not 
@@ -82,6 +83,14 @@
 #'   inc/exc_(baseMean, log2FoldChange, lfcSE, stat, pvalue, padj): 
 #'     DESeq2 results for differential testing for
 #'     raw included / excluded counts only\cr\cr
+#'   (DoubleExp SPECIFIC OUTPUT)\cr\cr
+#'     MLE: Expectation values for the two groups\cr\cr
+#'     MLE_LFC: Log2-fold change of the MLE\cr\cr
+#'     P.Value, adj.P.Val: Nominal and BH-adjusted P values\cr\cr
+#'     n_eff: Number of effective samples (i.e. non-zero or non-unity PSI)\cr\cr
+#'     mDepth: Mean Depth of splice coverage\cr\cr
+#'     Dispersion_Reduced, Dispersion_Full: Dispersion values for reduced and 
+#'     full models
 #' @examples
 #' # see ?MakeSE on example code of generating this NxtSE object
 #' se = NxtIRF_example_NxtSE()
@@ -94,6 +103,10 @@
 #'
 #' if("DESeq2" %in% rownames(installed.packages())) {
 #'     res_DESeq = DESeq_ASE(se, "treatment", "A", "B")
+#' }
+#' 
+#' if("DoubleExpSeq" %in% rownames(installed.packages())) {
+#'     res_DES = DoubleExpSeq_ASE(se, "treatment", "A", "B")
 #' }
 #' @name ASE-methods
 #' @md
@@ -193,6 +206,48 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     res.ASE <- .ASE_add_diag(res.ASE, se_use, test_factor, test_nom, test_denom)
     return(res.ASE)
 }
+
+#' @describeIn ASE-methods Use DoubleExpSeq to perform differential ASE analysis 
+#'   of a filtered NxtSE object (uses double exponential beta-binomial model)
+#'   to estimate group dispersions, followed by LRT
+#' @export
+DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom, 
+        # batch1 = "", batch2 = "",
+        filter_antiover = TRUE, filter_antinear = FALSE, 
+        filter_annotated_IR = FALSE) {
+    
+    NxtIRF.CheckPackageInstalled("DoubleExpSeq", "1.1")
+    .ASE_check_args(colData(se), test_factor, 
+        test_nom, test_denom, "", "")
+    se_use <- .ASE_filter(
+        se, filter_antiover, filter_antinear, filter_annotated_IR)
+
+    res.ASE <- .ASE_DoubleExpSeq_contrast_ASE(se_use, 
+        test_factor, test_nom, test_denom)
+    
+    res.cols = c(
+        paste("MLE", test_nom, sep="_"), paste("MLE", test_denom, sep="_"),
+        "P.Value", "adj.P.Val", "n_eff",
+        paste("mDepth", test_nom, sep="_"), paste("mDepth", test_denom, sep="_"),
+        "Dispersion_Reduced", "Dispersion_Full"
+    )
+    colnames(res.ASE)[-1] = res.cols
+    
+    res.ASE[, c("MLE_LFC") := (
+        qlogis(res.ASE[,get(paste("MLE", test_nom, sep="_"))]) - 
+        qlogis(res.ASE[,get(paste("MLE", test_denom, sep="_"))])
+    ) / log(2)]
+    
+    res.ASE = res.ASE[, c("EventName", res.cols[1:2], "MLE_LFC",
+        res.cols[3:9]), with = FALSE]
+
+    res.ASE = res.ASE[!is.na(get("P.Value"))]
+    
+    res.ASE <- .ASE_add_diag(res.ASE, se_use, test_factor, test_nom, test_denom)
+    return(res.ASE)
+}
+
+
 
 ################################################################################
 # helper functions:
@@ -403,6 +458,27 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     )
     res$EventName = rownames(res)
     return(as.data.table(res))    
+}
+
+.ASE_DoubleExpSeq_contrast_ASE <- function(se, test_factor, 
+    test_nom, test_denom) {
+    
+    y = assay(se, "Included")
+    m = assay(se, "Included") + assay(se, "Excluded")
+    
+    colData = as.data.frame(colData(se))
+    groups = factor(colData[, test_factor])
+    shrink.method="WEB"
+    
+    contrast.first = which(levels(groups) == test_nom)
+    contrast.second = which(levels(groups) == test_denom)
+    
+    res = DoubleExpSeq::DBGLM1(y, m, groups, shrink.method,
+        contrast=c(contrast.first,contrast.second), 
+        fdr.level=0.05, use.all.groups=TRUE)
+    
+    return(cbind(data.table(EventName = rownames(res$All)),
+        as.data.table(res$All)))
 }
 
 

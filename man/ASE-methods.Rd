@@ -4,7 +4,9 @@
 \alias{ASE-methods}
 \alias{limma_ASE}
 \alias{DESeq_ASE}
-\title{Use Limma or DESeq2 to test for differential ASEs (Alternative Splice Events)}
+\alias{DoubleExpSeq_ASE}
+\title{Use Limma, DESeq2 or DoubleExpSeq to test for differential ASEs
+(Alternative Splice Events)}
 \usage{
 limma_ASE(
   se,
@@ -30,6 +32,16 @@ DESeq_ASE(
   filter_antinear = FALSE,
   filter_annotated_IR = FALSE
 )
+
+DoubleExpSeq_ASE(
+  se,
+  test_factor,
+  test_nom,
+  test_denom,
+  filter_antiover = TRUE,
+  filter_antinear = FALSE,
+  filter_annotated_IR = FALSE
+)
 }
 \arguments{
 \item{se}{The SummarizedExperiment object created by \code{MakeSE()}. To reduce
@@ -45,8 +57,8 @@ the "treatment" condition}
 \item{test_denom}{The condition in which to test against for differential
 ASE. Usually the "control" condition}
 
-\item{batch1, batch2}{One or two columns containing batch information to
-normalise against (can be omitted)}
+\item{batch1, batch2}{(Limma and DESeq2 only) One or two columns containing
+batch information to normalise against (can be omitted).}
 
 \item{filter_antiover}{Whether to filter out IR events that overlap
 antisense genes (for unstranded RNAseq protocols)}
@@ -84,9 +96,18 @@ DESeq2 results columns See \code{?DESeq2::results}\cr\cr
 inc/exc_(baseMean, log2FoldChange, lfcSE, stat, pvalue, padj):
 DESeq2 results for differential testing for
 raw included / excluded counts only\cr\cr
+(DoubleExp SPECIFIC OUTPUT)\cr\cr
+MLE: Expectation values for the two groups\cr\cr
+MLE_LFC: Log2-fold change of the MLE\cr\cr
+P.Value, adj.P.Val: Nominal and BH-adjusted P values\cr\cr
+n_eff: Number of effective samples (i.e. non-zero or non-unity PSI)\cr\cr
+mDepth: Mean Depth of splice coverage\cr\cr
+Dispersion_Reduced, Dispersion_Full: Dispersion values for reduced and
+full models
 }
 \description{
-Use Limma or DESeq2 to test for differential ASEs (Alternative Splice Events)
+Use Limma, DESeq2 or DoubleExpSeq to test for differential ASEs
+(Alternative Splice Events)
 }
 \section{Functions}{
 \itemize{
@@ -95,6 +116,10 @@ a filtered NxtSE object
 
 \item \code{DESeq_ASE}: Use DESeq2 to perform differential ASE analysis of
 a filtered NxtSE object
+
+\item \code{DoubleExpSeq_ASE}: Use DoubleExpSeq to perform differential ASE analysis 
+of a filtered NxtSE object (uses double exponential beta-binomial model)
+to estimate group dispersions, followed by LRT
 }}
 
 \examples{
@@ -109,5 +134,9 @@ if("limma" \%in\% rownames(installed.packages())) {
 
 if("DESeq2" \%in\% rownames(installed.packages())) {
     res_DESeq = DESeq_ASE(se, "treatment", "A", "B")
+}
+
+if("DoubleExpSeq" \%in\% rownames(installed.packages())) {
+    res_DES = DoubleExpSeq_ASE(se, "treatment", "A", "B")
 }
 }
