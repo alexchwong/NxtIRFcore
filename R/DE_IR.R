@@ -242,7 +242,7 @@ DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom,
         res.cols[3:9]), with = FALSE]
 
     res.ASE = res.ASE[!is.na(get("P.Value"))]
-    setorderv(res.ASE, "pVal")
+    setorderv(res.ASE, "P.Value")
     res.ASE <- .ASE_add_diag(res.ASE, se_use, test_factor, test_nom, test_denom)
     return(res.ASE)
 }
