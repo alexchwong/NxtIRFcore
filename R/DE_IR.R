@@ -474,7 +474,7 @@ DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom,
     contrast.second = which(levels(groups) == test_denom)
     
     res = DoubleExpSeq::DBGLM1(
-        as.maatrix(y), as.matrix(m), groups, shrink.method,
+        as.matrix(y), as.matrix(m), groups, shrink.method,
         contrast=c(contrast.first,contrast.second), 
         fdr.level=0.05, use.all.groups=TRUE)
     
