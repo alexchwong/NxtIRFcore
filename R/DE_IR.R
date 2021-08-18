@@ -242,7 +242,7 @@ DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom,
         res.cols[3:9]), with = FALSE]
 
     res.ASE = res.ASE[!is.na(get("P.Value"))]
-    
+    setorderv(res.ASE, "pVal")
     res.ASE <- .ASE_add_diag(res.ASE, se_use, test_factor, test_nom, test_denom)
     return(res.ASE)
 }
@@ -473,7 +473,8 @@ DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom,
     contrast.first = which(levels(groups) == test_nom)
     contrast.second = which(levels(groups) == test_denom)
     
-    res = DoubleExpSeq::DBGLM1(y, m, groups, shrink.method,
+    res = DoubleExpSeq::DBGLM1(
+        as.maatrix(y), as.matrix(m), groups, shrink.method,
         contrast=c(contrast.first,contrast.second), 
         fdr.level=0.05, use.all.groups=TRUE)
     
