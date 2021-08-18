@@ -463,8 +463,10 @@ DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom,
 .ASE_DoubleExpSeq_contrast_ASE <- function(se, test_factor, 
     test_nom, test_denom) {
     
-    y = assay(se, "Included")
-    m = assay(se, "Included") + assay(se, "Excluded")
+    # NB add pseudocounts
+    pseudocount = 1
+    y = assay(se, "Included") + pseudocount
+    m = assay(se, "Included") + assay(se, "Excluded") + 2 * pseudocount
     
     colData = as.data.frame(colData(se))
     groups = factor(colData[, test_factor])
