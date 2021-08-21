@@ -1014,13 +1014,19 @@ Get_GTF_file <- function(reference_path) {
 
 .fix_gtf <- function(gtf_gr) {
     # fix gene / transcript names with '/' (which breaks IRFinder code)
+    # 22-08-21: also fix missing gene_name and transcript_name 
+    #           in newer Ensembl refs
     if("gene_name" %in% names(S4Vectors::mcols(gtf_gr))) {
+        gtf_gr$gene_name[is.na(gtf_gr$gene_name)] = 
+            gtf_gr$gene_id[is.na(gtf_gr$gene_name)]
         gtf_gr$gene_name <- gsub("/", "_", gtf_gr$gene_name)
     } else {
         gtf_gr$gene_name <- gtf_gr$gene_id
     }
     
     if("transcript_name" %in% names(S4Vectors::mcols(gtf_gr))) {
+        gtf_gr$transcript_name[is.na(gtf_gr$transcript_name)] = 
+            gtf_gr$transcript_id[is.na(gtf_gr$transcript_name)]
         gtf_gr$transcript_name <- gsub("/", "_", gtf_gr$transcript_name)
     } else {
         gtf_gr$transcript_name <- gtf_gr$transcript_id
