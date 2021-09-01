@@ -2664,8 +2664,8 @@ Get_GTF_file <- function(reference_path) {
         .I[get("intron_number") < max(get("intron_number"))],
         by = "transcript_id"]$V1]
     introns_search_MXE <- introns_search_MXE[
-        introns_search_MXE[, .N, by = c("gene_id", "skip_coord")],
-        on = c("gene_id", "skip_coord"), 
+        introns_search_MXE[, .N, by = c("skip_coord")],
+        on = c("skip_coord"), 
         c("N") := get("i.N")]
     introns_search_MXE <- introns_search_MXE[get("N") > 1]
     introns_search_MXE_pos <- introns_search_MXE[get("strand") == "+"]
@@ -2692,12 +2692,16 @@ Get_GTF_file <- function(reference_path) {
         on = c("gene_id", "transcript_id", "transcript_name", "skip_coord"),
         c("Event2") := get("i.Event2")]
 
+
+    # introns_search_MXE <- unique(introns_search_MXE,
+        # by = c("gene_id", "skip_coord", "Event1"))
+    # introns_search_MXE <- unique(introns_search_MXE,
+        # by = c("gene_id", "skip_coord", "Event2"))
+    # introns_search_MXE <- introns_search_MXE[, if (.N > 1) .SD,
+        # by = c("gene_id", "skip_coord")]
+
     introns_search_MXE <- unique(introns_search_MXE,
-        by = c("gene_id", "skip_coord", "Event1"))
-    introns_search_MXE <- unique(introns_search_MXE,
-        by = c("gene_id", "skip_coord", "Event2"))
-    introns_search_MXE <- introns_search_MXE[, if (.N > 1) .SD,
-        by = c("gene_id", "skip_coord")]
+        by = c("Event1", "Event2"))
 
     if (nrow(introns_search_MXE) > 0) {
         introns_found_MXE <- introns_search_MXE[,
@@ -2722,6 +2726,10 @@ Get_GTF_file <- function(reference_path) {
                 )
             },by = "skip_coord"
         ]
+        # Make sure to exclude A3SS / A5SS events:
+        introns_found_MXE = introns_found_MXE[get("Event1a") != get("Event1b")]
+        introns_found_MXE = introns_found_MXE[get("Event2a") != get("Event2b")]
+
         setorderv(introns_found_MXE, c("gene_id", "transcript_name_a"))
         introns_found_MXE[, c("EventName") := paste0(
                 "MXE:", get("transcript_name_a"), "-exon",
