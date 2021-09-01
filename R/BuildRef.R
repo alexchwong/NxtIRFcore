@@ -2752,7 +2752,8 @@ Get_GTF_file <- function(reference_path) {
         c("gene_id", "gene_name", "skip_coord")]
     introns.skippedJn <- unique(introns.skippedJn)
     
-    introns_found_SE <- introns.skippedJn[, "skip_coord"]
+    # Get list of skip coords
+    introns_skip_SE <- introns.skippedJn[, "skip_coord"]
     introns_search_SE <- candidate.introns[,
         c("gene_id", "Event", "transcript_id",
             "transcript_name", "intron_number")]
@@ -2760,37 +2761,60 @@ Get_GTF_file <- function(reference_path) {
         old = c("Event", "transcript_id", "transcript_name", "intron_number"),
         new = c("skip_coord", "skip_transcript_id", "skip_transcript_name",
             "skip_intron_number"))
-    introns_found_SE[introns_search_SE, on = "skip_coord",
+    introns_skip_SE[introns_search_SE, on = "skip_coord",
         c("gene_id_b", "skip_transcript_id",
             "skip_transcript_name", "skip_intron_number") :=
             list(get("i.gene_id"), get("i.skip_transcript_id"),
                 get("i.skip_transcript_name"), get("i.skip_intron_number"))
     ]
-    introns_found_SE <- unique(introns_found_SE,
+    introns_skip_SE <- unique(introns_skip_SE,
         by = c("gene_id_b", "skip_coord"))
+    # Columns: skip_coord, gene_id_b, skip_transcript_id, skip_transcript_name,
+    #          skip_intron_number
 
-    introns_search_SE2 <- introns.skipcoord[,
+    # Get junction EiEi+1 and annotate "skip" junction as EiEi+2
+    introns_found_SE <- introns.skipcoord[,
         c("skip_coord", "gene_id", "Event", "transcript_id", 
             "transcript_name", "intron_number")]
-    introns_found_SE[introns_search_SE2,
-        on = "skip_coord",
-        c("gene_id", "inc_coord_upst", "inc_transcript_id",
-            "inc_transcript_name", "inc_intron_number") :=
-            list(get("i.gene_id"), get("i.Event"), get("i.transcript_id"),
-                get("i.transcript_name"), get("i.intron_number"))]
+    setnames(introns_found_SE, 
+        old = c("transcript_id", "intron_number", "transcript_name"), 
+        new = c("inc_transcript_id", "inc_intron_number", 
+            "inc_transcript_name"))
+    introns_found_SE[introns_skip_SE, on = "skip_coord",
+        c("skip_transcript_id", "skip_transcript_name", 
+            "skip_intron_number", "gene_id_b") :=
+            list(get("i.skip_transcript_id"), get("i.skip_transcript_name"), 
+                get("i.skip_intron_number"), get("i.gene_id_b"))
+    ]
+    introns_found_SE = na.omit(introns_found_SE)
 
-    introns_search_SE3 <- introns.skipcoord[,
+    # Same, but "skip" is now Ei-1Ei+1 
+    introns_found_SE2 <- introns.skipcoord[,
         c("skip_coord_2", "gene_id", "Event",
             "transcript_id", "transcript_name")]
-    setnames(introns_search_SE3,
-        old = c("skip_coord_2", "transcript_id"),
+    setnames(introns_found_SE2, old = c("skip_coord_2", "transcript_id"), 
         new = c("skip_coord", "inc_transcript_id"))
-    introns_found_SE[introns_search_SE3,
+    introns_found_SE2[introns_skip_SE, on = "skip_coord",
+        c("skip_transcript_id",
+            "skip_transcript_name", "skip_intron_number") :=
+            list(get("i.skip_transcript_id"),
+                get("i.skip_transcript_name"), get("i.skip_intron_number"))
+    ]
+    introns_found_SE2 = na.omit(introns_found_SE2)
+    
+    # Marry the two
+    introns_found_SE[introns_found_SE2,
         on = c("skip_coord", "inc_transcript_id"),
         c("inc_coord_downst") := get("i.Event")]
+    introns_found_SE = na.omit(introns_found_SE)
+        
+    setnames(introns_found_SE,
+        old = c("Event", "inc_coord_downst", "skip_coord"),
+        new = c("Event1a", "Event2a", "Event1b")
+    )
     introns_found_SE <- unique(introns_found_SE,
-        by = c("gene_id", "skip_coord",
-            "inc_transcript_id", "inc_transcript_name"))
+        by = c("gene_id", "Event1a", "Event2a", "Event1b"))
+        
     setorderv(introns_found_SE, c("gene_id", "inc_transcript_name"))
     introns_found_SE[, c("EventName") := paste0(
         "SE:", get("inc_transcript_name"), "-exon", 
@@ -2799,16 +2823,13 @@ Get_GTF_file <- function(reference_path) {
     introns_found_SE[, c("EventID") := paste0("SE#", seq_len(.N))]
     introns_found_SE[, c("EventType") := "SE"]
     introns_found_SE[, c("Event2b") := NA]
-    introns_found_SE[, c("EventRegion") := get("skip_coord")]
+    introns_found_SE[, c("EventRegion") := get("Event1b")]
     introns_found_SE <- introns_found_SE[,
-        c("EventType", "EventID", "EventName", "inc_coord_upst",
-            "skip_coord", "inc_coord_downst", "Event2b",
+        c("EventType", "EventID", "EventName", "Event1a",
+            "Event1b", "Event2a", "Event2b",
             "gene_id", "gene_id_b", "EventRegion",
             "inc_transcript_id", "inc_transcript_name", "inc_intron_number",
             "skip_transcript_id", "skip_transcript_name", "skip_intron_number")]
-    setnames(introns_found_SE,
-        old = c("inc_coord_upst", "inc_coord_downst", "skip_coord"),
-        new = c("Event1a", "Event2a", "Event1b"))
     setnames(introns_found_SE,
         old = c("inc_transcript_id", "inc_transcript_name",
             "skip_transcript_id", "skip_transcript_name"),
