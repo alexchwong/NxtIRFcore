@@ -2584,18 +2584,19 @@ Get_GTF_file <- function(reference_path) {
     introns_found_SE <- .gen_splice_SE(introns.skipcoord, candidate.introns)
     message("done")
 
-    message("Annotating Alternate First / Last Exon Splice Events...",
-        appendLF = FALSE)
-    # AFE/ALE
-    introns_found_AFE = .gen_splice_AFE(candidate.introns)
-    introns_found_ALE = .gen_splice_ALE(candidate.introns)
-    message("done")
-
     message("Annotating Alternate 5' / 3' Splice Site Splice Events...",
         appendLF = FALSE)
 
-    introns_found_A5SS = .gen_splice_A5SS(candidate.introns, introns_found_AFE)
-    introns_found_A3SS = .gen_splice_A3SS(candidate.introns, introns_found_ALE)
+    introns_found_A5SS = .gen_splice_A5SS(candidate.introns)
+    introns_found_A3SS = .gen_splice_A3SS(candidate.introns)
+    message("done")
+
+    message("Annotating Alternate First / Last Exon Splice Events...",
+        appendLF = FALSE)
+    # AFE/ALE
+
+    introns_found_AFE = .gen_splice_AFE(candidate.introns, introns_found_A5SS)
+    introns_found_ALE = .gen_splice_ALE(candidate.introns, introns_found_A3SS)
     message("done")
     gc()
 
@@ -2819,7 +2820,7 @@ Get_GTF_file <- function(reference_path) {
     return(introns_found_SE)
 }
 
-.gen_splice_AFE <- function(candidate.introns) {
+.gen_splice_AFE <- function(candidate.introns, introns_found_A5SS) {
     introns_search_AFE <- candidate.introns[get("intron_number") == 1]
     introns_search_AFE_pos <- introns_search_AFE[get("strand") == "+"]
     setorderv(introns_search_AFE_pos,
@@ -2875,6 +2876,10 @@ Get_GTF_file <- function(reference_path) {
         )]
     introns_found_AFE <- introns_found_AFE[, c("EventType") := "AFE"]
     introns_found_AFE <- introns_found_AFE[, c("EventRegion") := get("Event1b")]
+
+    introns_found_AFE <- introns_found_AFE[!introns_found_A5SS,
+        on = c("Event1a", "Event1b")]
+        
     introns_found_AFE[, c("EventID") := paste0("AFE#", seq_len(.N))]
     introns_found_AFE <- introns_found_AFE[,
         c("EventType", "EventID", "EventName",
@@ -2884,7 +2889,7 @@ Get_GTF_file <- function(reference_path) {
             "transcript_id_b", "transcript_name_b", "intron_number_b")]
     return(introns_found_AFE)
 }
-.gen_splice_ALE <- function(candidate.introns) {
+.gen_splice_ALE <- function(candidate.introns, introns_found_A3SS) {
     introns_search_ALE <- candidate.introns[candidate.introns[,
         .I[get("intron_number") == max(get("intron_number"))],
         by = "transcript_id"]$V1]
@@ -2941,6 +2946,10 @@ Get_GTF_file <- function(reference_path) {
             get("transcript_name_b"), "-exon", get("intron_number_b"))]
     introns_found_ALE <- introns_found_ALE[, c("EventType") := "ALE"]
     introns_found_ALE <- introns_found_ALE[, c("EventRegion") := get("Event1b")]
+
+    introns_found_ALE <- introns_found_ALE[!introns_found_A3SS,
+        on = c("Event1a", "Event1b")]
+
     introns_found_ALE[, c("EventID") := paste0("ALE#", seq_len(.N))]
     introns_found_ALE <- introns_found_ALE[,
         c("EventType", "EventID", "EventName",
@@ -2961,7 +2970,7 @@ Get_GTF_file <- function(reference_path) {
     return(candidate.introns.ASS)
 }
 
-.gen_splice_A5SS <- function(candidate.introns, introns_found_AFE) {
+.gen_splice_A5SS <- function(candidate.introns) {
     introns_search_A5SS <- copy(.gen_splice_ASS_common(candidate.introns))
     introns_search_A5SS_pos <- introns_search_A5SS[get("strand") == "+"]
     
@@ -3030,8 +3039,8 @@ Get_GTF_file <- function(reference_path) {
     introns_found_A5SS <- introns_found_A5SS[, c("EventType") := "A5SS"]
     introns_found_A5SS <- introns_found_A5SS[, 
         c("EventRegion") := get("Event1b")]
-    introns_found_A5SS <- introns_found_A5SS[!introns_found_AFE,
-        on = c("Event1a", "Event1b")]
+    # introns_found_A5SS <- introns_found_A5SS[!introns_found_AFE,
+        # on = c("Event1a", "Event1b")]
     introns_found_A5SS[, c("EventID") := paste0("A5SS#", seq_len(.N))]
     introns_found_A5SS <- introns_found_A5SS[,
         c("EventType", "EventID", "EventName",
@@ -3042,7 +3051,7 @@ Get_GTF_file <- function(reference_path) {
     return(introns_found_A5SS)
 }
 
-.gen_splice_A3SS <- function(candidate.introns, introns_found_ALE) {
+.gen_splice_A3SS <- function(candidate.introns) {
     introns_search_A3SS <- copy(
         .gen_splice_ASS_common(candidate.introns))
     introns_search_A3SS_pos <- introns_search_A3SS[get("strand") == "+"]
@@ -3114,8 +3123,8 @@ Get_GTF_file <- function(reference_path) {
     introns_found_A3SS <- introns_found_A3SS[, c("EventType") := "A3SS"]
     introns_found_A3SS <- introns_found_A3SS[, 
         c("EventRegion") := get("Event1b")]
-    introns_found_A3SS <- introns_found_A3SS[!introns_found_ALE,
-        on = c("Event1a", "Event1b")]
+    # introns_found_A3SS <- introns_found_A3SS[!introns_found_ALE,
+        # on = c("Event1a", "Event1b")]
     introns_found_A3SS[, c("EventID") := paste0("A3SS#", seq_len(.N))]
     introns_found_A3SS <- introns_found_A3SS[,
         c("EventType", "EventID", "EventName",
