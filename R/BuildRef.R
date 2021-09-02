@@ -2821,7 +2821,7 @@ Get_GTF_file <- function(reference_path) {
         new = c("Event1a", "Event2a", "Event1b")
     )
     introns_found_SE <- unique(introns_found_SE,
-        by = c("gene_id", "Event1a", "Event2a", "Event1b"))
+        by = c("Event1a", "Event2a", "Event1b"))
         
     setorderv(introns_found_SE, c("gene_id", "inc_transcript_name"))
     introns_found_SE[, c("EventName") := paste0(
