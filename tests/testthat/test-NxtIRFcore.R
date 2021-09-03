@@ -1,8 +1,13 @@
 test_that("NxtIRF pipeline reproduces NxtSE object", {
     bams = NxtIRF_example_bams()
+    chr_alias = data.frame(
+        old = "chrZ", new = "chrZ"
+    )
+    
     BuildReference(
         fasta = mock_genome(), gtf = mock_gtf(),
-        reference_path = file.path(tempdir(), "Reference")
+        reference_path = file.path(tempdir(), "Reference"),
+        chromosome_aliases = chr_alias
     )
     
     # i = 2

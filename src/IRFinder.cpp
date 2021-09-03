@@ -295,8 +295,49 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
 	// galaxy
 #endif
 
+int ReadChrAlias(std::istringstream &IN,
+    std::vector<std::string> &ref_names, 
+    std::vector<std::string> &ref_alias)
+{
+  ref_names.clear();
+  ref_alias.clear();
+  
+  std::string myLine;
+  myLine.reserve(1000);
+  std::string myChr;
+  myChr.reserve(100);
+  std::string myAlias;
+  myAlias.reserve(100);
+  
+  while(!IN.eof() && !IN.fail()) {
+    getline(IN, myLine, '\n');
+    if (IN.eof() || IN.fail()) {
+      if (myLine.length() == 0) {
+        // This line is empty - just a blank line at the end of the file.
+        // Checking at this stage allows correct handling of files both with and without a trailing \n after the last record.
+        break;
+      }else{
+        // Error line in input, ignore.
+        break;
+      }
+    }
+    std::istringstream lineStream;
+    lineStream.str(myLine);
+    getline(lineStream, myChr, '\t');
+    getline(lineStream, myAlias, '\t');
+    if(myChr.size() > 0 && myAlias.size() > 0) {
+      ref_names.push_back(myChr);
+      ref_alias.push_back(myAlias);      
+    }
+  }
+  // Rcout << "Debug:" << ref_names.size() << " chromosome aliases loaded\n";
+  return(0);
+}
+
 // IRFinder reference reader:
 int IRF_ref(std::string &reference_file, 
+    std::vector<std::string> &ref_names, 
+    std::vector<std::string> &ref_alias,
     CoverageBlocksIRFinder &CB_template, 
     SpansPoint &SP_template, 
     FragmentsInROI &ROI_template,
@@ -307,45 +348,83 @@ int IRF_ref(std::string &reference_file,
   int ret = gz_in->LoadGZ(reference_file, true);
   if(ret != 0) return(-1);
   
+  // Allows IRFinder reference blocks to be read in any order
+  std::string headerCover ("ref-cover.bed");
+  std::string headerSpans ("ref-read-continues.ref");
+  std::string headerROI ("ref-ROI.bed");
+  std::string headerSJ ("ref-sj.ref");
+  std::string headerChr ("ref-chrs.ref");
+  std::string headerEOF ("EOF");
+  
+  bool doneCover = false;
+  bool doneSpans = false;
+  bool doneROI = false;
+  bool doneSJ = false;
+  bool doneChrs = false;
+  
   std::string myLine;
   std::string myBuffer;
   
-  getline(gz_in->iss, myLine, '#');    // discard first >
-  getline(gz_in->iss, myLine, '\n');   // ignore file names for now
-  getline(gz_in->iss, myBuffer, '#');  // this is the data block for ref-cover.bed
-
-  std::istringstream inCoverageBlocks;
-  inCoverageBlocks.str(myBuffer);
-  CB_template.loadRef(inCoverageBlocks);
+  getline(gz_in->iss, myLine, '#');    // discard anything before the first hash
+  getline(gz_in->iss, myLine, '\n');   // Get block name
   
-    getline(gz_in->iss, myLine, '\n');
-    getline(gz_in->iss, myBuffer, '#');
-
-  SP_template.setSpanLength(5,4);
-  std::istringstream inSpansPoint;
-  inSpansPoint.str(myBuffer);
-  SP_template.loadRef(inSpansPoint);
-
-  getline(gz_in->iss, myLine, '\n');
-  getline(gz_in->iss, myBuffer, '#');
-
-  std::istringstream inFragmentsInROI;
-  inFragmentsInROI.str(myBuffer);
-  ROI_template.loadRef(inFragmentsInROI);
-
-  getline(gz_in->iss, myLine, '\n');
-  getline(gz_in->iss, myBuffer, '#');
-
-  std::istringstream inJuncCount;
-  inJuncCount.str(myBuffer);
-  JC_template.loadRef(inJuncCount);
-
-// Ensure valid reference termination:
-  getline(gz_in->iss, myLine, '\n');
-  delete gz_in;
-  
-  if(strncmp(myLine.c_str(), refEOF, 4) != 0) {
+  // Check non-empty IRF ref block name
+  if(myLine.size() == 0) {
     Rcout << "Invalid IRFinder reference detected\n";
+    return(-1);
+  }
+
+  while(myLine.find(headerEOF)==std::string::npos) {
+    getline(gz_in->iss, myBuffer, '#');  // this is the data block
+    
+    // Check that data block is not empty.
+    // if(myBuffer.size() == 0) {
+      // Rcout << "Invalid IRFinder reference detected\n";
+      // return(-1);
+    // }
+    
+    if(myLine.find(headerCover)!=std::string::npos && !doneCover) {
+      std::istringstream inCoverageBlocks;
+      inCoverageBlocks.str(myBuffer);
+      CB_template.loadRef(inCoverageBlocks);
+      // Rcout << "doneCover\n";
+      doneCover = true;
+    } else if(myLine.find(headerSpans)!=std::string::npos && !doneSpans) {
+      SP_template.setSpanLength(5,4);
+      std::istringstream inSpansPoint;
+      inSpansPoint.str(myBuffer);
+      SP_template.loadRef(inSpansPoint);
+      // Rcout << "doneSpans\n";
+      doneSpans = true;
+    } else if(myLine.find(headerROI)!=std::string::npos && !doneROI) {
+      std::istringstream inFragmentsInROI;
+      inFragmentsInROI.str(myBuffer);
+      ROI_template.loadRef(inFragmentsInROI);
+      // Rcout << "doneROI\n";
+      doneROI = true;
+    } else if(myLine.find(headerSJ)!=std::string::npos && !doneSJ) {
+      std::istringstream inJuncCount;
+      inJuncCount.str(myBuffer);
+      JC_template.loadRef(inJuncCount);
+      // Rcout << "doneSJ\n";
+      doneSJ = true;
+    } else if(myLine.find(headerChr)!=std::string::npos && !doneChrs) {
+      std::istringstream inChrAlias;
+      inChrAlias.str(myBuffer);
+      ReadChrAlias(inChrAlias, ref_names, ref_alias);
+      // Rcout << "doneChrs\n";
+      doneChrs = true;
+    } else {
+      Rcout << "Error: Invalid IRFinder reference block detected\n";
+      return(-1);
+    }
+
+    // Get next data block name
+    getline(gz_in->iss, myLine, '\n');
+  }
+  
+  if(!doneCover || !doneSpans || !doneROI || !doneSJ) {
+    Rcout << "Error: Incomplete IRFinder reference detected\n";
     return(-1);
   }
   return(0);
@@ -354,6 +433,8 @@ int IRF_ref(std::string &reference_file,
 // IRFinder core:
 int IRF_core(std::string const &bam_file, 
     std::string const &s_output_txt, std::string const &s_output_cov,
+    std::vector<std::string> &ref_names, 
+    std::vector<std::string> &ref_alias,
     CoverageBlocksIRFinder const &CB_template, 
     SpansPoint const &SP_template, 
     FragmentsInROI const &ROI_template,
@@ -389,7 +470,7 @@ int IRF_core(std::string const &bam_file,
     oChr.push_back(new FragmentsInChr);
     oJC.push_back(new JunctionCount(JC_template));
     oFM.push_back(new FragmentsMap);
-    BBchild.push_back(new BAM2blocks);
+    BBchild.push_back(new BAM2blocks(ref_names, ref_alias));
 
     BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&JunctionCount::ChrMapUpdate, &(*oJC.at(i)), std::placeholders::_1) );
     BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&JunctionCount::ProcessBlocks, &(*oJC.at(i)), std::placeholders::_1) );
@@ -582,15 +663,21 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
   FragmentsInROI * ROI_template = new FragmentsInROI;
   JunctionCount * JC_template = new JunctionCount;
   
+  std::vector<std::string> ref_names;
+  std::vector<std::string> ref_alias;
+  
   int ret = 0;
   
-  ret = IRF_ref(s_ref, *CB_template, *SP_template, *ROI_template, *JC_template, verbose);
+  ret = IRF_ref(s_ref, ref_names, ref_alias,
+    *CB_template, *SP_template, *ROI_template, *JC_template, verbose
+  );
   if(ret != 0) {
     Rcout << "Reading Reference file failed. Check if IRFinder.ref.gz exists and is a valid NxtIRF-generated IRFinder reference\n";
     return(ret);
   }
   // main:
   ret = IRF_core(s_bam, s_output_txt, s_output_cov,
+    ref_names, ref_alias,
     *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
     
   if(ret != 0) Rcout << "Process interrupted running IRFinder on " << s_bam << '\n';
@@ -628,9 +715,13 @@ int IRF_main_multi(std::string reference_file, StringVector bam_files, StringVec
   FragmentsInROI * ROI_template = new FragmentsInROI;
   JunctionCount * JC_template = new JunctionCount;
   
+  std::vector<std::string> ref_names;
+  std::vector<std::string> ref_alias;
+
   int ret = 0;
   
-  ret = IRF_ref(s_ref, *CB_template, *SP_template, *ROI_template, *JC_template, false);
+  ret = IRF_ref(s_ref, ref_names, ref_alias,
+    *CB_template, *SP_template, *ROI_template, *JC_template, false);
   if(ret != 0) {
     Rcout << "Reading Reference file failed. Check if IRFinder.ref.gz exists and is a valid NxtIRF-generated IRFinder reference\n";
     return(ret);
@@ -645,6 +736,7 @@ int IRF_main_multi(std::string reference_file, StringVector bam_files, StringVec
 		// Rcout << "Processing " << s_bam << " with output " << v_out.at(z) << '\n';
     
     int ret2 = IRF_core(s_bam, s_output_txt, s_output_cov,
+      ref_names, ref_alias,
       *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
     if(ret2 != 0) {
       Rcout << "Process interrupted running IRFinder on " << s_bam << '\n';

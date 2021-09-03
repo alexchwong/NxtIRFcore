@@ -47,9 +47,11 @@ class BAM2blocks {
     // bool error_detected;
 
     pbam1_t reads[2];
-    pbam_in * IN;  
+    pbam_in * IN;
+    
     std::vector<chr_entry> chrs;
-    bool chrs_prepped = false;
+    std::vector<std::string> BB_ref_names;
+    std::vector<std::string> BB_ref_alias;
 
     std::vector<uint64_t> block_begins;
     std::vector<unsigned int> read_offsets;
@@ -58,7 +60,12 @@ class BAM2blocks {
     pbam1_t * SupplyRead(std::string& read_name);    
     int realizeSpareReads();
   public:
-  	BAM2blocks(); ~BAM2blocks();
+  	BAM2blocks();
+  	BAM2blocks(
+      std::vector<std::string> & ref_names, 
+      std::vector<std::string> & ref_alias
+    );
+    ~BAM2blocks();
   	unsigned int openFile(pbam_in * _IN);
 
   	int processAll(unsigned int thread_number = 0);

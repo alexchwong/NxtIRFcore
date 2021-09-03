@@ -21,6 +21,33 @@ BAM2blocks::BAM2blocks() {
   spare_reads = new std::map< std::string, pbam1_t* >;
 }
 
+BAM2blocks::BAM2blocks(
+    std::vector<std::string> & ref_names, 
+    std::vector<std::string> & ref_alias
+) {
+  oBlocks = FragmentBlocks(); //Right syntax to call the default constructor on an object variable, declared but not initialised?
+
+  cReadsProcessed = 0;
+  totalNucleotides = 0;
+  cShortPairs = 0;
+  cIntersectPairs = 0;
+  cLongPairs = 0;
+  cSingleReads = 0;
+  cPairedReads = 0;
+  cErrorReads = 0;
+  cSkippedReads = 0;
+  cChimericReads = 0;
+  
+  if(ref_names.size() > 0) {
+    for(unsigned int i = 0; i < ref_names.size(); i++) {
+      BB_ref_names.push_back(ref_names.at(i));
+      BB_ref_alias.push_back(ref_alias.at(i));
+    }
+  }
+  
+  spare_reads = new std::map< std::string, pbam1_t* >;
+}
+
 BAM2blocks::~BAM2blocks() {
   for(auto it = spare_reads->begin(); it != spare_reads->end(); it++) {
     delete it->second;
@@ -45,6 +72,21 @@ unsigned int BAM2blocks::openFile(pbam_in * _IN) {
   if(ret <= 0) return(-1);
   for(unsigned int i = 0; i < s_chr_names.size(); i++) {
     chrs.push_back(chr_entry(i, s_chr_names.at(i), (int32_t)u32_chr_lens.at(i)));
+    // Rename chromosome if it is an alias
+    if(BB_ref_names.size() > 0) {
+      for(unsigned int j = 0; j < BB_ref_names.size(); j++) {
+        if(chrs.at(i).chr_name.size() == BB_ref_alias.at(j).size()) {
+          if(0==strncmp(
+              BB_ref_alias.at(j).c_str(), 
+              chrs.at(i).chr_name.c_str(), 
+              BB_ref_alias.at(j).size())) {
+            chrs.at(i).chr_name = BB_ref_names.at(j);
+            // Rcout << BB_ref_alias.at(j) << " renamed to " << BB_ref_names.at(j) << "\n";
+            break;
+          }
+        }
+      }
+    }
   }
   for (auto & callback : callbacksChrMappingChange ) {
     callback(chrs);

@@ -61,13 +61,6 @@ class chr_entry {
       chr_name = b;
       chr_len = c;
     };
-    
-    // copy constructor:
-    // chr_entry(chr_entry & other) {
-      // refID = other.refID;
-      // chr_name = other.chr_name;
-      // chr_len = other.chr_len;
-    // }
 };
 
 union stream_uint64 {

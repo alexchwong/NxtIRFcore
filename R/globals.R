@@ -25,7 +25,7 @@ is_valid <- function(x) {
     } else if(type == "warning") {
         warning(msg)
     } else {
-        message(msg)
+        message(msg, ...)
     }
 }
 
@@ -194,7 +194,7 @@ dash_progress <- function(message = "", total_items = 1, add_msg = FALSE) {
         .log("dash_progress needs at least 1 item")
     }
     if(add_msg) {
-        message(message)
+        .log(message, "message")
     }
     has_shiny = NxtIRF.CheckPackageInstalled(
         package = "shiny", returntype = "silent")
