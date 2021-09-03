@@ -274,7 +274,6 @@ GetReferenceResource <- function(
         fasta, gtf,
         overwrite_resource = FALSE
 ) {
-    .validate_path(reference_path, subdirs = "resource")
     reference_data = .get_reference_data(
         reference_path = reference_path,
         fasta = fasta, gtf = gtf, 
@@ -316,15 +315,16 @@ BuildReference <- function(
     chromosomes = .convert_chromosomes(chromosome_aliases)
     .process_introns(reference_path, reference_data$genome, 
         UseExtendedTranscripts)
+        
     dash_progress("Generating IRFinder Reference", N_steps)
     .gen_irf(reference_path, extra_files, reference_data$genome, chromosomes)
     gc()
-    # Annotate IR-NMD
+
     dash_progress("Annotating IR-NMD", N_steps)
     dash_withProgress(message = 'Determining NMD Transcripts', value = 0, {
         .gen_nmd(reference_path, reference_data$genome)
     })
-    # Annotating Alternative Splicing Events
+
     dash_progress("Annotating Splice Events", N_steps)
     .gen_splice(reference_path, reference_data$genome)
     if(file.exists(file.path(reference_path, "fst", "Splice.fst"))) {
@@ -334,6 +334,7 @@ BuildReference <- function(
     } else {
         dash_progress("No alternate splicing events detected", N_steps)
     }
+    
     message("Reference build finished")
     dash_progress("Reference build finished", N_steps)
 
@@ -545,6 +546,7 @@ Get_GTF_file <- function(reference_path) {
     )
     return(final)
 }
+
 .convert_chromosomes <- function(chromosome_aliases) {
     if(is.null(chromosome_aliases)) return(NULL)
     df = as.data.frame(chromosome_aliases)
@@ -567,15 +569,11 @@ Get_GTF_file <- function(reference_path) {
     .validate_path(reference_path, subdirs = "resource")
     if(!is_valid(fasta)) {
         fasta = file.path(reference_path, "resource", "genome.fa")
-        if(!file.exists(fasta)) {
-            .log(paste(fasta, "doesn't exist"))
-        }
+        if(!file.exists(fasta)) .log(paste(fasta, "doesn't exist"))
     }
     if(!is_valid(gtf)) {
         gtf = file.path(reference_path, "resource", "transcripts.gtf.gz")
-        if(!file.exists(gtf)) {
-            .log(paste(gtf, "doesn't exist"))
-        }
+        if(!file.exists(gtf)) .log(paste(gtf, "doesn't exist"))
     }
     # Check web links are valid
     test_urls <- c(fasta, gtf)
@@ -583,8 +581,7 @@ Get_GTF_file <- function(reference_path) {
         .url_test(url)
     }
 
-    fasta_use <- gtf_use <- ""
-    ah_genome_use <- ah_gtf_use <- ""
+    fasta_use <- gtf_use <- ah_genome_use <- ah_gtf_use <- ""
     if(.is_AH_pattern(fasta)) {
         ah_genome_use <- fasta
     } else {
@@ -624,8 +621,6 @@ Get_GTF_file <- function(reference_path) {
     return(FALSE)
 }
 
-################################################################################
-
 .url_test <- function(url) {
     if(any(startsWith(url, c("http", "ftp")))) {
         ret = .check_if_url_exists(url)
@@ -654,7 +649,6 @@ Get_GTF_file <- function(reference_path) {
         overwrite = FALSE, verbose = TRUE
 ) {
     if (ah_genome != "") {
-        fasta_file = ""
         genome <- .fetch_fasta_ah(ah_genome, verbose = verbose)
         .fetch_fasta_save_2bit(genome, reference_path, overwrite)
         .fetch_fasta_save_fasta(genome, reference_path, overwrite)
@@ -672,35 +666,35 @@ Get_GTF_file <- function(reference_path) {
         return(genome)
     } else {
         fasta_file <- .parse_valid_file(fasta)
-        message(fasta_file)
+        if(!file.exists(fasta_file)) {
+            .log(paste("In .fetch_fasta(),",
+                "Given genome fasta file", gtf, "not found"))
+        }
         genome <- .fetch_fasta_file(fasta_file)
-        # Copy fasta file to local folder
         file.fasta = file.path(reference_path, "resource", "genome.fa")
         if(!file.exists(file.fasta) | overwrite) {
             if(file.exists(file.fasta) && 
-                    (normalizePath(file.fasta) == normalizePath(fasta_file))) {
-                # do nothing
+                (normalizePath(file.fasta) == normalizePath(fasta_file))) {
+                # avoid self-copy
             } else {
                 if(file.exists(file.fasta)) file.remove(file.fasta)
                 file.copy(fasta_file, file.fasta)
             }
         }
-
         .fetch_fasta_save_2bit(genome, reference_path, overwrite)
+        rm(genome)
+        gc()
+        message("Connecting to genome TwoBitFile...", appendLF = FALSE)
+            genome_2bit <- Get_Genome(reference_path, validate = FALSE)
+        message("done\n")
+        return(genome_2bit)
     }
-    rm(genome)
-    gc()
-    message("Connecting to genome TwoBitFile...", appendLF = FALSE)
-        genome_2bit <- Get_Genome(reference_path, validate = FALSE)
-    message("done\n")
-    return(genome_2bit)
 }
 
 # Fetch the AnnotationHub resource and return as a genome object
 .fetch_fasta_ah <- function(ah_genome, verbose = TRUE) {
-    if(substr(ah_genome, 1, 2) != "AH") {
+    if(substr(ah_genome, 1, 2) != "AH")
         .log("Given genome AnnotationHub reference is incorrect")
-    }
     genome <- .fetch_AH(ah_genome, verbose = verbose, rdataclass = "TwoBitFile")
 }
 
@@ -710,12 +704,10 @@ Get_GTF_file <- function(reference_path) {
     message("done")
     return(genome)
 }
+
 .fetch_fasta_save_fasta <- function(genome, reference_path, overwrite) {
-    if (!dir.exists(file.path(reference_path, "resource"))) {
-        dir.create(file.path(reference_path, "resource"))
-    }
     genome.fa = file.path(reference_path, "resource", "genome.fa")
-    if(overwrite || !file.exists(paste0(genome.fa, ".gz"))) {
+    if(overwrite || !file.exists(genome.fa)) {
         message("Saving local copy as FASTA...", appendLF = FALSE)
         if(overwrite && file.exists(genome.fa)) {
             file.remove(genome.fa)
@@ -726,24 +718,16 @@ Get_GTF_file <- function(reference_path) {
 }
 
 .fetch_fasta_save_2bit <- function(genome, reference_path, overwrite) {
-    if (!dir.exists(file.path(reference_path, "resource"))) {
-        dir.create(file.path(reference_path, "resource"))
-    }
     genome.2bit = file.path(reference_path, "resource", "genome.2bit")
-    if(overwrite || !file.exists(paste0(genome.2bit, ".2bit"))) {
-    # Convert to local 2bit for better memory management
-        if(is(genome, "TwoBitFile") && 
-            rtracklayer::path(genome) == genome.2bit) return()
+    if(is(genome, "TwoBitFile") && file.exists(genome.2bit) &&
+            normalizePath(rtracklayer::path(genome)) == 
+            normalizePath(genome.2bit)) return()    # prevent self-writing
+    if(overwrite || !file.exists(genome.2bit)) {
         message("Saving genome as TwoBitFile...", appendLF = FALSE)
         if(overwrite && file.exists(genome.2bit)) {
-            if(!is(genome, "TwoBitFile") || 
-                    normalizePath(path(genome)) != 
-                    normalizePath(genome.2bit) ){
-                file.remove(genome.2bit)
-            }
+            file.remove(genome.2bit)
         }
         if(is(genome, "TwoBitFile") && file.exists(rtracklayer::path(genome))) {
-            # Simply copy the file over
             file.copy(rtracklayer::path(genome), genome.2bit)
         } else {
             rtracklayer::export(genome, genome.2bit, "2bit")
@@ -755,18 +739,16 @@ Get_GTF_file <- function(reference_path) {
 
 ################################################################################
 
-.fetch_gtf <- function(reference_path = "./Reference",
-        gtf = "", ah_transcriptome = "",  verbose = TRUE, overwrite = FALSE) {
-    gtf_gr <- NULL
+.fetch_gtf <- function(
+        reference_path = "./Reference",
+        gtf = "", ah_transcriptome = "",  
+        verbose = TRUE, overwrite = FALSE
+) {
+    r_path = file.path(reference_path, "resource")
+    gtf_path = file.path(r_path, "transcripts.gtf.gz")
+    
     if (ah_transcriptome != "") {
-        if(substr(ah_transcriptome, 1, 2) != "AH") {
-            .log(paste("In .fetch_gtf(),",
-                "Given transcriptome AnnotationHub reference is incorrect"))
-        }
         gtf_gr <- .fetch_AH(ah_transcriptome, verbose = verbose)
-        # Make local copy of transcripts.gtf.gz if not exist
-        r_path = file.path(reference_path, "resource")
-        gtf_path = file.path(r_path, "transcripts.gtf.gz")
 
         if(overwrite || !file.exists(gtf_path)) {
             # Copy file from cache if exists
@@ -786,11 +768,8 @@ Get_GTF_file <- function(reference_path) {
         message("Reading source GTF file...", appendLF = FALSE)
         gtf_gr <- rtracklayer::import(gtf_file, "gtf")
         message("done\n")
-        # Make local copy of transcripts.gtf.gz if not exist
-        message("Making local copy of GTF file...", appendLF = FALSE)
 
-        r_path = file.path(reference_path, "resource")
-        gtf_path = file.path(r_path, "transcripts.gtf.gz")
+        message("Making local copy of GTF file...", appendLF = FALSE)
         if(!file.exists(gtf_path) ||
                 normalizePath(gtf_file) != normalizePath(gtf_path)) {
             if(overwrite || !file.exists(gtf_path)) {
@@ -955,25 +934,26 @@ Get_GTF_file <- function(reference_path) {
     message("...done\n")
 }
 
+# Processes Genes
+# - 
 .process_gtf_genes <- function(gtf_gr, reference_path) {
     Genes <- gtf_gr[gtf_gr$type == "gene"]
+
+    # If genes are not annotated by "type" column, then have to do it manually
     if(length(Genes) == 0) {
+        gene_cols = c("seqnames", "strand", 
+            "gene_id", "gene_name", "gene_biotype")
         Genes = as.data.table(gtf_gr)
-        Genes = Genes[,
-        c("start", "end", "width") := list(
-            min(get("start")),
-            max(get("end")),
+        Genes = Genes[, c("start", "end", "width") := list(
+            min(get("start")), max(get("end")),
             max(get("end")) - min(get("start")) + 1
-        ), by = c("seqnames", "strand", "gene_id", "gene_name", "gene_biotype")]
-        Genes = unique(Genes, 
-            by = c("seqnames", "strand", 
-            "gene_id", "gene_name", "gene_biotype"))
+        ), by = gene_cols]
+        Genes = unique(Genes, by = gene_cols)
         Genes$type = "gene"
         Genes = .grDT(Genes, keep.extra.columns = TRUE)
-        if(length(Genes) == 0) {
-            .log("No genes detected in reference!")
-        }
+        if(length(Genes) == 0) .log("No genes detected in reference!")
     }
+    
     Genes <- GenomeInfoDb::sortSeqlevels(Genes)
     Genes <- sort(Genes)
     Genes$gene_display_name <- paste0(Genes$gene_name, " (", Genes$gene_id, ")")
@@ -1013,28 +993,28 @@ Get_GTF_file <- function(reference_path) {
 
 .process_gtf_transcripts <- function(gtf_gr, reference_path) {
     Transcripts <- gtf_gr[gtf_gr$type == "transcript"]
+
+    # If transcript are not annotated by "type" column, then do manually
     if(length(Transcripts) == 0) {
-        Transcripts = as.data.table(gtf_gr)
-        Transcripts = Transcripts[,
-        c("start", "end", "width") := list(
-            min(get("start")),
-            max(get("end")),
-            max(get("end")) - min(get("start")) + 1
-        ), by = c("seqnames", "strand", 
+        tx_cols = c("seqnames", "strand", 
             "gene_id", "gene_name", "gene_biotype",
             "transcript_id", "transcript_name", "transcript_biotype")
-        ]
-        Transcripts = unique(Transcripts, by = c("seqnames", "strand", 
-            "gene_id", "gene_name", "gene_biotype",
-            "transcript_id", "transcript_name", "transcript_biotype"))
+        Transcripts = as.data.table(gtf_gr)
+        Transcripts = Transcripts[, c("start", "end", "width") := list(
+            min(get("start")), max(get("end")),
+            max(get("end")) - min(get("start")) + 1
+        ), by = tx_cols]
+        Transcripts = unique(Transcripts, by = tx_cols)
         Transcripts$type = "transcript"
         Transcripts = .grDT(Transcripts, keep.extra.columns = TRUE)
-        if(length(Transcripts) == 0) {
+        if(length(Transcripts) == 0) 
             .log("No transcripts detected in reference!")
-        }
     }
+    
     Transcripts <- GenomeInfoDb::sortSeqlevels(Transcripts)
     Transcripts <- sort(Transcripts)
+    
+    # Fix gene_biotype and transcript_biotype tags
     if ("gene_biotype" %in% names(mcols(Transcripts))) {
         # do nothing
     } else if ("gene_type" %in% names(mcols(Transcripts))) {
@@ -1058,8 +1038,7 @@ Get_GTF_file <- function(reference_path) {
             is.na(Transcripts$transcript_support_level)
         ] <- "NA"
     }
-    write.fst(
-        as.data.frame(Transcripts),
+    write.fst(as.data.frame(Transcripts),
         file.path(reference_path, "fst", "Transcripts.fst")
     )
 }
@@ -1069,7 +1048,8 @@ Get_GTF_file <- function(reference_path) {
     Proteins <- gtf_gr[gtf_gr$type == "CDS"]
     if(length(Proteins) == 0) {
         .log("No CDS (proteins) detected in reference!")
-    }
+    } # Is this critical to NxtIRF function?
+    
     Proteins <- GenomeInfoDb::sortSeqlevels(Proteins)
     Proteins <- sort(Proteins)
     write.fst(
@@ -1091,9 +1071,8 @@ Get_GTF_file <- function(reference_path) {
 
 .process_gtf_exons <- function(gtf_gr, reference_path, Genes_group) {
     Exons <- gtf_gr[gtf_gr$type == "exon"]
-    if(length(Exons) == 0) {
-        .log("No exons detected in reference!")
-    }
+    if(length(Exons) == 0) .log("No exons detected in reference!")
+    
     Exons <- GenomeInfoDb::sortSeqlevels(Exons)
     Exons <- sort(Exons)
 
@@ -1105,29 +1084,25 @@ Get_GTF_file <- function(reference_path) {
     } else if ("transcript_type" %in% names(mcols(Exons))) {
         colnames(mcols(Exons))[
             which(colnames(mcols(Exons)) == "transcript_type")
-        ] <-
-            "transcript_biotype"
+        ] <- "transcript_biotype"
     } else {
         mcols(Exons)$transcript_biotype <- "protein_coding"
     }
     
     # Assign gene groups then bake exon-groups into Exons
-    tmp.Exons_group.stranded <- .process_exon_groups(Exons, Genes_group, 
-        stranded = TRUE)
-    tmp.Exons_group.unstranded <- .process_exon_groups(Exons, Genes_group, 
-        stranded = FALSE)
+    tmp.Exons_group.stranded <- .process_exon_groups(
+        Exons, Genes_group, stranded = TRUE)
+    tmp.Exons_group.unstranded <- .process_exon_groups(
+        Exons, Genes_group, stranded = FALSE)
 
     # Now annotate all exons in Exons with the gene and exon groups
-    OL <- findOverlaps(
-        Exons, .grDT(tmp.Exons_group.stranded)
-    )
+    OL <- findOverlaps(Exons, .grDT(tmp.Exons_group.stranded))
     Exons$gene_group_stranded[from(OL)] <-
         tmp.Exons_group.stranded$gene_group[to(OL)]
     Exons$exon_group_stranded[from(OL)] <-
         tmp.Exons_group.stranded$exon_group[to(OL)]
 
-    OL <- findOverlaps(
-        Exons, .grDT(tmp.Exons_group.unstranded,
+    OL <- findOverlaps(Exons, .grDT(tmp.Exons_group.unstranded,
             ignore.strand = TRUE
         )
     )
@@ -1145,21 +1120,20 @@ Get_GTF_file <- function(reference_path) {
 }
 
 .process_exon_groups <- function(Exons, Genes_group, stranded = TRUE) {
+
+    # Annotated IR transcripts exons are not regarded as exons
     tmp.exons.exclude <- Exons[!grepl("intron", Exons$transcript_biotype)]
     tmp.Exons_group <- as.data.table(reduce(tmp.exons.exclude,
         ignore.strand = !stranded
     ))
-    if(stranded) {
-        GG = Genes_group[["stranded"]]
-    } else {
-        GG = Genes_group[["unstranded"]]
-    }
+    GG = Genes_group[[ifelse(stranded, "stranded", "unstranded")]]
+    
     OL <- findOverlaps(
         .grDT(tmp.Exons_group),
         .grDT(GG, ignore.strand = !stranded)
     )
-    tmp.Exons_group$gene_group[from(OL)] <-
-        GG$gene_group[to(OL)]
+    tmp.Exons_group$gene_group[from(OL)] <- GG$gene_group[to(OL)]
+    
     # Some retained_intron transcripts have terminal exons lying outside of
     #   main transcripts. Include these also
     tmp.exons.exclude.span <- split(
@@ -1220,13 +1194,12 @@ Get_GTF_file <- function(reference_path) {
         data[["Exons_group.unstranded"]]
     )
     gc()
-    write.fst(
-        data[["candidate.introns"]],
-        file.path(reference_path, "fst", "junctions.fst")
-    )
+    write.fst( data[["candidate.introns"]],
+        file.path(reference_path, "fst", "junctions.fst"))
     message("done\n")
 }
 
+# Import data for intron processing; create list of candidate.introns
 .process_introns_data <- function(reference_path, genome, 
         UseExtendedTranscripts = TRUE) {
     Exons <- as.data.table(
@@ -1271,20 +1244,21 @@ Get_GTF_file <- function(reference_path) {
 
 #############################################################################
 
-.process_introns_annotate <- function(candidate.introns, Transcripts, genome,
-        Proteins, Exons) {
-    # Annotating Introns:
+# Annotate particulars for given junctions / introns
+.process_introns_annotate <- function(candidate.introns, 
+        Transcripts, genome, Proteins, Exons) {
+    # Annotating Intron number, gene/transcript names, biotype:
     message("...basic annotations")  
     candidate.introns <- .process_introns_annotate_basics(
         candidate.introns, Transcripts)
 
-    # Grab splice motifs at this point; filter by valid splice motifs
+    # Grab splice motifs
     message("...splice motifs")  
     candidate.introns <- .process_introns_annotate_splice_motifs(
         candidate.introns, genome)
 
-    # Do other annotations here:
-    message("...other motifs")  
+    # Annotate TSL, protein_id, ccds_id:
+    message("...other info")  
     candidate.introns <- .process_introns_annotate_others(
         candidate.introns, Transcripts, Proteins, Exons
     )
@@ -1294,6 +1268,7 @@ Get_GTF_file <- function(reference_path) {
 
 .process_introns_annotate_basics <- function(
         candidate.introns, Transcripts) {
+    # Intron number
     candidate.introns[, c("intron_number") :=
         data.table::rowid(get("transcript_id"))]
     candidate.introns[get("strand") == "-",
@@ -1302,9 +1277,11 @@ Get_GTF_file <- function(reference_path) {
         by = "transcript_id"
     ]
     
+    # Name introns by number
     candidate.introns[, c("intron_id") :=
         paste0(get("transcript_id"), "_Intron", get("intron_number"))]
     
+    # Annotate introns with gene and transcript names and biotype
     candidate.introns[Transcripts,
         on = "transcript_id",
         c("gene_name", "gene_id", "transcript_name", "transcript_biotype") :=
@@ -1348,14 +1325,10 @@ Get_GTF_file <- function(reference_path) {
 
 .process_introns_annotate_others <- function(
         candidate.introns, Transcripts, Proteins, Exons) {
-    candidate.introns[Transcripts,
-        on = "transcript_id",
-        c("gene_name", "gene_id", "transcript_name") :=
-            list(get("i.gene_name"), get("i.gene_id"), get("i.transcript_name"))
-    ]
+
+    # Annotate TSL:
     if ("transcript_support_level" %in% colnames(Transcripts)) {
-        candidate.introns[Transcripts,
-            on = "transcript_id",
+        candidate.introns[Transcripts, on = "transcript_id",
             c("transcript_support_level") :=
                 list(get("i.transcript_support_level"))
         ]
@@ -1366,6 +1339,8 @@ Get_GTF_file <- function(reference_path) {
             c("transcript_support_level") := "NA"
         ]
     }
+
+    # Annotate protein_id:
     if ("protein_id" %in% colnames(Proteins)) {
         Proteins.red = unique(Proteins[, c("transcript_id", "protein_id")])
         candidate.introns[Proteins.red,
@@ -1373,6 +1348,8 @@ Get_GTF_file <- function(reference_path) {
             c("protein_id") := list(get("i.protein_id"))
         ]
     }
+
+    # Annotate ccds_id:
     if ("ccds_id" %in% colnames(Exons)) {
         Exons.red = unique(Exons[, c("transcript_id", "ccds_id")])        
         candidate.introns[Exons.red,
@@ -1437,24 +1414,17 @@ Get_GTF_file <- function(reference_path) {
 .process_introns_group_overlap <- function(target.DT, groups.DT,
     target.columns, groups.columns) {
 
-    OL <- .overlaps_exon_island(
-        target.DT,
-        groups.DT,
-        upstream = TRUE
-    )
-    set(target.DT, from(OL), 
-        target.columns[1],
+    # Compile overlaps between upstream SS and exon groups definition
+    OL <- .overlaps_exon_island(target.DT, groups.DT, upstream = TRUE)
+    set(target.DT, from(OL), target.columns[1],
         groups.DT[, get(groups.columns[1])][to(OL)]
-    )
-    set(target.DT, from(OL), 
-        target.columns[2],
+    )   # Gene group for upstream splice site
+    set(target.DT, from(OL), target.columns[2],
         groups.DT[, get(groups.columns[2])][to(OL)]
-    )
-    OL <- .overlaps_exon_island(
-        target.DT,
-        groups.DT,
-        upstream = FALSE
-    )
+    )   # Exon group for upstream splice site
+    
+    # Repeat for downstream SS
+    OL <- .overlaps_exon_island(target.DT, groups.DT, upstream = FALSE)
     set(target.DT, from(OL), 
         target.columns[3],
         groups.DT[, get(groups.columns[3])][to(OL)]
@@ -1469,6 +1439,8 @@ Get_GTF_file <- function(reference_path) {
 .process_introns_group_fix_RI <- function(
         target.DT, groups.DT, 
         target.columns, groups.columns) {
+        
+    # Create meta-introns: introns formed between adjacent exon groups
     tmp <- .grDT(groups.DT, keep.extra.columns = TRUE)
     tmp.Introns_group <- .grlGaps(
         split(tmp, tmp$gene_group)
@@ -1483,23 +1455,25 @@ Get_GTF_file <- function(reference_path) {
         by = "gene_group"
     ]
 
+    # Find introns that do not have annotated flanking exon islands
+    # - these are typically introns of retained_intron transcripts as their
+    #   junctions span into otherwise-obligate introns
     target.DT.subset <- target.DT[is.na(get(target.columns[2]))]
     target.DT <- target.DT[!is.na(get(target.columns[2]))]
     OL <- .overlaps_exon_island(
-        target.DT.subset,
-        tmp.Introns_group,
-        upstream = TRUE
+        target.DT.subset, tmp.Introns_group, upstream = TRUE
     )
     set(target.DT.subset, from(OL), 
         target.columns[1],
         as.integer(tmp.Introns_group[, get(groups.columns[1])][to(OL)])
-    )
+    )   # Gene group for upstream splice site
     set(target.DT.subset, from(OL), 
         target.columns[2],
         tmp.Introns_group[, get(groups.columns[2])][to(OL)]
-    )
+    )   # Exon group for upstream splice site
     target.DT <- rbind(target.DT, target.DT.subset)
 
+    # Repeat for downstream SS
     target.DT.subset <- target.DT[is.na(get(target.columns[4]))]
     target.DT <- target.DT[!is.na(get(target.columns[4]))]
     OL <- .overlaps_exon_island(
@@ -1510,14 +1484,17 @@ Get_GTF_file <- function(reference_path) {
     set(target.DT.subset, from(OL), 
         target.columns[3],
         as.integer(tmp.Introns_group[, get(groups.columns[3])][to(OL)])
-    )
+    )   # Gene group for downstream splice site
     set(target.DT.subset, from(OL), 
         target.columns[4],
         as.integer(tmp.Introns_group[, get(groups.columns[4])][to(OL)] + 1)
-    )
+    )   # Exon group for downstream splice site
     return(rbind(target.DT, target.DT.subset))
 }
 
+# Creates GRanges that overlap upstream or downstream splice site by 1 nt
+# - this allows assessment of which exon islands each intron bridges
+#   by their overlap with flanking exon islands
 .overlaps_exon_island <- function(intron.DT, groups.DT, upstream = TRUE) {
     if(all(c("intron_start", "intron_end") %in% colnames(intron.DT))) {
         int.DT = intron.DT[, c("seqnames", "start", "end", "strand", 
@@ -1577,25 +1554,27 @@ Get_GTF_file <- function(reference_path) {
     message("...writing final BED")  
     # Generate final ref-cover.bed
     ref.cover = .gen_irf_refcover(reference_path)
-    message("done\n")
+    message("done")
     message("Generating IRFinder reference: ref-ROI.bed ...", appendLF = FALSE)
     ref.ROI <- .gen_irf_ROI(reference_path, extra_files, genome, 
         data[["Genes"]], data[["Transcripts"]])
-    message("done\n")
+    message("done")
     message("Generating IRFinder reference: ref-read-continues.ref ...", 
         appendLF = FALSE)
     readcons = .gen_irf_readcons(reference_path,
         tmpdir.IntronCover.summa, tmpnd.IntronCover.summa
     )
-    message("done\n")
+    message("done")
     message("Generating IRFinder reference: ref-sj.ref ...", appendLF = FALSE)
     ref.sj <- .gen_irf_sj(reference_path)
-    message("done\n")
+    message("done")
     .gen_irf_final(reference_path, ref.cover, readcons, ref.ROI, ref.sj,
         chromosome_aliases)
 }
 ################################################################################
 
+# Load Genes, Exons, Transcripts, and Introns. 
+# Filter introns to protein_coding, processed_tx, lincRNA, antisense, and NMD
 .gen_irf_prep_data <- function(reference_path) {
     Genes <- .grDT(
         read.fst(file.path(reference_path, "fst", "Genes.fst")),
@@ -1608,7 +1587,7 @@ Get_GTF_file <- function(reference_path) {
     Genes.Extended <- reduce(c(
         flank(Genes.rev, 5000),
         flank(Genes.rev, 1000, start = FALSE)
-    ))
+    ))  # 1000 nt upstream and 5000 nt downstream
 
     candidate.introns <- as.data.table(
         read.fst(file.path(reference_path, "fst", "junctions.fst"))
@@ -1621,25 +1600,24 @@ Get_GTF_file <- function(reference_path) {
         read.fst(file.path(reference_path, "fst", "Transcripts.fst")),
         keep.extra.columns = TRUE
     )
-    candidate.introns <- candidate.introns[get("transcript_biotype") %in%
-        c("protein_coding", "processed_transcript",
-            "lincRNA", "antisense", "nonsense_mediated_decay")]
+    
+    allowed_tx = c("protein_coding", "processed_transcript",
+            "lincRNA", "antisense", "nonsense_mediated_decay")
+    candidate.introns <- candidate.introns[
+        get("transcript_biotype") %in% allowed_tx]
     candidate.introns[, c("transcript_biotype") :=
-        factor(get("transcript_biotype"),
-            c("protein_coding", "processed_transcript",
-                "lincRNA", "antisense", "nonsense_mediated_decay"),
-            ordered = TRUE
-        )]
+        factor(get("transcript_biotype"), allowed_tx, ordered = TRUE)]
+        
+    # If common introns between several transcripts, sort by importance
     if ("transcript_support_level" %in% colnames(candidate.introns)) {
         # Sort by tsl first, then reverse later
-        setorderv(
-            candidate.introns,
-            c("transcript_biotype", "transcript_support_level")
-        )
+        setorderv(candidate.introns, c("seqnames", "start", "end", "strand",
+            "transcript_biotype", "transcript_support_level"))
     } else {
-        setorderv(candidate.introns, "transcript_biotype")
+        setorderv(candidate.introns, c("seqnames", "start", "end", "strand",
+            "transcript_biotype"))
     }
-    setorderv(candidate.introns, c("seqnames", "start", "end", "strand"))
+
     final = list(
         Genes = Genes, Genes.rev = Genes.rev,
         Genes.Extended = Genes.Extended,
@@ -1649,19 +1627,26 @@ Get_GTF_file <- function(reference_path) {
     return(final)
 }
 
+# Unique introns, exclusion zones
 .gen_irf_prep_introns <- function(candidate.introns, Exons, extra_files) {
-    tmp.exons.exclude <- Exons[!grepl("intron", Exons$transcript_biotype)]
+
+    # Filter for unique introns (same start / end)
     introns.unique <- unique(candidate.introns,
         by = c("seqnames", "start", "end", "width", "strand"))
     setorderv(introns.unique, c("seqnames", "start", "end", "strand"))
     introns.unique <- .grDT(introns.unique, keep.extra.columns = TRUE)
 
-    exclude.directional <- as.data.table(tmp.exons.exclude)
+    # Directional exclusion
+    # - Regions overlapped by exons
+    exclude.directional <- as.data.table(
+        Exons[!grepl("intron", Exons$transcript_biotype)])
     exclude.directional <- unique(exclude.directional,
         by = c("seqnames", "start", "end", "width", "strand"))
     exclude.directional[, c("start") := get("start") - 5]
     exclude.directional[, c("end") := get("end") + 5]
 
+    # Non-directional exclusion
+    # - Low mappability regions, blacklist regions
     exclude.omnidirectional <- GRanges(NULL)
     if (extra_files$MappabilityFile != "") {
         exclude.omnidirectional <- c(exclude.omnidirectional,
@@ -1671,15 +1656,14 @@ Get_GTF_file <- function(reference_path) {
         exclude.omnidirectional <- c(exclude.omnidirectional,
             rtracklayer::import(extra_files$BlacklistFile, "bed"))
     }
-
     # merge with any gaps <= 9
     exclude.omnidirectional <-
         reduce(exclude.omnidirectional, min.gapwidth = 9)
-    # clean introns by those lying completely within blacklist regions
+
+    # Filter out introns are lie completely within low mappability or blacklists
     if (length(exclude.omnidirectional) > 0) {
         introns.unique.blacklisted <- findOverlaps(introns.unique,
-            exclude.omnidirectional,
-            type = "within"
+            exclude.omnidirectional, type = "within"
         )
         introns.unique <- introns.unique[-introns.unique.blacklisted@from]
     }
@@ -1692,22 +1676,24 @@ Get_GTF_file <- function(reference_path) {
     return(final)
 }
 
+# Annotate known-exon, anti-near, anti-over
 .gen_irf_prep_introns_unique <- function(introns.unique, exclude.directional,
         Genes.rev, Genes.Extended) {
     introns.unique.exon.dir <- findOverlaps(introns.unique,
-        .grDT(exclude.directional),
-        type = "within"
+        .grDT(exclude.directional), type = "within"
     )
     introns.unique.exon.nd <- findOverlaps(introns.unique,
-        .grDT(exclude.directional),
-        type = "within", ignore.strand = TRUE
+        .grDT(exclude.directional), type = "within", ignore.strand = TRUE
     )
 
+    # Mark introns if they exist within other exons (known RI events)
     introns.unique$known_exon_dir <-
         (seq_len(length(introns.unique)) %in% introns.unique.exon.dir@from)
     introns.unique$known_exon_nd <-
         (seq_len(length(introns.unique)) %in% introns.unique.exon.nd@from)
 
+    # Antiover: overlaps within anti-sense genes
+    # Antinear: overlaps within 1000 / 5000 nt up/downstream of antisense gene
     introns.unique.antiover <- findOverlaps(introns.unique, Genes.rev)
     introns.unique.antinear <- findOverlaps(introns.unique, Genes.Extended)
 
@@ -1716,7 +1702,6 @@ Get_GTF_file <- function(reference_path) {
     introns.unique$antinear <-
         (seq_len(length(introns.unique)) %in% introns.unique.antinear@from)
 
-    # Now subset introns by punching holes using blacklist regions
     introns.unique$intron_width <- BiocGenerics::width(introns.unique)
 
     # Remove introns less than 50 bp:
@@ -1728,9 +1713,11 @@ Get_GTF_file <- function(reference_path) {
     BiocGenerics::end(introns.unique) <-
         BiocGenerics::end(introns.unique) - 5
 
+    # NB intron_start and intron_end represent actual start and end of introns
     return(introns.unique)
 }
 
+# 
 .gen_irf_exclusion_zones <- function(introns.unique,
         exclude.omnidirectional, exclude.directional,
         stranded = TRUE) {
@@ -1751,20 +1738,28 @@ Get_GTF_file <- function(reference_path) {
         introns.intersect <- GenomicRanges::intersect(introns.unique, 
             exclude.directional.gr)
     }
+    # introns.intersect is the list of intron regions that 
+    #   should be excluded from analysis
+    
     OL <- findOverlaps(introns.unique, introns.intersect)
     # make a GRanges same size as the number of intersections
     introns.intersect.final <- introns.intersect[to(OL)]
     introns.intersect.final$intron_id <- introns.unique$intron_id[from(OL)]
-
+    
+    # Create GRangesList of intron regions and exclusions, split by intron_id
     introns.unique.ID <- split(introns.unique, introns.unique$intron_id)
     introns.intersect.ID <- split(introns.intersect.final,
             introns.intersect.final$intron_id)
+    # Filter for introns that have exclusion regions
     introns.unique.ID.compare <- introns.unique.ID[
         names(introns.unique.ID) %in% names(introns.intersect.ID)
     ]
 
+    # Take the difference: returns intron regions that need to be measured
+    #   GRangesList split by intron_id
     IntronCover <- setdiff(introns.unique.ID.compare, introns.intersect.ID)
-    # now add back introns that did not require intersection
+
+    # Now add back introns that did not require intersection
     #   (or would have been excluded as known-exons)
     IntronCover <- c(IntronCover,
         introns.unique.ID[!(names(introns.unique.ID) %in% 
@@ -1788,6 +1783,7 @@ Get_GTF_file <- function(reference_path) {
     return(IntronCover)
 }
 
+# Annotates IntronCover data
 .gen_irf_export_introncover <- function(IntronCover, stranded = TRUE,
         reference_path, introns.unique) {
     IntronCover.summa <- IntronCover
@@ -1833,15 +1829,17 @@ Get_GTF_file <- function(reference_path) {
     IntronCover.summa <- .gen_irf_irfname(IntronCover.summa, 
         stranded = stranded)
     
-    IntronCover <- .grDT(IntronCover, 
-        keep.extra.columns = TRUE)
+    IntronCover <- .grDT(IntronCover, keep.extra.columns = TRUE)
     IntronCover <- split(IntronCover, IntronCover$intron_id)
     names(IntronCover) <- IntronCover.summa$IRFname[match(
         names(IntronCover), IntronCover.summa$intron_id)]
+        
+    # Arrange by seqnames, start, end, strand
     setorderv(IntronCover.summa, 
         c("seqnames", "intron_start", "intron_end", "strand"))
     IntronCover <- IntronCover[IntronCover.summa$IRFname]
 
+    # Export as 12-column BED file
     rtracklayer::export(IntronCover, file.path(reference_path,
         ifelse(stranded, "tmpdir.IntronCover.bed", "tmpnd.IntronCover.bed")
     ))
@@ -1852,6 +1850,7 @@ Get_GTF_file <- function(reference_path) {
     return(IntronCover.summa)
 }
 
+# Generates IRFinder intron name
 .gen_irf_irfname <- function(IntronCover.summa, stranded = TRUE) {
     if(stranded) {
         IntronCover.summa[, c("IRFname") := paste("dir", 
@@ -1901,6 +1900,7 @@ Get_GTF_file <- function(reference_path) {
     return(IntronCover.summa)
 }
 
+# Imports IntronCover temp files, generates IRFinder-readable reference
 .gen_irf_refcover <- function(reference_path) {
     tmpdir.IntronCover <- fread(file.path(
         reference_path, "tmpdir.IntronCover.bed"
@@ -1922,6 +1922,8 @@ Get_GTF_file <- function(reference_path) {
 
 .gen_irf_ROI <- function(reference_path, extra_files, genome,
         Genes, Transcripts) {
+        
+    # List of rRNA regions
     rRNA <- as.data.table(Transcripts[grepl("rRNA", Transcripts$gene_biotype)])
     if(nrow(rRNA) > 0) {
         rRNA[, c("start") := get("start") - 1]
@@ -1933,6 +1935,7 @@ Get_GTF_file <- function(reference_path) {
         rRNA <- c()
     }
 
+    # List of nonPolyA regions
     if (extra_files$nonPolyAFile != "") {
         nonPolyA <- rtracklayer::import(extra_files$nonPolyAFile, "bed")
 
@@ -1943,6 +1946,7 @@ Get_GTF_file <- function(reference_path) {
         nonPolyA <- c()
     }
 
+    # Intergenic regions
     AllChr <- makeGRangesListFromDataFrame(data.frame(
         seqnames = names(seqinfo(genome)),
         start = 1, end = seqlengths(seqinfo(genome)),
@@ -1979,14 +1983,10 @@ Get_GTF_file <- function(reference_path) {
         tmpdir.IntronCover.summa, tmpnd.IntronCover.summa) {
     # ref-read-continues.ref
     introns.unique.readcons <- rbind(
-        tmpdir.IntronCover.summa[
-            ,
-            c("seqnames", "intron_start", "intron_end", "strand")
-        ],
-        tmpnd.IntronCover.summa[
-            ,
-            c("seqnames", "intron_start", "intron_end", "strand")
-        ]
+        tmpdir.IntronCover.summa[,
+            c("seqnames", "intron_start", "intron_end", "strand")],
+        tmpnd.IntronCover.summa[,
+            c("seqnames", "intron_start", "intron_end", "strand")]
     )
     # 0-based
     introns.unique.readcons[, c("intron_start") := get("intron_start") - 1]
