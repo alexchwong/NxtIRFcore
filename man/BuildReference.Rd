@@ -109,14 +109,6 @@ transcripts other than \code{protein_coding} and
 and mappability calculations. Multi-threading is not used for NxtIRF
 reference generation (but multiple cores are utilised by data.table
 and fst packages automatically, where available). See \link{STAR-methods}}
-
-\item{generate_mappability_reads}{(default FALSE) Whether reads should be
-generated for the purpose of Mappability calculations. See
-\code{\link{Mappability-methods}}}
-
-\item{...}{In GetReferenceResource(), if \code{generate_mappability_reads} is set
-to \code{TRUE}, additional arguments to parse to \code{Mappability_GenReads()}
-See \link{Mappability-methods}.}
 }
 \value{
 Nothing. The created reference will be written to the given
