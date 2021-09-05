@@ -10,6 +10,7 @@ IRFinder(
   reference_path = "./Reference",
   output_path = "./IRFinder_Output",
   n_threads = 1,
+  Use_OpenMP = TRUE,
   overwrite = FALSE,
   run_featureCounts = FALSE,
   verbose = FALSE
@@ -29,6 +30,12 @@ should be stored}
 \item{n_threads}{The number of threads to use. On Linux / Windows, this will
 use OpenMP from within the C++ subroutine. On Macs, BiocParallel
 MulticoreParam will be used on single-threaded NxtIRF/IRFinder}
+
+\item{Use_OpenMP}{(default TRUE) Whether to use OpenMP to run IRFinder.
+Typically Windows and Linux will natively support OpenMP, whereas MacOS
+will not by default. If OpenMP is not available or \code{Use_OpenMP = FALSE},
+then IRFinder multi-threading will use BiocParallel (SerialParam() for
+Windows, and MulticoreParam for Linux / MacOS).}
 
 \item{overwrite}{(default FALSE) If IRFinder output files already exist,
 will not attempt to re-run.}

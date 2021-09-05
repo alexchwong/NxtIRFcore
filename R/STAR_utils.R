@@ -229,8 +229,6 @@ STAR_Mappability <- function(
     .validate_reference_resource(reference_path)
     .validate_STAR_version()
     if(!file.exists(mappability_reads_fasta)) {
-        .log(paste("Generating genome fragments, saving to:", 
-            mappability_reads_fasta), type = "message")
         Mappability_GenReads(reference_path, ...)
     }
     .log(paste("Aligning genome fragments back to the genome, from:", 
@@ -256,7 +254,7 @@ STAR_Mappability <- function(
         .log("STAR failed to align mappability reads", "warning")
     }
     if(file.exists(file.path(reference_path, "Mappability",
-            "MappabilityExclusion.bed"))) {
+            "MappabilityExclusion.bed.gz"))) {
         message("Mappability Exclusion calculations complete")
     } else {
         .log("Mappability Exclusion calculations not performed", "warning")
@@ -395,27 +393,31 @@ STAR_align_fastq <- function(
     
     # Remove duplication:
     args = NULL
-    if(!("--genomeLoad" %in% additional_args)) args = c("--genomeLoad", memory_mode)
+    if(!("--genomeLoad" %in% additional_args)) 
+        args = c("--genomeLoad", memory_mode)
     if(!("--runThreadN" %in% additional_args)) args = c(args,
         "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
-    if(!("--genomeDir" %in% additional_args)) args = c(args, "--genomeDir", STAR_ref_path)
-    if(!("--outFileNamePrefix" %in% additional_args)) args = c(args, "--outFileNamePrefix", 
+    if(!("--genomeDir" %in% additional_args)) 
+        args = c(args, "--genomeDir", STAR_ref_path)
+    if(!("--outFileNamePrefix" %in% additional_args)) 
+        args = c(args, "--outFileNamePrefix", 
         paste0(BAM_output_path, "/"))
     if(!("--outStd" %in% additional_args)) args = c(args, "--outStd", "Log")
-    if(!("--outBAMcompression" %in% additional_args)) args = c(args, "--outBAMcompression", "6")
-    if(!("--outSAMstrandField" %in% additional_args)) args = c(args, "--outSAMstrandField", 
-        "intronMotif")
-    if(!("--outSAMunmapped" %in% additional_args)) args = c(args, "--outSAMunmapped", "None")
-    if(!("--outFilterMultimapNmax" %in% additional_args)) args = c(args, "--outFilterMultimapNmax", 
-        "1")
-    if(!("--outSAMtype" %in% additional_args)) args = c(args, "--outSAMtype", "BAM", "Unsorted")
+    if(!("--outBAMcompression" %in% additional_args)) 
+        args = c(args, "--outBAMcompression", "6")
+    if(!("--outSAMstrandField" %in% additional_args)) 
+        args = c(args, "--outSAMstrandField", "intronMotif")
+    if(!("--outSAMunmapped" %in% additional_args)) 
+        args = c(args, "--outSAMunmapped", "None")
+    if(!("--outFilterMultimapNmax" %in% additional_args)) args = 
+        c(args, "--outFilterMultimapNmax", "1")
+    if(!("--outSAMtype" %in% additional_args)) 
+        args = c(args, "--outSAMtype", "BAM", "Unsorted")
 
     if(two_pass) args = c(args, "--twopassMode", "Basic")
     
-    args = c(args,
-        "--readFilesIn",
-        paste(fastq_1, collapse = ",")
-    )
+    args = c(args, "--readFilesIn", paste(fastq_1, collapse = ","))
+    
     if(paired) args = c(args, paste(fastq_2, collapse = ","))
     if(gzipped) args = c(args, "--readFilesCommand", shQuote("gzip -dc"))
     if(is_valid(trim_adaptor)) args = c(args, "--clip3pAdapterSeq", trim_adaptor)

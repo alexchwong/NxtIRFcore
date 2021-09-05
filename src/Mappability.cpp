@@ -22,6 +22,75 @@ int Set_Threads(int n_threads) {
 std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned int error_pos,
   unsigned int direction, unsigned int error_seed) {
   
+  // Copy https://github.com/williamritchie/IRFinder/blob/master/bin/util/generateReadsError.pl
+  char error_nuc = '\0';  // set this as something to avoid warning at compile
+  switch(error_seed % 3) {
+  case 0:
+    switch(input_read[error_pos - 1]) {
+      case 'A':
+        error_nuc = 'G'; break;
+      case 'C':
+        error_nuc = 'A'; break;
+      case 'G':
+        error_nuc = 'T'; break;
+      case 'T':
+        error_nuc = 'C'; break;
+      case 'a':
+        error_nuc = 'g'; break;
+      case 'c':
+        error_nuc = 'a'; break;
+      case 'g':
+        error_nuc = 't'; break;
+      case 't':
+        error_nuc = 'c'; break;
+      default:
+        error_nuc = 'N';
+    }
+  case 1:
+    switch(input_read[error_pos - 1]) {
+      case 'A':
+        error_nuc = 'T'; break;
+      case 'C':
+        error_nuc = 'G'; break;
+      case 'G':
+        error_nuc = 'C'; break;
+      case 'T':
+        error_nuc = 'A'; break;
+      case 'a':
+        error_nuc = 't'; break;
+      case 'c':
+        error_nuc = 'g'; break;
+      case 'g':
+        error_nuc = 'c'; break;
+      case 't':
+        error_nuc = 'a'; break;
+      default:
+        error_nuc = 'N';
+    }    
+  case 2:
+    switch(input_read[error_pos - 1]) {
+      case 'A':
+        error_nuc = 'C'; break;
+      case 'C':
+        error_nuc = 'T'; break;
+      case 'G':
+        error_nuc = 'A'; break;
+      case 'T':
+        error_nuc = 'G'; break;
+      case 'a':
+        error_nuc = 'c'; break;
+      case 'c':
+        error_nuc = 't'; break;
+      case 'g':
+        error_nuc = 'a'; break;
+      case 't':
+        error_nuc = 'g'; break;
+      default:
+        error_nuc = 'N';
+    }    
+  }
+  memcpy(&input_read[error_pos - 1], &error_nuc, 1);
+  
   char * new_read = new char[read_len + 1];
   new_read[read_len] = '\0';
   if(direction == 0) {
@@ -47,86 +116,26 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
       case 'c':
         new_read[read_len - i - 1] = 'g'; break;
       default :
-        new_read[read_len - i - 1] = input_read[i];
+        new_read[read_len - i - 1] = 'N';
       }         
     }
   }
 
-  char error_nuc = '\0';  // set this as something to avoid warning at compile
-  switch(error_seed % 2) {
-  case 0:
-    switch(new_read[error_pos - 1]) {
-    case 'A':
-      error_nuc = 'G'; break;
-    case 'C':
-      error_nuc = 'A'; break;
-    case 'G':
-      error_nuc = 'T'; break;
-    case 'T':
-      error_nuc = 'C'; break;
-    case 'a':
-      error_nuc = 'g'; break;
-    case 'c':
-      error_nuc = 'a'; break;
-    case 'g':
-      error_nuc = 't'; break;
-    case 't':
-      error_nuc = 'c'; break;
-    }
-  case 1:
-    switch(new_read[error_pos - 1]) {
-    case 'A':
-      error_nuc = 'T'; break;
-    case 'C':
-      error_nuc = 'G'; break;
-    case 'G':
-      error_nuc = 'C'; break;
-    case 'T':
-      error_nuc = 'A'; break;
-    case 'a':
-      error_nuc = 't'; break;
-    case 'c':
-      error_nuc = 'g'; break;
-    case 'g':
-      error_nuc = 'c'; break;
-    case 't':
-      error_nuc = 'a'; break;
-    }    
-  case 2:
-    switch(new_read[error_pos - 1]) {
-    case 'A':
-      error_nuc = 'C'; break;
-    case 'C':
-      error_nuc = 'T'; break;
-    case 'G':
-      error_nuc = 'A'; break;
-    case 'T':
-      error_nuc = 'G'; break;
-    case 'a':
-      error_nuc = 'c'; break;
-    case 'c':
-      error_nuc = 't'; break;
-    case 'g':
-      error_nuc = 'a'; break;
-    case 't':
-      error_nuc = 'g'; break;
-    }    
-  }
-  memcpy(&new_read[error_pos - 1], &error_nuc, 1);
-  
   string return_str = string(new_read);
   delete[] new_read;
   return(return_str);
 }
 
+// Replicate old PERL script; return true if N's constitute less than half of length
 bool checkDNA(char * input_read, unsigned int read_len) {
+  unsigned int numN = 0;
   for(unsigned int i = 0; i < read_len; i++) {
     if(input_read[i]!='A' && input_read[i]!='T' && input_read[i]!='G' && input_read[i]!='C' &&
       input_read[i]!='a' && input_read[i]!='t' && input_read[i]!='g' && input_read[i]!='c') {
-      return false;
+      numN++;
     }
   }
-  return true;
+  return(numN < read_len / 2);
 }
 
 // [[Rcpp::export]]
@@ -165,34 +174,22 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
     chr = inFA.seqname;
     char * buffer = new char[sequence.length() + 1];
     std::strcpy (buffer, sequence.c_str());
-		// Rcout << "Processing chromosome: " << chr << '\n';
-		// Progress p(sequence.length(), (is_stdout == 0));
 
-		// unsigned int bufferPos_prev = 1;
     for(unsigned int bufferPos = 1; (bufferPos < sequence.length() - read_len - 1); bufferPos += read_stride) {
       memcpy(read, &buffer[bufferPos - 1], read_len);
       if(checkDNA(read, read_len)) {       
+        seed += 1;  // start with seed == 1 as in old script
         std::string write_seq = GenerateReadError(read, read_len, error_pos, direction, seed) ;
-        // outGZ.writeline(write_seq);
+
         if(is_stdout == 1) {
-          // Rcout << write_name << '\n' << write_seq << '\n';
           Rcout << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" << std::to_string(bufferPos)
             << '\n' << write_seq << '\n';  
         } else {
-          // outFA << write_name << '\n' << write_seq << '\n';     
           outFA << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" << std::to_string(bufferPos)
             << '\n' << write_seq << '\n'; 
         }
-        seed += 1;
         direction = (direction == 0 ? 1 : 0);
       }
-      // if((seed % 100000 == 0) & (seed > 0)) {
-        // if(is_stdout == 0) {
-          // Rcout << "Processed " << bufferPos << " coord of chrom:" << chr << '\n';
-					// p.increment((unsigned long)(bufferPos - bufferPos_prev));	
-					// bufferPos_prev = bufferPos;
-				// }
-      // }
     }
     delete[] buffer;
   }

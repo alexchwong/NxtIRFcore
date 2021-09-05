@@ -10,6 +10,11 @@
 #' @param n_threads The number of threads to use. On Linux / Windows, this will
 #'   use OpenMP from within the C++ subroutine. On Macs, BiocParallel
 #'   MulticoreParam will be used on single-threaded NxtIRF/IRFinder
+#' @param Use_OpenMP (default TRUE) Whether to use OpenMP to run IRFinder.
+#'   Typically Windows and Linux will natively support OpenMP, whereas MacOS
+#'   will not by default. If OpenMP is not available or `Use_OpenMP = FALSE`,
+#'   then IRFinder multi-threading will use BiocParallel (SerialParam() for
+#'   Windows, and MulticoreParam for Linux / MacOS).
 #' @param overwrite (default FALSE) If IRFinder output files already exist,
 #'   will not attempt to re-run.
 #' @param run_featureCounts Whether this function will run 
@@ -37,27 +42,28 @@ IRFinder <- function(
         sample_names = "sample1",
         reference_path = "./Reference",
         output_path = "./IRFinder_Output",
-        n_threads = 1,
+        n_threads = 1, Use_OpenMP = TRUE,
         overwrite = FALSE,
         run_featureCounts = FALSE,
         verbose = FALSE
-        ) {
+) {
+    # Check args
     if(length(bamfiles) != length(sample_names)) {
-        .log(paste("In IRFinder,",
+        .log(paste("In IRFinder(),",
             "Number of BAM files and sample names must be the same"))
     }
     if(!all(file.exists(bamfiles))) {
-        .log(paste("In IRFinder,",
+        .log(paste("In IRFinder(),",
             "some BAMs in bamfiles do not exist"))
     }
     if(!dir.exists(dirname(output_path))) {
-        .log(paste("In IRFinder,",
+        .log(paste("In IRFinder(),",
             dirname(output_path), " - path does not exist"))
     }
     if(!dir.exists(output_path)) dir.create(output_path)
 
+    # Check which output already exists; prevent overwrite
     s_output = file.path(normalizePath(output_path), sample_names)
-
     if(!overwrite) {
         already_exist = (
             file.exists(paste(s_output, "txt.gz")) &
@@ -67,11 +73,12 @@ IRFinder <- function(
         already_exist = rep(FALSE, length(bamfiles))
     }
 
+    # Call wrapper
     .run_IRFinder(
         reference_path = reference_path,
         bamfiles = bamfiles[!already_exist],
         output_files = s_output[!already_exist],
-        max_threads = n_threads,
+        max_threads = n_threads, Use_OpenMP = Use_OpenMP,
         run_featureCounts = run_featureCounts,
         overwrite_IRFinder_output = overwrite,
         verbose = verbose
@@ -90,10 +97,11 @@ IRFinder <- function(
         overwrite_IRFinder_output = FALSE,
         verbose = TRUE
     ) {
-    .validate_reference(reference_path)
-    s_bam = normalizePath(bamfiles)
-    s_ref = normalizePath(reference_path)
+    .validate_reference(reference_path)     # Check valid NxtIRF reference
+    s_bam = normalizePath(bamfiles)         # Clean path name for C/IRFinder
+    s_ref = normalizePath(reference_path)   # Clean path name for C/IRFinder
     
+    # Check args
     .irfinder_validate_args(s_bam, s_ref, max_threads, output_files)
     
     ref_file = normalizePath(file.path(s_ref, "IRFinder.ref.gz"))
@@ -101,7 +109,6 @@ IRFinder <- function(
     message("Running IRFinder ", appendLF = FALSE)
     n_threads = floor(max_threads)
     
-    # OpenMP version currently causes C stack usage errors. Disable for now
     if(Has_OpenMP() > 0 & Use_OpenMP) {
         # n_threads = min(n_threads, length(s_bam))
         IRF_main_multi(ref_file, s_bam, output_files, n_threads, verbose)
@@ -171,12 +178,14 @@ IRFinder <- function(
     }
 }
 
+# Runs featureCounts on given BAM files, intended to be run after IRFinder
+# as the latter determines the strandedness and paired-ness of the experiment
 .irfinder_run_featureCounts <- function(reference_path, output_files, 
         s_bam, n_threads) {
     NxtIRF.CheckPackageInstalled("Rsubread", "2.4.0")
     gtf_file <- Get_GTF_file(reference_path)
     
-    # determine paired_ness, strandedness, assume all BAMS are the same
+    # determine paired-ness, strandedness, assume all BAMS are the same
     data.list = get_multi_DT_from_gz(
         normalizePath(paste0(output_files[1], ".txt.gz")), 
         c("BAM", "Directionality")
@@ -189,6 +198,7 @@ IRFinder <- function(
     strand = direct$Value[9]
     if(strand == -1) strand = 2
     
+    # Run FeatureCounts in bulk
     res = Rsubread::featureCounts(
         s_bam,
         annot.ext = gtf_file,
@@ -198,6 +208,7 @@ IRFinder <- function(
         requireBothEndsMapped = paired,
         nthreads = n_threads
     )
+    
     # Append to existing main.FC.Rds if exists:
     if(file.exists(file.path(dirname(output_files[1]), "main.FC.Rds"))) {
         res.old = readRDS(
@@ -208,19 +219,22 @@ IRFinder <- function(
             c("GeneID", "Chr", "Start", "End", "Strand")]
         anno.new = res$annotation[, 
             c("GeneID", "Chr", "Start", "End", "Strand")]
-        # md5.old = with(res.old$annotation, openssl::md5(paste(
-            # GeneID, Chr, Start, End, Strand, collapse=" ")))
-        # md5 = with(res$annotation, openssl::md5(paste(
-            # GeneID, Chr, Start, End, Strand, collapse=" ")))
+
         md5.old.stat = openssl::md5(paste(res.old$stat$Status, collapse=" "))
         md5.stat = openssl::md5(paste(res$stat$Status, collapse=" "))
+        
         if(identical(anno.old, anno.new) & md5.stat == md5.old.stat) {
             new_samples = res$targets[!(res$targets %in% res.old$targets)]
             res$targets = c(res.old$targets, new_samples)
             res$stat = cbind(res.old$stat, res$stat[,new_samples])        
             res$counts = cbind(res.old$counts, res$counts[,new_samples])
+        } else {
+            .log(paste(
+                "featureCounts output not compatible with previous output",
+                "in main.FC.Rds. Overwriting previous output"
+            ), "warning")
         }
-    }   
+    }
     if(all(c("counts", "annotation", "targets", "stat") %in% names(res))) {
         saveRDS(res, file.path(dirname(output_files[1]), "main.FC.Rds"))
     }
@@ -230,15 +244,19 @@ IRFinder <- function(
 
 
 .irfinder_validate_args <- function(s_bam, s_ref, max_threads, output_files) {
-    if(max_threads != 1 && max_threads > parallel::detectCores()) {
+    if(!is.numeric(max_threads)) max_threads = 1
+    if(max_threads < 1) max_threads = 1
+    max_threads = floor(max_threads)
+    
+    if(max_threads > 1 && max_threads > parallel::detectCores()) {
         .log(paste("In .run_IRFinder(), ",
             max_threads, " threads is not allowed for this system"))
     }
+    
     if(!all(file.exists(s_bam))) {
         .log(paste("In .run_IRFinder(), ",
-            paste(unique(s_bam[!file.exists(s_bam)]),
-                collapse = ""),
-            " - files not found"))
+            paste(unique(s_bam[!file.exists(s_bam)]), collapse = ""),
+            " - these BAM files were not found"))
     }    
 
     if(!all(dir.exists(dirname(output_files)))) {

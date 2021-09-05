@@ -111,6 +111,7 @@ Mappability_GenReads <- function(reference_path, fasta_file,
     }
     .validate_path(file.path(normalizePath(reference_path), "Mappability"))
     # Run map read generator:
+    .log(paste("Generating synthetic reads, saving to", fasta_file), "message")
     .run_IRFinder_GenerateMapReads(
         normalizePath(fasta_file),
         file.path(normalizePath(reference_path), "Mappability", "Reads.fa"),
@@ -225,14 +226,20 @@ Mappability_CalculateExclusions <- function(reference_path,
         .log(paste("In run_IRFinder_MapExclusionRegions(),",
             s_bam, "does not exist"))
     }
-    return(
-        IRF_GenerateMappabilityRegions(s_bam, 
-            output_file,
-            threshold = threshold,
-            includeCov = includeCov,
-            verbose = TRUE, n_threads
-        )
+    IRF_GenerateMappabilityRegions(s_bam, 
+        output_file,
+        threshold = threshold,
+        includeCov = includeCov,
+        verbose = TRUE, n_threads
     )
+    # check file is actually made; then gzip it
+    if(file.exists(paste0(output_file, ".txt"))) {
+        R.utils::gzip(filename = paste0(output_file, ".txt"),
+            destname = paste0(output_file, ".gz"))
+    } else {
+        .log(paste(paste0(output_file, ".txt"), "was not produced"))
+    }
+    return()
 }
 
 

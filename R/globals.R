@@ -23,7 +23,7 @@ is_valid <- function(x) {
     if(type == "error") {
         stop(msg, call. = FALSE)
     } else if(type == "warning") {
-        warning(msg)
+        warning(msg, call. = FALSE)
     } else {
         message(msg, ...)
     }

@@ -410,6 +410,8 @@ Get_Genome <- function(reference_path, validate = TRUE) {
     return(genome)
 }
 
+# Returns gzipped GTF file from reference resource folder. For FeatureCounts.
+# For STAR, use .STAR_get_GTF instead
 Get_GTF_file <- function(reference_path) {
     .validate_reference(reference_path)
     if(file.exists(file.path(reference_path, 
