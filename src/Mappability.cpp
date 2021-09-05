@@ -183,7 +183,6 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
 
     for(unsigned int bufferPos = 1; (bufferPos < sequence.length() - read_len - 1); bufferPos += read_stride) {
       memcpy(read, &buffer[bufferPos - 1], read_len);
-      seed += 1;
       if(checkDNA(read, read_len)) {       
         std::string write_seq = GenerateReadError(read, read_len, error_pos, direction, seed) ;
 
@@ -194,9 +193,9 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
           outFA << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" << std::to_string(bufferPos)
             << '\n' << write_seq << '\n'; 
         }
-        direction = (direction == 0 ? 1 : 0);
-        
+        direction = (direction == 0 ? 1 : 0);        
       }
+      seed += 1;
     }
     delete[] buffer;
   }
