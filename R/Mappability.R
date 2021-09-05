@@ -111,10 +111,11 @@ Mappability_GenReads <- function(reference_path, fasta_file,
     }
     .validate_path(file.path(normalizePath(reference_path), "Mappability"))
     # Run map read generator:
-    .log(paste("Generating synthetic reads, saving to", fasta_file), "message")
+    outfile = file.path(normalizePath(reference_path), 
+        "Mappability", "Reads.fa")
+    .log(paste("Generating synthetic reads, saving to", outfile), "message")
     .run_IRFinder_GenerateMapReads(
-        normalizePath(fasta_file),
-        file.path(normalizePath(reference_path), "Mappability", "Reads.fa"),
+        normalizePath(fasta_file), outfile,
         read_len, read_stride, error_pos
     )
     .STAR_clean_temp_FASTA_GTF(reference_path)

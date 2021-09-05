@@ -1650,7 +1650,7 @@ Get_GTF_file <- function(reference_path) {
     gr
 }
 
-# Unique introns, exclusion zones
+# Unique introns, exclusion zones, known exon annotation
 .gen_irf_prep_introns <- function(candidate.introns, Exons, extra_files) {
 
     # Filter for unique introns (same start / end)
@@ -1665,6 +1665,23 @@ Get_GTF_file <- function(reference_path) {
         Exons[!grepl("intron", Exons$transcript_biotype)])
     exclude.directional <- unique(exclude.directional,
         by = c("seqnames", "start", "end", "width", "strand"))
+        
+    # Annotate known exons early.
+    introns.unique.exon.dir <- findOverlaps(introns.unique,
+        .grDT(exclude.directional), type = "within"
+    )
+    introns.unique.exon.nd <- findOverlaps(introns.unique,
+        .grDT(exclude.directional), type = "within", ignore.strand = TRUE
+    )
+
+    # Mark introns if they exist within other exons (known RI events)
+    introns.unique$known_exon_dir <-
+        (seq_len(length(introns.unique)) %in% introns.unique.exon.dir@from)
+    introns.unique$known_exon_nd <-
+        (seq_len(length(introns.unique)) %in% introns.unique.exon.nd@from)
+
+        
+    # After known exon annotation, expand this to exclude 5 more nt's    
     exclude.directional[, c("start") := get("start") - 5]
     exclude.directional[, c("end") := get("end") + 5]
 
@@ -1710,21 +1727,9 @@ Get_GTF_file <- function(reference_path) {
     return(final)
 }
 
-# Annotate known-exon, anti-near, anti-over
+# Annotate anti-near, anti-over
 .gen_irf_prep_introns_unique <- function(introns.unique, exclude.directional,
         Genes.rev, Genes.Extended) {
-    introns.unique.exon.dir <- findOverlaps(introns.unique,
-        .grDT(exclude.directional), type = "within"
-    )
-    introns.unique.exon.nd <- findOverlaps(introns.unique,
-        .grDT(exclude.directional), type = "within", ignore.strand = TRUE
-    )
-
-    # Mark introns if they exist within other exons (known RI events)
-    introns.unique$known_exon_dir <-
-        (seq_len(length(introns.unique)) %in% introns.unique.exon.dir@from)
-    introns.unique$known_exon_nd <-
-        (seq_len(length(introns.unique)) %in% introns.unique.exon.nd@from)
 
     # Antiover: overlaps within anti-sense genes
     # Antinear: overlaps within 1000 / 5000 nt up/downstream of antisense gene
@@ -2531,6 +2536,9 @@ Get_GTF_file <- function(reference_path) {
     introns_found_AFE = .gen_splice_AFE(candidate.introns, introns_found_A5SS)
     introns_found_ALE = .gen_splice_ALE(candidate.introns, introns_found_A3SS)
     message("done")
+    
+    # Annotate known RI's
+    
     gc()
 
 ################################################################################

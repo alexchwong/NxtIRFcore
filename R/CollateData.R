@@ -731,6 +731,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     return(Splice.Anno)
 }
 
+# Generate rowData annotations
 .collateData_rowEvent <- function(irf.common, Splice.Anno, 
         norm_output_path, reference_path) {
     .collateData_rowEvent_brief(irf.common, Splice.Anno, 
@@ -757,7 +758,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     write.fst(rowEvent, file.path(norm_output_path, "rowEvent.brief.fst"))
 }
 
-
+# Generate annotation based on importance of involved transcripts
 .collateData_rowEvent_splice_option <- function(reference_path,
         Splice.Anno) {
     Splice.Options = as.data.table(read.fst(
@@ -782,6 +783,10 @@ CollateData <- function(Experiment, reference_path, output_path,
     return(Splice.Options.Summary)
 }
 
+# Annotate full rowEvent. Includes:
+# - whether Inc/Exc is a protein coding splicing event
+# - whether Inc/Exc represent an event causing NMD
+# - the highest-ranking TSL for each alternative (A/B) of event
 .collateData_rowEvent_full <- function(Splice.Options.Summary, Splice.Anno,
         norm_output_path, reference_path) {
     rowEvent.Extended = read.fst(
@@ -791,7 +796,9 @@ CollateData <- function(Experiment, reference_path, output_path,
         as.data.table = TRUE)
     candidate.introns = as.data.table(
         read.fst(file.path(reference_path, "fst", "junctions.fst")))
-        
+    
+    # Prioritise candidate.introns based on transcript importance
+    
     rowEvent.Extended[get("EventType") == "IR", 
         c("intron_id") := tstrsplit(get("EventName"), split="/")[[2]]]
     rowEvent.Extended[, c("Inc_Is_Protein_Coding") := FALSE]
