@@ -18,6 +18,7 @@ void FastaReader::Profile() {
   }
   IN->clear();
   IN->seekg (0, std::ios_base::beg);
+  FirstSeq = true;
 }
 
 bool FastaReader::ReadSeq() {
