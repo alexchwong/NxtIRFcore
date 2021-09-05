@@ -271,7 +271,7 @@ NULL
 #' @export
 GetReferenceResource <- function(
         reference_path = "./Reference",
-        fasta, gtf,
+        fasta = "", gtf = "",
         overwrite_resource = FALSE
 ) {
     reference_data = .get_reference_data(
@@ -287,7 +287,7 @@ GetReferenceResource <- function(
 #' @export
 BuildReference <- function(
         reference_path = "./Reference",
-        fasta, gtf, overwrite_resource = FALSE, 
+        fasta = "", gtf = "", overwrite_resource = FALSE, 
         chromosome_aliases = NULL, genome_type = "", 
         nonPolyARef = "", MappabilityRef = "", BlacklistRef = "", 
         UseExtendedTranscripts = TRUE
@@ -308,6 +308,7 @@ BuildReference <- function(
         reference_data$genome, reference_data$gtf_gr)
     reference_data$gtf_gr = .fix_gtf(reference_data$gtf_gr)
     .process_gtf(reference_data$gtf_gr, reference_path)
+    extra_files$genome_style = .gtf_get_genome_style(reference_data$gtf_gr)
     reference_data$gtf_gr = NULL # To save memory, remove original gtf
     gc()
 
@@ -539,12 +540,27 @@ Get_GTF_file <- function(reference_path) {
     }
     BlacklistFile <-
         .parse_valid_file(BlacklistRef, "Blacklist exclusion")
-        
+    
+    # Check files are valid BED files; fail early if not
+    .check_is_BED(nonPolyAFile)
+    .check_is_BED(MappabilityFile)
+    .check_is_BED(BlacklistFile)
+    
     final <- list(
         nonPolyAFile = nonPolyAFile, MappabilityFile = MappabilityFile,
-        BlacklistFile = BlacklistFile
+        BlacklistFile = BlacklistFile, genome_type = genome_type
     )
     return(final)
+}
+
+.check_is_BED <- function(filename) {
+    if(is_valid(filename)) {
+        tryCatch(rtracklayer::import.bed(filename, "bed"), 
+            error = function(x) .log(paste(
+            filename, "is not a BED file"
+        )))
+    }
+    return()
 }
 
 .convert_chromosomes <- function(chromosome_aliases) {
@@ -568,8 +584,8 @@ Get_GTF_file <- function(reference_path) {
     # Checks fasta or gtf files exist if omitted, or are valid URLs
     .validate_path(reference_path, subdirs = "resource")
     if(!is_valid(fasta)) {
-        fasta = file.path(reference_path, "resource", "genome.fa")
-        if(!file.exists(fasta)) .log(paste(fasta, "doesn't exist"))
+        twobit = file.path(reference_path, "resource", "genome.2bit")
+        if(!file.exists(twobit)) .log(paste(fasta, "doesn't exist"))
     }
     if(!is_valid(gtf)) {
         gtf = file.path(reference_path, "resource", "transcripts.gtf.gz")
@@ -651,18 +667,10 @@ Get_GTF_file <- function(reference_path) {
     if (ah_genome != "") {
         genome <- .fetch_fasta_ah(ah_genome, verbose = verbose)
         .fetch_fasta_save_2bit(genome, reference_path, overwrite)
-        .fetch_fasta_save_fasta(genome, reference_path, overwrite)
         return(genome)
     } else if(fasta == "") {
-        # Check genome.2bit file exists
-        file.2bit = file.path(reference_path, "resource", "genome.2bit")
-        file.fasta = file.path(reference_path, "resource", "genome.fa")
-        if(!file.exists(file.2bit)) {
-            .log(paste("Could not find", file.2bit))
-        } else if(!file.exists(file.2bit)) {
-            .log(paste("Could not find", file.fasta))        
-        }
-        genome <- TwoBitFile(file.2bit)
+        twobit = file.path(reference_path, "resource", "genome.2bit")
+        genome <- TwoBitFile(twobit)
         return(genome)
     } else {
         fasta_file <- .parse_valid_file(fasta)
@@ -671,22 +679,12 @@ Get_GTF_file <- function(reference_path) {
                 "Given genome fasta file", gtf, "not found"))
         }
         genome <- .fetch_fasta_file(fasta_file)
-        file.fasta = file.path(reference_path, "resource", "genome.fa")
-        if(!file.exists(file.fasta) | overwrite) {
-            if(file.exists(file.fasta) && 
-                (normalizePath(file.fasta) == normalizePath(fasta_file))) {
-                # avoid self-copy
-            } else {
-                if(file.exists(file.fasta)) file.remove(file.fasta)
-                file.copy(fasta_file, file.fasta)
-            }
-        }
         .fetch_fasta_save_2bit(genome, reference_path, overwrite)
         rm(genome)
         gc()
-        message("Connecting to genome TwoBitFile...", appendLF = FALSE)
+        .log("Connecting to genome TwoBitFile...", "message", appendLF = FALSE)
             genome_2bit <- Get_Genome(reference_path, validate = FALSE)
-        message("done\n")
+        message("done")
         return(genome_2bit)
     }
 }
@@ -695,11 +693,12 @@ Get_GTF_file <- function(reference_path) {
 .fetch_fasta_ah <- function(ah_genome, verbose = TRUE) {
     if(substr(ah_genome, 1, 2) != "AH")
         .log("Given genome AnnotationHub reference is incorrect")
-    genome <- .fetch_AH(ah_genome, verbose = verbose, rdataclass = "TwoBitFile")
+    genome <- .fetch_AH(ah_genome, verbose = verbose, rdataclass = "TwoBitFile",
+        as_DNAStringSet = FALSE)
 }
 
 .fetch_fasta_file <- function(fasta_file) {
-    message("Importing genome into memory...", appendLF = FALSE)
+    .log("Importing genome into memory...", "message", appendLF = FALSE)
     genome <- Biostrings::readDNAStringSet(fasta_file)
     message("done")
     return(genome)
@@ -708,7 +707,7 @@ Get_GTF_file <- function(reference_path) {
 .fetch_fasta_save_fasta <- function(genome, reference_path, overwrite) {
     genome.fa = file.path(reference_path, "resource", "genome.fa")
     if(overwrite || !file.exists(genome.fa)) {
-        message("Saving local copy as FASTA...", appendLF = FALSE)
+        .log("Saving local copy as FASTA...", "message", appendLF = FALSE)
         if(overwrite && file.exists(genome.fa)) {
             file.remove(genome.fa)
         }
@@ -723,7 +722,7 @@ Get_GTF_file <- function(reference_path) {
             normalizePath(rtracklayer::path(genome)) == 
             normalizePath(genome.2bit)) return()    # prevent self-writing
     if(overwrite || !file.exists(genome.2bit)) {
-        message("Saving genome as TwoBitFile...", appendLF = FALSE)
+        .log("Saving genome as TwoBitFile...", "message", appendLF = FALSE)
         if(overwrite && file.exists(genome.2bit)) {
             file.remove(genome.2bit)
         }
@@ -732,7 +731,7 @@ Get_GTF_file <- function(reference_path) {
         } else {
             rtracklayer::export(genome, genome.2bit, "2bit")
         }
-        message("done\n")
+        message("done")
     }
 }
 
@@ -765,11 +764,11 @@ Get_GTF_file <- function(reference_path) {
             .log(paste("In .fetch_gtf(),",
                 "Given transcriptome gtf file", gtf, "not found"))
         }
-        message("Reading source GTF file...", appendLF = FALSE)
+        .log("Reading source GTF file...", "message", appendLF = FALSE)
         gtf_gr <- rtracklayer::import(gtf_file, "gtf")
-        message("done\n")
+        message("done")
 
-        message("Making local copy of GTF file...", appendLF = FALSE)
+        .log("Making local copy of GTF file...", "message", appendLF = FALSE)
         if(!file.exists(gtf_path) ||
                 normalizePath(gtf_file) != normalizePath(gtf_path)) {
             if(overwrite || !file.exists(gtf_path)) {
@@ -784,7 +783,7 @@ Get_GTF_file <- function(reference_path) {
                 }
             }
         }
-        message("done\n")
+        message("done")
         return(gtf_gr)
     }
 }
@@ -805,7 +804,7 @@ Get_GTF_file <- function(reference_path) {
 
 .fetch_AH <- function(ah_record_name, rdataclass = c("GRanges", "TwoBitFile"),
         localHub = FALSE, ah = AnnotationHub(localHub = localHub), 
-        as_DNAStringSet = TRUE, verbose = FALSE) {
+        as_DNAStringSet = FALSE, verbose = FALSE) {
     rdataclass = match.arg(rdataclass)
     if(!substr(ah_record_name, 1, 2) == "AH") {
         .log(paste(ah_record_name,
@@ -823,9 +822,9 @@ Get_GTF_file <- function(reference_path) {
             "and not of expected:", rdataclass))
     }
     if (verbose) {
-        message(paste("Downloading", rdataclass,
+        .log(paste("Downloading", rdataclass,
             "from AnnotationHub, if required..."),
-            appendLF = FALSE
+            "message", appendLF = FALSE
         )
     }
     cache_loc <- AnnotationHub::cache(ah_record)
@@ -835,23 +834,23 @@ Get_GTF_file <- function(reference_path) {
     }   
     if (ah_record$rdataclass == "GRanges") {
         if (verbose) {
-            message("Importing to memory as GRanges object...",
+            .log("Importing to memory as GRanges object...", "message",
                 appendLF = FALSE
             )
         }
         gtf <- rtracklayer::import(cache_loc, "gtf")
-        if (verbose) message("done\n")
+        if (verbose) message("done")
         return(gtf)
     } else if (ah_record$rdataclass == "TwoBitFile") {
         if (verbose) {
-            message("Importing to memory as TwoBitFile object...",
+            .log("Importing to memory as TwoBitFile object...", "message",
                 appendLF = FALSE
             )
         }
         twobit <- rtracklayer::TwoBitFile(cache_loc)
-        if (verbose) message("done\n")
+        if (verbose) message("done")
         if(as_DNAStringSet) {
-            message("Importing genome into memory...", appendLF = FALSE)
+            .log("Importing genome into memory...", "message", appendLF = FALSE)
                 genome = rtracklayer::import(twobit)
             message("done")
             return(genome)
@@ -912,8 +911,22 @@ Get_GTF_file <- function(reference_path) {
     }
     if(!("transcript_support_level" %in% names(S4Vectors::mcols(gtf_gr)))) {
         gtf_gr$transcript_support_level = 1
-    }
+    }   
+    
     return(gtf_gr)
+}
+
+.gtf_get_genome_style <- function(gtf_gr) {
+    seqnames = names(seqinfo(gtf_gr))
+    UCSC = any(seqnames %in% GenomeInfoDb::genomeStyles("Homo sapiens")$UCSC)
+    Ensembl = any(seqnames %in% GenomeInfoDb::genomeStyles("Homo sapiens")$Ensembl)
+    if(UCSC == Ensembl) {
+        return("")
+    } else if(UCSC) {
+        return("UCSC")    
+    } else {
+        return("Ensembl")
+    }
 }
 
 ################################################################################
@@ -931,7 +944,7 @@ Get_GTF_file <- function(reference_path) {
     .process_gtf_misc(gtf_gr, reference_path)
     message("...exons")
     .process_gtf_exons(gtf_gr, reference_path, Genes_group)
-    message("...done\n")
+    message("done")
 }
 
 # Processes Genes
@@ -1196,7 +1209,7 @@ Get_GTF_file <- function(reference_path) {
     gc()
     write.fst( data[["candidate.introns"]],
         file.path(reference_path, "fst", "junctions.fst"))
-    message("done\n")
+    message("done")
 }
 
 # Import data for intron processing; create list of candidate.introns
@@ -1526,7 +1539,7 @@ Get_GTF_file <- function(reference_path) {
 # Sub
 
 .gen_irf <- function(reference_path, extra_files, genome, chromosome_aliases) {
-    .log("Generating IRFinder reference: ref-cover.bed...", "message")
+    .log("Generating IRFinder reference", "message")
 
     # Generating IRFinder-base references
     message("...prepping data")  
@@ -1551,25 +1564,25 @@ Get_GTF_file <- function(reference_path) {
             data2[["exclude.directional"]], stranded = FALSE
         ), stranded = FALSE, reference_path, data2[["introns.unique"]]
     )
-    message("...writing final BED")  
+    message("...writing ref-cover.bed")  
     # Generate final ref-cover.bed
     ref.cover = .gen_irf_refcover(reference_path)
-    message("done")
-    message("Generating IRFinder reference: ref-ROI.bed ...", appendLF = FALSE)
+    # message("...done")
+    message("...writing ref-ROI.bed")
     ref.ROI <- .gen_irf_ROI(reference_path, extra_files, genome, 
         data[["Genes"]], data[["Transcripts"]])
-    message("done")
-    message("Generating IRFinder reference: ref-read-continues.ref ...", 
-        appendLF = FALSE)
+    # message("...done")
+    message("...writing ref-read-continues.ref")
     readcons = .gen_irf_readcons(reference_path,
         tmpdir.IntronCover.summa, tmpnd.IntronCover.summa
     )
-    message("done")
-    message("Generating IRFinder reference: ref-sj.ref ...", appendLF = FALSE)
+    # message("...done")
+    message("...writing ref-sj.ref")
     ref.sj <- .gen_irf_sj(reference_path)
-    message("done")
+    # message("...done")
     .gen_irf_final(reference_path, ref.cover, readcons, ref.ROI, ref.sj,
         chromosome_aliases)
+    message("IRFinder reference generation completed")
 }
 ################################################################################
 
@@ -1627,6 +1640,14 @@ Get_GTF_file <- function(reference_path) {
     return(final)
 }
 
+.gen_irf_convert_seqnames <- function(gr, style) {
+    if(!is(gr, "GRanges")) {
+        .log("Cannot convert seqnames as object is not GRanges")
+    }
+    if(style != "") seqlevelsStyle(gr) <- style
+    gr
+}
+
 # Unique introns, exclusion zones
 .gen_irf_prep_introns <- function(candidate.introns, Exons, extra_files) {
 
@@ -1648,14 +1669,25 @@ Get_GTF_file <- function(reference_path) {
     # Non-directional exclusion
     # - Low mappability regions, blacklist regions
     exclude.omnidirectional <- GRanges(NULL)
+    
     if (extra_files$MappabilityFile != "") {
-        exclude.omnidirectional <- c(exclude.omnidirectional,
-            rtracklayer::import(extra_files$MappabilityFile, "bed"))
+        exclude.omnidirectional <- c(exclude.omnidirectional, 
+            .gen_irf_convert_seqnames(
+                rtracklayer::import(extra_files$MappabilityFile, "bed"),
+                extra_files$genome_style
+            )
+        )
     }
+    
     if (extra_files$BlacklistFile != "") {
         exclude.omnidirectional <- c(exclude.omnidirectional,
-            rtracklayer::import(extra_files$BlacklistFile, "bed"))
+            .gen_irf_convert_seqnames(
+                rtracklayer::import(extra_files$BlacklistFile, "bed"),
+                extra_files$genome_style
+            )
+        )
     }
+
     # merge with any gaps <= 9
     exclude.omnidirectional <-
         reduce(exclude.omnidirectional, min.gapwidth = 9)
@@ -1937,7 +1969,10 @@ Get_GTF_file <- function(reference_path) {
 
     # List of nonPolyA regions
     if (extra_files$nonPolyAFile != "") {
-        nonPolyA <- rtracklayer::import(extra_files$nonPolyAFile, "bed")
+        nonPolyA <- .gen_irf_convert_seqnames(
+            rtracklayer::import(extra_files$nonPolyAFile, "bed"),
+            extra_files$genome_style
+        )
 
         nonPolyA = as.data.table(nonPolyA)
         nonPolyA <- nonPolyA[, c("seqnames", "start", "end"), with = FALSE]
@@ -2015,20 +2050,18 @@ Get_GTF_file <- function(reference_path) {
     )
 
     ref.sj <- candidate.introns[, c("seqnames", "start", "end", "strand")]
-    # annotate NMD-unique junctions
 
     ref.sj$Is_NMD <- ifelse(
-        grepl(
-            "nonsense_mediated_decay",
-            candidate.introns$transcript_biotype
-        ),
+        grepl("nonsense_mediated_decay", candidate.introns$transcript_biotype),
         "NMD", ""
     )
 
+    # annotate NMD-unique junctions
     ref.sj <- ref.sj[, lapply(.SD, function(x) {
         ifelse(all(x != ""), "NMD", "")
     }), by = c("seqnames", "start", "end", "strand")]
 
+    # BED file conversion
     ref.sj[, c("start") := get("start") - 1]
     setorderv(ref.sj, c("seqnames", "start", "end", "strand"))
     gc()
@@ -2210,21 +2243,20 @@ Get_GTF_file <- function(reference_path) {
 }
 
 .gen_nmd_determine <- function(exon.DT, intron.DT, genome, threshold = 50) {
-    .log("Calculating IR-NMD", "message")
+    .log("Predicting NMD transcripts from genome sequence", "message")
     exon.DT <- exon.DT[, 
         c("seqnames", "start", "end", "strand", "transcript_id")]
     exon_gr <- .grDT(exon.DT)
-    message("Computing for Exon Sequences...", appendLF = FALSE)
+    message("...exonic transcripts")
     set(exon.DT,,"seq", as.character(getSeq(genome, exon_gr)))
     final <- .gen_nmd_determine_spliced_exon(exon.DT, intron.DT, 
         threshold = threshold)
-    message("done")
 
     intron.DT.use = intron.DT[get("intron_type") != "UTR5"]
     exon.DT.skinny <- exon.DT[, -("seq")]
     i_partition <- c(seq(1, nrow(intron.DT.use), by = 10000), 
         nrow(intron.DT.use) + 1)
-    message("Computing for Intron Sequences...")
+    message("...retained introns")
     pb <- txtProgressBar(max = length(i_partition) - 1, style = 3)
     l_seq = 1000
     for (i in seq_len(length(i_partition) - 1)) {
@@ -2262,7 +2294,7 @@ Get_GTF_file <- function(reference_path) {
     }
     setTxtProgressBar(pb, i)
     close(pb)
-    message("done\n")
+    message("done")
     return(final)
 }
 
@@ -2513,7 +2545,7 @@ Get_GTF_file <- function(reference_path) {
 
     if (nrow(AS_Table) > 0) {
         .gen_splice_save(AS_Table, candidate.introns, reference_path)
-        message("Splice Annotations Filtered\n")
+        .log("Splice Annotations Filtered", "message")
     } else {
         message("No splice events found\n")
     }
@@ -3262,7 +3294,7 @@ Get_GTF_file <- function(reference_path) {
         c("AA_full_B") := paste0(get("AA_full_B"), get("AA_downstr_B"))]
     write.fst(as.data.frame(AS_Table.Extended),
         file.path(reference_path, "fst", "Splice.Extended.fst"))
-    message("done\n")
+    message("done")
 }
 
 .gen_splice_proteins_upstream <- function(AS_Table, AS_Table.Extended,

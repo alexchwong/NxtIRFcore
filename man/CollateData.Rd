@@ -64,7 +64,7 @@ downstream access such as \code{\link[=MakeSE]{MakeSE()}}.
 }
 \examples{
 bams = NxtIRF_example_bams()
-IRFinder(bams$BAM, bams$sample,
+IRFinder(bams$path, bams$sample,
   reference_path = file.path(tempdir(), "Reference"),
   output_path = file.path(tempdir(), "IRFinder_output")
 )

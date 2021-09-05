@@ -10,15 +10,15 @@
 \usage{
 GetReferenceResource(
   reference_path = "./Reference",
-  fasta,
-  gtf,
+  fasta = "",
+  gtf = "",
   overwrite_resource = FALSE
 )
 
 BuildReference(
   reference_path = "./Reference",
-  fasta,
-  gtf,
+  fasta = "",
+  gtf = "",
   overwrite_resource = FALSE,
   chromosome_aliases = NULL,
   genome_type = "",

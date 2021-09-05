@@ -23,7 +23,7 @@ test_that("NxtIRF OpenMP produces same output regardless of threads", {
     }
 
     for(i in seq_len(n_threads)) {
-        IRFinder(bams$BAM[1], paste0("thread_", i),
+        IRFinder(bams$path[1], paste0("thread_", i),
             reference_path = file.path(tempdir(), "Reference"),
             output_path = file.path(tempdir(), "IRFinder_test_threads"),
             overwrite = TRUE, n_threads = i, verbose = TRUE

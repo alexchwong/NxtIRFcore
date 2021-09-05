@@ -61,8 +61,10 @@ Collate: AllImports.R
 	Coverage.R
 	utils.R
 	BuildRef.R
-	DE_IR.R
 	CollateData.R
+	DE_IR.R
+	File_finders.R
+	IRFinder.R
 	STAR_utils.R
 Encoding: UTF-8
 RoxygenNote: 7.1.1

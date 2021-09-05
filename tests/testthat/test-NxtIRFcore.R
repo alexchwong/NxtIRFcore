@@ -16,7 +16,7 @@ test_that("NxtIRF pipeline reproduces NxtSE object", {
         # file.path(tempdir(),"Output"), TRUE, TRUE, n_threads = 2
     # )
     
-    IRFinder(bams$BAM, bams$sample,
+    IRFinder(bams$path, bams$sample,
         reference_path = file.path(tempdir(), "Reference"),
         output_path = file.path(tempdir(), "IRFinder_output"),
         overwrite = TRUE, n_threads = 1, verbose = TRUE

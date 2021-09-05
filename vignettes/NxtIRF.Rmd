@@ -135,13 +135,13 @@ to ascertain sample names. The sample names are either used as the file names of
 the BAM files themselves (as in our case below), or as directory names 
 (e.g. /path/to/project/BAMs/sample1/Unsorted.bam", 
 "/path/to/project/BAMs/sample2/Unsorted.bam", etc). Sample name deduction can be
-done in both cases (use_subdir = TRUE in the latter case)
+done in both cases (level = 1 in the latter case)
 
 ```{r, results = FALSE, message = FALSE, warning = FALSE}
-bams = Find_Bams("./bams", use_subdir = FALSE) # as BAM file names denote their sample names
+bams = Find_Bams("./bams", level = 0) # as BAM file names denote their sample names
 
 # In the case where BAM files are labelled using sample names as parent directory names, use:
-# Find_Bams("./bams", use_subdir = TRUE)
+# Find_Bams("./bams", level = 1)
 ```
 
 This convenience function retrieves a data frame with the first and second
