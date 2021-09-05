@@ -96,7 +96,7 @@ NULL
 #' vanilla IRFinder.
 #' @export
 Mappability_GenReads <- function(reference_path, fasta_file,
-        read_len = 70, read_stride = 10, error_pos = 35,
+        read_len = 70, read_stride = 10, error_pos = 36,
         verbose = TRUE) {
     .gmr_check_params(read_len, read_stride, error_pos)
     if(missing(fasta_file)) {
@@ -210,7 +210,7 @@ Mappability_CalculateExclusions <- function(reference_path,
 # Wrappers to native functions:
 
 .run_IRFinder_GenerateMapReads = function(genome.fa = "", out.fa, 
-    read_len = 70, read_stride = 10, error_pos = 35) {
+    read_len = 70, read_stride = 10, error_pos = 36) {
     return(
         IRF_GenerateMappabilityReads(normalizePath(genome.fa), 
             file.path(normalizePath(dirname(out.fa)), basename(out.fa)),

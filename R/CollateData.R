@@ -706,6 +706,8 @@ CollateData <- function(Experiment, reference_path, output_path,
     # Annotate exon islands for splice events
     Splice.Anno = read.fst(file.path(reference_path, "fst", "Splice.fst"),
         as.data.table = TRUE)
+    Splice.Anno = Splice.Anno[Splice.Anno$EventType != "RI"]
+    
     Splice.Anno[candidate.introns, on = "Event1a", 
         c("up_1a") := paste(get("i.gene_group_stranded"), 
         get("i.exon_group_stranded_upstream"), sep="_")]
@@ -858,6 +860,7 @@ CollateData <- function(Experiment, reference_path, output_path,
         file.path(norm_output_path, "annotation","IR.fst")))
     Splice.Anno = as.data.table(read.fst(
         file.path(norm_output_path, "annotation","Splice.fst")))
+    Splice.Anno = Splice.Anno[Splice.Anno$EventType != "RI"]
     junc_PSI = as.data.table(read.fst(
         file.path(norm_output_path, "junc_PSI_index.fst")
     ))
