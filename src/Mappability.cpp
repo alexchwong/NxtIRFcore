@@ -23,10 +23,15 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
   unsigned int direction, unsigned int error_seed) {
   
   // Copy https://github.com/williamritchie/IRFinder/blob/master/bin/util/generateReadsError.pl
+
+  char * new_read_inter = new char[read_len + 1];
+  new_read_inter[read_len] = '\0';
+  memcpy(&new_read_inter[0], input_read, read_len);  
+
   char error_nuc = '\0';  // set this as something to avoid warning at compile
   switch(error_seed % 3) {
   case 0:
-    switch(input_read[error_pos - 1]) {
+    switch(new_read_inter[error_pos - 1]) {
       case 'A':
         error_nuc = 'G'; break;
       case 'C':
@@ -47,7 +52,7 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
         error_nuc = 'N';
     }
   case 1:
-    switch(input_read[error_pos - 1]) {
+    switch(new_read_inter[error_pos - 1]) {
       case 'A':
         error_nuc = 'T'; break;
       case 'C':
@@ -68,7 +73,7 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
         error_nuc = 'N';
     }    
   case 2:
-    switch(input_read[error_pos - 1]) {
+    switch(new_read_inter[error_pos - 1]) {
       case 'A':
         error_nuc = 'C'; break;
       case 'C':
@@ -89,15 +94,16 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
         error_nuc = 'N';
     }    
   }
-  memcpy(&input_read[error_pos - 1], &error_nuc, 1);
+  
+  memcpy(&new_read_inter[error_pos - 1], &error_nuc, 1);
   
   char * new_read = new char[read_len + 1];
   new_read[read_len] = '\0';
   if(direction == 0) {
-    memcpy(&new_read[0], input_read, read_len);  
+    memcpy(&new_read[0], new_read_inter, read_len);  
   } else {
     for(unsigned int i = 0; i < read_len; i++) {
-      switch(input_read[i])
+      switch(new_read_inter[i])
       {   
       case 'A':
         new_read[read_len - i - 1] = 'T'; break;

@@ -327,7 +327,7 @@ BuildReference <- function(
     })
 
     dash_progress("Annotating Splice Events", N_steps)
-    .gen_splice(reference_path, reference_data$genome)
+    .gen_splice(reference_path)
     if(file.exists(file.path(reference_path, "fst", "Splice.fst"))) {
         dash_progress("Translating AS Peptides", N_steps)
         .gen_splice_proteins(reference_path, reference_data$genome)    
@@ -2502,7 +2502,7 @@ Get_GTF_file <- function(reference_path) {
 ################################################################################
 # Sub
 
-.gen_splice <- function(reference_path, genome) {
+.gen_splice <- function(reference_path) {
     .log("Annotating Splice Events", "message")
     candidate.introns <- as.data.table(
         read.fst(file.path(reference_path, "fst", "junctions.fst"))
@@ -2510,7 +2510,6 @@ Get_GTF_file <- function(reference_path) {
     introns.skipcoord <- .gen_splice_skipcoord(
         reference_path, candidate.introns)
 
-    # chrOrder <- names(seqinfo(genome))
     message("Annotating Mutually-Exclusive-Exon Splice Events...",
         appendLF = FALSE
     )
@@ -2538,7 +2537,10 @@ Get_GTF_file <- function(reference_path) {
     message("done")
     
     # Annotate known RI's
-    
+    message("Annotating known retained introns...",
+        appendLF = FALSE)
+    introns_found_RI = .gen_splice_RI(candidate.introns, reference_path)
+    message("done")
     gc()
 
 ################################################################################
@@ -2548,7 +2550,8 @@ Get_GTF_file <- function(reference_path) {
     tmp_AS <- list(
         introns_found_MXE, introns_found_SE,
         introns_found_AFE, introns_found_ALE,
-        introns_found_A5SS, introns_found_A3SS
+        introns_found_A5SS, introns_found_A3SS,
+        introns_found_RI
     )
     tmp_AS <- base::Filter(is_valid_splice_type, tmp_AS)
     AS_Table <- rbindlist(tmp_AS)
@@ -3105,6 +3108,43 @@ Get_GTF_file <- function(reference_path) {
     return(introns_found_A3SS)
 }
 
+.gen_splice_RI <- function(candidate.introns, reference_path) {
+    Exons <- .grDT(
+        read.fst(file.path(reference_path, "fst", "Exons.fst")),
+        keep.extra.columns = TRUE
+    )
+    candidate.RI = as.data.table(
+        read.fst(file.path(reference_path, "fst", "Introns.Dir.fst")))
+    candidate.RI = candidate.RI[get("known_exon_dir") == TRUE]
+    candidate.RI[, c("start", "end") := 
+        list(get("intron_start"), get("intron_end"))]
+    
+    found_RI = data.table(EventType = "RI", 
+        EventID = paste0("RI#", seq_len(nrow(candidate.RI))),
+        EventName = "", # assign later
+        Event1a = with(candidate.RI, 
+            paste0(seqnames, ":", start, "-", end, "/", strand)),
+        Event1b = with(candidate.RI, 
+            paste0(seqnames, ":", start, "-", end, "/", strand)), 
+        Event2a = NA,
+        Event2b = NA,
+        gene_id = Exons$gene_id[match(candidate.RI$transcript_id,
+            Exons$transcript_id)]
+    )
+    found_RI$gene_id_b = found_RI$gene_id
+    found_RI$EventRegion = found_RI$Event1a
+    found_RI$transcript_id_a = ""
+    found_RI$transcript_name_a = ""
+    found_RI$intron_number_a = 0
+    found_RI$transcript_id_b = candidate.RI$transcript_id
+    found_RI$transcript_name_b = Exons$gene_id[match(
+        candidate.RI$transcript_id, Exons$transcript_id)]
+    found_RI$intron_number_b = as.numeric(tstrsplit(candidate.RI$intron_id,
+        split="Intron")[[2]])
+    
+    return(found_RI)
+}
+
 .gen_splice_save <- function(AS_Table, candidate.introns, reference_path) {
     candidate.introns.order <- copy(candidate.introns)
     if (!("transcript_support_level" %in% colnames(candidate.introns))) {
@@ -3123,7 +3163,7 @@ Get_GTF_file <- function(reference_path) {
 
 .gen_splice_prep_events <- function(AS_Table, candidate.introns.order,
         reference_path) {
-    AS_Table_search.a <- AS_Table[,
+    AS_Table_search.a <- AS_Table[get("EventType") != "RI",
         c("EventType", "EventID", "Event1a", "Event2a")]
     AS_Table_search.a[, c("Event") := get("Event1a")]
     AS_Table_search.a <- candidate.introns.order[AS_Table_search.a,
@@ -3145,6 +3185,37 @@ Get_GTF_file <- function(reference_path) {
             "is_last_intron", "in_1a", "intron_number")]
     AS_Table_search.a <- AS_Table_search.a[!is.na(get("intron_number"))]
     setnames(AS_Table_search.a, "intron_number", "in_2a")
+
+    # Separate search_a for RI
+   
+    Exons <- .grDT(
+        read.fst(file.path(reference_path, "fst", "Exons.fst")),
+        keep.extra.columns = TRUE
+    )
+    if(!("transcript_support_level" %in% names(mcols(Exons)))) {
+        Exons$transcript_support_level = NA
+    }
+    Exons$transcript_support_level = tstrsplit(Exons$transcript_support_level,
+        split=" ", fixed=TRUE)[[1]]
+    RI.ranges = AS_Table[get("EventType") == "RI"]
+    RI.gr = NxtIRF.CoordToGR(RI.ranges$Event1b)
+    OL = findOverlaps(RI.gr, Exons, type = "within")
+    RI.DT = data.table(
+        EventType = "RI", 
+        EventID = RI.ranges$EventID[from(OL)],
+        Event1a = RI.ranges$Event1a[from(OL)],
+        Event2a = NA,
+        transcript_id = Exons$transcript_id[to(OL)]
+    )
+    RI.DT$transcript_support_level = 
+        Exons$transcript_support_level[to(OL)]
+    RI.DT$is_protein_coding = 
+        (Exons$transcript_biotype[to(OL)] == "protein_coding")
+    RI.DT$is_last_intron = FALSE
+    RI.DT$in_1a = Exons$exon_number[to(OL)]
+    RI.DT$in_2a = Exons$exon_number[to(OL)]
+
+    AS_Table_search.a = rbind(AS_Table_search.a, RI.DT)
 
     AS_Table_search.b <- AS_Table[,
         c("EventType", "EventID", "Event1b", "Event2b")]
@@ -3169,10 +3240,11 @@ Get_GTF_file <- function(reference_path) {
     AS_Table_search.b <- AS_Table_search.b[!is.na(get("intron_number"))]
     setnames(AS_Table_search.b, "intron_number", "in_2b")
 
-    AS_Table_search.a[candidate.introns.order, on = "transcript_id",
-        c("transcript_name") := get("i.transcript_name")]
-    AS_Table_search.b[candidate.introns.order, on = "transcript_id",
-        c("transcript_name") := get("i.transcript_name")]
+    
+    AS_Table_search.a$transcript_name = Exons$transcript_name[match(
+        AS_Table_search.a$transcript_id, Exons$transcript_id)]
+    AS_Table_search.b$transcript_name = Exons$transcript_name[match(
+        AS_Table_search.b$transcript_id, Exons$transcript_id)]
     setorderv(AS_Table_search.a,
         c("transcript_support_level", "is_protein_coding", 
             "transcript_name"),
@@ -3190,18 +3262,20 @@ Get_GTF_file <- function(reference_path) {
 
     AS_Table$transcript_id_a <- AS_Table.find.a$transcript_id
     AS_Table$transcript_name_a <- AS_Table.find.a$transcript_name
-    AS_Table$intron_number_a <- AS_Table.find.a$in_1a
+    AS_Table$intron_number_a <- as.numeric(AS_Table.find.a$in_1a)
     AS_Table$transcript_id_b <- AS_Table.find.b$transcript_id
     AS_Table$transcript_name_b <- AS_Table.find.b$transcript_name
-    AS_Table$intron_number_b <- AS_Table.find.b$in_1b
+    AS_Table$intron_number_b <- as.numeric(AS_Table.find.b$in_1b)
 
     setnames(AS_Table_search.a,
         old = c("Event1a", "Event2a", "in_1a", "in_2a"),
         new = c("Event1", "Event2", "in_1", "in_2"))
     AS_Table_search.a[, c("isoform") := "A"]
+       
     setnames(AS_Table_search.b,
         old = c("Event1b", "Event2b", "in_1b", "in_2b"),
         new = c("Event1", "Event2", "in_1", "in_2"))
+
     AS_Table_search.b[, c("isoform") := "B"]
 
     write.fst(as.data.frame(rbind(AS_Table_search.a, AS_Table_search.b)),
@@ -3250,6 +3324,14 @@ Get_GTF_file <- function(reference_path) {
             as.character(as.numeric(get("intron_number_a") + 1)), ";",
             get("transcript_name_b"), "-exon",
             as.character(as.numeric(get("intron_number_b") + 1)))]
+
+    AS_Table[
+        get("EventType") == "RI",
+        c("EventName") := paste0(
+            "RI:", get("transcript_name_a"), "-exon",
+            as.character(as.numeric(get("intron_number_a"))), ";",
+            get("transcript_name_b"), "-intron",
+            as.character(as.numeric(get("intron_number_b"))))]
 
     write.fst(as.data.frame(AS_Table), 
         file.path(reference_path, "fst", "Splice.fst"))
@@ -3312,8 +3394,16 @@ Get_GTF_file <- function(reference_path) {
     # Upstream applicable for MXE, SE, ALE, A3SS
     cols = c("EventType", "EventID", 
         paste0(c("transcript_id_", "intron_number_"), tolower(isoform)))   
-    Upstream <- AS_Table[get("EventType") %in% c("MXE", "SE", "ALE", "A3SS"),
-        cols, with = FALSE]
+    if(isoform == "A") {
+        Upstream <- AS_Table[get("EventType") %in% 
+            c("MXE", "SE", "ALE", "A3SS", "RI"),
+            cols, with = FALSE]
+    } else {
+        Upstream <- AS_Table[get("EventType") %in% 
+            c("MXE", "SE", "ALE", "A3SS"),
+            cols, with = FALSE]
+    }
+
     Upstream[, c("transcript_id", "exon_number") :=
         list(
             get(paste0("transcript_id_", tolower(isoform))), 
@@ -3354,8 +3444,16 @@ Get_GTF_file <- function(reference_path) {
     # Add EventType as exon_number is conditional on this
     cols = c("EventType", "EventID", 
         paste0(c("transcript_id_", "intron_number_"), tolower(isoform)))
-    Downstream <- AS_Table[get("EventType") %in% c("MXE", "SE", "AFE", "A5SS"),
-        cols, with = FALSE]
+    if(isoform == "A") {
+        Downstream <- AS_Table[get("EventType") %in% 
+            c("MXE", "SE", "AFE", "A5SS", "RI"),
+            cols, with = FALSE]
+    } else {
+        Downstream <- AS_Table[get("EventType") %in% 
+            c("MXE", "SE", "AFE", "A5SS"),
+            cols, with = FALSE]
+    }
+
     Downstream[, c("transcript_id", "exon_number") :=
         list(get(paste0("transcript_id_", tolower(isoform))), 
             get(paste0("intron_number_", tolower(isoform))))]
@@ -3363,12 +3461,12 @@ Get_GTF_file <- function(reference_path) {
     if(toupper(isoform) == "A") {
         Downstream[get("EventType") %in% c("MXE", "SE"),
             c("exon_number") := get("exon_number") + 2]
-        Downstream[get("EventType") %in% c("AFE", "A5SS"),
+        Downstream[get("EventType") %in% c("AFE", "A5SS", "RI"),
             c("exon_number") := get("exon_number") + 1]    
     } else {
         Downstream[get("EventType") %in% c("MXE"), 
             c("exon_number") := get("exon_number") + 2]
-        Downstream[get("EventType") %in% c("SE", "AFE", "A5SS"),
+        Downstream[get("EventType") %in% c("SE", "AFE", "A5SS", "RI"),
             c("exon_number") := get("exon_number") + 1]    
     }
     Downstream <- Proteins_Splice[Downstream,
@@ -3404,11 +3502,11 @@ Get_GTF_file <- function(reference_path) {
     Casette[, c("transcript_id", "exon_number") :=
         list(get(paste0("transcript_id_", tolower(isoform))), 
             get(paste0("intron_number_", tolower(isoform))))]
-    if(toupper(isoform) == "A") {
+    if(toupper(isoform) == "B") {
         Casette[get("EventType") %in% c("MXE", "SE", "ALE", "A3SS"),
             c("exon_number") := get("exon_number") + 1]
     } else {
-        Casette = Casette[get("EventType") != "SE"]
+        Casette = Casette[get("EventType") != c("SE", "RI")]
         Casette[get("EventType") %in% c("MXE", "ALE", "A3SS"),
             c("exon_number") := get("exon_number") + 1]    
     }
