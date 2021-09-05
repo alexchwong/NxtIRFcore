@@ -210,11 +210,12 @@ STAR_buildRef <- function(reference_path,
     }
     
     # Clean up
-    .STAR_clean_FASTA_GTF()
+    .STAR_clean_temp_FASTA_GTF(reference_path)
 }
 
 #' @describeIn STAR-methods Full pipeline for calculation of mappability
-#'   exclusion zone calculation, with given reference. Requires STAR
+#'   exclusion zone calculation, with given reference. Requires STAR.
+#'   Also requires GetReferenceResource() to have been run.
 #' @export
 STAR_Mappability <- function(
         reference_path,
@@ -228,14 +229,9 @@ STAR_Mappability <- function(
     .validate_reference_resource(reference_path)
     .validate_STAR_version()
     if(!file.exists(mappability_reads_fasta)) {
-        .log(paste(
-            "Generating genome fragments, saving to:", 
-            mappability_reads_fasta
-        ), type = "message")
-        Mappability_GenReads(
-            reference_path, 
-            ...
-        )
+        .log(paste("Generating genome fragments, saving to:", 
+            mappability_reads_fasta), type = "message")
+        Mappability_GenReads(reference_path, ...)
     }
     .log(paste("Aligning genome fragments back to the genome, from:", 
         mappability_reads_fasta), type = "message")
@@ -257,11 +253,13 @@ STAR_Mappability <- function(
             threshold = mappability_depth_threshold
         )
     } else {
-        warning("STAR failed to align mappability reads")
+        .log("STAR failed to align mappability reads", "warning")
     }
     if(file.exists(file.path(reference_path, "Mappability",
             "MappabilityExclusion.bed"))) {
         message("Mappability Exclusion calculations complete")
+    } else {
+        .log("Mappability Exclusion calculations not performed", "warning")
     }
 }
 

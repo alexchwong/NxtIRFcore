@@ -208,7 +208,77 @@ Plot_Coverage <- function(
     )
 }
 
-##########
+#' Calls NxtIRF's C++ function to retrieve coverage
+#'
+#' This function returns an RLE or RLEList containing coverage data from the
+#' given COV file
+#' @param file The file name of the COV file
+#' @param seqname Either blank, or a character string denoting the chromosome 
+#'  name
+#' @param start The 0-based start coordinate 
+#' @param end The 0-based end coordinate
+#' @param strand Either "*", "+", or "-"
+#' @return If seqname is left as "", returns an RLEList of the whole BAM file.
+#'   If seqname and coordinates are given, returns an RLE containing the
+#'   chromosome coordinate. Coordinates outside the given range will be set to 0
+#' @examples
+#' se <- NxtIRF_example_NxtSE()
+#' 
+#' cov_file <- covfile(se)[1]
+#'
+#' cov <- GetCoverage(cov_file, seqname = "chrZ", 
+#'   start = 10000, end = 20000,
+#'   strand = "*"
+#' )
+#' @export
+GetCoverage <- function(file, seqname = "", start = 0, end = 0, 
+        strand = c("*", "+", "-")) {
+    strand = match.arg(strand)
+    if(!(strand %in% c("*", "+", "-"))) {
+        .log(paste("In GetCoverage(),",
+            "Invalid strand. '*', '+' or '-'"))
+    }
+    strand_int = ifelse(strand == "*", 2, 
+        ifelse(strand == "+", 1, 0))
+        
+    if(!is.numeric(start) || !is.numeric(end) || 
+            (as.numeric(start) > as.numeric(end))) {
+        .log(paste("In GetCoverage(),",
+            "Null or negative regions not allowed"))
+    }
+    if(seqname == "") {
+        raw_list = IRF_RLEList_From_Cov(normalizePath(file), strand_int)
+        final_list = list()
+        if(length(raw_list) > 0) {
+            for(i in seq_len(length(raw_list))) {
+                final_list[[i]] = S4Vectors::Rle(
+                    raw_list[[i]]$values, raw_list[[i]]$lengths
+                )
+            }
+        } else {
+            return(NULL)
+        }
+        final_RLE = as(final_list, "RleList")
+        names(final_RLE) = names(raw_list)
+        return(final_RLE)
+    } else if(end == 0) {
+        raw_RLE = IRF_RLE_From_Cov(
+            normalizePath(file), as.character(seqname), 
+            0,0, strand_int
+        )
+        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$lengths)
+    } else {
+        raw_RLE = IRF_RLE_From_Cov(
+            normalizePath(file), as.character(seqname), 
+            round(as.numeric(start)), round(as.numeric(end)), 
+            strand_int
+        )
+        final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$lengths)
+    }
+}
+
+
+########## Internal functions ##########
 
 plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
     norm_event, condition, tracks = list(), track_names = "", se, avail_files,

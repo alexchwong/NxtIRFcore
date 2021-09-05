@@ -61,11 +61,12 @@ Collate: AllImports.R
 	Coverage.R
 	utils.R
 	BuildRef.R
+	STAR_utils.R
+	Mappability.R
 	CollateData.R
+	IRFinder.R
 	DE_IR.R
 	File_finders.R
-	IRFinder.R
-	STAR_utils.R
 Encoding: UTF-8
 RoxygenNote: 7.1.1
 URL: https://github.com/alexchwong/NxtIRFcore

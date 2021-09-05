@@ -136,7 +136,8 @@ accessible via $PATH
 \item \code{STAR_buildRef}: Creates a STAR genome reference
 
 \item \code{STAR_Mappability}: Full pipeline for calculation of mappability
-exclusion zone calculation, with given reference. Requires STAR
+exclusion zone calculation, with given reference. Requires STAR.
+Also requires GetReferenceResource() to have been run.
 
 \item \code{STAR_align_experiment}: Aligns multiple sets of FASTQ files, separated by
 sample names
