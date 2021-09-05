@@ -240,7 +240,8 @@ STAR_Mappability <- function(
         fastq_2 = NULL,
         STAR_ref_path = STAR_ref_path,
         BAM_output_path = dirname(aligned_bam), 
-        n_threads = n_threads
+        n_threads = n_threads,
+        additional_args = c("--outSAMstrandField", "None")
     )
     if(file.exists(aligned_bam)) {
         .log(paste("Calculating Mappability from:", aligned_bam),
