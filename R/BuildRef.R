@@ -678,7 +678,7 @@ Get_GTF_file <- function(reference_path) {
         fasta_file <- .parse_valid_file(fasta)
         if(!file.exists(fasta_file)) {
             .log(paste("In .fetch_fasta(),",
-                "Given genome fasta file", gtf, "not found"))
+                "Given genome fasta file", fasta, "not found"))
         }
         genome <- .fetch_fasta_file(fasta_file)
         .fetch_fasta_save_2bit(genome, reference_path, overwrite)
@@ -753,7 +753,7 @@ Get_GTF_file <- function(reference_path) {
 
         if(overwrite || !file.exists(gtf_path)) {
             # Copy file from cache if exists
-            cache_loc <- AnnotationHub::cache(ah_record)
+            cache_loc <- AnnotationHub::cache(ah_transcriptome)
             if(file.exists(cache_loc)) {
                 if(file.exists(gtf_path)) file.remove(gtf_path)
                 file.copy(cache_loc,gtf_path)
