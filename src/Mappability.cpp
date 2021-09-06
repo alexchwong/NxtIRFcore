@@ -19,8 +19,13 @@ int Set_Threads(int n_threads) {
 #endif
 }
 
-std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned int error_pos,
-  unsigned int direction, unsigned int error_seed) {
+std::string GenerateReadError(
+    char * input_read, 
+    const unsigned int read_len, 
+    const unsigned int error_pos,
+    const unsigned int direction, 
+    const unsigned int error_seed
+) {
   
   // Copy https://github.com/williamritchie/IRFinder/blob/master/bin/util/generateReadsError.pl
 
@@ -29,8 +34,7 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
   memcpy(&new_read_inter[0], input_read, read_len);  
 
   char error_nuc = '\0';  // set this as something to avoid warning at compile
-  switch(error_seed % 3) {
-  case 0:
+  if(error_seed % 3 == 0) {
     switch(new_read_inter[error_pos - 1]) {
       case 'A':
         error_nuc = 'G'; break;
@@ -51,7 +55,7 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
       default:
         error_nuc = 'N';
     }
-  case 1:
+  } else if(error_seed % 3 == 1) {
     switch(new_read_inter[error_pos - 1]) {
       case 'A':
         error_nuc = 'T'; break;
@@ -71,8 +75,8 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
         error_nuc = 'a'; break;
       default:
         error_nuc = 'N';
-    }    
-  case 2:
+    }
+  } else {
     switch(new_read_inter[error_pos - 1]) {
       case 'A':
         error_nuc = 'C'; break;
@@ -92,7 +96,7 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
         error_nuc = 'g'; break;
       default:
         error_nuc = 'N';
-    }    
+    }
   }
   
   memcpy(&new_read_inter[error_pos - 1], &error_nuc, 1);
@@ -103,26 +107,25 @@ std::string GenerateReadError(char * input_read, unsigned int read_len, unsigned
     memcpy(&new_read[0], new_read_inter, read_len);  
   } else {
     for(unsigned int i = 0; i < read_len; i++) {
-      switch(new_read_inter[i])
-      {   
-      case 'A':
-        new_read[read_len - i - 1] = 'T'; break;
-      case 'T':
-        new_read[read_len - i - 1] = 'A'; break;
-      case 'G':
-        new_read[read_len - i - 1] = 'C'; break;
-      case 'C':
-        new_read[read_len - i - 1] = 'G'; break;
-      case 'a':
-        new_read[read_len - i - 1] = 't'; break;
-      case 't':
-        new_read[read_len - i - 1] = 'a'; break;
-      case 'g':
-        new_read[read_len - i - 1] = 'c'; break;
-      case 'c':
-        new_read[read_len - i - 1] = 'g'; break;
-      default :
-        new_read[read_len - i - 1] = 'N';
+      switch(new_read_inter[i]) {   
+        case 'A':
+          new_read[read_len - i - 1] = 'T'; break;
+        case 'T':
+          new_read[read_len - i - 1] = 'A'; break;
+        case 'G':
+          new_read[read_len - i - 1] = 'C'; break;
+        case 'C':
+          new_read[read_len - i - 1] = 'G'; break;
+        case 'a':
+          new_read[read_len - i - 1] = 't'; break;
+        case 't':
+          new_read[read_len - i - 1] = 'a'; break;
+        case 'g':
+          new_read[read_len - i - 1] = 'c'; break;
+        case 'c':
+          new_read[read_len - i - 1] = 'g'; break;
+        default :
+          new_read[read_len - i - 1] = 'N';
       }         
     }
   }
@@ -183,6 +186,7 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
 
     for(unsigned int bufferPos = 1; (bufferPos < sequence.length() - read_len - 1); bufferPos += read_stride) {
       memcpy(read, &buffer[bufferPos - 1], read_len);
+      seed += 1;
       if(checkDNA(read, read_len)) {       
         std::string write_seq = GenerateReadError(read, read_len, error_pos, direction, seed) ;
 
@@ -195,7 +199,6 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
         }
         direction = (direction == 0 ? 1 : 0);        
       }
-      seed += 1;
     }
     delete[] buffer;
   }
