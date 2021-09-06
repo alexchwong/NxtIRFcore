@@ -52,7 +52,7 @@ make_example_NxtSE <- function() {
         fasta = mock_genome(), gtf = mock_gtf(),
         reference_path = file.path(tempdir(), "Reference")
     )
-    IRFinder(bams$BAM, bams$sample,
+    IRFinder(bams$path, bams$sample,
         reference_path = file.path(tempdir(), "Reference"),
         output_path = file.path(tempdir(), "IRFinder_output"),
         overwrite = TRUE, n_threads = 1

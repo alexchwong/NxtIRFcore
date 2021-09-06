@@ -67,6 +67,7 @@ Collate: AllImports.R
 	IRFinder.R
 	CollateData.R
 	MakeSE.R
+	Filters.R
 	DE_IR.R
 Encoding: UTF-8
 RoxygenNote: 7.1.1
