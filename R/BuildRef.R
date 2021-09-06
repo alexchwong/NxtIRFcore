@@ -3370,6 +3370,9 @@ Get_GTF_file <- function(reference_path) {
     AS_Table.Extended = .gen_splice_proteins_casette(AS_Table, 
         AS_Table.Extended, Proteins_Splice, genome, isoform = "B")
 
+    AS_Table.Extended <- .gen_splice_proteins_trim(AS_Table.Extended)
+    AS_Table.Extended <- .gen_splice_proteins_translate(AS_Table.Extended)
+
     AS_Table.Extended[, c("AA_full_A") := ""]
     AS_Table.Extended[!is.na(get("AA_upstr_A")),
         c("AA_full_A") := paste0(get("AA_full_A"), get("AA_upstr_A"))]
@@ -3396,46 +3399,31 @@ Get_GTF_file <- function(reference_path) {
         paste0(c("transcript_id_", "intron_number_"), tolower(isoform)))   
     if(isoform == "A") {
         Upstream <- AS_Table[get("EventType") %in% 
-            c("MXE", "SE", "ALE", "A3SS", "RI"),
+            c("MXE", "SE", "ALE", "A3SS"),
             cols, with = FALSE]
     } else {
         Upstream <- AS_Table[get("EventType") %in% 
-            c("MXE", "SE", "ALE", "A3SS"),
+            c("MXE", "SE", "ALE", "A3SS", "RI"),
             cols, with = FALSE]
     }
 
     Upstream[, c("transcript_id", "exon_number") :=
-        list(
-            get(paste0("transcript_id_", tolower(isoform))), 
-            get(paste0("intron_number_", tolower(isoform)))
-        )]
-    # left_join with Exons
+        list(get(paste0("transcript_id_", tolower(isoform))), 
+            get(paste0("intron_number_", tolower(isoform))))]
+    
     Upstream <- Proteins_Splice[Upstream,
         on = c("transcript_id", "exon_number"),
         c("EventID", "seqnames", "start", "end", "width", "strand", "phase")
-    ]
+    ] # left_join with Exons
     Upstream_gr <- .grDT(na.omit(Upstream), keep.extra.columns = TRUE)
+    
     Upstream_seq <- getSeq(genome, Upstream_gr)
     Upstream[!is.na(get("seqnames")), c("seq") := as.character(Upstream_seq)]
-    # Trim sequence by phase
-    seq <- substr(
-        Upstream$seq[!is.na(Upstream$seqnames)],
-        1 + (3 - Upstream$phase[!is.na(Upstream$seqnames)]) %% 3,
-        nchar(Upstream$seq[!is.na(Upstream$seqnames)])
-    )
-    # trim last n bases
-    seq <- substr(seq, 1, nchar(seq) - (nchar(seq) %% 3))
-    # translate
-    prot <- Biostrings::translate(as(seq, "DNAStringSet"))
-    Upstream[!is.na(get("seqnames")), 
-        c("DNA_seq", "AA_seq") := list(
-        seq, as.character(prot))
-    ]
-    cols = c("EventID", "DNA_seq", "AA_seq")
+
+    cols = c("EventID", "phase", "seq")
     AS_Table.Extended[Upstream[, cols, with = FALSE], on = "EventID",
-        c(paste0(c("DNA_upstr_", "AA_upstr_"), toupper(isoform))) := 
-        list(get("DNA_seq"), get("AA_seq"))
-    ]
+        c(paste0(c("phase_upstr_", "DNA_upstr_"), toupper(isoform))) := 
+        list(get("phase"), get("seq"))]
     return(AS_Table.Extended)
 }
 
@@ -3446,11 +3434,11 @@ Get_GTF_file <- function(reference_path) {
         paste0(c("transcript_id_", "intron_number_"), tolower(isoform)))
     if(isoform == "A") {
         Downstream <- AS_Table[get("EventType") %in% 
-            c("MXE", "SE", "AFE", "A5SS", "RI"),
+            c("MXE", "SE", "AFE", "A5SS"),
             cols, with = FALSE]
     } else {
         Downstream <- AS_Table[get("EventType") %in% 
-            c("MXE", "SE", "AFE", "A5SS"),
+            c("MXE", "SE", "AFE", "A5SS", "RI"),
             cols, with = FALSE]
     }
 
@@ -3461,7 +3449,7 @@ Get_GTF_file <- function(reference_path) {
     if(toupper(isoform) == "A") {
         Downstream[get("EventType") %in% c("MXE", "SE"),
             c("exon_number") := get("exon_number") + 2]
-        Downstream[get("EventType") %in% c("AFE", "A5SS", "RI"),
+        Downstream[get("EventType") %in% c("AFE", "A5SS"),
             c("exon_number") := get("exon_number") + 1]    
     } else {
         Downstream[get("EventType") %in% c("MXE"), 
@@ -3469,6 +3457,8 @@ Get_GTF_file <- function(reference_path) {
         Downstream[get("EventType") %in% c("SE", "AFE", "A5SS", "RI"),
             c("exon_number") := get("exon_number") + 1]    
     }
+    
+    # left_join with Exons
     Downstream <- Proteins_Splice[Downstream,
         on = c("transcript_id", "exon_number"),
         c("EventID", "seqnames", "start", "end", "width", "strand", "phase")
@@ -3477,20 +3467,12 @@ Get_GTF_file <- function(reference_path) {
     Downstream_seq <- getSeq(genome, Downstream_gr)
     Downstream[!is.na(get("seqnames")), 
         c("seq") := as.character(Downstream_seq)]
-    seq <- substr(
-        Downstream$seq[!is.na(Downstream$seqnames)],
-        1 + (3 - Downstream$phase[!is.na(Downstream$seqnames)]) %% 3,
-        nchar(Downstream$seq[!is.na(Downstream$seqnames)])
-    ) # Trim sequence by phase
-    seq <- substr(seq, 1, nchar(seq) - (nchar(seq) %% 3)) # trim last n bases
-    prot <- Biostrings::translate(as(seq, "DNAStringSet"))
-    Downstream[!is.na(get("seqnames")), 
-        c("DNA_seq", "AA_seq") := list(
-        seq, as.character(prot))]
-    cols = c("EventID", "DNA_seq", "AA_seq")
+
+    cols = c("EventID", "phase", "seq")
     AS_Table.Extended[Downstream[, cols, with = FALSE], on = "EventID",
-        c(paste0(c("DNA_downstr_", "AA_downstr_"), toupper(isoform))) := 
-        list(get("DNA_seq"), get("AA_seq"))] # translate
+        c(paste0(c("phase_downstr_", "DNA_downstr_"), 
+            toupper(isoform))) := 
+        list(get("phase"), get("seq"))] # translate
     return(AS_Table.Extended)
 }
 
@@ -3503,11 +3485,11 @@ Get_GTF_file <- function(reference_path) {
         list(get(paste0("transcript_id_", tolower(isoform))), 
             get(paste0("intron_number_", tolower(isoform))))]
     if(toupper(isoform) == "B") {
-        Casette[get("EventType") %in% c("MXE", "SE", "ALE", "A3SS"),
-            c("exon_number") := get("exon_number") + 1]
-    } else {
         Casette = Casette[get("EventType") != c("SE", "RI")]
         Casette[get("EventType") %in% c("MXE", "ALE", "A3SS"),
+            c("exon_number") := get("exon_number") + 1]
+    } else {
+        Casette[get("EventType") %in% c("MXE", "SE", "ALE", "A3SS"),
             c("exon_number") := get("exon_number") + 1]    
     }
     Casette <- Proteins_Splice[Casette,
@@ -3516,60 +3498,182 @@ Get_GTF_file <- function(reference_path) {
     Casette_gr <- .grDT(na.omit(Casette), keep.extra.columns = TRUE)
     Casette_seq <- getSeq(genome, Casette_gr)
     Casette[!is.na(get("seqnames")),
-        c("casette_seq") := as.character(Casette_seq)]
-    setnames(Casette, "phase", "phase_casette")
-    # Add nucleotides from upstream and downstream
-    upstream = paste0("DNA_upstr_", toupper(isoform))
-    downstream = paste0("DNA_downstr_", toupper(isoform))
-    cols = c("EventID", upstream, downstream)
-    AS_Table.seq = AS_Table.Extended[, cols, with = FALSE]
-    cols = c("EventID", "phase_casette", "casette_seq", 
-        upstream, downstream)
-    Casette <- AS_Table.seq[Casette,
-        on = "EventID",
-        cols, with = FALSE]
+        c("seq") := as.character(Casette_seq)]
 
-    # Construct extended casette sequence:
-    Casette[, c("casette_seq_extended") := get("casette_seq")]
-    # Trim casette_seq_extended if upstream sequence does not exists
-    Casette[!is.na(get("phase_casette")) & is.na(get(upstream)),
-        c("casette_seq_extended") := substr(
-            get("casette_seq_extended"),
-            get("phase_casette") + 1,
-            nchar(get("casette_seq_extended")))]
-    Casette[!is.na(get("phase_casette")) & get("phase_casette") > 0 &
-            !is.na(get(upstream)),
-        c("casette_seq_extended") := paste0(
-            substr(get(upstream),
-                nchar(get(upstream)) + 1 - get("phase_casette"),
-                nchar(get(upstream))
-            ),
-            get("casette_seq_extended")
-        )
-    ]
-    Casette[nchar(get("casette_seq_extended")) %% 3 > 0 & 
-            !is.na(get(downstream)),
-        c("casette_seq_extended") := paste0(
-            get("casette_seq_extended"),
-            substr(get(downstream), 1, 
-            3 - (nchar(get("casette_seq_extended")) %% 3))
-        )
-    ]
-    # Translate:
-    seq <- Casette$casette_seq_extended[
-        !is.na(Casette$casette_seq_extended)]
-    # trim out-of-phase to be tidy:
-    seq <- substr(seq, 1, nchar(seq) - (nchar(seq) %% 3))
-    prot <- Biostrings::translate(as(seq, "DNAStringSet"))
-    Casette[!is.na(get("casette_seq_extended")),
-        c("DNA_seq", "AA_seq") := list(
-        seq, as.character(prot))]
-    cols = c("EventID", "DNA_seq", "AA_seq")
+    cols = c("EventID", "phase", "seq")
     AS_Table.Extended[Casette[, cols, with = FALSE], on = "EventID",
-        c(paste0(c("DNA_casette_", "AA_casette_"), toupper(isoform))) := 
-        list(get("DNA_seq"), get("AA_seq"))]
+        c(paste0(c("phase_casette_", "DNA_casette_"), 
+        toupper(isoform))) := 
+        list(get("phase"), get("seq"))]
     return(AS_Table.Extended)
 }
+
+.trim_phase <- function(DNAstr, phase) {
+    substr(DNAstr, 1 + (3 - phase) %% 3, nchar(DNAstr))
+}
+.trim_3 <- function(DNAstr) {
+    substr(DNAstr, 1, nchar(DNAstr) - (nchar(DNAstr) %% 3))
+}
+.transfer_down <- function(DNAstr) {
+    substr(DNAstr, nchar(DNAstr) - (nchar(DNAstr) %% 3) + 1, nchar(DNAstr))
+}
+
+.transfer_up <- function(DNAstr, phase) {
+    # phase must be 1 or 2
+    substr(DNAstr, 1, 3 - phase)
+}
+
+.gen_splice_proteins_trim <- function(AS_Table.Extended) {
+    
+    AS_Table.Extended <- .gen_splice_proteins_trim_5prime(AS_Table.Extended)
+
+    AS_Table.Extended <- .gen_splice_proteins_transfers(AS_Table.Extended)
+
+    AS_Table.Extended <- .gen_splice_proteins_trim_3prime(AS_Table.Extended)
+        
+    return(AS_Table.Extended)
+}
+
+.gen_splice_proteins_trim_5prime <- function(AS_Table.Extended) {
+    # Trim 5' upstream
+    AS_Table.Extended[!is.na(get("DNA_upstr_A")) &
+        get("phase_upstr_A") != 0,
+        c("DNA_upstr_A") := .trim_phase(
+            get("DNA_upstr_A"), get("phase_upstr_A"))
+    ]
+    AS_Table.Extended[!is.na(get("DNA_upstr_B")) &
+        get("phase_upstr_B") != 0,
+        c("DNA_upstr_B") := .trim_phase(
+            get("DNA_upstr_B"), get("phase_upstr_B"))
+    ]
+    # Trim 5' casette if upstream does not exist
+    AS_Table.Extended[
+        is.na(get("DNA_upstr_A")) & !is.na(get("DNA_casette_A")) &
+        get("phase_casette_A") != 0,
+        c("DNA_casette_A") := .trim_phase(
+            get("DNA_casette_A"), get("phase_casette_A"))
+    ]
+    AS_Table.Extended[
+        is.na(get("DNA_upstr_B")) & !is.na(get("DNA_casette_B")) &
+        get("phase_casette_B") != 0,
+        c("DNA_casette_B") := .trim_phase(
+            get("DNA_casette_B"), get("phase_casette_B"))
+    ]
+    # Trim 5' downstream if upstream and casette doesn't exist
+    AS_Table.Extended[
+        is.na(get("DNA_upstr_A")) & is.na(get("DNA_casette_A")) &
+        !is.na(get("DNA_downstr_A")) & get("phase_downstr_A") != 0,
+        c("DNA_downstr_A") := .trim_phase(
+            get("DNA_downstr_A"), get("phase_downstr_A"))
+    ]
+    AS_Table.Extended[
+        is.na(get("DNA_upstr_B")) & is.na(get("DNA_casette_B")) &
+        !is.na(get("DNA_downstr_B")) & get("phase_downstr_B") != 0,
+        c("DNA_downstr_B") := .trim_phase(
+            get("DNA_downstr_B"), get("phase_downstr_B"))
+    ]      
+    return(AS_Table.Extended)
+}
+
+.gen_splice_proteins_transfers <- function(AS_Table.Extended) {
+    # Transfer from upstream to casette if both exist
+    AS_Table.Extended[
+        !is.na(get("DNA_upstr_A")) & !is.na(get("DNA_casette_A")) &
+        get("phase_casette_A") != 0,
+        c("DNA_casette_A") := paste0(
+            .transfer_down(get("DNA_upstr_A")), get("DNA_casette_A"))
+    ]
+    AS_Table.Extended[
+        !is.na(get("DNA_upstr_B")) & !is.na(get("DNA_casette_B")) &
+        get("phase_casette_B") != 0,
+        c("DNA_casette_B") := paste0(
+            .transfer_down(get("DNA_upstr_B")), get("DNA_casette_B"))
+    ]
+    # Transfer from upstream to downstream if both exist and casette doesn't
+    AS_Table.Extended[
+        !is.na(get("DNA_upstr_A")) & !is.na(get("DNA_downstr_A")) &
+        is.na(get("DNA_casette_A")) & get("phase_downstr_A") != 0,
+        c("DNA_downstr_A") := paste0(
+            .transfer_down(get("DNA_upstr_A")), get("DNA_downstr_A"))
+    ]
+    AS_Table.Extended[
+        !is.na(get("DNA_upstr_B")) & !is.na(get("DNA_downstr_B")) &
+        is.na(get("DNA_casette_B")) & get("phase_downstr_B") != 0,
+        c("DNA_downstr_B") := paste0(
+            .transfer_down(get("DNA_upstr_B")), get("DNA_downstr_B"))
+    ]
+    # Transfer from downstream to casette if both exist
+    AS_Table.Extended[
+        !is.na(get("DNA_casette_A")) & !is.na(get("DNA_downstr_A")) &
+        get("phase_downstr_A") != 0,
+        c("DNA_casette_A") := paste0(get("DNA_casette_A"),
+            .transfer_up(get("DNA_downstr_A"), get("phase_downstr_A")))
+    ]
+    AS_Table.Extended[
+        !is.na(get("DNA_casette_B")) & !is.na(get("DNA_downstr_B")) &
+        get("phase_downstr_B") != 0,
+        c("DNA_casette_B") := paste0(get("DNA_casette_B"),
+            .transfer_up(get("DNA_downstr_B"), get("phase_downstr_B")))
+    ]
+    return(AS_Table.Extended)
+}
+
+.gen_splice_proteins_trim_3prime <- function(AS_Table.Extended) {
+    AS_Table.Extended[!is.na(get("DNA_upstr_A")),
+        c("DNA_upstr_A") := .trim_3(get("DNA_upstr_A"))]
+    AS_Table.Extended[!is.na(get("DNA_casette_A")),
+        c("DNA_casette_A") := .trim_3(get("DNA_casette_A"))]
+    AS_Table.Extended[!is.na(get("DNA_downstr_A")),
+        c("DNA_downstr_A") := .trim_3(get("DNA_downstr_A"))]
+    AS_Table.Extended[!is.na(get("DNA_upstr_B")),
+        c("DNA_upstr_B") := .trim_3(get("DNA_upstr_B"))]
+    AS_Table.Extended[!is.na(get("DNA_casette_B")),
+        c("DNA_casette_B") := .trim_3(get("DNA_casette_B"))]
+    AS_Table.Extended[!is.na(get("DNA_downstr_B")),
+        c("DNA_downstr_B") := .trim_3(get("DNA_downstr_B"))]
+    return(AS_Table.Extended)
+}
+
+.gen_splice_proteins_translate <- function(AS_Table.Extended) {
+    DNAseq = AS_Table.Extended[nchar(get("DNA_upstr_A")) > 0]$DNA_upstr_A
+    AAseq = suppressWarnings(
+        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AS_Table.Extended[nchar(get("DNA_upstr_A")) > 0,
+        c("AA_upstr_A") := AAseq]
+
+    DNAseq = AS_Table.Extended[nchar(get("DNA_casette_A")) > 0]$DNA_casette_A
+    AAseq = suppressWarnings(
+        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AS_Table.Extended[nchar(get("DNA_casette_A")) > 0,
+        c("AA_casette_A") := AAseq]   
+
+    DNAseq = AS_Table.Extended[nchar(get("DNA_downstr_A")) > 0]$DNA_downstr_A
+    AAseq = suppressWarnings(
+        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AS_Table.Extended[nchar(get("DNA_downstr_A")) > 0,
+        c("AA_downstr_A") := AAseq]   
+        
+    DNAseq = AS_Table.Extended[nchar(get("DNA_upstr_B")) > 0]$DNA_upstr_B
+    AAseq = suppressWarnings(
+        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AS_Table.Extended[nchar(get("DNA_upstr_B")) > 0,
+        c("AA_upstr_B") := AAseq]
+
+    DNAseq = AS_Table.Extended[nchar(get("DNA_casette_B")) > 0]$DNA_casette_B
+    AAseq = suppressWarnings(
+        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AS_Table.Extended[nchar(get("DNA_casette_B")) > 0,
+        c("AA_casette_B") := AAseq]   
+
+    DNAseq = AS_Table.Extended[nchar(get("DNA_downstr_B")) > 0]$DNA_downstr_B
+    AAseq = suppressWarnings(
+        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AS_Table.Extended[nchar(get("DNA_downstr_B")) > 0,
+        c("AA_downstr_B") := AAseq]  
+        
+    return(AS_Table.Extended)
+}
+
 
 #' @describeIn BuildReference One-step function that fetches resources,
 #'   creates a STAR reference (including mappability calculations), then
