@@ -435,6 +435,8 @@ int BAM2blocks::processAll(unsigned int thread_number) {
       return(0);   // This will happen if read fails - i.e. end of loaded buffer
     } else {
       any_reads_processed = true;
+      read.read_name(read_name_s)
+      Rcout << read_name_s << '\n';
     }
     reads[idx] = read;
 
