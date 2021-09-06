@@ -739,7 +739,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     .collateData_rowEvent_brief(irf.common, Splice.Anno, 
         norm_output_path)
     Splice.Options.Summary <- .collateData_rowEvent_splice_option(
-        reference_path, Splice.Anno)
+        reference_path)
     .collateData_rowEvent_full(Splice.Options.Summary, Splice.Anno,
         norm_output_path, reference_path)
 }
@@ -761,13 +761,14 @@ CollateData <- function(Experiment, reference_path, output_path,
 }
 
 # Generate annotation based on importance of involved transcripts
-.collateData_rowEvent_splice_option <- function(reference_path,
-        Splice.Anno) {
+.collateData_rowEvent_splice_option <- function(reference_path) {
     Splice.Options = as.data.table(read.fst(
         file.path(reference_path, "fst", "Splice.options.fst")))
     Transcripts = as.data.table(read.fst(
         file.path(reference_path, "fst", "Transcripts.fst")))
-    Splice.Options[Splice.Anno, on = "EventID", 
+    Splice.Anno.Brief = read.fst(file.path(reference_path, "fst", "Splice.fst"),
+        as.data.table = TRUE, columns = c("EventName", "EventID"))
+    Splice.Options[Splice.Anno.Brief, on = "EventID", 
         c("EventName") := get("i.EventName")]
     Splice.Options[Transcripts, on = "transcript_id", 
         c("transcript_biotype") := get("i.transcript_biotype")]
@@ -809,6 +810,17 @@ CollateData <- function(Experiment, reference_path, output_path,
         c("Exc_Is_Protein_Coding") := TRUE]
     rowEvent.Extended[IR_NMD, on = "intron_id", 
         c("Inc_Is_Protein_Coding") := (get("i.intron_type") == "CDS")]
+    rowEvent.Extended[get("EventType") == "IR" & 
+        get("Exc_Is_Protein_Coding") == FALSE, c("Exc_Is_NMD") := NA]
+    rowEvent.Extended[get("EventType") == "IR" & 
+        get("Inc_Is_Protein_Coding") == FALSE, c("Inc_Is_NMD") := NA]
+        
+    # Change all annotated RI's here, starting with EventName
+    # Splice.Options.RI = Splice.Options.Summary[EventType == "RI"]
+    # Splice.Options.RI[, c("EventType") := "IR"]
+    # setnames(Splice.Options.RI, "Event1", "EventRegion")
+    # rowEvent.Extended[Splice.Options.RI, on = c("EventType", "EventRegion"),
+        # c("EventName") := get("i.EventName")]
 
     rowEvent.Extended[Splice.Options.Summary[get("isoform") == "A"], 
         on = "EventName", c("Inc_Is_Protein_Coding") := get("i.any_is_PC")]
@@ -819,10 +831,6 @@ CollateData <- function(Experiment, reference_path, output_path,
         c("Exc_Is_NMD") := get("i.splice_is_NMD")]
     rowEvent.Extended[IR_NMD, on = "intron_id", 
         c("Inc_Is_NMD") := get("i.IRT_is_NMD")]
-    rowEvent.Extended[get("EventType") == "IR" & 
-        get("Exc_Is_Protein_Coding") == FALSE, c("Exc_Is_NMD") := NA]
-    rowEvent.Extended[get("EventType") == "IR" & 
-        get("Inc_Is_Protein_Coding") == FALSE, c("Inc_Is_NMD") := NA]
 
     rowEvent.Extended[Splice.Options.Summary[get("isoform") == "A"], 
         on = "EventName", c("Inc_Is_NMD") := get("i.all_is_NMD")]
@@ -849,9 +857,11 @@ CollateData <- function(Experiment, reference_path, output_path,
 ################################################################################
 # Sub
 
+# Collates data from junction counts and IRFinder coverage
 .collateData_compile_agglist <- function(x, jobs, df.internal, 
         norm_output_path, IRMode) {
         
+    # Load dataframe headers (left-most columns containing annotations)
     rowEvent = as.data.table(read.fst(
         file.path(norm_output_path, "rowEvent.brief.fst")))
     junc.common = as.data.table(read.fst(
@@ -864,9 +874,9 @@ CollateData <- function(Experiment, reference_path, output_path,
     junc_PSI = as.data.table(read.fst(
         file.path(norm_output_path, "junc_PSI_index.fst")
     ))
+    
     work = jobs[[x]]
     block = df.internal[work]
-    # assays <- .collateData_assays_init(rowEvent, junc_PSI)
     templates <- .collateData_seed_init(rowEvent, junc_PSI) # list of DT
     assays <- NULL
     
@@ -881,10 +891,11 @@ CollateData <- function(Experiment, reference_path, output_path,
             irf.common, norm_output_path)
         splice <- .collateData_process_splice_depth(
             splice, irf)
-        # assays <- .collateData_process_assays(assays, .copy_DT(templates),
-            # block$sample[i], junc, irf, splice, IRMode)
+
         .collateData_process_assays_as_fst(.copy_DT(templates),
             block$sample[i], junc, irf, splice, IRMode, norm_output_path)
+
+        # remove temp files
         file.remove(file.path(norm_output_path, "temp",
             paste(block$sample[i], "junc.fst.tmp", sep=".")))
         file.remove(file.path(norm_output_path, "temp",
@@ -929,23 +940,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     return(final)
 }
 
-.collateData_assays_init <- function(rowEvent, junc_PSI) {
-    assays = list(
-        Included = copy(rowEvent),
-        Excluded = copy(rowEvent),
-        Depth = copy(rowEvent),
-        Coverage = copy(rowEvent),
-        minDepth = copy(rowEvent),
-        Up_Inc = rowEvent[get("EventType") %in% c("IR", "MXE", "SE")],
-        Down_Inc = rowEvent[get("EventType") %in% c("IR", "MXE", "SE")],
-        Up_Exc = rowEvent[get("EventType") %in% c("MXE")],
-        Down_Exc = rowEvent[get("EventType") %in% c("MXE")],
-        junc_PSI = copy(junc_PSI),
-        junc_counts = copy(junc_PSI)
-    )
-    return(assays)
-}
-
+# Curate list of subset headers
 .collateData_seed_init <- function(rowEvent, junc_PSI) {
     templates <- list(
         assay = copy(rowEvent),
@@ -956,6 +951,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     return(templates)
 }
 
+# Collates junction counts
 .collateData_process_junc <- function(sample, strand, 
         junc.common, norm_output_path) {
     junc = as.data.table(
