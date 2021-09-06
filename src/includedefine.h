@@ -26,8 +26,8 @@
 #include <omp.h>
 #endif
 
-// [[Rcpp::depends(ParaBAM)]]
-#include <ParaBAM.hpp>
+// [[Rcpp::depends(ompBAM)]]
+#include <ompBAM.hpp>
 
 
 // Tell Linux not to cache the large files:

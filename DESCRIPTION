@@ -41,8 +41,8 @@ Imports:
 	SummarizedExperiment,
 	S4Vectors
 Remotes:
-  alexchwong/ParaBAM
-LinkingTo: Rcpp, zlibbioc, RcppProgress, ParaBAM
+  alexchwong/ompBAM
+LinkingTo: Rcpp, zlibbioc, RcppProgress, ompBAM
 Suggests: 
     knitr, rmarkdown, pheatmap, shiny,
     DESeq2, limma, DoubleExpSeq, Rsubread, testthat (>= 3.0.0)
