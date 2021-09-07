@@ -263,10 +263,8 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
     #pragma omp parallel for num_threads(n_threads_to_use) schedule(static,1)
     #endif
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
-      BBchild.at(i)->processAll(i);
+      BBchild.at(i)->processAll(i, true);
     }
-
-
   }
 
   if(p.check_abort()) {
@@ -278,6 +276,7 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
     return(-1);
   }
 
+  inbam.closeFile();
   // inbam_stream.close();
   // Rcout << "BAM processing finished\n";
   

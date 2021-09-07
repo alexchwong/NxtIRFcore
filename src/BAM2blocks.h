@@ -24,7 +24,7 @@ class BAM2blocks {
     void cigar2block(uint32_t * cigar, uint16_t n_cigar_op, std::vector<int> &starts, std::vector<int> &lens, int &ret_genome_len);
 
     unsigned int processPair(pbam1_t * read1, pbam1_t * read2);
-    unsigned int processSingle(pbam1_t * read1);
+    unsigned int processSingle(pbam1_t * read1, bool mappability_mode = false);
 
   	unsigned int readBamHeader(
       std::vector<uint64_t> &block_begins, 
@@ -68,7 +68,7 @@ class BAM2blocks {
     ~BAM2blocks();
   	unsigned int openFile(pbam_in * _IN);
 
-  	int processAll(unsigned int thread_number = 0);
+  	int processAll(unsigned int thread_number = 0, bool mappability_mode = false);
   	int processSpares(BAM2blocks& other);
 
   	int WriteOutput(std::string& output);

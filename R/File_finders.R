@@ -68,7 +68,7 @@ Find_Samples <- function(sample_path, suffix = ".txt.gz", level = 0) {
             lvl = level
             while(lvl > 0) {
                 DT$sample = dirname(DT$sample)
-                if(DT$sample %in% c(".", "/", "~"))
+                if(any(DT$sample %in% c(".", "/", "~")))
                     .log(paste("Sample name points to", DT$sample, 
                         "- please check level of sample names"))
                 lvl = lvl - 1

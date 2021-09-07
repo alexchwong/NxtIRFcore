@@ -291,7 +291,7 @@ unsigned int BAM2blocks::processPair(pbam1_t * read1, pbam1_t * read2) {
 }
 
 
-unsigned int BAM2blocks::processSingle(pbam1_t * read1) {
+unsigned int BAM2blocks::processSingle(pbam1_t * read1, bool mappability_mode) {
   int r1_genome_len;
 
   string debugstate;
@@ -310,9 +310,34 @@ unsigned int BAM2blocks::processSingle(pbam1_t * read1) {
   oBlocks.readEnd[0] = read1->pos() + r1_genome_len;
   oBlocks.readName.resize(read1->l_read_name() - 1);
   oBlocks.readName.replace(0, read1->l_read_name() - 1, read1->read_name(), read1->l_read_name() - 1); // is this memory/speed efficient?
+  
+  if(mappability_mode) {
+    // Return if not a perfect 70M match
+    if(read1->n_cigar_op() != 1) return(0);
+    if( (*(read1->cigar()) & 15) != 0) return(0);
+    
+    std::istringstream iss;
+    std::string subline;
+    iss.str(oBlocks.readName);
+    std::getline(iss, subline, '!');  // ignore strand
+    std::getline(iss, subline, '!');  // this is chr name
+    if(0 != strncmp(
+        subline.c_str(), chrs.at(oBlocks.chr_id).chr_name.c_str(), 
+        subline.size()
+      ) || 
+      chrs.at(oBlocks.chr_id).chr_name.size() != subline.size()) 
+    {
+        return 0;
+    }
+    std::getline(iss, subline, '!');  // this is chr pos
+    if(stoul(subline) != oBlocks.readStart[0]) {
+      return 0;
+    }
+  }
+  
   //DEBUG:
-  oBlocks.readName.append(debugstate);
-  oBlocks.readName.append(to_string(oBlocks.readCount));
+  // oBlocks.readName.append(debugstate);
+  // oBlocks.readName.append(to_string(oBlocks.readCount));
   //cout << "process pair - callbacks" << endl;  
   for (auto & callback : callbacksProcessBlocks ) {
     callback(oBlocks);
@@ -409,9 +434,10 @@ int BAM2blocks::realizeSpareReads() {
   return(0);
 }
 
-int BAM2blocks::processAll(unsigned int thread_number) {
+int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
   // Reads from BAMReader until finished; do not create output
   unsigned int idx = 0;
+  unsigned int nucs_proc = 0;
   int ret = 0;
   bool any_reads_processed = false;
   // Use map pointer spare_reads:
@@ -446,8 +472,9 @@ int BAM2blocks::processAll(unsigned int thread_number) {
     }else if (! (reads[idx].flag() & 0x1)) {
       // If is a single read -- process it as a single -- then discard/overwrite
       cSingleReads ++;
-      totalNucleotides += processSingle(&reads[idx]);
-      cReadsProcessed++;
+      nucs_proc = processSingle(&reads[idx], mappability_mode);
+      totalNucleotides += nucs_proc;
+      if(nucs_proc > 0) cReadsProcessed++;
     }else{
       if(idx == 0 && spare_reads->size() == 0) {
         // If BAM is sorted by read name, then we don't need read size, simply use old system
