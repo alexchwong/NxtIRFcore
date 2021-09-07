@@ -330,7 +330,7 @@ unsigned int BAM2blocks::processSingle(pbam1_t * read1, bool mappability_mode) {
         return 0;
     }
     std::getline(iss, subline, '!');  // this is chr pos
-    if(stoul(subline) != oBlocks.readStart[0]) {
+    if(stoul(subline) != oBlocks.readStart[0] + 1) {
       return 0;
     }
   }
