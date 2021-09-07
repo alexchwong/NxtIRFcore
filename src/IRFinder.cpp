@@ -448,10 +448,11 @@ int IRF_core(std::string const &bam_file,
 	if(verbose) Rcout << "Processing BAM file " << bam_file << "\n";
   
   
-  std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
+  // std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
   // BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
-  pbam_in inbam((size_t)1000000000, (size_t)1000000000, 5);
-  inbam.SetInputHandle(&inbam_stream, n_threads_to_use);
+  pbam_in inbam((size_t)1000000000, (size_t)2000000000, 5);
+  // inbam.SetInputHandle(&inbam_stream, n_threads_to_use);
+  inbam.openFile(bam_file, n_threads_to_use);
   
   // TODO: Abort here if BAM corrupt
   
@@ -525,7 +526,8 @@ int IRF_core(std::string const &bam_file,
     return(-1);
   }
 
-  inbam_stream.close();
+  inbam.closeFile();
+  // inbam_stream.close();
   // Rcout << "BAM processing finished\n";
   
   if(n_threads_to_use > 1) {

@@ -10,12 +10,6 @@ test_that("NxtIRF pipeline reproduces NxtSE object", {
         chromosome_aliases = chr_alias
     )
     
-    # i = 2
-    # NxtIRF:::.irfinder_run_single(bams$BAM[i], 
-        # file.path(tempdir(), "Reference", "IRFinder.ref.gz"), 
-        # file.path(tempdir(),"Output"), TRUE, TRUE, n_threads = 2
-    # )
-    
     IRFinder(bams$path, bams$sample,
         reference_path = file.path(tempdir(), "Reference"),
         output_path = file.path(tempdir(), "IRFinder_output"),

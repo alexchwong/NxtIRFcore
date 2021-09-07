@@ -231,10 +231,11 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
 	if(verbose) Rcout << "Calculating Mappability Exclusions from aligned synthetic reads in BAM file " << bam_file << "\n";
   
   
-  std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
+  // std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
   pbam_in inbam((size_t)1000000000, (size_t)2000000000, 5);
-  inbam.SetInputHandle(&inbam_stream, n_threads_to_use);
-  
+  // inbam.SetInputHandle(&inbam_stream, n_threads_to_use);
+    inbam.openFile(bam_file, n_threads_to_use);
+
   // Assign children:
   std::vector<FragmentsMap*> oFM;
   std::vector<BAM2blocks*> BBchild;
@@ -277,7 +278,7 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
     return(-1);
   }
 
-  inbam_stream.close();
+  // inbam_stream.close();
   // Rcout << "BAM processing finished\n";
   
   if(n_threads_to_use > 1) {
