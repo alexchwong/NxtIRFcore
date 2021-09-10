@@ -15,7 +15,7 @@
 #'    used or to contain the newly-generated STAR reference
 #' @param also_generate_mappability Whether \code{STAR_buildRef()} also
 #'   calculates Mappability Exclusion regions.
-#' @param mappability_depth_threshold (Default 4) The depth of mapped reads
+#' @param map_depth_threshold (Default 4) The depth of mapped reads
 #'   threshold at or below which Mappability exclusion regions are defined. See
 #'   \link{Mappability-methods}.
 #'   Ignored if \code{also_generate_mappability = FALSE}
@@ -155,7 +155,7 @@ STAR_version <- function() {
 STAR_buildRef <- function(reference_path, 
         STAR_ref_path = file.path(reference_path, "STAR"),
         also_generate_mappability = TRUE, 
-        mappability_depth_threshold = 4,
+        map_depth_threshold = 4,
         sjdbOverhang = 149,
         n_threads = 4,
         additional_args = NULL,
@@ -193,7 +193,7 @@ STAR_buildRef <- function(reference_path,
         STAR_Mappability(
             reference_path = reference_path,
             STAR_ref_path = STAR_ref_path,
-            mappability_depth_threshold = mappability_depth_threshold,
+            map_depth_threshold = map_depth_threshold,
             n_threads = n_threads,
             ...
         )
@@ -205,17 +205,19 @@ STAR_buildRef <- function(reference_path,
 
 #' @describeIn STAR-methods Full pipeline for calculation of mappability
 #'   exclusion zone calculation, with given reference. Requires STAR.
+#'   Also requires a valid STAR reference.
 #'   Also requires GetReferenceResource() to have been run.
 #' @export
 STAR_Mappability <- function(
         reference_path,
         STAR_ref_path = file.path(reference_path, "STAR"),
-        mappability_depth_threshold = 4,
+        map_depth_threshold = 4,
         n_threads = 4,
         ...
 ) {
     .validate_reference_resource(reference_path)
     .validate_STAR_version()
+    STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
     mappability_reads_fasta = file.path(
         reference_path, "Mappability", "Reads.fa")
     Mappability_GenReads(reference_path, ...)
@@ -242,7 +244,7 @@ STAR_Mappability <- function(
         Mappability_CalculateExclusions(
             reference_path = reference_path,
             aligned_bam = aligned_bam,
-            threshold = mappability_depth_threshold
+            threshold = map_depth_threshold
         )
     } else {
         .log("STAR failed to align mappability reads", "warning")
@@ -260,6 +262,7 @@ STAR_Mappability <- function(
 #' @export
 STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
         trim_adaptor = "AGATCGGAAG", two_pass = FALSE, n_threads = 4) {
+    
     .validate_STAR_version()
     STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
     BAM_output_path = .validate_path(BAM_output_path)
@@ -444,7 +447,10 @@ STAR_align_fastq <- function(
 }
 
 .validate_STAR_reference <- function(STAR_ref_path) {
-    return(.validate_path(STAR_ref_path))
+    if(!file.exists(file.path(STAR_ref_path, "genomeParameters.txt")))
+        .log(paste(
+            STAR_ref_path, "does not appear to be a valid STAR reference"))
+    return(normalizePath(STAR_ref_path))
 }
 
 .STAR_get_FASTA <- function(reference_path) {
