@@ -220,17 +220,16 @@ STAR_buildRef <- function(reference_path,
 STAR_Mappability <- function(
         reference_path,
         STAR_ref_path = file.path(reference_path, "STAR"),
-        mappability_reads_fasta = file.path(
-            reference_path, "Mappability", "Reads.fa"),
         mappability_depth_threshold = 4,
         n_threads = 4,
         ...
 ) {
     .validate_reference_resource(reference_path)
     .validate_STAR_version()
-    if(!file.exists(mappability_reads_fasta)) {
-        Mappability_GenReads(reference_path, ...)
-    }
+    mappability_reads_fasta = file.path(
+        reference_path, "Mappability", "Reads.fa")
+    Mappability_GenReads(reference_path, ...)
+
     .log(paste("Aligning genome fragments back to the genome, from:", 
         mappability_reads_fasta), type = "message")
     aligned_bam = file.path(reference_path, "Mappability", 
