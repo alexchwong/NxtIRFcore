@@ -3693,10 +3693,6 @@ BuildReference_Full <- function(
         fasta = fasta, gtf = gtf,
         overwrite_resource = overwrite_resource)
 
-    # Generate Mappability reads:
-    fasta_file = file.path(reference_path, "resource", "genome.fa")
-    Mappability_GenReads(reference_path, fasta_file)
-    
     STAR_buildRef(reference_path = reference_path, 
         also_generate_mappability = TRUE, 
         n_threads = n_threads)
