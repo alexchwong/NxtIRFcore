@@ -660,7 +660,6 @@ Get_GTF_file <- function(reference_path) {
 # If ah_genome is not empty:
 #   - fetch AnnotationHub reference
 #   - create a genome.fa file
-# If exclude_scaffolds = TRUE, 
 .fetch_fasta <- function(
         reference_path = "./Reference",
         fasta = "", ah_genome = "",
