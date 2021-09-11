@@ -247,7 +247,8 @@ STAR_Mappability <- function(
         Mappability_CalculateExclusions(
             reference_path = reference_path,
             aligned_bam = aligned_bam,
-            threshold = map_depth_threshold
+            threshold = map_depth_threshold,
+            n_threads = n_threads
         )
     } else {
         .log("STAR failed to align mappability reads", "warning")
