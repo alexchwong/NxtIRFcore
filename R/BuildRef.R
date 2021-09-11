@@ -674,6 +674,17 @@ Get_GTF_file <- function(reference_path) {
         genome <- TwoBitFile(twobit)
         return(genome)
     } else {
+        # If no overwrite, quickly return genome.2bit if exists
+        if(!overwrite) {
+            twobit = file.path(reference_path, "resource", "genome.2bit")
+            if(file.exists(twobit)) {
+                .log("Connecting to genome TwoBitFile...", "message", 
+                    appendLF = FALSE)
+                genome_2bit <- Get_Genome(reference_path, validate = FALSE)
+                message("done")
+                return(genome_2bit)
+            }
+        }       
         fasta_file <- .parse_valid_file(fasta)
         if(!file.exists(fasta_file)) {
             .log(paste("In .fetch_fasta(),",
@@ -3687,7 +3698,7 @@ BuildReference_Full <- function(
         nonPolyARef = GetNonPolyARef(genome_type), 
         BlacklistRef = "", 
         UseExtendedTranscripts = TRUE,
-        n_threads = 4
+        n_threads = 8
 ) {
     GetReferenceResource(reference_path = reference_path,
         fasta = fasta, gtf = gtf,
