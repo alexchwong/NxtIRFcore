@@ -42,7 +42,7 @@ BuildReference_Full(
   nonPolyARef = GetNonPolyARef(genome_type),
   BlacklistRef = "",
   UseExtendedTranscripts = TRUE,
-  n_threads = 4
+  n_threads = 8
 )
 }
 \arguments{

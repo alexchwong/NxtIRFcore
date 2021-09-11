@@ -530,7 +530,7 @@ Get_GTF_file <- function(reference_path) {
         nonPolyAFile <- .parse_valid_file(nonPolyARef, "non-polyA reference") 
     }
     map_file = file.path(normalizePath(reference_path), "Mappability",
-        "MappabilityExclusion.bed.txt")
+        "MappabilityExclusion.bed.gz")
     if(is_valid(MappabilityRef)) {
         MappabilityFile <- .parse_valid_file(MappabilityRef)
     } else if(file.exists(map_file)) {
@@ -762,7 +762,7 @@ Get_GTF_file <- function(reference_path) {
     gtf_path = file.path(r_path, "transcripts.gtf.gz")
     
     if (ah_transcriptome != "") {
-        gtf_gr <- .fetch_AH(ah_transcriptome, verbose = verbose
+        gtf_gr <- .fetch_AH(ah_transcriptome, verbose = verbose,
             pseudo_fetch = pseudo_fetch)
 
         if(overwrite || !file.exists(gtf_path)) {

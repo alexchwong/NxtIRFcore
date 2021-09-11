@@ -204,8 +204,8 @@ STAR_buildRef <- function(reference_path,
 }
 
 #' @describeIn STAR-methods Full pipeline for calculation of mappability
-#'   exclusion zone calculation, with given reference. Requires STAR.
-#'   Also requires a valid STAR reference.
+#'   exclusion zone calculation, with given reference. Requires STAR and a 
+#'   valid STAR reference.
 #'   Also requires GetReferenceResource() to have been run.
 #' @export
 STAR_Mappability <- function(
@@ -239,6 +239,9 @@ STAR_Mappability <- function(
         )
     )
     if(file.exists(aligned_bam)) {
+        # Cleaan up fasta
+        if(file.exists(mappability_reads_fasta)) 
+            file.remove(mappability_reads_fasta)
         .log(paste("Calculating Mappability from:", aligned_bam),
             type = "message")
         Mappability_CalculateExclusions(
@@ -252,6 +255,8 @@ STAR_Mappability <- function(
     if(file.exists(file.path(reference_path, "Mappability",
             "MappabilityExclusion.bed.gz"))) {
         message("Mappability Exclusion calculations complete")
+        # Clean up BAM
+        if(file.exists(aligned_bam)) file.remove(aligned_bam)
     } else {
         .log("Mappability Exclusion calculations not performed", "warning")
     }
