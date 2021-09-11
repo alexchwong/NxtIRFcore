@@ -277,7 +277,8 @@ GetReferenceResource <- function(
     reference_data = .get_reference_data(
         reference_path = reference_path,
         fasta = fasta, gtf = gtf, 
-        overwrite_resource = overwrite_resource
+        overwrite_resource = overwrite_resource,
+        pseudo_fetch = TRUE
     )
 }
 
@@ -581,7 +582,7 @@ Get_GTF_file <- function(reference_path) {
 # Sub
 
 .get_reference_data <- function(reference_path, fasta, gtf, 
-        overwrite_resource = FALSE) {
+        overwrite_resource = FALSE, pseudo_fetch = FALSE) {
 
     # Checks fasta or gtf files exist if omitted, or are valid URLs
     .validate_path(reference_path, subdirs = "resource")
@@ -619,7 +620,8 @@ Get_GTF_file <- function(reference_path) {
     gtf_gr <- .fetch_gtf(
         gtf = gtf_use, ah_transcriptome = ah_gtf_use,
         reference_path = reference_path, 
-        overwrite = overwrite_resource
+        overwrite = overwrite_resource,
+        pseudo_fetch = pseudo_fetch
     )
     # Save Resource details to settings.Rds:
     settings.list <- list(fasta_file = fasta_use, gtf_file = gtf_use,
@@ -753,13 +755,15 @@ Get_GTF_file <- function(reference_path) {
 .fetch_gtf <- function(
         reference_path = "./Reference",
         gtf = "", ah_transcriptome = "",  
-        verbose = TRUE, overwrite = FALSE
+        verbose = TRUE, overwrite = FALSE,
+        pseudo_fetch = FALSE
 ) {
     r_path = file.path(reference_path, "resource")
     gtf_path = file.path(r_path, "transcripts.gtf.gz")
     
     if (ah_transcriptome != "") {
-        gtf_gr <- .fetch_AH(ah_transcriptome, verbose = verbose)
+        gtf_gr <- .fetch_AH(ah_transcriptome, verbose = verbose
+            pseudo_fetch = pseudo_fetch)
 
         if(overwrite || !file.exists(gtf_path)) {
             # Copy file from cache if exists
@@ -777,7 +781,7 @@ Get_GTF_file <- function(reference_path) {
                 "Given transcriptome gtf file", gtf, "not found"))
         }
         .log("Reading source GTF file...", "message", appendLF = FALSE)
-        gtf_gr <- rtracklayer::import(gtf_file, "gtf")
+        
         message("done")
 
         .log("Making local copy of GTF file...", "message", appendLF = FALSE)
@@ -796,6 +800,11 @@ Get_GTF_file <- function(reference_path) {
             }
         }
         message("done")
+        if(!pseudo_fetch) {
+            gtf_gr <- rtracklayer::import(gtf_file, "gtf")
+        } else {
+            gtf_gr = NULL
+        }
         return(gtf_gr)
     }
 }
@@ -816,7 +825,9 @@ Get_GTF_file <- function(reference_path) {
 
 .fetch_AH <- function(ah_record_name, rdataclass = c("GRanges", "TwoBitFile"),
         localHub = FALSE, ah = AnnotationHub(localHub = localHub), 
-        as_DNAStringSet = FALSE, verbose = FALSE) {
+        as_DNAStringSet = FALSE, verbose = FALSE,
+        pseudo_fetch = pseudo_fetch
+) {
     rdataclass = match.arg(rdataclass)
     if(!substr(ah_record_name, 1, 2) == "AH") {
         .log(paste(ah_record_name,
@@ -845,14 +856,18 @@ Get_GTF_file <- function(reference_path) {
         .log("AnnotationHub cache error - asset not found")
     }   
     if (ah_record$rdataclass == "GRanges") {
-        if (verbose) {
-            .log("Importing to memory as GRanges object...", "message",
-                appendLF = FALSE
-            )
+        if(!pseudo_fetch) {
+            if (verbose) {
+                .log("Importing to memory as GRanges object...", "message",
+                    appendLF = FALSE
+                )
+            }
+            gtf <- rtracklayer::import(cache_loc, "gtf")
+            if (verbose) message("done")
+            return(gtf)
+        } else {
+            return(NULL)
         }
-        gtf <- rtracklayer::import(cache_loc, "gtf")
-        if (verbose) message("done")
-        return(gtf)
     } else if (ah_record$rdataclass == "TwoBitFile") {
         if (verbose) {
             .log("Importing to memory as TwoBitFile object...", "message",
