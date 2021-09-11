@@ -32,6 +32,7 @@ Imports:
 	HDF5Array,
 	httr,
 	IRanges,
+	ompBAM,
 	openssl,
 	parallel,
 	plotly,
