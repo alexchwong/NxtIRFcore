@@ -3510,7 +3510,7 @@ Get_GTF_file <- function(reference_path) {
         list(get(paste0("transcript_id_", tolower(isoform))), 
             get(paste0("intron_number_", tolower(isoform))))]
     if(toupper(isoform) == "B") {
-        Casette = Casette[get("EventType") != c("SE", "RI")]
+        Casette = Casette[!(get("EventType") %in% c("SE", "RI"))]
         Casette[get("EventType") %in% c("MXE", "ALE", "A3SS"),
             c("exon_number") := get("exon_number") + 1]
     } else {
