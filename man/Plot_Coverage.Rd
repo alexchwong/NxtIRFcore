@@ -25,58 +25,65 @@ Plot_Coverage(
 )
 }
 \arguments{
-\item{se}{A SummarizedExperiment object. It must contain the Event to be
-displayed}
+\item{se}{A NxtSE object, created by \code{\link[=MakeSE]{MakeSE()}}.
+If \code{COV} files are not linked to this object, set a
+corresponding list of \code{COV} files using
+\code{covfile(se) <- vector_of_cov_files}}
 
-\item{Event}{The \code{EventName} or the IR / alternative splicing event to be
-normalised. Valid names are all entries within rownames(se)}
+\item{Event}{The \code{EventName} of the IR / alternative splicing event to be
+displayed. To display a list of valid \code{Events}, type in \code{rownames(se)}}
 
 \item{Gene}{Whether to use the range for the given Gene. If given and valid,
 overrides Event (but \code{Event} or \code{norm_event} will be used to normalise by
-condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name
-(Gene Symbol)}
+condition). Valid \code{Gene} entries include gene_id (Ensembl ID) or gene_name
+(Gene Symbol).}
 
 \item{seqname, start, end}{The chromosome (as a single character) and genomic
 coordinates (numeric) of the region to display. If present, overrides both
-\code{Event} and \code{Gene}}
+\code{Event} and \code{Gene}. E.g. for a given region of chr1:10000-11000,
+enter the parameters: \verb{seqname = "chr1", start = 10000, end = 11000}}
 
 \item{strand}{Whether to show coverage of both strands "*" (default), or
 from the "+" or "-" strand only.}
 
 \item{zoom_factor}{Zoom out from event. Each level of zoom zooms out by a
-factor of 3.}
+factor of 3. E.g. for a query region of chr1:10000-11000, if a
+\code{zoom_factor} of 1.0 is given, chr1:99000-12000 will be displayed.}
 
-\item{tracks}{The names of individual samples (if condition is not set),
+\item{tracks}{The names of individual samples (if \code{condition} is not set),
 or the names of the different conditions to be plotted.}
 
-\item{track_names}{The names of the tracks to be displayed. Defaults to
-\code{tracks}}
+\item{track_names}{The names of the tracks to be displayed. If omitted, the
+track_names will default to the input in \code{tracks}}
 
 \item{condition}{The name of the column (of \code{colData(se)} containing the
 conditions to be contrasted. If this is not set, \code{tracks} are assumed to be
 names of individual samples}
 
 \item{selected_transcripts}{Transcript ID or transcript names of transcripts
-to be displayed on the gene annotation track. Useful to remove overlapping
-transcripts that are not relevant to the samples being displayed.}
+to be displayed on the gene annotation track. Useful to remove minor
+isoforms that are not relevant to the samples being displayed.}
 
 \item{condense_tracks}{Whether to collapse the transcript tracks by gene.}
 
 \item{stack_tracks}{Whether to graph all the conditions on a single coverage
 track. If set to true, each condition will be displayed in a different
-colour}
+colour.}
 
 \item{t_test}{Whether to perform a pair-wise T-test. Only used if there are
 TWO condition tracks.}
 
 \item{norm_event}{Whether to normalise by an event different to that given
 in "Event". The difference between this and Event is that the genomic
-coordinates are only centered around Event. If \code{norm_event} is different to
+coordinates can be centered around a different \code{Event}, \code{Gene} or region
+as given in \code{seqname/start/end}. If \code{norm_event} is different to
 \code{Event}, \code{norm_event} will be used for normalisation and \code{Event} will be
 used to define the genomic coordinates of the viewing window.}
 
 \item{bases_flanking}{How many bases flanking the zoomed window. Useful when
-used in conjunction with zoom_factor == 0}
+used in conjunction with zoom_factor == 0. E.g. for a given region of
+chr1:10000-11000, if \code{zoom_factor = 0} and \code{bases_flanking = 100}, the
+region chr1:9900-11100 will be displayed.}
 }
 \value{
 A list containing two objects. final_plot is the plotly object.
@@ -97,9 +104,24 @@ se = NxtIRF_example_NxtSE()
 
 colData(se)$treatment = rep(c("A", "B"), each = 3)
 
-Plot_Coverage(
+# View the COV files linked to the NxtSE object:
+covfile(se)
+
+# Return a list of ggplot and plotly objects
+p = Plot_Coverage(
     se = se, 
     Event = rowData(se)$EventName[1], 
-    tracks = colnames(se)[1:2]
+    tracks = colnames(se)[1:4]
 )
+
+# Display the interactive Coverage plotly plot:
+p$final_plot
+
+# Plot the same event but by condition "treatment"
+p = Plot_Coverage(
+    se, rowData(se)$EventName[1], 
+    tracks = c("A", "B"), condition = "treatment"
+)
+p$final_plot
+
 }

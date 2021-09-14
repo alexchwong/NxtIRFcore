@@ -7,44 +7,51 @@
 #' It can normalise coverage of samples per condition using NxtIRF's SpliceOver
 #' parameter that normalises the flanking exon boundaries to 1.
 #' 
-#' @param se A SummarizedExperiment object. It must contain the Event to be 
-#'   displayed
-#' @param Event The `EventName` or the IR / alternative splicing event to be 
-#'   normalised. Valid names are all entries within rownames(se)
+#' @param se A NxtSE object, created by [MakeSE()]. 
+#'   If `COV` files are not linked to this object, set a
+#'   corresponding list of `COV` files using 
+#'   `covfile(se) <- vector_of_cov_files`
+#' @param Event The `EventName` of the IR / alternative splicing event to be 
+#'   displayed. To display a list of valid `Events`, type in `rownames(se)`
 #' @param Gene Whether to use the range for the given Gene. If given and valid,
 #'   overrides Event (but `Event` or `norm_event` will be used to normalise by
-#'  condition). Valid Gene entries include gene_id (Ensembl ID) or gene_name
-#'  (Gene Symbol)
+#'  condition). Valid `Gene` entries include gene_id (Ensembl ID) or gene_name
+#'  (Gene Symbol).
 #' @param seqname,start,end The chromosome (as a single character) and genomic 
 #'   coordinates (numeric) of the region to display. If present, overrides both
-#'   `Event` and `Gene`
+#'   `Event` and `Gene`. E.g. for a given region of chr1:10000-11000,
+#'   enter the parameters: `seqname = "chr1", start = 10000, end = 11000`
 #' @param strand Whether to show coverage of both strands "*" (default), or
 #'   from the "+" or "-" strand only.
 #' @param zoom_factor Zoom out from event. Each level of zoom zooms out by a
-#'   factor of 3.
-#' @param tracks The names of individual samples (if condition is not set),
+#'   factor of 3. E.g. for a query region of chr1:10000-11000, if a 
+#'   `zoom_factor` of 1.0 is given, chr1:99000-12000 will be displayed.
+#' @param tracks The names of individual samples (if `condition` is not set),
 #'   or the names of the different conditions to be plotted.
-#' @param track_names The names of the tracks to be displayed. Defaults to 
-#'   `tracks`
+#' @param track_names The names of the tracks to be displayed. If omitted, the
+#'   track_names will default to the input in `tracks`
 #' @param condition The name of the column (of `colData(se)` containing the 
 #'   conditions to be contrasted. If this is not set, `tracks` are assumed to be
 #'   names of individual samples
 #' @param selected_transcripts Transcript ID or transcript names of transcripts
-#'   to be displayed on the gene annotation track. Useful to remove overlapping
-#'   transcripts that are not relevant to the samples being displayed.
+#'   to be displayed on the gene annotation track. Useful to remove minor
+#'   isoforms that are not relevant to the samples being displayed.
 #' @param condense_tracks Whether to collapse the transcript tracks by gene.
 #' @param stack_tracks Whether to graph all the conditions on a single coverage
 #'   track. If set to true, each condition will be displayed in a different
-#'   colour
+#'   colour.
 #' @param t_test Whether to perform a pair-wise T-test. Only used if there are
 #'   TWO condition tracks.
 #' @param norm_event Whether to normalise by an event different to that given
 #'   in "Event". The difference between this and Event is that the genomic
-#'   coordinates are only centered around Event. If `norm_event` is different to
+#'   coordinates can be centered around a different `Event`, `Gene` or region
+#'   as given in `seqname/start/end`. If `norm_event` is different to
 #'   `Event`, `norm_event` will be used for normalisation and `Event` will be
 #'   used to define the genomic coordinates of the viewing window.
 #' @param bases_flanking How many bases flanking the zoomed window. Useful when
-#'    used in conjunction with zoom_factor == 0
+#'    used in conjunction with zoom_factor == 0. E.g. for a given region of
+#'    chr1:10000-11000, if `zoom_factor = 0` and `bases_flanking = 100`, the
+#'    region chr1:9900-11100 will be displayed.
 #' 
 #' @return A list containing two objects. final_plot is the plotly object. 
 #'   ggplot is a list of ggplot tracks.\cr\cr
@@ -57,11 +64,26 @@
 #' 
 #' colData(se)$treatment = rep(c("A", "B"), each = 3)
 #'
-#' Plot_Coverage(
+#' # View the COV files linked to the NxtSE object:
+#' covfile(se)
+#'
+#' # Return a list of ggplot and plotly objects
+#' p = Plot_Coverage(
 #'     se = se, 
 #'     Event = rowData(se)$EventName[1], 
-#'     tracks = colnames(se)[1:2]
+#'     tracks = colnames(se)[1:4]
 #' )
+#'
+#' # Display the interactive Coverage plotly plot:
+#' p$final_plot
+#' 
+#' # Plot the same event but by condition "treatment"
+#' p = Plot_Coverage(
+#'     se, rowData(se)$EventName[1], 
+#'     tracks = c("A", "B"), condition = "treatment"
+#' )
+#' p$final_plot
+#' 
 #' @md
 #' @export
 Plot_Coverage <- function(
@@ -80,69 +102,17 @@ Plot_Coverage <- function(
         norm_event,
         bases_flanking = 100
 ) {
-
-# Assertions
-    args = as.list(match.call())
-    .plot_cov_validate_args(se, tracks, condition, 
-        Event, Gene,
+    # Validate given arguments
+    .plot_cov_validate_args(se, tracks, condition, Event, Gene,
         seqname, start, end, bases_flanking)
-    
     cov_data = ref(se)
-    
     strand = match.arg(strand)
     if(strand == "") strand <- "*"
-
-    if(!missing(zoom_factor)) {
-        tryCatch({
-            zoom_factor = as.numeric(zoom_factor)
-        }, error = function(e) {
-            zoom_factor = NULL
-        })
-    }
-    # Prepare zoom window
-    if((!missing(seqname) & !missing(start) & !missing(end))) {
-        view_chr = as.character(seqname)
-        view_start = start
-        view_end = end
-        if(!is_valid(zoom_factor)) zoom_factor = 0
-    } else if(!missing(Gene)) {        
-        if(Gene %in% cov_data$gene_list$gene_id) {
-            gene.df = as.data.frame(
-                cov_data$gene_list[get("gene_id") == get("Gene")])
-        } else {
-            gene.df = as.data.frame(
-                cov_data$gene_list[get("gene_name") == get("Gene")])
-        }
-        view_chr = as.character(gene.df$seqnames)
-        view_start = gene.df$start
-        view_end = gene.df$end        
-        if(!is_valid(zoom_factor)) zoom_factor = 0
-    } else {
-        rowData = as.data.frame(rowData(se))
-        rowData = rowData[Event,]
-        view_chr = tstrsplit(rowData$EventRegion, split=":")[[1]]
-        temp1 = tstrsplit(rowData$EventRegion, split="/")
-        temp2 = tstrsplit(temp1[[1]], split=":")[[2]]
-        view_start = as.numeric(tstrsplit(temp2, split="-")[[1]])
-        view_end = as.numeric(tstrsplit(temp2, split="-")[[2]])
-        if(!is_valid(zoom_factor)) zoom_factor = 1
-    }
-    if(zoom_factor < 0) zoom_factor = 0
-    
-    view_center = (view_start + view_end) / 2
-    view_length = view_end - view_start
-
-    # Apply zoom 
-    new_view_length = view_length * 3 ^ zoom_factor + 2 * bases_flanking
-    view_start = round(view_center - new_view_length / 2)
-    view_end = round(view_center + new_view_length / 2)
-    
-    # Validate genomic window and shift if invalid
-    if(view_start < 1) view_start = 1
-    seqInfo = cov_data$seqInfo[view_chr]
-    seqmax = GenomeInfoDb::seqlengths(seqInfo)
-    if(view_end > seqmax) view_end = seqmax - 1
-    
+    # Work out viewing coordinates based on given request
+    coords <- .plot_coverage_determine_params(
+        se, Event, Gene,
+        seqname, start, end, zoom_factor, bases_flanking
+    )
     if(missing(norm_event)) {
         if(!missing(Event)) {
             norm_event = Event
@@ -150,62 +120,30 @@ Plot_Coverage <- function(
             norm_event = ""       
         }
     }
-    if(missing(condition)) {
-        condition = ""
+    if(missing(condition)) condition = ""
+    if(condition != "" & norm_event == "") {
+        .log(paste("If `condition` is set,",
+            "you must provide a valid `norm_event` or `Event`,",
+            "otherwise per-condition depth normalization cannot be performed"
+        ))
     }
-    
-    # Last sanity check view_chr, view_start, view_end here:
     
     args = list(
-        view_chr = view_chr,
-        view_start = view_start,
-        view_end = view_end,
-        view_strand = strand,
-        norm_event = norm_event,
-        condition = condition,
-        tracks = as.list(tracks),
-        track_names = track_names,
-        se = se,
-        avail_files = covfile(se),
-        transcripts = cov_data$transcripts.DT,
-        elems = cov_data$elem.DT,
+        view_chr = coords$view_chr, view_start = coords$view_start,
+        view_end = coords$view_end, view_strand = strand,
+        norm_event = norm_event, condition = condition,
+        tracks = as.list(tracks), track_names = track_names,
+        se = se, avail_files = covfile(se),
+        transcripts = cov_data$transcripts.DT, elems = cov_data$elem.DT,
         stack_tracks = stack_tracks,
-        graph_mode = "Pan",
-        conf.int = 0.95,
-        t_test = t_test,
-        condensed = condense_tracks
+        graph_mode = "Pan", conf.int = 0.95,
+        t_test = t_test, condensed = condense_tracks
     )
-    if(norm_event != "") {
-        events_to_highlight = list()
-        rowData = as.data.frame(rowData(se))
-
-        if(rowData$EventType[match(norm_event, rowData$EventName)] 
-            %in% c("MXE", "SE")) {
-            events_to_highlight[[1]] = c(
-                rowData$Event1a[match(norm_event, rowData$EventName)],
-                rowData$Event2a[match(norm_event, rowData$EventName)])
-        } else {
-            events_to_highlight[[1]] = rowData$Event1a[
-                match(norm_event, rowData$EventName)]
-        }
-        if(rowData$EventType[match(norm_event, rowData$EventName)] 
-            %in% c("MXE")) {
-            events_to_highlight[[2]] = c(
-                rowData$Event1b[match(norm_event, rowData$EventName)],
-                rowData$Event2b[match(norm_event, rowData$EventName)])
-        } else if(rowData$EventType[match(norm_event, rowData$EventName)] 
-            %in% c("SE", "A3SS", "A5SS", "ALE", "AFE")){
-            events_to_highlight[[2]] = rowData$Event1b[
-                match(norm_event, rowData$EventName)]
-        }
-        args$highlight_events = events_to_highlight
-    }
-    if(!missing(selected_transcripts)) {
+    if(norm_event != "")
+        args$highlight_events = .plot_coverage_highlight_events(se, norm_event)
+    if(!missing(selected_transcripts))
         args$selected_transcripts = selected_transcripts
-    }
-    return(
-        do.call(plot_cov_fn, args)
-    )
+    return(do.call(plot_cov_fn, args))
 }
 
 #' Calls NxtIRF's C++ function to retrieve coverage
@@ -280,243 +218,486 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
 
 ########## Internal functions ##########
 
-plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
-    norm_event, condition, tracks = list(), track_names = "", se, avail_files,
-    transcripts, elems, highlight_events, selected_transcripts, 
-    stack_tracks, graph_mode,
-    conf.int = 0.95,
-    t_test = FALSE, condensed = FALSE) {
 
-    if(!missing(selected_transcripts)) {
-        p_ref = plot_view_ref_fn(
-            view_chr, view_start, view_end, 
-            transcripts, elems, highlight_events,
-            condensed = condensed,
-            selected_transcripts = selected_transcripts
-        )   
+# Validate given arguments in Plot_Coverage()
+.plot_cov_validate_args <- function(se, tracks, condition, 
+        Event, Gene,
+        seqname, start, end, bases_flanking
+) {
+    if(missing(se) || !is(se, "NxtSE")) 
+        .log("In Plot_Coverage, `se` must be a valid `NxtSE` object")
+    if(!all(file.exists(covfile(se))))
+        .log(paste("In Plot_Coverage,",
+            "COV files are not defined in se.",
+            "Please supply the correct paths of the COV files",
+            "using covfile(se) <- vector_of_correct_COVfile_paths"))
+    cov_data = ref(se)    
+    if(!all(c("seqInfo", "gene_list", "elem.DT", "transcripts.DT") %in% 
+            names(cov_data)))
+        .log(paste("In Plot_Coverage,",
+            "cov_data must be a valid object",
+            "created by prepare_covplot_data()"))
+    # Check condition and tracks
+    if(length(tracks) < 1 | length(tracks) > 4)
+        .log(paste("In Plot_Coverage,", "tracks must be of length 1-4"))
+    if(!missing(condition)) {
+        if(length(condition) != 1)
+            .log(paste("In Plot_Coverage,", "condition must be of length 1"))
+        if(!(condition %in% names(colData(se))))
+            .log(paste("In Plot_Coverage,",
+                "condition must be a valid column name in colData(se)"))
+        condition_options = unique(colData(se)[, condition])
+        if(!all(tracks %in% condition_options))
+            .log(paste("In Plot_Coverage,",
+                "some tracks do not match valid condition names in", 
+                args[["condition"]]))
     } else {
-        p_ref = plot_view_ref_fn(
-            view_chr, view_start, view_end, 
-            transcripts, elems, highlight_events,
-            condensed = condensed
-        )    
+        if(!all(tracks %in% colnames(se)))
+            .log(paste("In Plot_Coverage,",
+                "some tracks do not match valid sample names in se"))
     }
-    gp_track = list()
-    pl_track = list()
-    
-    cur_zoom = floor(log((view_end - view_start)/50) / log(3))
-
-    data.list = list()
-    data.t_test = NULL
-    fac = NULL
-    
-    if(is_valid(condition) & is_valid(norm_event)) {
-        max_tracks = 0
-        for(i in seq_len(4)) {
-            if(length(tracks) >= i && is_valid(tracks[[i]])) {
-                track_samples = tracks[[i]]
-                colData = SummarizedExperiment::colData(se)
-                samples = rownames(colData)[
-                    unlist(as.character(colData[, condition]) 
-                        == track_samples)]
-                event_norms = SummarizedExperiment::assay(
-                    se, "Depth")[norm_event,samples]
-                samples = samples[event_norms >= 10]
-                event_norms = event_norms[event_norms >= 10]
-
-                if(length(avail_files[samples]) > 0 &&
-                        all(file.exists(avail_files[samples]))) {
-
-                    df = as.data.frame(GetCoverage_DF(
-                        samples, avail_files[samples],
-                        view_chr, view_start, view_end, view_strand))
-                    # bin anything with cur_zoom > 5
-                    df = bin_df(df, max(1, 3^(cur_zoom - 5)))
-                    # message(paste("Group GetCoverage performed for", condition))
-                    for(todo in seq_len(length(samples))) {
-                        df[, samples[todo]] = 
-                            df[, samples[todo]] / event_norms[todo]
-                    }
-
-                    if(t_test == TRUE) {
-                        if(is.null(data.t_test)) {
-                            data.t_test <- as.matrix(df)
-                            fac = rep(as.character(i), ncol(df) - 1)
-                        } else {
-                            data.t_test <- cbind(
-                                data.t_test, as.matrix(df[, -1]))
-                            fac = c(fac, rep(as.character(i), ncol(df) - 1))
-                        }
-                    }
-
-                    df$mean = rowMeans(as.matrix(df[,samples]))
-                    df$sd = rowSds(as.matrix(df[,samples]))
-                    n = length(samples)
-                    df$ci = qt((1 + conf.int)/2,df = n-1) * df$sd / sqrt(n)
-
-                    if(length(track_names) == length(tracks)) {
-                        df$track = track_names[i]
-                    } else {
-                        df$track = as.character(i)
-                    }
-                    DT = as.data.table(df)
-                    DT = DT[, c("x", "mean", "ci", "track")]
-                    data.list[[i]] <- DT 
-                    max_tracks = max_tracks + 1
-                }
-            }
-        }
-        if(stack_tracks == TRUE) {
-            df = as.data.frame(rbindlist(data.list))
-            if(nrow(df) > 0) {
-                if(length(track_names) == length(tracks)) {
-                    df$track = factor(df$track, track_names)
-                }
-                gp_track[[1]] = ggplot() + 
-                    geom_hline(yintercept = 0) +
-                    geom_ribbon(data = df, alpha = 0.2, 
-                        aes(x = get("x"), y = get("mean"), 
-                        ymin = get("mean") - get("ci"), 
-                        ymax = get("mean") + get("ci"), 
-                        fill = get("track"))) +
-                    geom_line(data = df, aes(x = get("x"), 
-                        y = get("mean"), colour = get("track"))) +
-                    labs(y = "Normalized Coverage") +
-                    theme_white_legend +
-                    theme(legend.title = element_blank())                 
-                pl_track[[1]] = ggplotly(gp_track[[1]],
-                    tooltip = c("x", "y", "ymin", "ymax", "colour")
-                )
-                pl_track[[1]] = pl_track[[1]] %>% layout(
-                    dragmode = "zoom",
-                    yaxis = list(rangemode = "tozero", fixedrange = TRUE)
-                )
-                for(j in seq_len(max_tracks)) {
-                    pl_track[[1]]$x$data[[1 + j]]$showlegend = FALSE
-                    pl_track[[1]]$x$data[[1 + j + max_tracks]]$showlegend = TRUE
-                    if(!missing(track_names) && 
-                            length(track_names) >= max_tracks) {
-                        pl_track[[1]]$x$data[[1 + j]]$name = track_names[j]
-                        pl_track[[1]]$x$data[[1 + j + max_tracks]]$name = 
-                            track_names[j]                
-                    } else {
-                        pl_track[[1]]$x$data[[1 + j]]$name = 
-                            paste(condition, tracks[[j]])
-                        pl_track[[1]]$x$data[[1 + j + max_tracks]]$name = 
-                            paste(condition, tracks[[j]])
-                    }
-                }
+    # Check we know where to plot
+    if(missing(Event) & missing(Gene) & 
+            (missing(seqname) | missing(start) | missing(end))
+    ) {
+        .log(paste("In Plot_Coverage,",
+            "Event or Gene cannot be empty, unless coordinates are provided"))
+    } else if((is_valid(seqname) & is_valid(start) & is_valid(end))) {
+        view_chr = as.character(seqname)
+        view_start = start
+        view_end = end
+    } else if(is_valid(Gene)) {
+        if(!(Gene %in% cov_data$gene_list$gene_id) & 
+                !(Gene %in% cov_data$gene_list$gene_name)) {
+            .log(paste("In Plot_Coverage,",
+                Gene, "is not a valid gene symbol or Ensembl gene id"))
+        }       
+        if(!(Gene %in% cov_data$gene_list$gene_id)) {
+            gene.df = as.data.frame(
+                cov_data$gene_list[get("gene_name") == get("Gene")])
+            if(nrow(gene.df) != 1) {
+                .log(paste("In Plot_Coverage,", Gene, 
+                    "is an ambiguous name referring to 2 or more genes.",
+                    "Please provide its gene_id instead"))
             }
         } else {
-            for(i in seq_len(4)) {
-                if(length(data.list) >= i && !is.null(data.list[[i]])) {
-                    df = as.data.frame(data.list[[i]])
-                    gp_track[[i]] = ggplot() + 
-                        geom_hline(yintercept = 0) +
-                        geom_ribbon(data = df, alpha = 0.2, colour = NA, 
-                            aes(x = get("x"), y = get("mean"), 
-                                ymin = get("mean") - get("ci"), 
-                                ymax = get("mean") + get("ci"))) +
-                        geom_line(data = df, 
-                            aes(x = get("x"), y = get("mean"))) +
-                        labs(y = paste(condition, tracks[[i]])) + 
-                        theme_white_legend
-                    pl_track[[i]] = ggplotly(gp_track[[i]],
-                        tooltip = c("x", "y", "ymin", "ymax")
-                    )
-                    pl_track[[i]] = pl_track[[i]] %>% layout(
-                        yaxis = list(rangemode = "tozero", fixedrange = TRUE)
-                    )
-                    pl_track[[i]]$x$data[[2]]$showlegend = FALSE
-                    pl_track[[i]]$x$data[[3]]$showlegend = FALSE
-                    if(!missing(track_names) && length(track_names) >= i) {
-                        pl_track[[i]]$x$data[[2]]$name = track_names[i]
-                        pl_track[[i]]$x$data[[3]]$name = track_names[i]
-                    } else {
-                        pl_track[[i]]$x$data[[2]]$name = paste(
-                            condition, tracks[[i]])
-                        pl_track[[i]]$x$data[[3]]$name = 
-                            paste(condition, tracks[[i]])
-                    }
-                }
-            }
+            gene.df = as.data.frame(
+                cov_data$gene_list[get("gene_id") == get("Gene")])        
         }
+        view_chr = as.character(gene.df$seqnames)
+        view_start = gene.df$start
+        view_end = gene.df$end             
+    } else {
+        rowData = as.data.frame(rowData(se))
+        if(!(Event %in% rownames(rowData))) {
+            .log(paste("In Plot_Coverage,", Event, 
+                "is not a valid IR or alternate splicing event in rowData(se)"))
+        }
+        rowData = rowData[Event,]
+        view_chr = tstrsplit(rowData$EventRegion, split=":")[[1]]
+        temp1 = tstrsplit(rowData$EventRegion, split="/")
+        temp2 = tstrsplit(temp1[[1]], split=":")[[2]]
+        view_start = as.numeric(tstrsplit(temp2, split="-")[[1]])
+        view_end = as.numeric(tstrsplit(temp2, split="-")[[2]])
+    }
+    view_center = (view_start + view_end) / 2
+    view_length = view_end - view_start    
+    if(!(view_chr %in% names(cov_data$seqInfo)))
+        .log(paste("In Plot_Coverage,", view_chr, 
+            "is not a valid chromosome reference name in the given genome"))
+    if(is_valid(bases_flanking) && 
+            ( !is.numeric(bases_flanking) || bases_flanking < 0 ))
+        .log(paste("In Plot_Coverage,",
+            "bases_flanking must be a non-negative number"))
+    if(!is.numeric(view_length) || view_length < 0)
+        .log(paste("In Plot_Coverage,",
+            "view_length must be a non-negative number"))
+}
+
+# Work out viewing coordinates based on given request
+.plot_coverage_determine_params <- function(
+        se, Event, Gene,
+        seqname, start, end, zoom_factor, bases_flanking
+) {
+    cov_data = ref(se)
+    if(!missing(zoom_factor)) {
+        tryCatch({
+            zoom_factor = as.numeric(zoom_factor)
+        }, error = function(e) {
+            zoom_factor = NULL
+        })
+    }
+    # Prepare zoom window
+    if(!missing(seqname) & !missing(start) & !missing(end)) {
+        view_chr = as.character(seqname)
+        view_start = start
+        view_end = end
+        if(!is_valid(zoom_factor)) zoom_factor = 0
+    } else if(!missing(Gene)) {        
+        if(Gene %in% cov_data$gene_list$gene_id) {
+            gene.df = as.data.frame(
+                cov_data$gene_list[get("gene_id") == get("Gene")])
+        } else {
+            gene.df = as.data.frame(
+                cov_data$gene_list[get("gene_name") == get("Gene")])
+        }
+        view_chr = as.character(gene.df$seqnames)
+        view_start = gene.df$start
+        view_end = gene.df$end        
+        if(!is_valid(zoom_factor)) zoom_factor = 0
+    } else {
+        rowData = as.data.frame(rowData(se))
+        rowData = rowData[Event,]
+        view_chr = tstrsplit(rowData$EventRegion, split=":")[[1]]
+        temp1 = tstrsplit(rowData$EventRegion, split="/")
+        temp2 = tstrsplit(temp1[[1]], split=":")[[2]]
+        view_start = as.numeric(tstrsplit(temp2, split="-")[[1]])
+        view_end = as.numeric(tstrsplit(temp2, split="-")[[2]])
+        if(!is_valid(zoom_factor)) zoom_factor = 1
+    }
+    if(zoom_factor < 0) zoom_factor = 0
+    
+    # Apply zoom 
+    view_center = (view_start + view_end) / 2
+    view_length = view_end - view_start
+    new_view_length = view_length * 3 ^ zoom_factor + 2 * bases_flanking
+    view_start = round(view_center - new_view_length / 2)
+    view_end = round(view_center + new_view_length / 2)
+    # Validate genomic window and shift if invalid
+    if(view_start < 1) view_start = 1
+    seqInfo = cov_data$seqInfo[view_chr]
+    seqmax = GenomeInfoDb::seqlengths(seqInfo)
+    if(view_end > seqmax) view_end = seqmax - 1
+    
+    return(list(
+        view_chr = view_chr, view_start = view_start, view_end = view_end
+    ))
+}
+
+# Determines what events to highlight given `norm_event`
+.plot_coverage_highlight_events <- function(se, norm_event) {
+    events_to_highlight = list()
+    rowData = as.data.frame(rowData(se))
+
+    if(rowData$EventType[match(norm_event, rowData$EventName)] 
+        %in% c("MXE", "SE")) {
+        events_to_highlight[[1]] = c(
+            rowData$Event1a[match(norm_event, rowData$EventName)],
+            rowData$Event2a[match(norm_event, rowData$EventName)])
+    } else {
+        events_to_highlight[[1]] = rowData$Event1a[
+            match(norm_event, rowData$EventName)]
+    }
+    if(rowData$EventType[match(norm_event, rowData$EventName)] 
+        %in% c("MXE")) {
+        events_to_highlight[[2]] = c(
+            rowData$Event1b[match(norm_event, rowData$EventName)],
+            rowData$Event2b[match(norm_event, rowData$EventName)])
+    } else if(rowData$EventType[match(norm_event, rowData$EventName)] 
+        %in% c("SE", "A3SS", "A5SS", "ALE", "AFE")){
+        events_to_highlight[[2]] = rowData$Event1b[
+            match(norm_event, rowData$EventName)]
+    }
+    return(events_to_highlight)
+}
+
+# Internal function used to plot everything
+plot_cov_fn <- function(
+    view_chr, view_start, view_end, view_strand,
+    norm_event, condition, tracks = list(), track_names = NULL, se, avail_files,
+    transcripts, elems, highlight_events, selected_transcripts = "", 
+    stack_tracks, graph_mode, conf.int = 0.95,
+    t_test = FALSE, condensed = FALSE
+) {
+    args = as.list(match.call())
+    if(is.null(track_names)) args$track_names = unlist(tracks)
+    p_ref = plot_view_ref_fn(
+        view_chr, view_start, view_end, 
+        transcripts, elems, highlight_events,
+        condensed = condensed,
+        selected_transcripts = selected_transcripts
+    )   
+    data.t_test <- list()
+    cur_zoom = floor(log((view_end - view_start)/50) / log(3))
+    
+    if(is_valid(condition) & is_valid(norm_event)) {
+        # Calculate normalized values given `condition` and `norm_event`
+        calcs <- do.call(.plot_cov_fn_normalize_condition, args)
+        
+        if(stack_tracks == TRUE) {
+            plot_objs <- .plot_cov_fn_plot_by_condition_stacked(calcs, args)
+        } else {
+            plot_objs <- .plot_cov_fn_plot_by_condition_unstacked(calcs, args)
+        }
+        if(t_test) plot_objs <- .plot_cov_fn_ttest(plot_objs, calcs)
     } else if(!is_valid(condition)){
-        for(i in seq_len(4)) {
-            if(length(tracks) >= i && is_valid(tracks[[i]])) {
-                track_samples = tracks[[i]]
-                filename = avail_files[which(
-                    names(avail_files) == track_samples)]
-                if(length(filename) == 1 && file.exists(filename)) {
-                    df = GetCoverage_DF("sample", filename,
-                        view_chr, view_start, view_end, view_strand)
-                    df = bin_df(df, max(1, 3^(cur_zoom - 5)))
-                    data.list[[i]] <- as.data.table(df)
-                    if("sample" %in% colnames(df)) {
-                        gp_track[[i]] = ggplot() + 
-                        geom_hline(yintercept = 0) +
-                        geom_line(data = df, 
-                            aes(x = get("x"), y = get("sample"))) +
-                        theme_white_legend
-                        pl_track[[i]] = ggplotly(gp_track[[i]],
-                            tooltip = c("x", "y")
-                        )
-                        pl_track[[i]] = pl_track[[i]] %>% layout(
-                            yaxis = list(
-                                range = c(0, 1 + max(unlist(df[,"sample"]))), 
-                                fixedrange = TRUE,
-                                title = paste(track_samples, " Coverage")
-                            )
-                        )
-                        pl_track[[i]]$x$data[[2]]$showlegend = FALSE
-                        if(!missing(track_names) && length(track_names) >= i) {
-                            pl_track[[i]]$x$data[[2]]$name = track_names[i]
-                        } else {
-                            pl_track[[i]]$x$data[[2]]$name = track_samples
-                        }
+        # Plot individual coverages on separate tracks
+        plot_objs <- do.call(.plot_cov_fn_indiv, args)
+    }
+
+    # Summarize non-null tracks
+    plot_tracks = plot_objs$pl_track[
+        unlist(lapply(plot_objs$pl_track, function(x) !is.null(x)))]
+    # Remove legend for p_ref; this causes trouble for plotly
+    for(i in seq_len(length(p_ref$pl$x$data))) {
+        p_ref$pl$x$data[[i]]$showlegend = FALSE
+    }
+    # Put the reference track on the final position
+    plot_tracks[[length(plot_tracks) + 1]] = p_ref$pl
+    # Put the reference track in position #6 of ggplot list
+    plot_objs$gp_track[[6]] = p_ref$gp
+    
+    # Combine multiple tracks into a plotly plot
+    final_plot <- plot_cov_fn_finalize(
+        plot_tracks, view_start, view_end, graph_mode)
+
+    return(list(ggplot = plot_objs$gp_track, final_plot = final_plot))
+}
+
+.plot_cov_fn_normalize_condition <- function(
+    view_chr, view_start, view_end, view_strand,
+    norm_event, condition, tracks = list(), track_names = "", se, avail_files,
+    transcripts, elems, highlight_events, selected_transcripts = "", 
+    stack_tracks, graph_mode, conf.int = 0.95,
+    t_test = FALSE, condensed = FALSE
+) {
+    cur_zoom = floor(log((view_end - view_start)/50) / log(3))
+    depth_min = 10  # depth required for sample to be included in averages
+    
+    data.list <- list()
+    data.t_test <- fac <- NULL 
+    max_tracks = 0
+    for(i in seq_len(4)) {
+        if(length(tracks) >= i && is_valid(tracks[[i]])) {
+            track_samples = tracks[[i]]
+            colData = colData(se)
+            samples = rownames(colData)[
+                unlist(as.character(colData[, condition]) 
+                    == track_samples)]
+            event_norms = assay(se, "Depth")[norm_event,samples]
+            samples = samples[event_norms >= depth_min]
+            event_norms = event_norms[event_norms >= depth_min]
+
+            if(length(avail_files[samples]) > 0 &&
+                    all(file.exists(avail_files[samples]))) {
+                df = as.data.frame(GetCoverage_DF(
+                    samples, avail_files[samples],
+                    view_chr, view_start, view_end, view_strand))
+                # bin anything with cur_zoom > 5
+                df = bin_df(df, max(1, 3^(cur_zoom - 5)))
+                # message(paste("Group GetCoverage performed for", condition))
+                for(todo in seq_len(length(samples))) {
+                    df[, samples[todo]] = 
+                        df[, samples[todo]] / event_norms[todo]
+                }
+                if(t_test == TRUE) {
+                    if(is.null(data.t_test)) {
+                        data.t_test <- as.matrix(df)
+                        fac = rep(as.character(i), ncol(df) - 1)
+                    } else {
+                        data.t_test <- cbind(
+                            data.t_test, as.matrix(df[, -1]))
+                        fac = c(fac, rep(as.character(i), ncol(df) - 1))
                     }
                 }
+
+                df$mean = rowMeans(as.matrix(df[,samples]))
+                df$sd = rowSds(as.matrix(df[,samples]))
+                n = length(samples)
+                df$ci = qt((1 + conf.int)/2,df = n-1) * df$sd / sqrt(n)
+
+                if(length(track_names) == length(tracks)) {
+                    df$track = track_names[i]
+                } else {
+                    df$track = as.character(i)
+                }
+                DT = as.data.table(df)
+                DT = DT[, c("x", "mean", "ci", "track")]
+                data.list[[i]] <- DT 
+                max_tracks = max_tracks + 1
             }
         }
     }
+    return(list(
+        data.list = data.list, data.t_test = data.t_test, 
+        fac = fac, max_tracks = max_tracks
+    ))
+}
 
-    if(t_test == TRUE && !is.null(fac) && length(unique(fac)) == 2) {
+.plot_cov_fn_plot_by_condition_stacked <- function(calcs, args) {
+    max_tracks <- calcs$max_tracks
+    gp_track <- pl_track <- list()
+    
+    df = as.data.frame(rbindlist(calcs$data.list))
+    if(nrow(df) > 0) {
+        if(length(args$track_names) == length(args$tracks))
+            df$track = factor(df$track, args$track_names)
+        gp_track[[1]] = ggplot() + 
+            geom_hline(yintercept = 0) +
+            geom_ribbon(data = df, alpha = 0.2, 
+                aes(x = get("x"), y = get("mean"), 
+                ymin = get("mean") - get("ci"), 
+                ymax = get("mean") + get("ci"), 
+                fill = get("track"))) +
+            geom_line(data = df, aes(x = get("x"), 
+                y = get("mean"), colour = get("track"))) +
+            labs(y = "Normalized Coverage") +
+            theme_white_legend +
+            theme(legend.title = element_blank())                 
+        pl_track[[1]] = ggplotly(gp_track[[1]],
+            tooltip = c("x", "y", "ymin", "ymax", "colour")
+        )
+        pl_track[[1]] = pl_track[[1]] %>% layout(
+            dragmode = "zoom",
+            yaxis = list(rangemode = "tozero", fixedrange = TRUE)
+        )
+        for(j in seq_len(max_tracks)) {
+            pl_track[[1]]$x$data[[1 + j]]$showlegend = FALSE
+            pl_track[[1]]$x$data[[1 + j + max_tracks]]$showlegend = TRUE
+            if(length(args$track_names) >= max_tracks) {
+                pl_track[[1]]$x$data[[1 + j]]$name = args$track_names[j]
+                pl_track[[1]]$x$data[[1 + j + max_tracks]]$name = 
+                    args$track_names[j]                
+            } else {
+                pl_track[[1]]$x$data[[1 + j]]$name = 
+                    paste(args$condition, args$tracks[[j]])
+                pl_track[[1]]$x$data[[1 + j + max_tracks]]$name = 
+                    paste(args$condition, args$tracks[[j]])
+            }
+        }
+    }
+    return(list(
+        gp_track = gp_track, pl_track = pl_track
+    ))
+}
+
+.plot_cov_fn_plot_by_condition_unstacked <- function(calcs, args) {
+    max_tracks <- calcs$max_tracks
+    gp_track <- pl_track <- list()
+    for(i in seq_len(4)) {
+        if(length(calcs$data.list) >= i && !is.null(calcs$data.list[[i]])) {
+            df = as.data.frame(calcs$data.list[[i]])
+            gp_track[[i]] = ggplot() + 
+                geom_hline(yintercept = 0) +
+                geom_ribbon(data = df, alpha = 0.2, colour = NA, 
+                    aes(x = get("x"), y = get("mean"), 
+                        ymin = get("mean") - get("ci"), 
+                        ymax = get("mean") + get("ci"))) +
+                geom_line(data = df, 
+                    aes(x = get("x"), y = get("mean"))) +
+                labs(y = paste(args$condition, args$tracks[[i]])) + 
+                theme_white_legend
+            pl_track[[i]] = ggplotly(gp_track[[i]],
+                tooltip = c("x", "y", "ymin", "ymax")
+            )
+            pl_track[[i]] = pl_track[[i]] %>% layout(
+                yaxis = list(rangemode = "tozero", fixedrange = TRUE)
+            )
+            pl_track[[i]]$x$data[[2]]$showlegend = FALSE
+            pl_track[[i]]$x$data[[3]]$showlegend = FALSE
+            if(length(args$track_names) >= i) {
+                pl_track[[i]]$x$data[[2]]$name = args$track_names[i]
+                pl_track[[i]]$x$data[[3]]$name = args$track_names[i]
+            } else {
+                pl_track[[i]]$x$data[[2]]$name = paste(
+                    args$condition, args$tracks[[i]])
+                pl_track[[i]]$x$data[[3]]$name = 
+                    paste(args$condition, args$tracks[[i]])
+            }
+        }
+    }
+    return(list(
+        gp_track = gp_track, pl_track = pl_track
+    ))
+}
+
+.plot_cov_fn_ttest <- function(
+    plot_objs, calcs
+) {
+    # Plot t-test track
+    fac <- NULL
+    if("fac" %in% names(calcs)) fac <- calcs$fac
+    if(!is.null(fac) && length(unique(fac)) == 2) {
         fac = factor(fac)
-        t_test = genefilter::rowttests(data.t_test[, -1], fac)
-        # message(paste("rowttests performed for", condition))
+        t_test = genefilter::rowttests(
+            as.matrix(calcs$data.t_test[, -1]), fac)
 
-        DT = data.table(x = data.t_test[, 1])
+        DT = data.table(x = calcs$data.t_test[, 1])
         DT[, c("t_stat") := -log10(t_test$p.value)]
-        gp_track[[5]] = ggplot() + 
+        plot_objs$gp_track[[5]] = ggplot() + 
             geom_hline(yintercept = 0) +
             geom_line(data = as.data.frame(DT), 
                 mapping = aes(x = get("x"), y = get("t_stat"))) +
                 theme_white_legend
-        pl_track[[5]] = ggplotly(gp_track[[5]],
-            # labs(y = paste("Pairwise T-test -log10(p)")),
+        plot_objs$pl_track[[5]] = ggplotly(plot_objs$gp_track[[5]],
             tooltip = c("x", "y")
         )
-        pl_track[[5]] = pl_track[[5]] %>% layout(
+        plot_objs$pl_track[[5]] = plot_objs$pl_track[[5]] %>% layout(
             yaxis = list(
-                # c(0, 1 + max(DT$t_stat)), 
-                # fixedrange = TRUE,
                 rangemode = "tozero",
                 title = paste("T-test -log10(p)")
             )
         )
-        pl_track[[5]]$x$data[[2]]$showlegend = FALSE
+        plot_objs$pl_track[[5]]$x$data[[2]]$showlegend = FALSE
     }
+    return(plot_objs)
+}
 
-    plot_tracks = pl_track[unlist(lapply(pl_track, function(x) !is.null(x)))]
-
-    for(i in seq_len(length(p_ref$pl$x$data))) {
-        p_ref$pl$x$data[[i]]$showlegend = FALSE
+.plot_cov_fn_indiv <- function(
+    view_chr, view_start, view_end, view_strand,
+    norm_event, condition, tracks = list(), track_names = "", se, avail_files,
+    transcripts, elems, highlight_events, selected_transcripts = "", 
+    stack_tracks, graph_mode, conf.int = 0.95,
+    t_test = FALSE, condensed = FALSE
+) {
+    cur_zoom = floor(log((view_end - view_start)/50) / log(3))
+    gp_track <- pl_track <- list()
+    data.list <- list()
+    for(i in seq_len(4)) {
+        if(length(tracks) >= i && is_valid(tracks[[i]])) {
+            track_samples = tracks[[i]]
+            filename = avail_files[which(
+                names(avail_files) == track_samples)]
+            if(length(filename) == 1 && file.exists(filename)) {
+                df = GetCoverage_DF("sample", filename,
+                    view_chr, view_start, view_end, view_strand)
+                df = bin_df(df, max(1, 3^(cur_zoom - 5)))
+                data.list[[i]] <- as.data.table(df)
+                if("sample" %in% colnames(df)) {
+                    gp_track[[i]] = ggplot() + 
+                    geom_hline(yintercept = 0) +
+                    geom_line(data = df, 
+                        aes(x = get("x"), y = get("sample"))) +
+                    theme_white_legend
+                    pl_track[[i]] = ggplotly(gp_track[[i]],
+                        tooltip = c("x", "y")
+                    )
+                    pl_track[[i]] = pl_track[[i]] %>% layout(
+                        yaxis = list(
+                            range = c(0, 1 + max(unlist(df[,"sample"]))), 
+                            fixedrange = TRUE,
+                            title = paste(track_samples, "")
+                        )
+                    )
+                    pl_track[[i]]$x$data[[2]]$showlegend = FALSE
+                    if(!missing(track_names) && length(track_names) >= i) {
+                        pl_track[[i]]$x$data[[2]]$name = track_names[i]
+                    } else {
+                        pl_track[[i]]$x$data[[2]]$name = track_samples
+                    }
+                }
+            }
+        }
     }
-    
-    plot_tracks[[length(plot_tracks) + 1]] = p_ref$pl
-    
-    gp_track[[6]] = p_ref$gp
-    
+    return(list(
+        gp_track = gp_track, pl_track = pl_track
+    ))
+}
+
+# Combine multiple tracks into a plotly plot
+plot_cov_fn_finalize <- function(
+    plot_tracks, view_start, view_end, graph_mode
+) {
     # Work out which x axis ticks to use, based on zoom level
     view_range = view_end - view_start
     min_tick_size = view_range / 15
@@ -566,13 +747,7 @@ plot_cov_fn <- function(view_chr, view_start, view_end, view_strand,
         list(rangemode = "tozero", tick0 = 0))
     if(n_plots > 4) final_plot = final_plot %>% layout(yaxis5 = 
         list(rangemode = "tozero", tick0 = 0))
-
-    # ggplot equivalent: list of ggplots. 
-    # Allows advanced end-users to apply final edits to ggplots
-    
-    # message("Cov Plot finished")
-    return(list(ggplot = gp_track, final_plot = final_plot))
-
+    return(final_plot)
 }
 
 GetCoverage_DF <- function(samples, files, seqname, start, end, 
@@ -606,25 +781,41 @@ bin_df <- function(df, binwidth = 3) {
     return(as.data.frame(DT2))
 }
 
-plot_view_ref_fn <- function(view_chr, view_start, view_end, 
-    transcripts, elems, highlight_events, condensed = FALSE,
-    selected_transcripts) {
+# Plots the transcript track, highlighting where required
+plot_view_ref_fn <- function(
+    view_chr, view_start, view_end, 
+    transcripts, elems, highlight_events = "", 
+    condensed = FALSE, selected_transcripts = ""
+) {
+    DTlist = .plot_view_ref_fn_getDTlist(
+        view_chr, view_start, view_end, 
+        transcripts, elems, highlight_events, 
+        condensed = FALSE, selected_transcripts    
+    )
+    DTplotlist = .plot_view_ref_fn_groupDTlist(DTlist,
+        view_chr, view_start, view_end, highlight_events)
 
-    data_start = view_start - (view_end - view_start)
-    data_end = view_end + (view_end - view_start)
+    return(.plot_view_ref_fn_plotDTlist(DTplotlist,
+        view_chr, view_start, view_end, highlight_events))
+}
 
-    transcripts.DT = transcripts[get("seqnames") == view_chr]
-    transcripts.DT = transcripts.DT[
-        get("start") <= data_end & 
-        get("end") >= data_start]
+.plot_view_ref_fn_getDTlist <- function(
+    view_chr, view_start, view_end, 
+    transcripts, elems, highlight_events, 
+    condensed = FALSE, selected_transcripts = ""
+) {
+    transcripts.DT = transcripts[
+        get("seqnames") == view_chr &
+        get("start") <= view_end + (view_end - view_start) & 
+        get("end") >= view_start - (view_end - view_start)
+    ]
     setorderv(transcripts.DT, c("transcript_support_level", "width"))
-    # filter transcripts if applicable
-    if(!missing(selected_transcripts)) {
+    if(is_valid(selected_transcripts)) {
         transcripts.DT = transcripts.DT[
             get("transcript_id") %in% selected_transcripts |
-            get("transcript_name") %in% selected_transcripts]
-    }
-    # message(paste(nrow(transcripts.DT), " transcripts"))
+            get("transcript_name") %in% selected_transcripts
+        ]
+    } # filter transcripts if applicable
 
     screen.DT = elems[
         get("transcript_id") %in% transcripts.DT$transcript_id &
@@ -646,11 +837,8 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
         c("type") := "CDS"]
     reduced.DT[get("type") != "CDS", c("type") := "exon"]
     
-    # add introns to reduced.DT
     introns.DT = as.data.table(.grlGaps(
-        split(makeGRangesFromDataFrame(as.data.frame(reduced.DT)),
-            reduced.DT$transcript_id)
-    ))
+        split(.grDT(reduced.DT), reduced.DT$transcript_id)))
     introns.DT[, c("type") := "intron"]
     setnames(introns.DT, "group_name", "transcript_id")
     introns.DT[reduced.DT, on = "transcript_id",
@@ -663,26 +851,29 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
 
     # Highlight events here
     # highlight_events is of syntax chrX:10000-11000/-
-    # if(!missing(highlight_events) & condense_this == FALSE) {
-    if(!missing(highlight_events)) {    
+    if(is_valid(highlight_events))  
         reduced.DT = determine_compatible_events(reduced.DT, highlight_events)
-    }
+    
+    return(list(
+        transcripts.DT = transcripts.DT,
+        reduced.DT = reduced.DT,
+        condense_this = condense_this
+    ))
+}
 
-    group.grl = split(
-        makeGRangesFromDataFrame(
-            as.data.frame(transcripts.DT)
-        ), 
-        transcripts.DT$group_id
-    )
+.plot_view_ref_fn_groupDTlist <- function(DTlist,
+    view_chr, view_start, view_end, highlight_events
+) {
+    transcripts.DT = DTlist$transcripts.DT
+    reduced.DT = DTlist$reduced.DT
+    condense_this = DTlist$condense_this
+    
+    group.grl = split( .grDT(transcripts.DT), transcripts.DT$group_id)
     group.DT = as.data.table(range(group.grl))
     group.DT$group = NULL
     data.table::setnames(group.DT, "group_name", "group_id")
     # apply plot_order on transcripts.DT
-    OL = findOverlaps(
-        makeGRangesFromDataFrame(as.data.frame(group.DT)),
-        makeGRangesFromDataFrame(as.data.frame(group.DT)),
-        ignore.strand = TRUE
-    )
+    OL = findOverlaps( .grDT(group.DT), .grDT(group.DT), ignore.strand = TRUE)
     group.DT$plot_level = 1      
     cur_level = 1    
     while(any(group.DT$plot_level == cur_level)) {
@@ -692,10 +883,8 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
             bump_up_trs = bump_up_trs[bump_up_trs > j]
             bump_up_trs = bump_up_trs[
                 group.DT$plot_level[bump_up_trs] == cur_level]
-            if(length(bump_up_trs) > 0) {
-                group.DT[bump_up_trs, 
-                    c("plot_level") := cur_level + 1]
-            }
+            if(length(bump_up_trs) > 0)
+                group.DT[bump_up_trs, c("plot_level") := cur_level + 1]
             j = j + match(cur_level, group.DT$plot_level[-seq_len(j)])
             if(is.na(j)) break
         }
@@ -730,13 +919,26 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
     reduced.DT[group.DT, on = "group_id", 
         c("plot_level") := get("i.plot_level")]
     
-    if(missing(highlight_events)) {
+    if(!is_valid(highlight_events)) {
         reduced.DT[, c("highlight") := FALSE]
     } else {
         setorderv(reduced.DT, "highlight")
     }
-    p = ggplot(reduced.DT)
+    return(list(
+        group.DT = group.DT, 
+        reduced.DT = reduced.DT,
+        condense_this = condense_this
+    ))
+}
 
+.plot_view_ref_fn_plotDTlist <- function(DTplotlist,
+    view_chr, view_start, view_end, highlight_events
+) {
+    group.DT = DTplotlist$group.DT
+    reduced.DT = DTplotlist$reduced.DT
+    condense_this = DTplotlist$condense_this
+    
+    p = ggplot(reduced.DT)
     if(nrow(subset(as.data.frame(reduced.DT), type = "intron")) > 0) {
         p = p + geom_segment(data = subset(as.data.frame(reduced.DT), 
                 type = "intron"), 
@@ -745,10 +947,9 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
             color = get("highlight")))
     }
     if(nrow(subset(as.data.frame(reduced.DT), type != "intron")) > 0) {
-        p = p + 
-            geom_rect(data = subset(as.data.frame(reduced.DT), 
-                    type != "intron"), 
-                aes(xmin = get("start"), xmax = get("end"), 
+        p = p + geom_rect(data = subset(as.data.frame(reduced.DT), 
+                type != "intron"), 
+            aes(xmin = get("start"), xmax = get("end"), 
                 ymin = get("plot_level") - 0.1 - 
                     ifelse(type %in% c("CDS", "start_codon", "stop_codon"), 
                         0.1, 0), 
@@ -759,16 +960,13 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
             )
         )
     }
-
-    if(!missing(highlight_events)) {
+    if(is_valid(highlight_events)) {
         p = p + scale_color_manual(values = c("black", "blue", "red")) +
             scale_fill_manual(values = c("black", "blue", "red"))
     }
-
     p = p + theme_white_legend +
         theme(axis.text.y = element_blank(), axis.title.y = element_blank(),
             legend.title = element_blank())
-
     if(condense_this == TRUE) {
         anno = list(
             x = group.DT$disp_x,
@@ -788,27 +986,23 @@ plot_view_ref_fn <- function(view_chr, view_start, view_end,
     } else {
         max_plot_level = max(group.DT$plot_level)
     }
+    
     gp = p + geom_text(data = data.frame(x = anno[["x"]], y = anno[["y"]], 
             text = anno[["text"]]), 
         aes(x = get("x"), y = get("y"), label = get("text"))) + 
         coord_cartesian(xlim = c(view_start, view_end))
-    pl = ggplotly(p, 
-        # source = "plotly_ViewRef", 
-        tooltip = "text") %>% 
+    pl = ggplotly(p, tooltip = "text") %>% 
     layout(
-        annotations = anno,
-        dragmode = "pan",
+        annotations = anno, dragmode = "pan",
         xaxis = list(range = c(view_start, view_end),
             title = paste("Chromosome/Scaffold", view_chr)),
         yaxis = list(range = c(0, 1 + max_plot_level), 
             fixedrange = TRUE)
     )
-    
     return(list(gp = gp, pl = pl))
 }
 
 determine_compatible_events <- function(reduced.DT, highlight_events) {
-
     introns = reduced.DT[get("type") == "intron"]
     introns[, c("highlight") := "0"]
     exons = reduced.DT[get("type") == "exon"]
@@ -818,16 +1012,13 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 
     tr_filter = c()
     if(length(highlight_events) == 1) {
-        # This is IR
         gr = NxtIRF.CoordToGR(highlight_events[[1]])
-        introns.gr = makeGRangesFromDataFrame(as.data.frame(introns))
+        introns.gr = .grDT(introns)
         OL = findOverlaps(gr, introns.gr)
         introns[OL@to, c("highlight") := 1]
         OL2 = findOverlaps(gr, introns.gr, type = "equal")
         introns[OL2@to, c("highlight") := 2]
-
     } else if(length(highlight_events) == 2) {
-        # This is AS
         AS_count = 1;
         for(event in highlight_events) {
             gr = NxtIRF.CoordToGR(event)
@@ -854,118 +1045,4 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
         }  
     }
     return(rbind(introns, exons, misc))
-}
-
-.plot_cov_validate_args <- function(se, tracks, condition, 
-        Event, Gene,
-        seqname, start, end, bases_flanking
-        ) {
-    # Requires all cov files in the SE to be present
-    if(missing(se)) {
-        .log("In Plot_Coverage, se is required")
-    }
-    cov_data = ref(se)
-    
-    if(!all(file.exists(covfile(se)))) {
-        .log(paste("In Plot_Coverage,",
-            "COV files are not defined in se.",
-            "Please supply the correct paths of the COV files",
-            "using covfile(se) <- vector_of_correct_COVfile_paths"))
-    }
-    if(!all(c("seqInfo", "gene_list", "elem.DT", "transcripts.DT") %in% 
-            names(cov_data))) {
-        .log(paste("In Plot_Coverage,",
-            "cov_data must be a valid object",
-            "created by prepare_covplot_data()"))
-    }
-    # Check condition and tracks
-    if(length(tracks) < 1 | length(tracks) > 4) {
-        .log(paste("In Plot_Coverage,",
-            "tracks must be of length 1-4"))
-    }
-    if(!missing(condition)) {
-        if(length(condition) != 1) {
-            .log(paste("In Plot_Coverage,",
-                "condition must be of length 1"))
-        }
-        if(!(condition %in% names(colData(se)))) {
-            .log(paste("In Plot_Coverage,",
-                "condition must be a valid column name in colData(se)"))
-        }
-        condition_options = unique(colData(se)[, condition])
-        if(!all(tracks %in% condition_options)) {
-            .log(paste("In Plot_Coverage,",
-                "some tracks do not match valid condition names in", 
-                args[["condition"]]))
-        }   
-    } else {
-        if(!all(tracks %in% colnames(se))) {
-            .log(paste("In Plot_Coverage,",
-                "some tracks do not match valid sample names in se"))
-        }
-    }
-    # Check we know where to plot
-    if(missing(Event) & missing(Gene) & 
-            (missing(seqname) | 
-            missing(start) | missing(end))
-    ) {
-        .log(paste("In Plot_Coverage,",
-            "Event or Gene cannot be empty, unless coordinates are provided"))
-    } else if((is_valid(seqname) & 
-            is_valid(start) & is_valid(end))) {
-        view_chr = as.character(seqname)
-        view_start = start
-        view_end = end
-    } else if(is_valid(Gene)) {
-        if(!(Gene %in% cov_data$gene_list$gene_id) & 
-                !(Gene %in% cov_data$gene_list$gene_name)) {
-            .log(paste("In Plot_Coverage,",
-                Gene, "is not a valid gene symbol or Ensembl gene id"))
-        }       
-        if(!(Gene %in% cov_data$gene_list$gene_id)) {
-            gene.df = as.data.frame(
-                cov_data$gene_list[get("gene_name") == get("Gene")])
-            if(nrow(gene.df) != 1) {
-                .log(paste("In Plot_Coverage,",
-                    Gene, 
-                    "is an ambiguous name referring to 2 or more genes.",
-                    "Please provide its gene_id instead"))
-            }
-        } else {
-            gene.df = as.data.frame(
-                cov_data$gene_list[get("gene_id") == get("Gene")])        
-        }
-        view_chr = as.character(gene.df$seqnames)
-        view_start = gene.df$start
-        view_end = gene.df$end             
-    } else {
-        rowData = as.data.frame(rowData(se))
-        if(!(Event %in% rownames(rowData))) {
-            .log(paste("In Plot_Coverage,",
-                Event, 
-                "is not a valid IR or alternate splicing event in rowData(se)"))
-        }
-        rowData = rowData[Event,]
-        view_chr = tstrsplit(rowData$EventRegion, split=":")[[1]]
-        temp1 = tstrsplit(rowData$EventRegion, split="/")
-        temp2 = tstrsplit(temp1[[1]], split=":")[[2]]
-        view_start = as.numeric(tstrsplit(temp2, split="-")[[1]])
-        view_end = as.numeric(tstrsplit(temp2, split="-")[[2]])
-    }
-    view_center = (view_start + view_end) / 2
-    view_length = view_end - view_start    
-    
-    if(!(view_chr %in% names(cov_data$seqInfo))) {
-        .log(paste("In Plot_Coverage,", view_chr, 
-            "is not a valid chromosome reference name in the given genome"))
-    }
-    if(is_valid(bases_flanking) && (
-            !is.numeric(bases_flanking) || bases_flanking < 0)) {
-        .log(paste("In Plot_Coverage,",
-            "bases_flanking must be a non-negative number"))
-    }
-    if(!is.numeric(view_length) || view_length < 0) {
-        .log(paste("In Plot_Coverage,",
-            "view_length must be a non-negative number"))
-    }
 }

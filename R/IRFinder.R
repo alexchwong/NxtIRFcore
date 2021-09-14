@@ -48,18 +48,12 @@ IRFinder <- function(
         verbose = FALSE
 ) {
     # Check args
-    if(length(bamfiles) != length(sample_names)) {
-        .log(paste("In IRFinder(),",
-            "Number of BAM files and sample names must be the same"))
-    }
-    if(!all(file.exists(bamfiles))) {
-        .log(paste("In IRFinder(),",
-            "some BAMs in bamfiles do not exist"))
-    }
-    if(!dir.exists(dirname(output_path))) {
-        .log(paste("In IRFinder(),",
-            dirname(output_path), " - path does not exist"))
-    }
+    if(length(bamfiles) != length(sample_names)) .log(paste("In IRFinder(),",
+        "Number of BAM files and sample names must be the same"))
+    if(!all(file.exists(bamfiles))) .log(paste("In IRFinder(),",
+        "some BAMs in bamfiles do not exist"))
+    if(!dir.exists(dirname(output_path))) .log(paste("In IRFinder(),",
+        dirname(output_path), " - path does not exist"))
     if(!dir.exists(output_path)) dir.create(output_path)
 
     # Check which output already exists; prevent overwrite
@@ -85,8 +79,7 @@ IRFinder <- function(
     )
 }
 
-# wrappers to R/C++
-
+# IRFinder wrapper to R/C++. Handles whether OpenMP or BiocParallel is used
 .run_IRFinder = function(
         reference_path = "./Reference", 
         bamfiles = "Unsorted.bam", 
@@ -103,14 +96,11 @@ IRFinder <- function(
     
     # Check args
     .irfinder_validate_args(s_bam, s_ref, max_threads, output_files)
-    
     ref_file = normalizePath(file.path(s_ref, "IRFinder.ref.gz"))
 
     message("Running IRFinder ", appendLF = FALSE)
     n_threads = floor(max_threads)
-    
     if(Has_OpenMP() > 0 & Use_OpenMP) {
-        # n_threads = min(n_threads, length(s_bam))
         IRF_main_multi(ref_file, s_bam, output_files, n_threads, verbose)
     } else {
         # Use BiocParallel
@@ -152,7 +142,10 @@ IRFinder <- function(
     }
 }
 
-.irfinder_run_single <- function(bam, ref, out, verbose, overwrite, n_threads = 1) {
+# Call C++/IRFinder on a single sample. Used for BiocParallel
+.irfinder_run_single <- function(
+    bam, ref, out, verbose, overwrite, n_threads = 1
+) {
     file_gz = paste0(out, ".txt.gz")
     file_cov = paste0(out, ".cov")
     bam_short = file.path(basename(dirname(bam)), basename(bam))
@@ -179,7 +172,7 @@ IRFinder <- function(
 }
 
 # Runs featureCounts on given BAM files, intended to be run after IRFinder
-# as the latter determines the strandedness and paired-ness of the experiment
+# as the IRFinder determines the strandedness and paired-ness of the experiment
 .irfinder_run_featureCounts <- function(reference_path, output_files, 
         s_bam, n_threads) {
     NxtIRF.CheckPackageInstalled("Rsubread", "2.4.0")
@@ -242,7 +235,7 @@ IRFinder <- function(
         file.path(dirname(output_files[1]), "main.FC.Rds")))
 }
 
-
+# Validate arguments; return error if invalid
 .irfinder_validate_args <- function(s_bam, s_ref, max_threads, output_files) {
     if(!is.numeric(max_threads)) max_threads = 1
     if(max_threads < 1) max_threads = 1

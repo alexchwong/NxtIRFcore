@@ -15,7 +15,7 @@ Note that the first column must contain the sample names. If the names of
 only a subset of samples are given, then \code{MakeSE()} will construct the SE
 object based only on the samples given. Omit \code{colData} to generate an SE
 object based on the whole dataset. The colData can be set later using
-\code{colData()}}
+\code{colData()} for \code{SummarizedExperiment} objects}
 
 \item{RemoveOverlapping}{(default = TRUE) Whether to filter out overlapping
 introns of IR events belonging to minor isoforms. MakeSE will try to
@@ -32,10 +32,10 @@ MakeSE() creates a NxtSE object from the data collated
 from IRFinder output using \code{\link[=CollateData]{CollateData()}}.
 }
 \details{
-NxtSE is a specialised class (inherited from the
-\linkS4class{SummarizedExperiment} class) used in NxtIRF
+NxtSE is a specialised class which inherits from the
+\linkS4class{SummarizedExperiment} class, NxtSE is used in NxtIRF
 for downstream analysis. It contains processed data collated from IRFinder
-output from multiple samples. Quantitation of included or excluded
+output from multiple samples. Counts of included or excluded
 IR and alternative splicing events, as well as relevant QC parameters
 are included. See \link{NxtSE-methods} for further details.
 }

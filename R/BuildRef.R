@@ -525,9 +525,11 @@ Get_GTF_file <- function(reference_path) {
         nonPolyARef = "", MappabilityRef = "", BlacklistRef = "") {
     if(!is_valid(nonPolyARef)) {
         nonPolyAFile <- GetNonPolyARef(genome_type)
-        nonPolyAFile <- .parse_valid_file(nonPolyAFile, "non-polyA reference")        
+        nonPolyAFile <- .parse_valid_file(nonPolyAFile, 
+            "Reference generated without non-polyA reference")        
     } else {
-        nonPolyAFile <- .parse_valid_file(nonPolyARef, "non-polyA reference") 
+        nonPolyAFile <- .parse_valid_file(nonPolyARef, 
+            "Reference generated without non-polyA reference") 
     }
     map_file = file.path(normalizePath(reference_path), "Mappability",
         "MappabilityExclusion.bed.gz")
@@ -539,10 +541,12 @@ Get_GTF_file <- function(reference_path) {
         MappabilityFile <- .parse_valid_file(GetMappabilityRef(genome_type))
     } else {
         MappabilityFile <-
-            .parse_valid_file(MappabilityRef, "Mappability reference")        
+            .parse_valid_file(MappabilityRef, 
+            "Reference generated without Mappability reference")        
     }
     BlacklistFile <-
-        .parse_valid_file(BlacklistRef, "Blacklist exclusion")
+        .parse_valid_file(BlacklistRef, 
+            "Reference generated without Blacklist exclusion")
     
     # Check files are valid BED files; fail early if not
     .check_is_BED(nonPolyAFile)
@@ -760,18 +764,15 @@ Get_GTF_file <- function(reference_path) {
 ) {
     r_path = file.path(reference_path, "resource")
     gtf_path = file.path(r_path, "transcripts.gtf.gz")
-    
     if (ah_transcriptome != "") {
         gtf_gr <- .fetch_AH(ah_transcriptome, verbose = verbose,
             pseudo_fetch = pseudo_fetch)
-
         if(overwrite || !file.exists(gtf_path)) {
-            # Copy file from cache if exists
             cache_loc <- AnnotationHub::cache(ah_transcriptome)
             if(file.exists(cache_loc)) {
                 if(file.exists(gtf_path)) file.remove(gtf_path)
                 file.copy(cache_loc,gtf_path)
-            }
+            } # Copy file from cache if exists
         }
         return(gtf_gr)
     } else {
@@ -780,15 +781,11 @@ Get_GTF_file <- function(reference_path) {
             .log(paste("In .fetch_gtf(),",
                 "Given transcriptome gtf file", gtf, "not found"))
         }
-        .log("Reading source GTF file...", "message", appendLF = FALSE)
-        
-        message("done")
-
-        .log("Making local copy of GTF file...", "message", appendLF = FALSE)
         if(!file.exists(gtf_path) ||
                 normalizePath(gtf_file) != normalizePath(gtf_path)) {
             if(overwrite || !file.exists(gtf_path)) {
-                # Copy file directly if it is a gz file
+                .log("Making local copy of GTF file...", "message", 
+                    appendLF = FALSE)
                 if(substr(gtf_file, nchar(gtf_file) - 2,
                         nchar(gtf_file)) == ".gz") {
                     if(file.exists(gtf_path)) file.remove(gtf_path)
@@ -797,11 +794,13 @@ Get_GTF_file <- function(reference_path) {
                     gzip(filename = gtf_file, destname = gtf_path, 
                         remove = FALSE)
                 }
+                message("done")
             }
         }
-        message("done")
         if(!pseudo_fetch) {
+            .log("Reading source GTF file...", "message", appendLF = FALSE)
             gtf_gr <- rtracklayer::import(gtf_file, "gtf")
+            message("done")
         } else {
             gtf_gr = NULL
         }
@@ -823,73 +822,67 @@ Get_GTF_file <- function(reference_path) {
 
 ################################################################################
 
+.fetch_AH_cache_loc <- function(ah_record_name, 
+    rdataclass = c("GRanges", "TwoBitFile"),
+    localHub = FALSE, ah = AnnotationHub(localHub = localHub),
+    verbose = FALSE
+){
+    rdataclass = match.arg(rdataclass)
+    if(!substr(ah_record_name, 1, 2) == "AH") .log(paste(ah_record_name,
+        "does not appear to be a valid AnnotationHub record name"))
+    if(!(ah_record_name %in% names(ah))) .log(paste(ah_record_name,
+        "is not found in AnnotationHub index.",
+        "Perhaps check online connection or record name"))
+    
+    ah_record <- ah[names(ah) == ah_record_name]
+    if(ah_record$rdataclass != rdataclass) .log(paste(ah_record_name,
+        "is of type", ah_record$rdataclass,
+        "and not of expected:", rdataclass))
+    
+    if (verbose) .log(paste("Downloading", rdataclass,
+            "from AnnotationHub, if required..."),
+            "message", appendLF = FALSE)
+    cache_loc <- AnnotationHub::cache(ah_record)
+    if (verbose) message("done")
+    if(!file.exists(cache_loc)) 
+        .log("AnnotationHub cache error - asset not found")
+    return(cache_loc)
+}
+
 .fetch_AH <- function(ah_record_name, rdataclass = c("GRanges", "TwoBitFile"),
         localHub = FALSE, ah = AnnotationHub(localHub = localHub), 
         as_DNAStringSet = FALSE, verbose = FALSE,
         pseudo_fetch = pseudo_fetch
 ) {
-    rdataclass = match.arg(rdataclass)
-    if(!substr(ah_record_name, 1, 2) == "AH") {
-        .log(paste(ah_record_name,
-            "does not appear to be a valid AnnotationHub record name"))
-    }
-    if(!(ah_record_name %in% names(ah))) {
-        .log(paste(ah_record_name,
-            "is not found in AnnotationHub index.",
-            "Perhaps check online connection or record name"))
-    }
-    ah_record <- ah[names(ah) == ah_record_name]
-    if(ah_record$rdataclass != rdataclass) {
-        .log(paste(ah_record_name,
-            "is of type", ah_record$rdataclass,
-            "and not of expected:", rdataclass))
-    }
-    if (verbose) {
-        .log(paste("Downloading", rdataclass,
-            "from AnnotationHub, if required..."),
-            "message", appendLF = FALSE
-        )
-    }
-    cache_loc <- AnnotationHub::cache(ah_record)
-    if (verbose) message("done")
-    if(!file.exists(cache_loc)) {
-        .log("AnnotationHub cache error - asset not found")
-    }   
-    if (ah_record$rdataclass == "GRanges") {
+    cache_loc = .fetch_AH_cache_loc(ah_record_name, rdataclass,
+        localHub, ah, verbose)
+    if (rdataclass == "GRanges") {
         if(!pseudo_fetch) {
-            if (verbose) {
-                .log("Importing to memory as GRanges object...", "message",
-                    appendLF = FALSE
-                )
-            }
+            if (verbose) .log("Importing to memory as GRanges object...", 
+                "message", appendLF = FALSE)
             gtf <- rtracklayer::import(cache_loc, "gtf")
             if (verbose) message("done")
             return(gtf)
-        } else {
-            return(NULL)
         }
-    } else if (ah_record$rdataclass == "TwoBitFile") {
-        if (verbose) {
-            .log("Importing to memory as TwoBitFile object...", "message",
-                appendLF = FALSE
-            )
-        }
+        return(NULL)
+    } else if (rdataclass == "TwoBitFile") {
+        if (verbose) .log("Importing to memory as TwoBitFile object...", 
+                "message", appendLF = FALSE)
         twobit <- rtracklayer::TwoBitFile(cache_loc)
         if (verbose) message("done")
         if(as_DNAStringSet) {
             .log("Importing genome into memory...", "message", appendLF = FALSE)
-                genome = rtracklayer::import(twobit)
+            genome = rtracklayer::import(twobit)
             message("done")
             return(genome)
-        } else {
-            return(twobit)
         }
+        return(twobit)
     }
 }
 
 .parse_valid_file <- function(file, msg = "") {
     if (!is_valid(file)) {
-        .log(paste("Reference generated without", msg), type = "message")
+        .log(msg, type = "message")
         return("")
     } else if ( any(startsWith(file, c("http", "ftp")))) {
         url <- file
@@ -899,13 +892,12 @@ Get_GTF_file <- function(reference_path) {
         path <- BiocFileCache::bfcrpath(bfc, url)
         return(path)
     } else if (!file.exists(file)) {
-        .log(paste(file, "not found.", "Reference generated without", msg),
-            type = "message")
+        .log(paste(file, "not found.", msg), type = "message")
         return("")
     } else if (file.exists(file)) {
         return(file)
     } else {
-        .log(paste("Reference generated without", msg), type = "message")
+        .log(msg, type = "message")
         return("")
     }
 }
@@ -975,7 +967,7 @@ Get_GTF_file <- function(reference_path) {
 }
 
 # Processes Genes
-# - 
+# - includes computation of gene groups
 .process_gtf_genes <- function(gtf_gr, reference_path) {
     Genes <- gtf_gr[gtf_gr$type == "gene"]
 
@@ -1020,8 +1012,7 @@ Get_GTF_file <- function(reference_path) {
     Genes$gene_group_unstranded[from(OL)] <-
         Genes_group.unstranded$gene_group[to(OL)]
 
-    write.fst(
-        as.data.frame(Genes),
+    write.fst(as.data.frame(Genes),
         file.path(reference_path, "fst", "Genes.fst")
     )
     final = list(
@@ -1684,8 +1675,7 @@ Get_GTF_file <- function(reference_path) {
     setorderv(introns.unique, c("seqnames", "start", "end", "strand"))
     introns.unique <- .grDT(introns.unique, keep.extra.columns = TRUE)
 
-    # Directional exclusion
-    # - Regions overlapped by exons
+    # Directional exclusion - Regions overlapped by exons
     exclude.directional <- as.data.table(
         Exons[!grepl("intron", Exons$transcript_biotype)])
     exclude.directional <- unique(exclude.directional,
@@ -1704,16 +1694,13 @@ Get_GTF_file <- function(reference_path) {
         (seq_len(length(introns.unique)) %in% introns.unique.exon.dir@from)
     introns.unique$known_exon_nd <-
         (seq_len(length(introns.unique)) %in% introns.unique.exon.nd@from)
-
         
     # After known exon annotation, expand this to exclude 5 more nt's    
-    exclude.directional[, c("start") := get("start") - 5]
-    exclude.directional[, c("end") := get("end") + 5]
+    exclude.directional[, c("start", "end") := 
+        list(get("start") - 5, get("end") + 5)]
 
-    # Non-directional exclusion
-    # - Low mappability regions, blacklist regions
+    # Non-directional exclusion - Low mappability regions, blacklist regions
     exclude.omnidirectional <- GRanges(NULL)
-    
     if (extra_files$MappabilityFile != "") {
         exclude.omnidirectional <- c(exclude.omnidirectional, 
             .gen_irf_convert_seqnames(
@@ -1722,7 +1709,6 @@ Get_GTF_file <- function(reference_path) {
             )
         )
     }
-    
     if (extra_files$BlacklistFile != "") {
         exclude.omnidirectional <- c(exclude.omnidirectional,
             .gen_irf_convert_seqnames(
@@ -2082,7 +2068,6 @@ Get_GTF_file <- function(reference_path) {
     )
 
     ref.sj <- candidate.introns[, c("seqnames", "start", "end", "strand")]
-
     ref.sj$Is_NMD <- ifelse(
         grepl("nonsense_mediated_decay", candidate.introns$transcript_biotype),
         "NMD", ""
@@ -2106,53 +2091,33 @@ Get_GTF_file <- function(reference_path) {
     IRF_file <- file.path(reference_path, "IRFinder.ref")
     # Concatenate all 4 reference files into one file
     fwrite(list("# ref-cover.bed"), IRF_file,
-        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-    )
-    fwrite(ref.cover, IRF_file,
-        append = TRUE,
-        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-    )
-    fwrite(list("# ref-read-continues.ref"), IRF_file,
-        append = TRUE,
-        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-    )
-    fwrite(readcons, IRF_file,
-        append = TRUE,
-        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-    )
-    fwrite(list("# ref-ROI.bed"), IRF_file,
-        append = TRUE,
-        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-    )
+        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
+    fwrite(ref.cover, IRF_file, append = TRUE,
+        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
+    fwrite(list("# ref-read-continues.ref"), IRF_file, append = TRUE,
+        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
+    fwrite(readcons, IRF_file, append = TRUE,
+        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
+    fwrite(list("# ref-ROI.bed"), IRF_file, append = TRUE,
+        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
     if(!is.null(ref.ROI) && nrow(ref.ROI) > 0) {
-        fwrite(ref.ROI, IRF_file,
-            append = TRUE,
-            sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-        )
+        fwrite(ref.ROI, IRF_file, append = TRUE,
+            sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
     }
-    fwrite(list("# ref-sj.ref"), IRF_file,
-        append = TRUE,
-        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-    )
-    fwrite(ref.sj, IRF_file,
-        append = TRUE,
-        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-    )
+    fwrite(list("# ref-sj.ref"), IRF_file, append = TRUE,
+        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
+    fwrite(ref.sj, IRF_file, append = TRUE,
+        sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
 
     if(!is.null(chromosome_aliases)) {
-        fwrite(list("# ref-chrs.ref"), IRF_file,
-            append = TRUE,
-            sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-        )
-        fwrite(chromosome_aliases, IRF_file,
-            append = TRUE,
-            sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
-        )
+        fwrite(list("# ref-chrs.ref"), IRF_file, append = TRUE,
+            sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
+        fwrite(chromosome_aliases, IRF_file, append = TRUE,
+            sep = "\t", eol = "\n", col.names = FALSE, scipen = 50)
     }
 
     # Add EOF (to avoid undefined behaviour when there is no termination char)
-    fwrite(list("# EOF"), IRF_file,
-        append = TRUE,
+    fwrite(list("# EOF"), IRF_file, append = TRUE,
         sep = "\t", eol = "\n", col.names = FALSE, scipen = 50
     )
     
@@ -2170,24 +2135,25 @@ Get_GTF_file <- function(reference_path) {
     }
 }
 ################################################################################
+
+# Determines which spliced / IR transcripts are NMD substrates
+# Assumes NMD substrates if PTC is < 50 nt from last EJC
 .gen_nmd <- function(reference_path, genome) {
 
     Exons.tr <- .gen_nmd_exons_trimmed(reference_path)
     protein.introns <- .gen_nmd_protein_introns(reference_path, Exons.tr)
-    # Exclude introns preceding any ORF exons:
-    # protein.introns = protein.introns[get("intron_type") != "UTR5"]
+
     NMD.Table <- .gen_nmd_determine(Exons.tr, protein.introns, genome, 50)
     protein.introns.red = unique(
         protein.introns[, c("intron_id", "intron_type")])
-    NMD.Table[protein.introns.red,
-        on = "intron_id",
-        c("intron_type") := get("i.intron_type")
-    ]
+    NMD.Table[protein.introns.red, on = "intron_id",
+        c("intron_type") := get("i.intron_type")]
 
     write.fst(NMD.Table, file.path(reference_path, "fst", "IR.NMD.fst"))
     gc()
 }
 
+# Get exons but trim by start codon
 .gen_nmd_exons_trimmed <- function(reference_path) {
     Exons.tr <- as.data.table(
         read.fst(file.path(reference_path, "fst", "Exons.fst"))
@@ -2223,6 +2189,7 @@ Get_GTF_file <- function(reference_path) {
     return(Exons.tr)
 }
 
+# Get introns and annotate by whether they are 5', 3' or CDS 
 .gen_nmd_protein_introns <- function(reference_path, Exons.tr) {
     candidate.introns <- as.data.table(
         read.fst(file.path(reference_path, "fst", "junctions.fst"))
@@ -2274,6 +2241,8 @@ Get_GTF_file <- function(reference_path) {
     return(protein.introns)
 }
 
+# Given a list of exons and introns, and genome sequence
+# - Generate a list of whether spliced or unspliced transcripts are NMD subs
 .gen_nmd_determine <- function(exon.DT, intron.DT, genome, threshold = 50) {
     .log("Predicting NMD transcripts from genome sequence", "message")
     exon.DT <- exon.DT[, 
@@ -2330,6 +2299,7 @@ Get_GTF_file <- function(reference_path) {
     return(final)
 }
 
+# Determine PTC pos, and NMD status of spliced transcripts
 .gen_nmd_determine_spliced_exon <- function(
         exon.DT, intron.DT, threshold = 50) {
     exon.MLE.DT <- copy(exon.DT)
@@ -2377,6 +2347,8 @@ Get_GTF_file <- function(reference_path) {
     return(final)
 }
 
+# Builds transcripts with one retained intron
+# Then trims the last exon so the transcript terminus is the last EJC
 .gen_nmd_determine_build_introns_upstream <- function(
         intron.part, exon.DT.skinny, use_short = FALSE
 ) {
@@ -2424,6 +2396,7 @@ Get_GTF_file <- function(reference_path) {
     return(intron.part.upstream)
 }
 
+# Retrieves full sequence of IR-transcript, up to last EJC
 .gen_nmd_determine_retrieve_full_seq <- function(
         exon.DT, intron.part.upstream, genome
 ) {
@@ -2442,6 +2415,8 @@ Get_GTF_file <- function(reference_path) {
     return(intron.part.upstream)
 }
 
+# Retrieve sequence up to `l_seq` bases of retained intron
+# Saves having to generate full sequence if the PTC is early
 .gen_nmd_determine_retrieve_short_seq <- function(
         exon.DT, intron.part.upstream, genome, l_seq = 1000, threshold = 50
 ) {
@@ -2476,6 +2451,7 @@ Get_GTF_file <- function(reference_path) {
     return(intron.part.upstream)
 }
 
+# Translate nucleotide sequence to determine PTC position
 .gen_nmd_determine_translate <- function(
         splice_table, elems, use_short = FALSE, threshold = 50
 ) {
@@ -2527,6 +2503,7 @@ Get_GTF_file <- function(reference_path) {
 ################################################################################
 # Sub
 
+# Generate a list of ASEs
 .gen_splice <- function(reference_path) {
     .log("Annotating Splice Events", "message")
     candidate.introns <- as.data.table(
@@ -2568,9 +2545,7 @@ Get_GTF_file <- function(reference_path) {
     message("done")
     gc()
 
-################################################################################
     #   Filter for valid splicing
-
     is_valid_splice_type <- function(x) !is.null(x) && nrow(x) > 0
     tmp_AS <- list(
         introns_found_MXE, introns_found_SE,
@@ -2591,6 +2566,8 @@ Get_GTF_file <- function(reference_path) {
 
 ################################################################################
 
+# Generate a list of skip-coordinates
+# - These are introns if the downstream exon is skipped
 .gen_splice_skipcoord <- function(reference_path, candidate.introns) {
     GeneOrder <- as.data.table(
         read.fst(file.path(reference_path, "fst", "Genes.fst"))
@@ -2628,6 +2605,7 @@ Get_GTF_file <- function(reference_path) {
     return(introns.skipcoord)
 }
 
+# Generate a list of MXE
 .gen_splice_MXE <- function(introns.skipcoord) {
     introns_search_MXE <- introns.skipcoord[introns.skipcoord[,
         .I[get("intron_number") < max(get("intron_number"))],
@@ -2661,14 +2639,6 @@ Get_GTF_file <- function(reference_path) {
         on = c("gene_id", "transcript_id", "transcript_name", "skip_coord"),
         c("Event2") := get("i.Event2")]
 
-
-    # introns_search_MXE <- unique(introns_search_MXE,
-        # by = c("gene_id", "skip_coord", "Event1"))
-    # introns_search_MXE <- unique(introns_search_MXE,
-        # by = c("gene_id", "skip_coord", "Event2"))
-    # introns_search_MXE <- introns_search_MXE[, if (.N > 1) .SD,
-        # by = c("gene_id", "skip_coord")]
-
     introns_search_MXE <- unique(introns_search_MXE,
         by = c("Event1", "Event2"))
 
@@ -2693,7 +2663,7 @@ Get_GTF_file <- function(reference_path) {
                     intron_number_a = get("intron_number")[edge1],
                     intron_number_b = get("intron_number")[edge2]
                 )
-            },by = "skip_coord"
+            }, by = "skip_coord"
         ]
         # Make sure to exclude A3SS / A5SS events:
         introns_found_MXE = introns_found_MXE[get("Event1a") != get("Event1b")]
@@ -2723,6 +2693,7 @@ Get_GTF_file <- function(reference_path) {
     return(introns_found_MXE)
 }
 
+# Generate a list of SE
 .gen_splice_SE <- function(introns.skipcoord, candidate.introns) {
     introns.skippedJn <- introns.skipcoord[
         get("skip_coord") %in% get("Event"),
@@ -2818,6 +2789,7 @@ Get_GTF_file <- function(reference_path) {
     return(introns_found_SE)
 }
 
+# Generate a list of AFE
 .gen_splice_AFE <- function(candidate.introns, introns_found_A5SS) {
     introns_search_AFE <- candidate.introns[get("intron_number") == 1]
     introns_search_AFE_pos <- introns_search_AFE[get("strand") == "+"]
@@ -2887,6 +2859,8 @@ Get_GTF_file <- function(reference_path) {
             "transcript_id_b", "transcript_name_b", "intron_number_b")]
     return(introns_found_AFE)
 }
+
+# Generate a list of ALE
 .gen_splice_ALE <- function(candidate.introns, introns_found_A3SS) {
     introns_search_ALE <- candidate.introns[candidate.introns[,
         .I[get("intron_number") == max(get("intron_number"))],
@@ -2957,6 +2931,8 @@ Get_GTF_file <- function(reference_path) {
             "transcript_id_b", "transcript_name_b", "intron_number_b")]
     return(introns_found_ALE)
 }
+
+# Generate a list of introns with valid exon island coordinates
 .gen_splice_ASS_common <- function(candidate.introns) {
     candidate.introns.ASS <- candidate.introns[
         !is.na(get("exon_group_stranded_upstream")) &
@@ -2968,6 +2944,7 @@ Get_GTF_file <- function(reference_path) {
     return(candidate.introns.ASS)
 }
 
+# Generate a list of A5SS
 .gen_splice_A5SS <- function(candidate.introns) {
     introns_search_A5SS <- copy(.gen_splice_ASS_common(candidate.introns))
     introns_search_A5SS_pos <- introns_search_A5SS[get("strand") == "+"]
@@ -3037,8 +3014,7 @@ Get_GTF_file <- function(reference_path) {
     introns_found_A5SS <- introns_found_A5SS[, c("EventType") := "A5SS"]
     introns_found_A5SS <- introns_found_A5SS[, 
         c("EventRegion") := get("Event1b")]
-    # introns_found_A5SS <- introns_found_A5SS[!introns_found_AFE,
-        # on = c("Event1a", "Event1b")]
+
     introns_found_A5SS[, c("EventID") := paste0("A5SS#", seq_len(.N))]
     introns_found_A5SS <- introns_found_A5SS[,
         c("EventType", "EventID", "EventName",
@@ -3049,6 +3025,7 @@ Get_GTF_file <- function(reference_path) {
     return(introns_found_A5SS)
 }
 
+# Generate a list of A3SS
 .gen_splice_A3SS <- function(candidate.introns) {
     introns_search_A3SS <- copy(
         .gen_splice_ASS_common(candidate.introns))
@@ -3121,8 +3098,7 @@ Get_GTF_file <- function(reference_path) {
     introns_found_A3SS <- introns_found_A3SS[, c("EventType") := "A3SS"]
     introns_found_A3SS <- introns_found_A3SS[, 
         c("EventRegion") := get("Event1b")]
-    # introns_found_A3SS <- introns_found_A3SS[!introns_found_ALE,
-        # on = c("Event1a", "Event1b")]
+
     introns_found_A3SS[, c("EventID") := paste0("A3SS#", seq_len(.N))]
     introns_found_A3SS <- introns_found_A3SS[,
         c("EventType", "EventID", "EventName",
@@ -3133,6 +3109,7 @@ Get_GTF_file <- function(reference_path) {
     return(introns_found_A3SS)
 }
 
+# Generate a list of RI
 .gen_splice_RI <- function(candidate.introns, reference_path) {
     Exons <- .grDT(
         read.fst(file.path(reference_path, "fst", "Exons.fst")),
@@ -3170,6 +3147,7 @@ Get_GTF_file <- function(reference_path) {
     return(found_RI)
 }
 
+# Renames the ASEs based on the ranking order of transcripts
 .gen_splice_save <- function(AS_Table, candidate.introns, reference_path) {
     candidate.introns.order <- copy(candidate.introns)
     if (!("transcript_support_level" %in% colnames(candidate.introns))) {
@@ -3186,8 +3164,39 @@ Get_GTF_file <- function(reference_path) {
     AS_Table <- .gen_splice_name_events(AS_Table, reference_path)
 }
 
+.gen_splice_prep_events_RI <- function(AS_Table, Exons) {
+    if(!("transcript_support_level" %in% names(mcols(Exons)))) {
+        Exons$transcript_support_level = NA
+    }
+    Exons$transcript_support_level = tstrsplit(Exons$transcript_support_level,
+        split=" ", fixed=TRUE)[[1]]
+    RI.ranges = AS_Table[get("EventType") == "RI"]
+    RI.gr = NxtIRF.CoordToGR(RI.ranges$Event1b)
+    OL = findOverlaps(RI.gr, Exons, type = "within")
+    RI.DT = data.table(
+        EventType = "RI", 
+        EventID = RI.ranges$EventID[from(OL)],
+        Event1a = RI.ranges$Event1a[from(OL)],
+        Event2a = NA,
+        transcript_id = Exons$transcript_id[to(OL)]
+    )
+    RI.DT$transcript_support_level = 
+        Exons$transcript_support_level[to(OL)]
+    RI.DT$is_protein_coding = 
+        (Exons$transcript_biotype[to(OL)] == "protein_coding")
+    RI.DT$is_last_intron = FALSE
+    RI.DT$in_1a = Exons$exon_number[to(OL)]
+    RI.DT$in_2a = Exons$exon_number[to(OL)]
+    return(RI.DT)
+}
+
 .gen_splice_prep_events <- function(AS_Table, candidate.introns.order,
         reference_path) {
+    Exons <- .grDT(
+        read.fst(file.path(reference_path, "fst", "Exons.fst")),
+        keep.extra.columns = TRUE
+    )
+    
     AS_Table_search.a <- AS_Table[get("EventType") != "RI",
         c("EventType", "EventID", "Event1a", "Event2a")]
     AS_Table_search.a[, c("Event") := get("Event1a")]
@@ -3211,35 +3220,8 @@ Get_GTF_file <- function(reference_path) {
     AS_Table_search.a <- AS_Table_search.a[!is.na(get("intron_number"))]
     setnames(AS_Table_search.a, "intron_number", "in_2a")
 
-    # Separate search_a for RI
-   
-    Exons <- .grDT(
-        read.fst(file.path(reference_path, "fst", "Exons.fst")),
-        keep.extra.columns = TRUE
-    )
-    if(!("transcript_support_level" %in% names(mcols(Exons)))) {
-        Exons$transcript_support_level = NA
-    }
-    Exons$transcript_support_level = tstrsplit(Exons$transcript_support_level,
-        split=" ", fixed=TRUE)[[1]]
-    RI.ranges = AS_Table[get("EventType") == "RI"]
-    RI.gr = NxtIRF.CoordToGR(RI.ranges$Event1b)
-    OL = findOverlaps(RI.gr, Exons, type = "within")
-    RI.DT = data.table(
-        EventType = "RI", 
-        EventID = RI.ranges$EventID[from(OL)],
-        Event1a = RI.ranges$Event1a[from(OL)],
-        Event2a = NA,
-        transcript_id = Exons$transcript_id[to(OL)]
-    )
-    RI.DT$transcript_support_level = 
-        Exons$transcript_support_level[to(OL)]
-    RI.DT$is_protein_coding = 
-        (Exons$transcript_biotype[to(OL)] == "protein_coding")
-    RI.DT$is_last_intron = FALSE
-    RI.DT$in_1a = Exons$exon_number[to(OL)]
-    RI.DT$in_2a = Exons$exon_number[to(OL)]
-
+    # Separate search_a for RI 
+    RI.DT <- .gen_splice_prep_events_RI(AS_Table, Exons)
     AS_Table_search.a = rbind(AS_Table_search.a, RI.DT)
 
     AS_Table_search.b <- AS_Table[,
@@ -3264,19 +3246,16 @@ Get_GTF_file <- function(reference_path) {
             "is_last_intron", "in_1b", "intron_number")]
     AS_Table_search.b <- AS_Table_search.b[!is.na(get("intron_number"))]
     setnames(AS_Table_search.b, "intron_number", "in_2b")
-
     
     AS_Table_search.a$transcript_name = Exons$transcript_name[match(
         AS_Table_search.a$transcript_id, Exons$transcript_id)]
     AS_Table_search.b$transcript_name = Exons$transcript_name[match(
         AS_Table_search.b$transcript_id, Exons$transcript_id)]
     setorderv(AS_Table_search.a,
-        c("transcript_support_level", "is_protein_coding", 
-            "transcript_name"),
+        c("transcript_support_level", "is_protein_coding", "transcript_name"),
         order = c(1, -1, 1))
     setorderv(AS_Table_search.b,
-        c("transcript_support_level", "is_protein_coding", 
-            "transcript_name"),
+        c("transcript_support_level", "is_protein_coding", "transcript_name"),
         order = c(1, -1, 1))
     AS_Table.find.a <- unique(AS_Table_search.a, by = "EventID")
     AS_Table.find.a <- AS_Table.find.a[AS_Table[, "EventID"], 
@@ -3296,11 +3275,9 @@ Get_GTF_file <- function(reference_path) {
         old = c("Event1a", "Event2a", "in_1a", "in_2a"),
         new = c("Event1", "Event2", "in_1", "in_2"))
     AS_Table_search.a[, c("isoform") := "A"]
-       
     setnames(AS_Table_search.b,
         old = c("Event1b", "Event2b", "in_1b", "in_2b"),
         new = c("Event1", "Event2", "in_1", "in_2"))
-
     AS_Table_search.b[, c("isoform") := "B"]
 
     write.fst(as.data.frame(rbind(AS_Table_search.a, AS_Table_search.b)),
@@ -3309,6 +3286,7 @@ Get_GTF_file <- function(reference_path) {
     return(AS_Table)
 }
 
+# Generate names of splice events
 .gen_splice_name_events <- function(AS_Table, reference_path) {
     AS_Table[get("EventType") == "MXE",
         c("EventName") := paste0(
@@ -3349,7 +3327,6 @@ Get_GTF_file <- function(reference_path) {
             as.character(as.numeric(get("intron_number_a") + 1)), ";",
             get("transcript_name_b"), "-exon",
             as.character(as.numeric(get("intron_number_b") + 1)))]
-
     AS_Table[
         get("EventType") == "RI",
         c("EventName") := paste0(
@@ -3357,15 +3334,15 @@ Get_GTF_file <- function(reference_path) {
             as.character(as.numeric(get("intron_number_a"))), ";",
             get("transcript_name_b"), "-intron",
             as.character(as.numeric(get("intron_number_b"))))]
-
     write.fst(as.data.frame(AS_Table), 
         file.path(reference_path, "fst", "Splice.fst"))
-        
     return(AS_Table)
 }
 
 ################################################################################
 # Sub
+
+# Generate nucleotide and peptide sequences for ASE
 .gen_splice_proteins <- function(reference_path, genome) {
     .log("Translating Alternate Splice Peptides...", 
         "message", appendLF = FALSE)
@@ -3417,6 +3394,7 @@ Get_GTF_file <- function(reference_path) {
     message("done")
 }
 
+# Generate upstream nucleotides
 .gen_splice_proteins_upstream <- function(AS_Table, AS_Table.Extended,
         Proteins_Splice, genome, isoform = c("A", "B")) {
     # Upstream applicable for MXE, SE, ALE, A3SS
@@ -3452,6 +3430,7 @@ Get_GTF_file <- function(reference_path) {
     return(AS_Table.Extended)
 }
 
+# Generate downstream nucleotides
 .gen_splice_proteins_downstream <- function(AS_Table, AS_Table.Extended,
         Proteins_Splice, genome, isoform = c("A", "B")) {
     # Add EventType as exon_number is conditional on this
@@ -3501,6 +3480,7 @@ Get_GTF_file <- function(reference_path) {
     return(AS_Table.Extended)
 }
 
+# Generate casette nucleotides
 .gen_splice_proteins_casette <- function(AS_Table, AS_Table.Extended,
         Proteins_Splice, genome, isoform = c("A", "B")) {
     cols = c("EventType", "EventID", 
@@ -3533,20 +3513,23 @@ Get_GTF_file <- function(reference_path) {
     return(AS_Table.Extended)
 }
 
-.trim_phase <- function(DNAstr, phase) {
-    substr(DNAstr, 1 + (3 - phase) %% 3, nchar(DNAstr))
-}
-.trim_3 <- function(DNAstr) {
-    substr(DNAstr, 1, nchar(DNAstr) - (nchar(DNAstr) %% 3))
-}
-.transfer_down <- function(DNAstr) {
-    substr(DNAstr, nchar(DNAstr) - (nchar(DNAstr) %% 3) + 1, nchar(DNAstr))
-}
+# Internal trim functions
 
-.transfer_up <- function(DNAstr, phase) {
-    # phase must be 1 or 2
+# Trim 5'-nucleotides based on phase
+.trim_phase <- function(DNAstr, phase) 
+    substr(DNAstr, 1 + (3 - phase) %% 3, nchar(DNAstr))
+
+# Trim 3'-nucleotides based on phase
+.trim_3 <- function(DNAstr)
+    substr(DNAstr, 1, nchar(DNAstr) - (nchar(DNAstr) %% 3))
+
+# Returns the incomplete codon of nucleotides from the 3'-sequence
+.transfer_down <- function(DNAstr)
+    substr(DNAstr, nchar(DNAstr) - (nchar(DNAstr) %% 3) + 1, nchar(DNAstr))
+
+# Returns the incomplete codon of nucleotides from the 5'-sequence
+.transfer_up <- function(DNAstr, phase)
     substr(DNAstr, 1, 3 - phase)
-}
 
 .gen_splice_proteins_trim <- function(AS_Table.Extended) {
     
@@ -3559,6 +3542,8 @@ Get_GTF_file <- function(reference_path) {
     return(AS_Table.Extended)
 }
 
+# Trims 5'-sequences from upstr, casette, or downstream if there is no
+# sequences upstream to it
 .gen_splice_proteins_trim_5prime <- function(AS_Table.Extended) {
     # Trim 5' upstream
     AS_Table.Extended[!is.na(get("DNA_upstr_A")) &
@@ -3600,6 +3585,8 @@ Get_GTF_file <- function(reference_path) {
     return(AS_Table.Extended)
 }
 
+# Transfers nucleotides to neighboring element so that all elements have
+# in-frame sequences
 .gen_splice_proteins_transfers <- function(AS_Table.Extended) {
     # Transfer from upstream to casette if both exist
     AS_Table.Extended[
@@ -3643,6 +3630,7 @@ Get_GTF_file <- function(reference_path) {
     return(AS_Table.Extended)
 }
 
+# Trim 3' ends so translation doesnt return error
 .gen_splice_proteins_trim_3prime <- function(AS_Table.Extended) {
     AS_Table.Extended[!is.na(get("DNA_upstr_A")),
         c("DNA_upstr_A") := .trim_3(get("DNA_upstr_A"))]
@@ -3659,6 +3647,7 @@ Get_GTF_file <- function(reference_path) {
     return(AS_Table.Extended)
 }
 
+# Translate upstream, casette and downstream sequences
 .gen_splice_proteins_translate <- function(AS_Table.Extended) {
     DNAseq = AS_Table.Extended[nchar(get("DNA_upstr_A")) > 0]$DNA_upstr_A
     AAseq = suppressWarnings(
