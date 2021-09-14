@@ -405,7 +405,7 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
 plot_cov_fn <- function(
     view_chr, view_start, view_end, view_strand,
     norm_event, condition, tracks = list(), track_names = NULL, se, avail_files,
-    transcripts, elems, highlight_events, selected_transcripts = "", 
+    transcripts, elems, highlight_events = "", selected_transcripts = "", 
     stack_tracks, graph_mode, conf.int = 0.95,
     t_test = FALSE, condensed = FALSE
 ) {
@@ -810,7 +810,7 @@ plot_view_ref_fn <- function(
         get("end") >= view_start - (view_end - view_start)
     ]
     setorderv(transcripts.DT, c("transcript_support_level", "width"))
-    if(selected_transcripts != "") {
+    if(length(selected_transcripts) > 1 || selected_transcripts != "") {
         transcripts.DT = transcripts.DT[
             get("transcript_id") %in% selected_transcripts |
             get("transcript_name") %in% selected_transcripts
