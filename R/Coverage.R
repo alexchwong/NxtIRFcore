@@ -801,7 +801,7 @@ plot_view_ref_fn <- function(
 
 .plot_view_ref_fn_getDTlist <- function(
     view_chr, view_start, view_end, 
-    transcripts, elems, highlight_events, 
+    transcripts, elems, highlight_events = "", 
     condensed = FALSE, selected_transcripts = ""
 ) {
     transcripts.DT = transcripts[
@@ -810,7 +810,7 @@ plot_view_ref_fn <- function(
         get("end") >= view_start - (view_end - view_start)
     ]
     setorderv(transcripts.DT, c("transcript_support_level", "width"))
-    if(is_valid(selected_transcripts)) {
+    if(selected_transcripts != "") {
         transcripts.DT = transcripts.DT[
             get("transcript_id") %in% selected_transcripts |
             get("transcript_name") %in% selected_transcripts
@@ -851,7 +851,7 @@ plot_view_ref_fn <- function(
 
     # Highlight events here
     # highlight_events is of syntax chrX:10000-11000/-
-    if(is_valid(highlight_events))  
+    if(highlight_events != "")  
         reduced.DT = determine_compatible_events(reduced.DT, highlight_events)
     
     return(list(
@@ -862,7 +862,7 @@ plot_view_ref_fn <- function(
 }
 
 .plot_view_ref_fn_groupDTlist <- function(DTlist,
-    view_chr, view_start, view_end, highlight_events
+    view_chr, view_start, view_end, highlight_events = ""
 ) {
     transcripts.DT = DTlist$transcripts.DT
     reduced.DT = DTlist$reduced.DT
@@ -919,7 +919,7 @@ plot_view_ref_fn <- function(
     reduced.DT[group.DT, on = "group_id", 
         c("plot_level") := get("i.plot_level")]
     
-    if(!is_valid(highlight_events)) {
+    if(highlight_events == "") {
         reduced.DT[, c("highlight") := FALSE]
     } else {
         setorderv(reduced.DT, "highlight")
@@ -960,7 +960,7 @@ plot_view_ref_fn <- function(
             )
         )
     }
-    if(is_valid(highlight_events)) {
+    if(highlight_events != "") {
         p = p + scale_color_manual(values = c("black", "blue", "red")) +
             scale_fill_manual(values = c("black", "blue", "red"))
     }
