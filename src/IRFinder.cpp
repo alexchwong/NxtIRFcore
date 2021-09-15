@@ -533,11 +533,15 @@ int IRF_core(std::string const &bam_file,
   if(n_threads_to_use > 1) {
     if(verbose) Rcout << "Compiling data from threads\n";
   // Combine BB's and process spares
+    if(verbose) Rcout << "Uniting Spare Reads\n";
+
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       BBchild.at(0)->processSpares(*BBchild.at(i));
       delete BBchild.at(i);
     }
   // Combine objects:
+    if(verbose) Rcout << "Compiling IRFinder quants between threads\n";
+
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       oJC.at(0)->Combine(*oJC.at(i));
       oChr.at(0)->Combine(*oChr.at(i));
