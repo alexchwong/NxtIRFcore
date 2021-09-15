@@ -23,7 +23,7 @@ BAM2blocks::BAM2blocks() {
 
 BAM2blocks::BAM2blocks(
     std::vector<std::string> & ref_names, 
-    std::vector<std::string> & ref_alias
+    std::vector<uint32_t> & ref_lengths
 ) {
   oBlocks = FragmentBlocks(); //Right syntax to call the default constructor on an object variable, declared but not initialised?
 
@@ -40,8 +40,7 @@ BAM2blocks::BAM2blocks(
   
   if(ref_names.size() > 0) {
     for(unsigned int i = 0; i < ref_names.size(); i++) {
-      BB_ref_names.push_back(ref_names.at(i));
-      BB_ref_alias.push_back(ref_alias.at(i));
+      chrs.push_back(chr_entry(i, ref_names.at(i), (int32_t)ref_lengths.at(i)));
     }
   }
   
@@ -68,26 +67,13 @@ unsigned int BAM2blocks::openFile(pbam_in * _IN) {
   
   std::vector<std::string> s_chr_names;
   std::vector<uint32_t> u32_chr_lens;
-  int ret = IN->obtainChrs(s_chr_names, u32_chr_lens);
-  if(ret <= 0) return(-1);
-  for(unsigned int i = 0; i < s_chr_names.size(); i++) {
-    chrs.push_back(chr_entry(i, s_chr_names.at(i), (int32_t)u32_chr_lens.at(i)));
-    // Rename chromosome if it is an alias
-    if(BB_ref_names.size() > 0) {
-      for(unsigned int j = 0; j < BB_ref_names.size(); j++) {
-        if(chrs.at(i).chr_name.size() == BB_ref_alias.at(j).size()) {
-          if(0==strncmp(
-              BB_ref_alias.at(j).c_str(), 
-              chrs.at(i).chr_name.c_str(), 
-              BB_ref_alias.at(j).size())) {
-            chrs.at(i).chr_name = BB_ref_names.at(j);
-            // Rcout << BB_ref_alias.at(j) << " renamed to " << BB_ref_names.at(j) << "\n";
-            break;
-          }
-        }
-      }
+  IN->obtainChrs(s_chr_names, u32_chr_lens);
+  if(chrs.size() == 0) {
+    for(unsigned int i = 0; i < s_chr_names.size(); i++) {
+      chrs.push_back(chr_entry(i, s_chr_names.at(i), (int32_t)u32_chr_lens.at(i)));
     }
   }
+
   for (auto & callback : callbacksChrMappingChange ) {
     callback(chrs);
   }

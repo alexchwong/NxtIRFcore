@@ -50,8 +50,6 @@ class BAM2blocks {
     pbam_in * IN;
     
     std::vector<chr_entry> chrs;
-    std::vector<std::string> BB_ref_names;
-    std::vector<std::string> BB_ref_alias;
 
     std::vector<uint64_t> block_begins;
     std::vector<unsigned int> read_offsets;
@@ -63,7 +61,7 @@ class BAM2blocks {
   	BAM2blocks();
   	BAM2blocks(
       std::vector<std::string> & ref_names, 
-      std::vector<std::string> & ref_alias
+      std::vector<uint32_t> & ref_lengths
     );
     ~BAM2blocks();
   	unsigned int openFile(pbam_in * _IN);

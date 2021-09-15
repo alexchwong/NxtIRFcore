@@ -1585,23 +1585,27 @@ Get_GTF_file <- function(reference_path) {
         ), stranded = FALSE, reference_path, data2[["introns.unique"]]
     )
     message("...writing ref-cover.bed")  
-    # Generate final ref-cover.bed
     ref.cover = .gen_irf_refcover(reference_path)
-    # message("...done")
     message("...writing ref-ROI.bed")
     ref.ROI <- .gen_irf_ROI(reference_path, extra_files, genome, 
         data[["Genes"]], data[["Transcripts"]])
-    # message("...done")
     message("...writing ref-read-continues.ref")
     readcons = .gen_irf_readcons(reference_path,
-        tmpdir.IntronCover.summa, tmpnd.IntronCover.summa
-    )
-    # message("...done")
+        tmpdir.IntronCover.summa, tmpnd.IntronCover.summa)
     message("...writing ref-sj.ref")
     ref.sj <- .gen_irf_sj(reference_path)
-    # message("...done")
-    .gen_irf_final(reference_path, ref.cover, readcons, ref.ROI, ref.sj,
-        chromosome_aliases)
+    
+    chr = data.frame(seqnames = names(GenomeInfoDb::seqinfo(genome)),
+        seqlengths = unname(GenomeInfoDb::seqlengths(genome)))
+    if(!is.null(chromosome_aliases)) {
+        colnames(chromosome_aliases) = c("name", "alias")
+        chr$seqalias = chromosome_aliases$alias[
+            match(chr$seqnames, chromosome_aliases$name)]
+        chr$seqalias[is.na(chr$seqalias)] = ""
+    } else {
+        chr$seqalias = ""
+    }
+    .gen_irf_final(reference_path, ref.cover, readcons, ref.ROI, ref.sj, chr)
     message("IRFinder reference generation completed")
 }
 ################################################################################

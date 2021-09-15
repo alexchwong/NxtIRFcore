@@ -232,7 +232,7 @@ int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_tx
   
   
   // std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
-  pbam_in inbam((size_t)1000000000, (size_t)2000000000, 5);
+  pbam_in inbam((size_t)5e8, (size_t)1e9, 5);
   // inbam.SetInputHandle(&inbam_stream, n_threads_to_use);
     inbam.openFile(bam_file, n_threads_to_use);
 
