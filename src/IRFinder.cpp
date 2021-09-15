@@ -526,7 +526,7 @@ int IRF_core(std::string const &bam_file,
     return(-1);
   }
 
-  inbam.closeFile();
+  // inbam.closeFile();
   // inbam_stream.close();
   // Rcout << "BAM processing finished\n";
   
