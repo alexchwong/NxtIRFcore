@@ -456,6 +456,7 @@ int IRF_core(std::string const &bam_file,
   
   // TODO: Abort here if BAM corrupt
   
+  
   std::vector<CoverageBlocksIRFinder*> oCB;
   std::vector<SpansPoint*> oSP;
   std::vector<FragmentsInROI*> oROI;
@@ -543,11 +544,17 @@ int IRF_core(std::string const &bam_file,
     if(verbose) Rcout << "Compiling IRFinder quants between threads\n";
 
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
+  if(verbose) Rcout << "Combining JC\n";
       oJC.at(0)->Combine(*oJC.at(i));
+  if(verbose) Rcout << "Combining Chr\n";
       oChr.at(0)->Combine(*oChr.at(i));
+  if(verbose) Rcout << "Combining SP\n";
       oSP.at(0)->Combine(*oSP.at(i));
+  if(verbose) Rcout << "Combining ROI\n";
       oROI.at(0)->Combine(*oROI.at(i));
+  if(verbose) Rcout << "Combining CB\n";
       oCB.at(0)->Combine(*oCB.at(i));
+  if(verbose) Rcout << "Combining FM\n";
       oFM.at(0)->Combine(*oFM.at(i));
       
       delete oJC.at(i);
@@ -558,6 +565,8 @@ int IRF_core(std::string const &bam_file,
       delete oFM.at(i);
     }
   }
+
+  if(verbose) Rcout << "Writing COV file\n";
 
   // Write Coverage Binary file:
   std::ofstream ofCOV;                          ofCOV.open(s_output_cov, std::ofstream::binary);  
