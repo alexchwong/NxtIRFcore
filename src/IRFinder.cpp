@@ -331,7 +331,7 @@ int ReadChrAlias(std::istringstream &IN,
     getline(lineStream, myAlias, '\t');
     if(myChr.size() > 0) {
       ref_names.push_back(myChr);
-      ref_lengths.push_back((uint32_t)stol(myLength));
+      ref_lengths.push_back((uint32_t)stoul(myLength));
       ref_alias.push_back(myAlias);      
     }
   }
@@ -476,10 +476,12 @@ int IRF_core(std::string const &bam_file,
   std::vector<uint32_t> bam_chr_len;
   for(unsigned int i = 0; i < s_chr_names.size(); i++) {
     for(unsigned int j = 0; j < ref_alias.size(); j++) {
-      if(0==strncmp(ref_alias.at(j).c_str(), s_chr_names.at(i).c_str(), 
-          s_chr_names.at(i).size()) &&
-          s_chr_names.at(i).size() == ref_alias.at(j).size())
-      {
+      if( 0==strncmp(
+            ref_alias.at(j).c_str(), 
+            s_chr_names.at(i).c_str(), 
+            s_chr_names.at(i).size()
+          ) && s_chr_names.at(i).size() == ref_alias.at(j).size()
+      ) {
         bam_chr_name.push_back(ref_names.at(j));
         bam_chr_len.push_back(u32_chr_lens.at(i));
         break;
@@ -576,27 +578,17 @@ int IRF_core(std::string const &bam_file,
   if(n_threads_to_use > 1) {
     if(verbose) Rcout << "Compiling data from threads\n";
   // Combine BB's and process spares
-    if(verbose) Rcout << "Uniting Spare Reads\n";
-
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       BBchild.at(0)->processSpares(*BBchild.at(i));
       delete BBchild.at(i);
     }
   // Combine objects:
-    if(verbose) Rcout << "Compiling IRFinder quants between threads\n";
-
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
-  if(verbose) Rcout << "Combining JC\n";
       oJC.at(0)->Combine(*oJC.at(i));
-  if(verbose) Rcout << "Combining Chr\n";
       oChr.at(0)->Combine(*oChr.at(i));
-  if(verbose) Rcout << "Combining SP\n";
       oSP.at(0)->Combine(*oSP.at(i));
-  if(verbose) Rcout << "Combining ROI\n";
       oROI.at(0)->Combine(*oROI.at(i));
-  if(verbose) Rcout << "Combining CB\n";
       oCB.at(0)->Combine(*oCB.at(i));
-  if(verbose) Rcout << "Combining FM\n";
       oFM.at(0)->Combine(*oFM.at(i));
       
       delete oJC.at(i);

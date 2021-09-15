@@ -402,6 +402,7 @@ int BAM2blocks::processSpares(BAM2blocks& other) {
         delete (it_read->second);
         spare_reads->erase(read_name);
         delete spare_read;
+        cErrorReads-=2;
       }
     } else {
       spare_reads->insert({read_name, spare_read});
