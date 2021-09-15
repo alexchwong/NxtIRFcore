@@ -768,7 +768,9 @@ Get_GTF_file <- function(reference_path) {
         gtf_gr <- .fetch_AH(ah_transcriptome, verbose = verbose,
             pseudo_fetch = pseudo_fetch)
         if(overwrite || !file.exists(gtf_path)) {
-            cache_loc <- AnnotationHub::cache(ah_transcriptome)
+            # cache_loc <- AnnotationHub::cache(ah_transcriptome)
+            cache_loc <- .fetch_AH_cache_loc(ah_transcriptome, 
+                rdataclass = "GRanges", verbose = verbose)
             if(file.exists(cache_loc)) {
                 if(file.exists(gtf_path)) file.remove(gtf_path)
                 file.copy(cache_loc,gtf_path)

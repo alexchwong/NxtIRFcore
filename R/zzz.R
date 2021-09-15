@@ -69,7 +69,7 @@
 NULL
 
 
-res_url <- "https://raw.github.com/alexchwong/NxtIRFdata/main/inst/NxtIRF"
+res_url <- "https://raw.github.com/alexchwong/NxtIRFrepo/main/inst/NxtIRF"
 
 #' @describeIn example-NxtIRF-data Makes a copy of the NxtIRF mock genome FASTA
 #'   file, in the given destination path
