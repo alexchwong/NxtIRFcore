@@ -2,18 +2,12 @@
 % Please edit documentation in R/zzz.R
 \name{example-NxtIRF-data}
 \alias{example-NxtIRF-data}
-\alias{mock_genome}
-\alias{mock_gtf}
 \alias{example_bams}
 \alias{NxtIRF_example_bams}
 \alias{NxtIRF_example_NxtSE}
 \alias{get_mappability_exclusion}
 \title{NxtIRF Examples}
 \usage{
-mock_genome(destination_path = tempdir())
-
-mock_gtf(destination_path = tempdir())
-
 get_mappability_exclusion(
   genome_type = c("hg38", "hg19", "mm10", "mm9"),
   destination_path = tempdir()
@@ -26,10 +20,10 @@ NxtIRF_example_bams()
 NxtIRF_example_NxtSE()
 }
 \arguments{
+\item{genome_type}{Either one of \code{hg38}, \code{hg19}, \code{mm10} or \code{mm9}}
+
 \item{destination_path}{The directory to place the downloaded example files.
 If left blank, gives the direct BiocFileCache path of the resource.}
-
-\item{genome_type}{Either one of \code{hg38}, \code{hg19}, \code{mm10} or \code{mm9}}
 }
 \value{
 See Functions section below.
@@ -53,14 +47,7 @@ hg19, mm10 and mm9 genomes.
 }
 \section{Functions}{
 \itemize{
-\item \code{mock_genome}: Makes a copy of the NxtIRF mock genome FASTA
-file, in the given destination path
-
-\item \code{mock_gtf}: Makes a copy of the NxtIRF mock gene 
-annotation GTF file, in the given destination path
-
-\item \code{get_mappability_exclusion}: Returns a copy of Mappability Exclusion 
-BED file for the specified genome, in the given destination path
+\item \code{get_mappability_exclusion}: Temporary fn to get mappability
 
 \item \code{example_bams}: Makes a copy of the Leucegene example 
 BAM files, aligned to the NxtIRF mock genome, in the given destination path
@@ -73,14 +60,6 @@ generated using the NxtIRF mock reference and example BAM files
 }}
 
 \examples{
-# returns the location of the genome.fa file of the mock reference
-
-mock_genome() 
-
-# returns the location of the transcripts.gtf file of the mock reference
-
-mock_gtf() 
-
 # returns the location of the Mappability exclusion BED for hg38
 
 get_mappability_exclusion("hg38") 

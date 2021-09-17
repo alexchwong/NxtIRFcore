@@ -178,7 +178,8 @@ creates the NxtIRF reference
 
 GetReferenceResource(
     reference_path = file.path(tempdir(), "Reference"),
-    fasta = mock_genome(), gtf = mock_gtf()
+    fasta = NxtIRFdata::chrZ_genome(), 
+    gtf = NxtIRFdata::chrZ_gtf()
 )
 BuildReference(
     reference_path = file.path(tempdir(), "Reference")

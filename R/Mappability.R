@@ -44,7 +44,8 @@
 #' 
 #' GetReferenceResource(
 #'     reference_path = file.path(tempdir(), "Reference"),
-#'     fasta = mock_genome(), gtf = mock_gtf()
+#'     fasta = NxtIRFdata::chrZ_genome(),
+#'     gtf = NxtIRFdata::chrZ_gtf()
 #' )
 #' Mappability_GenReads(
 #'     reference_path = file.path(tempdir(), "Reference"),
@@ -57,7 +58,8 @@
 #' 
 #' GetReferenceResource(
 #'     reference_path = file.path(tempdir(), "Reference"),
-#'     fasta = mock_genome(), gtf = mock_gtf(),
+#'     fasta = NxtIRFdata::chrZ_genome(),
+#'     gtf = NxtIRFdata::chrZ_gtf()
 #'     generate_mappability_reads = TRUE
 #' )
 #' 
@@ -65,7 +67,7 @@
 #' 
 #' setwd(file.path(tempdir(), "Reference"))
 #' Rsubread::buildindex(basename = "./reference_index", 
-#'     reference = mock_genome())
+#'     reference = NxtIRFdata::chrZ_genome())
 #' Rsubread::subjunc(
 #'     index = "./reference_index", 
 #'     readfile1 = "MappabilityReads.fa", 

@@ -49,8 +49,8 @@ FASTA and GTF files:
 
 ```{r, results = FALSE, message = FALSE, warning = FALSE}
 library(NxtIRFcore)
-mock_genome(".") # Copies NxtIRF mock genome as example
-mock_gtf(".") # Copies NxtIRF mock GTF file as example
+NxtIRFdata::chrZ_genome() # Provides the path to the NxtIRF chrZ example genome
+NxtIRFdata::chrZ_gtf()    # Provides the path to the NxtIRF chrZ example GTF
 ```
 
 NxtIRF generates a reference from a user-provided genome FASTA and 
@@ -70,8 +70,8 @@ coordinates.
 ```{r, results = FALSE, message = FALSE, warning = FALSE}
 GetReferenceResource(
     reference_path = "Reference_mock",
-    fasta = mock_genome(),
-    gtf = mock_gtf()
+    fasta = NxtIRFdata::chrZ_genome(), 
+    gtf = NxtIRFdata::chrZ_gtf()
 )
 
 BuildReference(reference_path = "Reference_mock")

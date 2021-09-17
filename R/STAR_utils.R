@@ -93,8 +93,8 @@
 #' 
 #' GetReferenceResource(
 #'     reference_path = "Reference_chrZ",
-#'     fasta = mock_genome(),
-#'     gtf =  = mock_gtf(), 
+#'     fasta = NxtIRFdata::chrZ_genome(), 
+#'     gtf = NxtIRFdata::chrZ_gtf()
 #' )
 #'
 #' STAR_buildRef(

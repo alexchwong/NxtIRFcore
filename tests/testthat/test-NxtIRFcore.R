@@ -5,7 +5,8 @@ test_that("NxtIRF pipeline reproduces NxtSE object", {
     )
     
     BuildReference(
-        fasta = mock_genome(), gtf = mock_gtf(),
+        fasta = NxtIRFdata::chrZ_genome(), 
+        gtf = NxtIRFdata::chrZ_gtf(),
         reference_path = file.path(tempdir(), "Reference"),
         chromosome_aliases = chr_alias
     )

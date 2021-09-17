@@ -20,14 +20,6 @@
 #'   If left blank, gives the direct BiocFileCache path of the resource.
 #' @return See Functions section below.
 #' @examples
-#' # returns the location of the genome.fa file of the mock reference
-#'
-#' mock_genome() 
-#'
-#' # returns the location of the transcripts.gtf file of the mock reference
-#'
-#' mock_gtf() 
-#' 
 #' # returns the location of the Mappability exclusion BED for hg38
 #'
 #' get_mappability_exclusion("hg38") 
@@ -47,7 +39,6 @@
 #'
 #' NxtIRF_example_NxtSE() 
 #'
-
 #'
 #' @references
 #' Generation of the mappability files was performed using NxtIRF using
@@ -61,7 +52,7 @@
 #' \doi{10.1186/s13059-017-1184-4}
 #' @name example-NxtIRF-data
 #' @aliases 
-#' mock_genome mock_gtf example_bams NxtIRF_example_bams NxtIRF_example_NxtSE
+#' example_bams NxtIRF_example_bams NxtIRF_example_NxtSE
 #' get_mappability_exclusion
 #' @keywords package
 #' @seealso [BuildReference()], [IRFinder()], [CollateData()], [MakeSE()]
@@ -71,51 +62,39 @@ NULL
 
 res_url <- "https://raw.github.com/alexchwong/NxtIRFrepo/main/inst/NxtIRF"
 
-#' @describeIn example-NxtIRF-data Makes a copy of the NxtIRF mock genome FASTA
-#'   file, in the given destination path
-#' @export
-mock_genome <- function(destination_path = tempdir())
-{
-    .cache_and_create_file(paste(res_url, "genome.fa", sep="/"),
-        destination_path, hub = "AnnotationHub")
-}
-
-#' @describeIn example-NxtIRF-data Makes a copy of the NxtIRF mock gene 
-#'   annotation GTF file, in the given destination path
-#' @export
-mock_gtf <- function(destination_path = tempdir())
-{
-    .cache_and_create_file(paste(res_url, "transcripts.gtf", sep="/"),
-        destination_path, hub = "AnnotationHub")
-}
-
-#' @describeIn example-NxtIRF-data Returns a copy of Mappability Exclusion 
-#'   BED file for the specified genome, in the given destination path
+#' @describeIn example-NxtIRF-data Temporary fn to get mappability
 #' @export
 get_mappability_exclusion <- function(
         genome_type = c("hg38", "hg19", "mm10", "mm9"),
         destination_path = tempdir()) {
     genome_type = match.arg(genome_type)
-    if(genome_type == "hg38") {
-        .cache_and_create_file(paste(res_url, 
-            "Mappability_Regions_hg38_v94.txt.gz", sep="/"),
-            destination_path, hub = "AnnotationHub")
-    } else if(genome_type == "hg19") {
-        .cache_and_create_file(paste(res_url, 
-            "Mappability_Regions_hg19_v75.txt.gz", sep="/"),
-            destination_path, hub = "AnnotationHub")    
-    } else if(genome_type == "mm10") {
-        .cache_and_create_file(paste(res_url, 
-            "Mappability_Regions_mm10_v94.txt.gz", sep="/"),     
-            destination_path, hub = "AnnotationHub")    
-    } else if(genome_type == "mm9") {
-        .cache_and_create_file(paste(res_url, 
-            "Mappability_Regions_mm9_v67.txt.gz", sep="/"),    
-            destination_path, hub = "AnnotationHub")    
-    } else {
+    if(genome_type == "")
         .log(paste("In get_mappability_exclusion():",
-            "genome_type = ", genome_type, "is not recogised"))
+        "genome_type = ", genome_type, "is not recogised"))
+    source_url = paste(
+        "https://raw.github.com/alexchwong/NxtIRFrepo/main/NxtIRFdata",
+        "mappability", "1.0.0",
+        paste0(genome_type, ".MappabilityExclusion.bed.Rds"),
+        sep = "/"
+    )
+    gr = readRDS(.parse_valid_file(source_url))
+    bedfile = file.path(destination_path, "MappabilityExclusion.bed")
+    if(is(gr, "GRanges")) {
+        rtracklayer::export(gr, bedfile, "bed")
+        if(file.exists(bedfile)) {
+            R.utils::gzip(bedfile)
+            if(file.exists(paste0(bedfile, ".gz"))) {
+                return(paste0(bedfile, ".gz"))
+            } else {
+                .log("Error compressing mappability resource")
+            }
+        } else {
+            .log("Error converting GRanges to BED file")
+        }
+    } else {
+        .log("Error fetching mappability resource")
     }
+    return("")
 }
 
 #' @describeIn example-NxtIRF-data Makes a copy of the Leucegene example 
