@@ -117,7 +117,7 @@ a filtered NxtSE object
 \item \code{DESeq_ASE}: Use DESeq2 to perform differential ASE analysis of
 a filtered NxtSE object
 
-\item \code{DoubleExpSeq_ASE}: Use DoubleExpSeq to perform differential ASE analysis 
+\item \code{DoubleExpSeq_ASE}: Use DoubleExpSeq to perform differential ASE analysis
 of a filtered NxtSE object (uses double exponential beta-binomial model)
 to estimate group dispersions, followed by LRT
 }}

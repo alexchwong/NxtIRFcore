@@ -77,16 +77,18 @@ NxtIRF.CheckPackageInstalled <- function(
     if(is.na(n_threads_to_use)) {
         .log("n_threads must be a numeric value")
     }
-    if(n_threads_to_use > (parallel::detectCores() - 2) ) {
-        n_threads_to_use = max(1, parallel::detectCores() - 2)
+    if(n_threads_to_use > parallel::detectCores()) {
+        n_threads_to_use = max(1, parallel::detectCores())
     }
     if(as_BPPARAM) {
         if(Sys.info()["sysname"] == "Windows") {
             BPPARAM_mod = BiocParallel::SnowParam(n_threads_to_use, ...)
-            message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
+            .log(paste("Using SnowParam", BPPARAM_mod$workers, "threads"),
+                "message")
         } else {
             BPPARAM_mod = BiocParallel::MulticoreParam(n_threads_to_use, ...)
-            message(paste("Using MulticoreParam", BPPARAM_mod$workers, "threads"))
+            .log(paste("Using MulticoreParam", BPPARAM_mod$workers, "threads"),
+                "message")
         }
         return(BPPARAM_mod)
     } else {

@@ -25,6 +25,7 @@
 #' @importFrom genefilter rowttests
 #' @importFrom GenomeInfoDb sortSeqlevels seqinfo seqlengths seqlevels<- 
 #' @importFrom GenomeInfoDb seqlevels seqlevelsStyle seqlevelsStyle<-
+#' @importFrom GenomeInfoDb genomeStyles
 #' @importFrom GenomicRanges GRanges reduce findOverlaps 
 #' @importFrom GenomicRanges makeGRangesFromDataFrame 
 #' @importFrom GenomicRanges makeGRangesListFromDataFrame mcols split strand 

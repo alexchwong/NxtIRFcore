@@ -51,19 +51,18 @@
 #'   \code{Mappability_GenReads()}. See \link{Mappability-methods}.
 #' @return None. STAR will output files into the given output directories.
 #' @examples
+#' # 0) Check that STAR is installed and compatible with NxtIRF
+#'
+#' STAR_version()
+#' 
 #' \dontrun{
 #'
 #' # The below workflow illustrates
-#' # 0) Check that STAR is installed and compatible with NxtIRF
 #' # 1) Getting the reference resource, including Mappability reads generation
 #' # 2) Building the STAR Reference, including Mappability Exclusion calculation
 #' # 3) Building the NxtIRF Reference, using the Mappability Exclusion file
 #' # 4) Aligning (a) one or (b) multiple raw sequencing samples.
 #'
-#' 
-#' # 0) Check that STAR is installed and compatible with NxtIRF
-#'
-#' STAR_version()
 #'
 #' # 1) Reference generation from Ensembl's FTP links
 #' #     Additionally generates reads for Mappability calculation
@@ -75,15 +74,17 @@
 #'     fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
 #'         "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
 #'     gtf = paste0(FTP, "gtf/homo_sapiens/",
-#'         "Homo_sapiens.GRCh38.94.chr.gtf.gz"), 
-#'     generate_mappability_reads = TRUE
+#'         "Homo_sapiens.GRCh38.94.chr.gtf.gz")
 #' )
 #' 
 #' # 2) Generates STAR genome within the NxtIRF reference. Also generates
-#' #     mappability exclusion BED file
+#' #     mappability exclusion BED file inside the "Mappability/" sub-folder
 #' 
-#' STAR_buildRef(reference_path = "Reference_FTP", n_threads = 32,
-#'     also_generate_mappability = TRUE)
+#' STAR_buildRef(
+#'     reference_path = "Reference_FTP", 
+#'     n_threads = 32,
+#'     also_generate_mappability = TRUE
+#' )
 #' 
 #' # 2 alt) Generates STAR genome of the example NxtIRF mock genome.
 #' #     This demonstrates using custom STAR parameters, as the mock
@@ -94,16 +95,19 @@
 #'     reference_path = "Reference_chrZ",
 #'     fasta = mock_genome(),
 #'     gtf =  = mock_gtf(), 
-#'     generate_mappability_reads = TRUE
 #' )
 #'
-#' STAR_buildRef(reference_path = "Reference_chrZ", n_threads = 32,
+#' STAR_buildRef(
+#'     reference_path = "Reference_chrZ", 
+#'     n_threads = 32,
 #'     additional_args = c("--genomeSAindexNbases", "7")
-#'     also_generate_mappability = TRUE)
+#'     also_generate_mappability = TRUE
+#' )
 #' 
 #' # 3) Build NxtIRF reference using the newly-generated Mappability exclusions
-#' 
-#' BuildReference(reference_path = "Reference_FTP")
+#'
+#' #' NB: also specifies to use the hg38 nonPolyA resource from IRFinder
+#' BuildReference(reference_path = "Reference_FTP", genome_type = "hg38")
 #' 
 #' # 4a) Align a single sample using the STAR reference
 #' 
@@ -343,7 +347,7 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                 additional_args = NULL
             }
 
-            message(paste("Aligning", sample, "using STAR"))
+            .log(paste("Aligning", sample, "using STAR"), "message")
             STAR_align_fastq(ref, 
                 BAM_output_path = file.path(BAM_output_path, sample),
                 fastq_1 = fastq_1, fastq_2 = fastq_2, 
@@ -361,7 +365,7 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
                     "no SJ.out.tab files were found"))
             }
         }
-        message(paste("Unloading STAR reference:", loaded_ref))
+        .log(paste("Unloading STAR reference:", loaded_ref), "message")
         system2(command = "STAR", args = c(
             "--genomeLoad", "Remove", "--genomeDir", loaded_ref
         ))

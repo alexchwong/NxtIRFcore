@@ -207,7 +207,7 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     return(res.ASE)
 }
 
-#' @describeIn ASE-methods Use DoubleExpSeq to perform differential ASE analysis 
+#' @describeIn ASE-methods Use DoubleExpSeq to perform differential ASE analysis
 #'   of a filtered NxtSE object (uses double exponential beta-binomial model)
 #'   to estimate group dispersions, followed by LRT
 #' @export
@@ -228,7 +228,8 @@ DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom,
     res.cols = c(
         paste("MLE", test_nom, sep="_"), paste("MLE", test_denom, sep="_"),
         "P.Value", "adj.P.Val", "n_eff",
-        paste("mDepth", test_nom, sep="_"), paste("mDepth", test_denom, sep="_"),
+        paste("mDepth", test_nom, sep="_"), 
+        paste("mDepth", test_denom, sep="_"),
         "Dispersion_Reduced", "Dispersion_Full"
     )
     colnames(res.ASE)[-1] = res.cols
@@ -238,8 +239,8 @@ DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom,
         qlogis(res.ASE[,get(paste("MLE", test_denom, sep="_"))])
     ) / log(2)]
     
-    res.ASE = res.ASE[, c("EventName", res.cols[1:2], "MLE_LFC",
-        res.cols[3:9]), with = FALSE]
+    res.ASE = res.ASE[, c("EventName", res.cols[c(1,2)], "MLE_LFC",
+        res.cols[seq(3,9)]), with = FALSE]
 
     res.ASE = res.ASE[!is.na(get("P.Value"))]
     setorderv(res.ASE, "P.Value")

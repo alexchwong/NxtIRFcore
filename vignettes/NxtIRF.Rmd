@@ -548,3 +548,8 @@ res$final_plot
 There are more complex customisation options with NxtIRF's Plot_Coverage tool
 which will be explored in subsequent tutorials (TODO).
 
+# SessionInfo
+
+```{r}
+sessionInfo()
+```

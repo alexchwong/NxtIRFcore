@@ -237,10 +237,11 @@ runFilter <- function(filterClass, filterType, filterVars, filterObject) {
             sum_res = sum_res + 
                 ifelse(sum * 100 / ncol(depth.subset) >= usePC, 1, 0)
         }
-        n_TRUE = ifelse(
-            !is.na(suppressWarnings(as.numeric(filterVars$minCond))),
-            as.numeric(filterVars$minCond), -1
-        )
+        if("minCond" %in% names(filterVars) && is.numeric(filterVars$minCond)) {
+            n_TRUE = filterVars$minCond
+        } else {
+            n_TRUE = -1
+        }
         if(n_TRUE == -1) n_TRUE = length(cond_vars)
         res = (sum_res >= n_TRUE)
     } else {
@@ -288,9 +289,11 @@ runFilter <- function(filterClass, filterType, filterVars, filterObject) {
             sum_res = sum_res + 
                 ifelse(sum * 100 / ncol(cov.subset) >= usePC, 1, 0)
         }
-        n_TRUE = ifelse(
-            !is.na(suppressWarnings(as.numeric(filterVars$minCond))), 
-            as.numeric(filterVars$minCond), -1)
+        if("minCond" %in% names(filterVars) && is.numeric(filterVars$minCond)) {
+            n_TRUE = filterVars$minCond
+        } else {
+            n_TRUE = -1
+        }
         if(n_TRUE == -1) n_TRUE = length(cond_vars)
         res = (sum_res >= n_TRUE)
     } else {
@@ -384,9 +387,11 @@ runFilter <- function(filterClass, filterType, filterVars, filterObject) {
             sum_res = sum_res + 
                 ifelse(sum * 100 / ncol(Up_Inc.subset) >= usePC, 1, 0)
         }
-        n_TRUE = ifelse(
-            !is.na(suppressWarnings(as.numeric(filterVars$minCond))), 
-            as.numeric(filterVars$minCond), -1)
+        if("minCond" %in% names(filterVars) && is.numeric(filterVars$minCond)) {
+            n_TRUE = filterVars$minCond
+        } else {
+            n_TRUE = -1
+        }
         if(n_TRUE == -1) n_TRUE = length(cond_vars)
         res = (sum_res >= n_TRUE)
     } else {

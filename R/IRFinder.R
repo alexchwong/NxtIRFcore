@@ -107,15 +107,7 @@ IRFinder <- function(
         n_rounds = ceiling(length(s_bam) / floor(max_threads))
         n_threads = ceiling(length(s_bam) / n_rounds)
 
-        BPPARAM = BiocParallel::bpparam()
-        if(Sys.info()["sysname"] == "Windows") {
-            BPPARAM_mod = BiocParallel::SnowParam(n_threads)
-            message(paste("Using SnowParam", BPPARAM_mod$workers, "threads"))
-        } else {
-            BPPARAM_mod = BiocParallel::MulticoreParam(n_threads)
-            message(paste("Using MulticoreParam", BPPARAM_mod$workers, 
-                "threads"))
-        }
+        BPPARAM_mod = .validate_threads(n_threads, as_BPPARAM = TRUE)
 
         row_starts = seq(1, by = n_threads, length.out = n_rounds)
         for(i in seq_len(n_rounds)) {
@@ -123,9 +115,10 @@ IRFinder <- function(
                 min(length(s_bam), row_starts[i] + n_threads - 1)
             )
             BiocParallel::bplapply(selected_rows_subset,
-                function(i, s_bam, reference_file, output_files, verbose, overwrite) {
-                    .irfinder_run_single(s_bam[i], reference_file, output_files[i], 
-                        verbose, overwrite)
+                function(i, s_bam, reference_file, 
+                        output_files, verbose, overwrite) {
+                    .irfinder_run_single(s_bam[i], reference_file, 
+                        output_files[i], verbose, overwrite)
                 }, 
                 s_bam = s_bam,
                 reference_file = ref_file,
@@ -163,11 +156,11 @@ IRFinder <- function(
             .log(paste(
                 "IRFinder failed to produce", file_cov))
         } else {
-            message(paste("IRFinder processed", bam_short))
+            .log(paste("IRFinder processed", bam_short), "message")
         }
     } else {
-        message(paste("IRFinder output for", 
-            bam_short, "already exists, skipping..."))
+        .log(paste("IRFinder output for", bam_short, 
+            "already exists, skipping..."), "message")
     }
 }
 
@@ -231,8 +224,8 @@ IRFinder <- function(
     if(all(c("counts", "annotation", "targets", "stat") %in% names(res))) {
         saveRDS(res, file.path(dirname(output_files[1]), "main.FC.Rds"))
     }
-    message(paste("featureCounts ran succesfully; saved to",
-        file.path(dirname(output_files[1]), "main.FC.Rds")))
+    .log(paste("featureCounts ran succesfully; saved to",
+        file.path(dirname(output_files[1]), "main.FC.Rds")), "message")
 }
 
 # Validate arguments; return error if invalid

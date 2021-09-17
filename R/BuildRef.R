@@ -459,9 +459,8 @@ Get_GTF_file <- function(reference_path) {
     }
     if(!is.null(subdirs)) {
         for(subdir in subdirs) {
-            if (!dir.exists(file.path(base, basename(reference_path), subdirs))) {
-                dir.create(file.path(base, basename(reference_path), subdirs))
-            }
+            dir_to_make = file.path(base, basename(reference_path), subdirs)
+            if (!dir.exists(dir_to_make)) dir.create(dir_to_make)
         }
     }
 
@@ -939,8 +938,8 @@ Get_GTF_file <- function(reference_path) {
 
 .gtf_get_genome_style <- function(gtf_gr) {
     seqnames = names(seqinfo(gtf_gr))
-    UCSC = any(seqnames %in% GenomeInfoDb::genomeStyles("Homo sapiens")$UCSC)
-    Ensembl = any(seqnames %in% GenomeInfoDb::genomeStyles("Homo sapiens")$Ensembl)
+    UCSC = any(seqnames %in% genomeStyles("Homo sapiens")$UCSC)
+    Ensembl = any(seqnames %in% genomeStyles("Homo sapiens")$Ensembl)
     if(UCSC == Ensembl) {
         return("")
     } else if(UCSC) {
@@ -2325,9 +2324,7 @@ Get_GTF_file <- function(reference_path) {
         by = "transcript_id"]
     splice[is.na(rowSums(stringr::str_locate(get("seq"), "N"))),
         c("AA") := as.character(
-            suppressWarnings(
-                Biostrings::translate(as(get("seq"), "DNAStringSet"))
-            )
+            Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"))
         )
     ]
     # Find nucleotide position of first stop codon
@@ -2472,9 +2469,7 @@ Get_GTF_file <- function(reference_path) {
     IRT[
         is.na(rowSums(stringr::str_locate(get("seq"), "N"))),
         c("AA") := as.character(
-            # suppressWarnings(
-                Biostrings::translate(as(get("seq"), "DNAStringSet"))
-            # )
+            Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"))
         )
     ]
 
@@ -3537,6 +3532,7 @@ Get_GTF_file <- function(reference_path) {
 .transfer_up <- function(DNAstr, phase)
     substr(DNAstr, 1, 3 - phase)
 
+# Trim nucleotide sequences of upstream / casette / downstream as per phase
 .gen_splice_proteins_trim <- function(AS_Table.Extended) {
     
     AS_Table.Extended <- .gen_splice_proteins_trim_5prime(AS_Table.Extended)
@@ -3656,38 +3652,32 @@ Get_GTF_file <- function(reference_path) {
 # Translate upstream, casette and downstream sequences
 .gen_splice_proteins_translate <- function(AS_Table.Extended) {
     DNAseq = AS_Table.Extended[nchar(get("DNA_upstr_A")) > 0]$DNA_upstr_A
-    AAseq = suppressWarnings(
-        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AAseq = as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
     AS_Table.Extended[nchar(get("DNA_upstr_A")) > 0,
         c("AA_upstr_A") := AAseq]
 
     DNAseq = AS_Table.Extended[nchar(get("DNA_casette_A")) > 0]$DNA_casette_A
-    AAseq = suppressWarnings(
-        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AAseq = as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
     AS_Table.Extended[nchar(get("DNA_casette_A")) > 0,
         c("AA_casette_A") := AAseq]   
 
     DNAseq = AS_Table.Extended[nchar(get("DNA_downstr_A")) > 0]$DNA_downstr_A
-    AAseq = suppressWarnings(
-        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AAseq = as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
     AS_Table.Extended[nchar(get("DNA_downstr_A")) > 0,
         c("AA_downstr_A") := AAseq]   
         
     DNAseq = AS_Table.Extended[nchar(get("DNA_upstr_B")) > 0]$DNA_upstr_B
-    AAseq = suppressWarnings(
-        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AAseq = as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
     AS_Table.Extended[nchar(get("DNA_upstr_B")) > 0,
         c("AA_upstr_B") := AAseq]
 
     DNAseq = AS_Table.Extended[nchar(get("DNA_casette_B")) > 0]$DNA_casette_B
-    AAseq = suppressWarnings(
-        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AAseq = as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
     AS_Table.Extended[nchar(get("DNA_casette_B")) > 0,
         c("AA_casette_B") := AAseq]   
 
     DNAseq = AS_Table.Extended[nchar(get("DNA_downstr_B")) > 0]$DNA_downstr_B
-    AAseq = suppressWarnings(
-        as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"))))
+    AAseq = as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
     AS_Table.Extended[nchar(get("DNA_downstr_B")) > 0,
         c("AA_downstr_B") := AAseq]  
         

@@ -107,13 +107,13 @@ CollateData <- function(Experiment, reference_path, output_path,
         nrow(df.internal))
     BPPARAM_mod_progress = .validate_threads(n_threads, progressbar = TRUE,
         tasks = nrow(df.internal))
-    agg.list <- suppressWarnings(BiocParallel::bplapply(
+    agg.list <- BiocParallel::bplapply(
         seq_len(nrow(df.internal)),
         .collateData_compile_agglist, 
         jobs = jobs_2, df.internal = df.internal, 
         norm_output_path = norm_output_path, IRMode = IRMode,
         BPPARAM = BPPARAM_mod_progress
-    ))
+    )
     gc()
 
     dash_progress("Building Final SummarizedExperiment Object", N_steps)
@@ -246,7 +246,7 @@ CollateData <- function(Experiment, reference_path, output_path,
 # Collates statistics of IRFinder QC, returns a data frame of these QC stats
 .collateData_stats <- function(df.internal, jobs, BPPARAM_mod) {
     n_jobs = length(jobs)
-    df.internal = suppressWarnings(rbindlist(
+    df.internal = rbindlist(
         BiocParallel::bplapply( seq_len(n_jobs),
             function(x, jobs, df.internal) {
                 suppressPackageStartupMessages({
@@ -270,7 +270,7 @@ CollateData <- function(Experiment, reference_path, output_path,
                 return(block)
             }, jobs = jobs, df.internal = df.internal, BPPARAM = BPPARAM_mod
         )
-    ))
+    )
     return(df.internal)
 }
 
@@ -363,7 +363,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     .log("Compiling Junction List...", "message", appendLF = FALSE)       
     
     # Extract junctions from IRFinder output, save temp FST file
-    junc.list = suppressWarnings(BiocParallel::bplapply(
+    junc.list = BiocParallel::bplapply(
         seq_len(n_jobs),
         function(x, jobs, df.internal, temp_output_path) {
             suppressPackageStartupMessages({
@@ -394,7 +394,7 @@ CollateData <- function(Experiment, reference_path, output_path,
             return(junc.segment)
         }, jobs = jobs, df.internal = df.internal, 
             temp_output_path = temp_output_path, BPPARAM = BPPARAM_mod
-    ))
+    )
     
     # Combine list of individual junction dfs into unified list of junction 
     message("merging...", appendLF = FALSE)
@@ -421,7 +421,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     
     .log("Compiling Intron Retention List", "message", appendLF = FALSE)   
     
-    irf.list = suppressWarnings(BiocParallel::bplapply(seq_len(n_jobs),
+    irf.list = BiocParallel::bplapply(seq_len(n_jobs),
         function(x, jobs, df.internal, temp_output_path, stranded) {
             suppressPackageStartupMessages({
                 requireNamespace("data.table")
@@ -450,7 +450,7 @@ CollateData <- function(Experiment, reference_path, output_path,
         },  jobs = jobs, df.internal = df.internal, 
             temp_output_path = temp_output_path, 
             stranded = stranded, BPPARAM = BPPARAM_mod
-    ))
+    )
     
     # Checks MD5s of common columns are the same
     irf.md5.check = unique(unlist(irf.list))

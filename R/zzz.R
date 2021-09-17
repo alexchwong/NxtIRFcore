@@ -183,11 +183,11 @@ NxtIRF_example_NxtSE <- function() {
                 if (!quiet) warning("Invalid web link")
                 ret = c(ret, FALSE)
             } else if (((httr::status_code(res$result) %/% 200) != 1)) {
-                if (!quiet) warning(
+                if (!quiet) .log(
                     sprintf(paste(
                         "Requests for [%s] responded but without an",
                         "HTTP status code in the 200-299 range"
-                    ), url))
+                    ), url), "warning")
                 ret = c(ret, non_2xx_return_value)
             } else {
                 ret = c(ret, TRUE)
@@ -263,22 +263,26 @@ NxtIRF_example_NxtSE <- function() {
 .cache_and_create_file <- function(urls, destination_path = "",
         filenames = basename(urls), hub = c("AnnotationHub", "ExperimentHub")) {
     if(destination_path != "" && !dir.exists(dirname(destination_path))) {
-        warning(paste(destination_path, "- parent directory does not exist"))
+        .log(paste(destination_path, "- parent directory does not exist"),
+            "warning")
         return("")
     } else if(destination_path != "" && any(filenames %in% "")) {
-        warning("Invalid return filename(s) for web resource download")
+        .log("Invalid return filename(s) for web resource download",
+            "warning")
         return("")
     } else if(length(urls) == 0 && length(urls) != length(filenames)) {
-        warning("length of 'urls' and 'filenames' must be the same")
+        .log("length of 'urls' and 'filenames' must be the same",
+            "warning")
         return("")
     }
     if(!any(startsWith(urls, "http") | startsWith(urls, "ftp"))) {
-        warning(paste(urls, "some urls does not appear to be valid web links"))
+        .log(paste(urls, "some urls does not appear to be valid web links"),
+            "warning")
     }
     if(destination_path != "" && !dir.exists(destination_path)) {
         tryCatch(dir.create(destination_path),
             error = function(e) {
-                warning(paste("Unable to create", destination_path))
+                .log(paste("Unable to create", destination_path), "warning")
                 return("")
             }
         )
