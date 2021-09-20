@@ -31,10 +31,6 @@ SOFTWARE.  */
 
 
 class BAM2blocks {
-    static const int BAM_HEADER_BYTES = 8;
-    static const int BAM_READ_CORE_BYTES = 36;
-    static const int BAM_READ_CORE_MAX_CIGAR = 2000;
-
     FragmentBlocks oBlocks;
 
     std::vector< std::function<void(const std::vector<chr_entry> &)> > callbacksChrMappingChange;
@@ -45,15 +41,9 @@ class BAM2blocks {
     unsigned int processPair(pbam1_t * read1, pbam1_t * read2);
     unsigned int processSingle(pbam1_t * read1, bool mappability_mode = false);
 
-  	unsigned int readBamHeader(
-      std::vector<uint64_t> &block_begins, 
-      std::vector<unsigned int> &read_offsets, bool verbose = false,
-      unsigned int n_workers = 1);  // implied by openFile. So perhaps should be private.
-
     // Statistics.
     unsigned long cReadsProcessed;
     unsigned long long totalNucleotides;
-    
     unsigned long cShortPairs;
     unsigned long cIntersectPairs;
     unsigned long cLongPairs;
@@ -63,25 +53,24 @@ class BAM2blocks {
     unsigned long cSkippedReads;
     unsigned long cChimericReads;
 
-    // bool error_detected;
-
     pbam1_t reads[2];
     pbam_in * IN;
     
     std::vector<chr_entry> chrs;
 
-    std::vector<uint64_t> block_begins;
-    std::vector<unsigned int> read_offsets;
-
     std::map< std::string, pbam1_t* > * spare_reads;
     pbam1_t * SupplyRead(std::string& read_name);    
     int realizeSpareReads();
+
+// Disable copy construction / assignment (doing so triggers compile errors)
+    BAM2blocks(const BAM2blocks &t);
+    BAM2blocks & operator = (const BAM2blocks &t);
   public:
   	BAM2blocks();
   	BAM2blocks(
       std::vector<std::string> & ref_names, 
       std::vector<uint32_t> & ref_lengths
-    );
+    );  // Define BB with defined references
     ~BAM2blocks();
   	unsigned int openFile(pbam_in * _IN);
 
@@ -92,7 +81,6 @@ class BAM2blocks {
 
     void registerCallbackChrMappingChange( std::function<void(const std::vector<chr_entry> &)> callback );
     void registerCallbackProcessBlocks( std::function<void(const FragmentBlocks &)> callback );
-
 };
 
 

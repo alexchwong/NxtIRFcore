@@ -26,17 +26,20 @@ GZReader::GZReader() {
   bufferLen = 0;
   bufferPos = 0;
   buffer = NULL;
+  
+  loaded = false; lazy = false; streamed = false;
 }
 
 GZReader::~GZReader() {
   if(buffer != NULL) {
-    // delete[] buffer;
     free(buffer);
   }
 }
 
+// Only allowed for lazy = true
+// Returns -1 if error; 0 if success; 1 if success and EOF
 int GZReader::getline(std::string & s_myLine, const char delim) {
-  
+  if(!lazy || !loaded || streamed) return(-1);
   int ret = 0;
   unsigned long i = bufferPos;
   while(ret != 1) {
@@ -65,8 +68,8 @@ int GZReader::getline(std::string & s_myLine, const char delim) {
 	return(ret);
 }
 
+// gets a single chunk of data and appends to buffer. Only for lazy = TRUE
 int GZReader::GetBuffer() {
-  // gets a chunk of data and appends to buffer
   unsigned char *data = NULL;
   int data_alloc = 0;
   int curpos = 0;
@@ -86,24 +89,17 @@ int GZReader::GetBuffer() {
       const char * error_string;
       error_string = gzerror (gz_in, & err);
       if (err) {
-        // std::ostringstream oss;
         Rcout << "Exception during zlib decompression: (" << err << ") " << error_string;
-        // throw(std::runtime_error(oss.str()));
         free(data);
 				return(err);
       }
     }
   }
 
-  // if(bufferLen > 0) {
-    // reallocate buffer with bufferLen + curpos
-    char *buffer_tmp;
-    buffer = (char*)realloc(buffer_tmp = buffer, bufferLen + curpos);
-    memcpy(&buffer[bufferLen], data, curpos);
-  // } else { 
-    // buffer = (char*)realloc(buffer_tmp = buffer, curpos);
-    // memcpy(buffer, data, curpos);
-  // }
+  char *buffer_tmp;
+  buffer = (char*)realloc(buffer_tmp = buffer, bufferLen + curpos);
+  memcpy(&buffer[bufferLen], data, curpos);
+
   bufferLen += curpos;
   free(data);
   if (gzeof (gz_in)) {
@@ -113,10 +109,14 @@ int GZReader::GetBuffer() {
   }
 }
 
-int GZReader::LoadGZ(std::string s_filename, bool asStream, bool lazy) {
+// Loads a file
+//   Options:
+//   - lazy = FALSE: opens file as well as reads entire file into memory
+//   - asStream = TRUE: copies read data into istringstream object
+int GZReader::LoadGZ(std::string s_filename, bool asStream, bool lazymode) {
   gz_in = gzopen(s_filename.c_str(), "r");
   
-  if(lazy == false) {
+  if(lazymode == false) {
     unsigned char *data = NULL;
     int data_alloc = 0;
     int curpos = 0;
@@ -139,9 +139,7 @@ int GZReader::LoadGZ(std::string s_filename, bool asStream, bool lazy) {
           const char * error_string;
           error_string = gzerror (gz_in, & err);
           if (err) {
-            // std::ostringstream oss;
             Rcout << "Exception during zlib decompression: (" << err << ") " << error_string;
-            // throw(std::runtime_error(oss.str()));
             free(data);
 						return(err);
           }
@@ -150,19 +148,23 @@ int GZReader::LoadGZ(std::string s_filename, bool asStream, bool lazy) {
     }
     if(asStream) {
       iss.str((char*)data);
+      loaded = true; streamed = true; lazy = false;
     } else {
       char *buffer_tmp;
       buffer = (char*)realloc(buffer_tmp = buffer, curpos);
       memcpy(buffer, data, curpos);
       bufferLen = curpos;
+      loaded = true; streamed = false; lazy = false;
     }
     gzclose(gz_in);
     free(data);
   } else {
-    // lazy load just opens the file
+    loaded = true; streamed = false; lazy = true;
   }
 	return(0);
 }
+
+// Operations to read gzip as if it was ifstream object. Not used in IRFinder
 
 void GZReader::read(char * dest, const unsigned long len) {
   memcpy(dest, &buffer[bufferPos], len);
@@ -176,6 +178,7 @@ bool GZReader::eof() {
   return(gzeof(gz_in) && bufferPos == bufferLen);
 }
 
+// Only required for lazy mode
 int GZReader::closeGZ() {
 	gzclose(gz_in);
 	return(0);

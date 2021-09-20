@@ -78,16 +78,13 @@ BAM2blocks::~BAM2blocks() {
 }
 
 unsigned int BAM2blocks::openFile(pbam_in * _IN) {
-  // Change for multi-threading:
-  // Only BBchild processes BAM reads from file input
-  // BAM2blocks (parent) reads header, analyses file, and delegates tasks to children
-  // - so if running 1 thread, have 1 BAM2blocks and 1 BBchild
+  // Pass pbam_in object to BB child object
+  // Not thread safe!
+  // 
   
-  // All BBchild(s) share the same file handle
-  // So in IRFinder main, only 1 child reads file buffer at any one time
-  // Decompression and read processing runs in parallel
   IN = _IN;
   
+  // This block only run on default / empty BB objects
   std::vector<std::string> s_chr_names;
   std::vector<uint32_t> u32_chr_lens;
   IN->obtainChrs(s_chr_names, u32_chr_lens);
@@ -320,6 +317,9 @@ unsigned int BAM2blocks::processSingle(pbam1_t * read1, bool mappability_mode) {
   oBlocks.readName.resize(read1->l_read_name() - 1);
   oBlocks.readName.replace(0, read1->l_read_name() - 1, read1->read_name(), read1->l_read_name() - 1); // is this memory/speed efficient?
   
+  // Below block only run from Mappability - only process reads if they are
+  // mapped to the exact position from which synthetic reads were
+  // generated in the genome
   if(mappability_mode) {
     // Return if not a perfect 70M match
     if(read1->n_cigar_op() != 1) return(0);
@@ -358,6 +358,7 @@ unsigned int BAM2blocks::processSingle(pbam1_t * read1, bool mappability_mode) {
   return totalBlockLen;
 }
 
+// Prints statistics to file
 int BAM2blocks::WriteOutput(std::string& output) {
   std::ostringstream oss;
   cErrorReads = spare_reads->size();
@@ -375,6 +376,7 @@ int BAM2blocks::WriteOutput(std::string& output) {
   return(0);
 }
 
+// Returns a spare read; deletes same from BB's storage
 pbam1_t *  BAM2blocks::SupplyRead(std::string& read_name) {
   // Supplies the pointer to the last spare read
   // When called, transfer ownership of read to the parent BB
@@ -386,6 +388,7 @@ pbam1_t *  BAM2blocks::SupplyRead(std::string& read_name) {
   return(read);
 }
 
+// Tries to match reads between other BB and self
 int BAM2blocks::processSpares(BAM2blocks& other) {
   // Combines two BB's, and processes any matching paired reads
   cReadsProcessed += other.cReadsProcessed;
@@ -415,7 +418,6 @@ int BAM2blocks::processSpares(BAM2blocks& other) {
       if (spare_read->refID() != it_read->second->refID()) {
         cChimericReads += 1;
       } else {
-        // Rcout << "Read matched: " << read_name << '\n';
         if (spare_read->pos() <= it_read->second->pos()) {    
           totalNucleotides += processPair(&(*spare_read), &(*(it_read->second)));
         } else{              
@@ -435,6 +437,7 @@ int BAM2blocks::processSpares(BAM2blocks& other) {
   return(0);
 }
 
+// Saves pbam1_t spare reads to dedicated buffer space
 int BAM2blocks::realizeSpareReads() {
   for (auto it = spare_reads->begin(); it != spare_reads->end(); it++) {
     if(!it->second->isReal()) {
@@ -444,12 +447,14 @@ int BAM2blocks::realizeSpareReads() {
   return(0);
 }
 
+// Main function
 int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
-  // Reads from BAMReader until finished; do not create output
+  // Reads from pbam_in until finished; do not create output
   unsigned int idx = 0;
   unsigned int nucs_proc = 0;
   int ret = 0;
   bool any_reads_processed = false;
+  
   // Use map pointer spare_reads:
   std::map< std::string, pbam1_t* > * new_spare_reads;  
   pbam1_t read;
@@ -471,8 +476,6 @@ int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
       return(0);   // This will happen if read fails - i.e. end of loaded buffer
     } else {
       any_reads_processed = true;
-      // read.read_name(read_name_s);
-      // Rcout << read_name_s << '\n';
     }
     reads[idx] = read;
 
@@ -511,11 +514,9 @@ int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
             if (reads[k].refID() != it_read->second->refID()) {
               cChimericReads += 1;
             } else {
-              if (reads[k].pos() <= it_read->second->pos()) {
-                //cout << "procesPair call1" << endl;        
+              if (reads[k].pos() <= it_read->second->pos()) {    
                 totalNucleotides += processPair(&reads[k], &(*(it_read->second)));
-              }else{
-                //cout << "procesPair call2" << endl;                
+              }else{           
                 totalNucleotides += processPair(&(*(it_read->second)), &reads[k]);
               }
               cReadsProcessed+=2;

@@ -20,29 +20,35 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.  */
 
-#include <stdexcept>
-#include "includedefine.h"
+#ifndef CODE_GZREADER
+#define CODE_GZREADER
 
+#include "includedefine.h"
 #define CHUNK_gz 262144
 
 class GZReader {
-private:
-  gzFile gz_in;
-  int GetBuffer();
+  private:
+    gzFile gz_in;
+    int GetBuffer();
 
-public:
-  GZReader();
-  ~GZReader();
-  int LoadGZ(std::string s_filename, bool asStream = false, bool lazy = false);
-  int getline(std::string & s_myLine, const char delim);
-	int closeGZ();
-	
-  void read(char * dest, const unsigned long len);
-  void ignore(const unsigned long len);
-  bool eof();
-  
-  std::istringstream iss;
-  char * buffer;
-  unsigned long bufferLen;
-  unsigned long bufferPos;
+    char * buffer;            // stores data
+    unsigned long bufferLen;  // amount read from file
+    unsigned long bufferPos;  // amount read using getline, read or ignore
+    
+    bool loaded,lazy,streamed;
+  public:
+    GZReader();
+    ~GZReader();
+    int LoadGZ(std::string s_filename, bool asStream = false, bool lazymode = false);
+    int getline(std::string & s_myLine, const char delim);
+    int closeGZ();
+    
+    void read(char * dest, const unsigned long len);
+    void ignore(const unsigned long len);
+    bool eof();
+    
+    // public access to istringstream version of buffer
+    std::istringstream iss; 
 };
+
+#endif

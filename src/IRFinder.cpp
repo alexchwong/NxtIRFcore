@@ -212,7 +212,7 @@ List IRF_RLEList_From_Cov(std::string s_in, int strand) {
 int IRF_gunzip(std::string s_in, std::string s_out) {
   
   GZReader gz_in;
-  int ret = gz_in.LoadGZ(s_in, true);
+  int ret = gz_in.LoadGZ(s_in, true);   // streamed mode
   if(ret != 0) return(ret);
 	
   std::ofstream out;
@@ -224,7 +224,6 @@ int IRF_gunzip(std::string s_in, std::string s_out) {
     out << myLine << "\n";
   }
   out.flush(); out.close();
-  
   return(0);
 }
 
@@ -233,12 +232,9 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
   List Final_final_list;
   
   GZReader gz_in;
-  int ret = gz_in.LoadGZ(s_in, false, true);
+  int ret = gz_in.LoadGZ(s_in, false, true);   // lazy mode
   if(ret != 0) return(Final_final_list);
-	
-  // std::ofstream out;
-  // out.open(s_out, std::ifstream::out);
-  
+
   // Look for first line of data to return
   std::string myLine;
   std::string myEntry;
@@ -375,7 +371,7 @@ int IRF_ref(std::string &reference_file,
     bool verbose
 ) { 
   GZReader * gz_in = new GZReader;
-  int ret = gz_in->LoadGZ(reference_file, true);
+  int ret = gz_in->LoadGZ(reference_file, true);   // streamed mode
   if(ret != 0) return(-1);
   
   // Allows IRFinder reference blocks to be read in any order
@@ -452,6 +448,8 @@ int IRF_ref(std::string &reference_file,
     // Get next data block name
     getline(gz_in->iss, myLine, '\n');
   }
+
+  delete gz_in;
   
   if(!doneCover || !doneSpans || !doneROI || !doneSJ) {
     Rcout << "Error: Incomplete IRFinder reference detected\n";
@@ -639,7 +637,14 @@ int IRF_core(std::string const &bam_file,
 
 // Write stats here:
   BBchild.at(0)->WriteOutput(myLine);
-  outGZ.writeline("BAM_report\tValue"); outGZ.writestring(myLine); outGZ.writeline("");
+  // If first write failed, then output error and fail early
+  int outret = outGZ.writeline("BAM_report\tValue"); 
+  if(outret != Z_OK) {
+    Rcout << "Error writing gzip-compressed output file\n";
+    out.close();
+    return(-1);
+  }
+  outGZ.writestring(myLine); outGZ.writeline("");
 
   int directionality = oJC.at(0)->Directional(myLine);
   outGZ.writeline("Directionality\tValue"); outGZ.writestring(myLine); outGZ.writeline("");

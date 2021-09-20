@@ -27,7 +27,6 @@ SOFTWARE.  */
 class GZWriter {
 private:
   ostream * OUT;
-//  gzFile gz_out;
   
   char compressed_buffer[CHUNK_gz];
   
