@@ -824,15 +824,16 @@ void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist,
   }
 }
 
-int FragmentsMap::WriteBinary(covWriter *os, bool verbose)  {
+int FragmentsMap::WriteBinary(
+    covWriter *os, bool verbose, unsigned int n_threads_to_use
+) {
   if(!final_is_sorted) {
-    // if(verbose)  Rcout << "Performing final sort of fragment maps\n";
-    sort_and_collapse_final(verbose);   // Perform this separately as this is now multi-threaded
+    // Perform this separately as this is now multi-threaded
+    sort_and_collapse_final(verbose);   
   }
-  
   if(verbose)  Rcout << "Writing COV file\n";
 
-  os->WriteHeader(chrs);
+  os->InitializeCOV(chrs);
 
   Progress p(3 * chrs.size(), verbose);
   for(unsigned int j = 0; j < 3; j++) {
@@ -842,114 +843,13 @@ int FragmentsMap::WriteBinary(covWriter *os, bool verbose)  {
       std::vector< std::pair<unsigned int, int> > * itDest;
       itDest = &chrName_vec_final[j].at(refID);
       
-      os->WriteFragmentsMap(itDest, i, j);
+      os->WriteFragmentsMap(itDest, i, j, n_threads_to_use);
       p.increment(1);
     }
   }
   
   os->WriteToFile();
   return(0);
-}
-
-
-int FragmentsMap::WriteBinary(covFile *os, bool verbose)  {
-  // Write COV file as binary
-  
-  std::vector<std::string> sort_chr_names;
-  std::vector<int32_t> sort_chr_lens;
-  for (auto chr = chrs.begin(); chr != chrs.end(); chr++) {
-    sort_chr_names.push_back(chr->chr_name);
-    sort_chr_lens.push_back(chr->chr_len);
-  }
-  
-  os->WriteHeader(sort_chr_names, sort_chr_lens);
-
-  if(!final_is_sorted) {
-    // if(verbose)  Rcout << "Performing final sort of fragment maps\n";
-    sort_and_collapse_final(verbose);   // Perform this separately as this is now multi-threaded
-  }
-  
-  if(verbose)  Rcout << "Writing COV file\n";
-  Progress p(3 * sort_chr_names.size(), verbose);
-  for(unsigned int j = 0; j < 3; j++) {
-    for(unsigned int i = 0; i < sort_chr_names.size(); i++) {
-      // refID is reference ID as appears in BAM file; i is the nth chromosome as ordered in alpha order
-      std::vector< std::pair<unsigned int, int> > * itChr;
-      std::vector< std::pair<unsigned int, int> > * itDest;
-
-      unsigned int refID = chrs[i].refID;
-      if(!final_is_sorted) {
-        itChr = &chrName_vec_new[j].at(refID);
-        std::sort(
-          itChr->begin(),
-          itChr->end()
-        );
-      } else {
-        itChr = &chrName_vec_final[j].at(refID);
-      }
-      itDest = &chrName_vec_final[j].at(refID);
-
-      unsigned int   loci = 0;       // Current genomic coordinate
-      unsigned int   old_loci = 0;       // Current genomic coordinate
-      int           depth = 0;       // Current depth of cursor
-      int           old_depth = 0;  // Previous depth of cursor
-      
-      for(auto it_pos = itChr->begin(); it_pos != itChr->end(); it_pos++) {
-        // COV file is of the format: 
-          //  first = (int) depth; 
-          //  second = (unsigned int) length offset from previous
-      
-      /*
-          __ 
-        __|   depth, loci
-      __|     old_depth, old_loci
-      */
-      
-        if(it_pos->first != loci) {
-          // Write entry
-          if(depth != old_depth) {  
-            if(!final_is_sorted) {
-              itDest->push_back( std::make_pair(old_loci, old_depth) );
-              // if(old_loci >= 0 && old_loci < 1000) Rcout << old_loci << '\t' << old_depth << '\n';
-              if(old_depth < 0) Rcout << "Warning - writing depth below zero: " << old_loci << '\t' << old_depth << '\n';
-            }
-            os->WriteEntry(i + j * sort_chr_names.size(), old_depth, loci - old_loci);
-            old_depth = depth;
-            old_loci = loci;
-          }
-          loci = it_pos->first;
-        }
-        // if(incremental) {
-          // depth += it_pos->second;
-        // } else {
-          depth = it_pos->second;
-        // }
-        if(it_pos->first == 0) {
-          old_depth = depth;  // ensure never trigger write when first time it_pos->first != loci
-        }       
-      }
-      
-      if(!final_is_sorted) {
-        itDest->push_back( std::make_pair(old_loci, old_depth) );
-        if(depth != old_depth) {
-          itDest->push_back( std::make_pair(loci, depth) );
-        }
-        itChr->clear();        
-      }
-      os->WriteEntry(i + j * sort_chr_names.size(), old_depth, loci - old_loci);
-      os->WriteEntry(i + j * sort_chr_names.size(), depth, chrs[i].chr_len - loci);
-
-      p.increment(1);
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-  }
-  
-  if(!final_is_sorted) {
-    final_is_sorted = true;
-    // incremental = true;
-  }
-  os->FlushBody();
-  return(0);  
 }
 
 int FragmentsMap::WriteOutput(std::ostream *os, 

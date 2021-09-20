@@ -27,7 +27,7 @@ SOFTWARE.  */
 
 #include "FragmentBlocks.h"
 #include "GZWriter.h"
-#include "covFile.h"
+#include "covWriter.h"
 
 /*
 The code can be finished faster if we force a requirement that all input files are coordinate sorted by the start of each block.
@@ -158,8 +158,7 @@ public:
   void ProcessBlocks(const FragmentBlocks &blocks);
   void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
   int WriteOutput(std::ostream *os, int threshold = 4, bool verbose = false) ;
-  int WriteBinary(covFile *os, bool verbose = false) ;
-  int WriteBinary(covWriter *os, bool verbose = false) ;
+  int WriteBinary(covWriter *os, bool verbose = false, unsigned int n_threads_to_use = 1) ;
   
   void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const unsigned int &refID, bool debug = false) const;
 };

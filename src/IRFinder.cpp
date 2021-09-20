@@ -24,6 +24,9 @@ SOFTWARE.  */
 
 #include "includedefine.h"
 
+#include "covReader.h"
+#include "covWriter.h"
+
 #include "ReadBlockProcessor.h"
 #include "ReadBlockProcessor_CoverageBlocks.h"
 #include "BAM2blocks.h"
@@ -51,7 +54,7 @@ bool IRF_Check_Cov(std::string s_in) {
   std::ifstream inCov_stream;
   inCov_stream.open(s_in, std::ifstream::binary);	
 
-  covFile inCov;
+  covReader inCov;
   inCov.SetInputHandle(&inCov_stream);
 
   if(inCov.fail()){
@@ -87,7 +90,7 @@ List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end,
   std::ifstream inCov_stream;
   inCov_stream.open(s_in, std::ifstream::binary);
   
-  covFile inCov;
+  covReader inCov;
   inCov.SetInputHandle(&inCov_stream);
 
   if(inCov.fail()){
@@ -169,7 +172,7 @@ List IRF_RLEList_From_Cov(std::string s_in, int strand) {
   std::ifstream inCov_stream;
   inCov_stream.open(s_in, std::ifstream::binary);
   
-  covFile inCov;
+  covReader inCov;
   inCov.SetInputHandle(&inCov_stream);
 
   if(inCov.fail()){
@@ -625,9 +628,12 @@ int IRF_core(std::string const &bam_file,
   if(verbose) Rcout << "Writing COV file\n";
 
   // Write Coverage Binary file:
-  std::ofstream ofCOV;                          ofCOV.open(s_output_cov, std::ofstream::binary);  
-  covWriter outCOV;                             outCOV.SetOutputHandle(&ofCOV);
-  oFM.at(0)->WriteBinary(&outCOV, verbose);     ofCOV.close();
+  std::ofstream ofCOV;
+  ofCOV.open(s_output_cov, std::ofstream::binary);
+  covWriter outCOV;
+  outCOV.SetOutputHandle(&ofCOV);
+  oFM.at(0)->WriteBinary(&outCOV, verbose, n_threads_to_use);     
+  ofCOV.close();
 
 // Write output to file:  
 	if(verbose) Rcout << "Writing output file\n";
