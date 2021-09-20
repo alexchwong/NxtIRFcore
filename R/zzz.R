@@ -18,6 +18,8 @@
 #' @param genome_type Either one of `hg38`, `hg19`, `mm10` or `mm9`
 #' @param destination_path The directory to place the downloaded example files.
 #'   If left blank, gives the direct BiocFileCache path of the resource.
+#' @param overwrite (default = TRUE) Whether to overwrite file if already 
+#'   exists
 #' @return See Functions section below.
 #' @examples
 #' # returns the location of the Mappability exclusion BED for hg38
@@ -66,7 +68,8 @@ res_url <- "https://raw.github.com/alexchwong/NxtIRFrepo/main/inst/NxtIRF"
 #' @export
 get_mappability_exclusion <- function(
         genome_type = c("hg38", "hg19", "mm10", "mm9"),
-        destination_path = tempdir()) {
+        destination_path = tempdir(),
+        overwrite = TRUE) {
     genome_type = match.arg(genome_type)
     if(genome_type == "")
         .log(paste("In get_mappability_exclusion():",
@@ -77,17 +80,19 @@ get_mappability_exclusion <- function(
         paste0(genome_type, ".MappabilityExclusion.bed.Rds"),
         sep = "/"
     )
+    bedfile = file.path(destination_path, 
+        paste(genome_type, "MappabilityExclusion.bed", sep="."))
+    bedfile.gz = paste0(bedfile, ".gz")
+    if(file.exists(bedfile.gz) & !overwrite) return(bedfile.gz)
+
     gr = readRDS(.parse_valid_file(source_url))
-    bedfile = file.path(destination_path, "MappabilityExclusion.bed")
     if(is(gr, "GRanges")) {
         rtracklayer::export(gr, bedfile, "bed")
         if(file.exists(bedfile)) {
+            if(file.exists(bedfile.gz)) file.remove(bedfile.gz)
             R.utils::gzip(bedfile)
-            if(file.exists(paste0(bedfile, ".gz"))) {
-                return(paste0(bedfile, ".gz"))
-            } else {
-                .log("Error compressing mappability resource")
-            }
+            if(file.exists(bedfile.gz)) return(bedfile.gz)
+            .log("Error compressing mappability resource")
         } else {
             .log("Error converting GRanges to BED file")
         }

@@ -1,5 +1,4 @@
 #' @useDynLib NxtIRFcore, .registration = TRUE 
-#' @import ompBAM
 #' @importFrom methods as is coerce callNextMethod new
 #' @importFrom stats as.formula model.matrix qt runif na.omit prcomp
 #' @importFrom utils download.file packageVersion getFromNamespace

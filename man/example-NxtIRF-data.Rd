@@ -10,7 +10,8 @@
 \usage{
 get_mappability_exclusion(
   genome_type = c("hg38", "hg19", "mm10", "mm9"),
-  destination_path = tempdir()
+  destination_path = tempdir(),
+  overwrite = TRUE
 )
 
 example_bams(destination_path = tempdir())
@@ -24,6 +25,9 @@ NxtIRF_example_NxtSE()
 
 \item{destination_path}{The directory to place the downloaded example files.
 If left blank, gives the direct BiocFileCache path of the resource.}
+
+\item{overwrite}{(default = TRUE) Whether to overwrite file if already
+exists}
 }
 \value{
 See Functions section below.
