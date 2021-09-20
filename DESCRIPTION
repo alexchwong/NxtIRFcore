@@ -33,7 +33,6 @@ Imports:
 	HDF5Array,
 	httr,
 	IRanges,
-	ompBAM,
 	openssl,
 	parallel,
 	plotly,
@@ -43,8 +42,8 @@ Imports:
 	SummarizedExperiment,
 	S4Vectors
 Remotes:
-  alexchwong/ompBAM, alexchwong/NxtIRFdata
-LinkingTo: Rcpp, zlibbioc, RcppProgress, ompBAM
+  alexchwong/NxtIRFdata
+LinkingTo: Rcpp, zlibbioc, RcppProgress
 Suggests: 
     knitr, rmarkdown, pheatmap, shiny,
     DESeq2, limma, DoubleExpSeq, Rsubread, testthat (>= 3.0.0)

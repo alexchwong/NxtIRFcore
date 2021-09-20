@@ -1,5 +1,22 @@
 #include "includedefine.h"
 
+union stream_uint64 {
+  char c[8];
+  uint64_t u;
+};
+union stream_uint32 {
+  char c[4];
+  uint32_t u;
+};
+union stream_int32 {
+  char c[4];
+  int32_t i;
+};
+union stream_uint16 {
+  char c[2];
+  uint16_t u;
+};
+
 class covBuffer{
 	private:
     char * compressed_buffer;

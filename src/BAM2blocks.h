@@ -3,12 +3,7 @@
 
 #include "FragmentBlocks.h"
 
-// #include "BAMReader_Multi.h"
-
-
 /* Little Endian .. for big endian each group of 4 bytes needs to be reversed before individual members are accessed. */
-// std c11 allows anonymous struct/union. -Wall may give a warning as non-portable to older c++ standards.
-
 
 
 class BAM2blocks {
