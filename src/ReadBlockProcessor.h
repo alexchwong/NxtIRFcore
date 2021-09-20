@@ -26,8 +26,7 @@ SOFTWARE.  */
 #define CODE_READBLOCKPROCESSOR
 
 #include "FragmentBlocks.h"
-#include "GZWriter.h"
-#include "covWriter.h"
+
 
 /*
 The code can be finished faster if we force a requirement that all input files are coordinate sorted by the start of each block.
@@ -134,33 +133,6 @@ class FragmentsInROI : public ReadBlockProcessor {
 		void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
 		void loadRef(std::istringstream &IN);
 		int WriteOutput(std::string& output, std::string& QC) const;		
-};
-
-class FragmentsMap : public ReadBlockProcessor {
-  // Counts mappability.
-private:
-  // 0 = -, 1 = +, 2 = both
-  std::vector< std::vector< std::pair<unsigned int, int> > > chrName_vec_final[3];
-  std::vector< std::vector< std::pair<unsigned int, int> > > chrName_vec_new[3];
-  std::vector< std::vector< std::pair<unsigned int, int> > > temp_chrName_vec_new[3];
-
-  uint32_t frag_count = 0;
-	int sort_and_collapse_temp();
-
-	bool final_is_sorted = false;
-  
-  vector<chr_entry> chrs;
-public:
-	void Combine(FragmentsMap &child);
-	
-  int sort_and_collapse_final(bool verbose);
-
-  void ProcessBlocks(const FragmentBlocks &blocks);
-  void ChrMapUpdate(const std::vector<chr_entry> &chrmap);
-  int WriteOutput(std::ostream *os, int threshold = 4, bool verbose = false) ;
-  int WriteBinary(covWriter *os, bool verbose = false, unsigned int n_threads_to_use = 1) ;
-  
-  void updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const unsigned int &refID, bool debug = false) const;
 };
 
 

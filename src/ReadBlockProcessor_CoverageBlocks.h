@@ -26,6 +26,7 @@ SOFTWARE.  */
 #define CODE_READBLOCKPROCESSOR_COVERAGEBLOCKS
 
 #include "ReadBlockProcessor.h"
+#include "ReadBlockProcessor_FragmentsMap.h"
 #include "FragmentBlocks.h"
 
 struct BEDrecord {

@@ -31,6 +31,7 @@ SOFTWARE.  */
 #include "ReadBlockProcessor_CoverageBlocks.h"
 #include "BAM2blocks.h"
 #include "GZReader.h"
+#include "GZWriter.h"
 #include "Mappability.h"
 
 const char refEOF[5] =

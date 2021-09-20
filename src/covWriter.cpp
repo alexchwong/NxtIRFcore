@@ -132,6 +132,7 @@ covWriter::~covWriter() {
   // also do nothing
 }
 
+// Internal function
 // If there are no alignments to the given refID, 
 // - write a single entry (0, chr_len)
 // - means zero depth, for length of chromosome
@@ -169,7 +170,7 @@ int covWriter::WriteEmptyEntry(unsigned int refID) {
   return(0);
 }
 
-// Writes the header to file
+// Writes the header to file. Internal
 // - writes 'COV\1', then the chrom count
 // - then l_chr_name, chr_name, chr_len
 int covWriter::WriteHeaderToFile() {
@@ -216,7 +217,7 @@ int covWriter::WriteHeaderToFile() {
   return(0);
 }
 
-// Writes the index to file
+// Writes the index to file. Internal
 int covWriter::WriteIndexToFile() {
   stream_uint32 u32;
   stream_uint64 u64;
@@ -363,6 +364,7 @@ int covWriter::WriteFragmentsMap(
   return(0);
 }
 
+// Writes everything to file
 int covWriter::WriteToFile() {
   if(!OUT) {
     Rcout << "No COV file set to write to";
