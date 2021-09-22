@@ -63,6 +63,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
         dash_progress("Removing overlapping introns...", N)
         se <- .makeSE_iterate_IR(se, collate_path)
     }
+    
     return(se)
 }
 

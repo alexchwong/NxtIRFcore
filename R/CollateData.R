@@ -491,7 +491,7 @@ CollateData <- function(Experiment, reference_path, output_path,
             get("end"), "/", get("strand"))]
             
     message("...loading splice events")
-    Splice.Anno = .collateData_splice_anno(reference_path)
+    Splice.Anno = .collateData_splice_anno(reference_path, irf.common)
     
     message("...saving annotations")
     # Save annotation
@@ -681,7 +681,7 @@ CollateData <- function(Experiment, reference_path, output_path,
 }
 
 # Annotates splice junctions with ID's of flanking exon islands
-.collateData_splice_anno <- function(reference_path) {
+.collateData_splice_anno <- function(reference_path, irf.common) {
     candidate.introns = as.data.table(
         read.fst(file.path(reference_path, "fst", "junctions.fst")))
     
@@ -709,6 +709,12 @@ CollateData <- function(Experiment, reference_path, output_path,
     # Annotate exon islands for splice events
     Splice.Anno = read.fst(file.path(reference_path, "fst", "Splice.fst"),
         as.data.table = TRUE)
+    
+    # Remove retained introns not assayed in irf.common
+    Splice.Anno = Splice.Anno[
+        get("Event1a") %in% irf.common$EventRegion |
+        get("EventType") != "RI"
+    ]
     
     Splice.Anno[candidate.introns, on = "Event1a", 
         c("up_1a") := paste(get("i.gene_group_stranded"), 
