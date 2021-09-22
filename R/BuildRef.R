@@ -133,6 +133,12 @@ NULL
 #'   and mappability calculations. Multi-threading is not used for NxtIRF
 #'   reference generation (but multiple cores are utilised by data.table
 #'   and fst packages automatically, where available). See [STAR-methods]
+#' @param use_STAR_mappability (default FALSE) In `BuildReference_Full()`,
+#'   whether to use STAR to generate mappability regions. We recommend setting
+#'   this to `FALSE` for the common genomes (human and mouse), and set this to
+#'   `TRUE` for genomes not supported by `genome_type`. When set to false, 
+#'   the MappabilityExclusion default file for `genome_type` will automatically
+#'   be used.
 #' @return Nothing. The created reference will be written to the given 
 #'   directory. 
 #'   This includes:
@@ -856,6 +862,7 @@ Get_GTF_file <- function(reference_path) {
         as_DNAStringSet = FALSE, verbose = FALSE,
         pseudo_fetch = pseudo_fetch
 ) {
+    rdataclass = match.arg(rdataclass)
     cache_loc = .fetch_AH_cache_loc(ah_record_name, rdataclass,
         localHub, ah, verbose)
     if (rdataclass == "GRanges") {
@@ -3696,6 +3703,7 @@ BuildReference_Full <- function(
         chromosome_aliases = NULL,
         overwrite_resource = FALSE,
         genome_type = genome_type,
+        use_STAR_mappability = FALSE,
         nonPolyARef = GetNonPolyARef(genome_type), 
         BlacklistRef = "", 
         UseExtendedTranscripts = TRUE,
@@ -3706,7 +3714,7 @@ BuildReference_Full <- function(
         overwrite_resource = overwrite_resource)
 
     STAR_buildRef(reference_path = reference_path, 
-        also_generate_mappability = TRUE, 
+        also_generate_mappability = use_STAR_mappability, 
         n_threads = n_threads)
 
     BuildReference(reference_path = reference_path,
