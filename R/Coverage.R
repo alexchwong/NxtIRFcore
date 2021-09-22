@@ -790,7 +790,7 @@ plot_view_ref_fn <- function(
     DTlist = .plot_view_ref_fn_getDTlist(
         view_chr, view_start, view_end, 
         transcripts, elems, highlight_events, 
-        condensed = FALSE, selected_transcripts    
+        condensed = condensed, selected_transcripts    
     )
     DTplotlist = .plot_view_ref_fn_groupDTlist(DTlist,
         view_chr, view_start, view_end, highlight_events)

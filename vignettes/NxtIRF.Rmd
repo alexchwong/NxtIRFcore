@@ -1,8 +1,13 @@
 ---
-title: 'NxtIRFcore: Interactive Differential Alternative Splicing and Intron Retention analysis'
+title: 'NxtIRFcore: Differential Alternative Splicing and Intron Retention analysis'
 author: "Alex Chit Hei Wong"
 date: "`r format(Sys.Date(), '%m/%d/%Y')`"
-abstract: >
+output:
+    rmarkdown::html_document:
+        highlight: pygments
+        toc: true
+        toc_float: true
+abstract:
     Intron Retention (IR) is a form of alternative splicing whereby the intron 
     is retained (i.e. not spliced) in final messenger RNA. Although many 
     bioinformatics tools are available to quantitate other forms of alternative
@@ -13,7 +18,7 @@ abstract: >
     that many introns contain repetitive regions as well as other RNA expressing
     elements. IRFinder corrects for many of these complexities; however its 
     dependencies on Linux and STAR limits its wider usage. Also, IRFinder does
-    not calculate other forms of splicings besides IR. Finally, IRFinder 
+    not calculate other forms of splicing besides IR. Finally, IRFinder 
     produces text-based output, requiring an established understanding of the
     data produced in order to interpret its results.
     
@@ -23,18 +28,212 @@ abstract: >
     that quantifies IR (and other alternative splicing) events, organises the
     data and produces relevant visualisation. Additionally, NxtIRF offers an
     interactive graphical interface that allows users to explore the data.
-output:
-    rmarkdown::html_document:
-        toc: true
+    
+    NxtIRFcore is the command-line version of NxtIRF. Version 
+    `r packageVersion("NxtIRFcore")`
 vignette: >
-    %\VignetteIndexEntry{NxtIRFcore: Interactive Differential Alternative Splicing and Intron Retention analysis}
+    %\VignetteIndexEntry{NxtIRFcore: Differential Alternative Splicing and Intron Retention analysis}
     %\VignetteEngine{knitr::rmarkdown}
-    %\usepackage[utf8]{inputenc}
+    %\VignetteEncoding{UTF-8}
 ---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+    collapse = TRUE,
+    comment = "#>"
+)
+```
+
+# Installation and Quick-Start
+
+### Installation
+
+To install NxtIRFcore, start R (version "4.1") and enter: 
+
+```{r eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("NxtIRFcore")
+```
+
+### Loading NxtIRF
+
+```{r}
+library(NxtIRFcore)
+```
+
+### Building NxtIRF reference
+
+A NxtIRF reference requires a genome FASTA file (containing genome nucleotide
+sequences) and a gene annotation GTF file (preferably from Ensembl or Gencode).
+
+NxtIRF provides an example genome and gene annotation which can be accessed
+via the NxtIRFdata package installed with NxtIRF:
+
+```{r}
+# Provides the path to the example genome:
+NxtIRFdata::chrZ_genome()
+
+# Provides the path to the example gene annotation:
+NxtIRFdata::chrZ_gtf()
+```
+
+Using these two files, we construct a NxtIRF reference as follows:
+
+```{r, results='hide', message = FALSE, warning = FALSE}
+ref_path = file.path(tempdir(), "Reference")
+BuildReference(
+    reference_path = ref_path,
+    fasta = NxtIRFdata::chrZ_genome(),
+    gtf = NxtIRFdata::chrZ_gtf()
+)
+```
+
+### Running IRFinder
+
+NxtIRF provides an example set of 6 BAM files to demonstrate its use via this
+vignette.
+
+Firstly, retrieve the BAM files from ExperimentHub using the NxtIRFdata helper
+function `example_bams()`
+
+```{r, results='hide', message = FALSE, warning = FALSE}
+bam_path = file.path(tempdir(), "bams")
+example_bams(destination_path = bam_path)
+```
+
+This will load the BAM path and make a local copy at `bam_path`.
+
+Next, we need to assign sample names to these BAM files. 
+
+```{r}
+bams = Find_Bams(bam_path, level = 0)
+```
+
+Finally, run NxtIRF/IRFinder as follows:
+
+```{r, results='hide', message = FALSE, warning = FALSE}
+irf_path = file.path(tempdir(), "IRFinder_output")
+IRFinder(
+    bamfiles = bams$path,
+    sample_names = bams$sample,
+    reference_path = ref_path,
+    output_path = irf_path
+)
+```
+
+### Collate individual IRFinder runs to build a NxtIRF Experiment
+
+First, collate the IRFinder output files using the helper function
+`Find_IRFinder_Output()`
+
+```{r}
+expr = Find_IRFinder_Output(irf_path)
+```
+
+This creates a 3-column data frame with sample name, IRFinder gzipped text
+output, and COV files. Compile these output files into a single experiment:
+
+```{r, results='hide', message = FALSE, warning = FALSE}
+nxtirf_path = file.path(tempdir(), "NxtIRF_output")
+CollateData(
+    Experiment = expr,
+    reference_path = ref_path,
+    output_path = nxtirf_path
+)
+```
+
+### Importing the NxtIRF SummarizedExperiment into memory:
+
+```{r, results='hide', message = FALSE, warning = FALSE}
+se = MakeSE(nxtirf_path)
+```
+
+### Set some experimental conditions:
+
+```{r}
+colData(se)$condition = rep(c("A", "B"), each = 3)
+colData(se)$batch = rep(c("K", "L", "M"), 2)
+```
+
+### Perform differential alternative splicing using Limma, DESeq2, or
+DoubleExpSeq
+
+The code below will contrast condition:B in respect to condition:A
+
+```{r, results='hide', message = FALSE, warning = FALSE}
+# Requires limma to be installed:
+require("limma")
+res_limma = limma_ASE(
+    se = se,
+    test_factor = "condition",
+    test_nom = "B",
+    test_denom = "A",
+)
+
+# Requires DESeq2 to be installed:
+require("DESeq2")
+res_deseq = DESeq_ASE(
+    se = se,
+    test_factor = "condition",
+    test_nom = "B",
+    test_denom = "A",
+)
+
+# Requires DoubleExpSeq to be installed:
+require("DoubleExpSeq")
+res_DES = DoubleExpSeq_ASE(
+    se = se,
+    test_factor = "condition",
+    test_nom = "B",
+    test_denom = "A",
+)
+```
+
+### Visualise a Coverage plot of a differential IR event:
+
+Filter by visibly-different events:
+
+```{r}
+res_limma.filtered = subset(res_limma, abs(AvgPSI_A - AvgPSI_B) > 0.05)
+```
+
+Plot individual samples:
+
+```{r, fig.width = 8, fig.height = 6}
+p = Plot_Coverage(
+    se = se,
+    Event = res_limma.filtered$EventName[1],
+    tracks = colnames(se)[c(1,2,4,5)],
+)
+p$final_plot
+```
+
+Plot by condition:
+
+```{r, fig.width = 8, fig.height = 6}
+p = Plot_Coverage(
+    se = se,
+    Event = res_limma.filtered$EventName[1],
+    tracks = c("A", "B"),
+    condition = "condition",
+    stack_tracks = TRUE,
+    t_test = TRUE,
+)
+p$final_plot
+```
+
+```{r include = FALSE}
+# Reset to prevent interfering with next section
+colData(se)$condition = NULL
+colData(se)$batch = NULL
+```
 
 # The NxtIRF Workflow
 
-This vignette includes a working example to demonstrate how to use NxtIRF.
+This section explains the working example provided in the prior "Quick-Start" 
+section, to demonstrate how to use NxtIRF.
 
 ## Generating the NxtIRF reference
 
@@ -42,15 +241,12 @@ NxtIRF first needs to generate a set of reference files. The NxtIRF reference
 is used to quantitate IR and alternative splicing, as well as in downstream
 visualisation tools.
 
-### Building a Mock NxtIRF reference using BuildReference()
+### Building an example NxtIRF reference using BuildReference()
 
-First, load the NxtIRF package and make a copy of the NxtIRF example reference
-FASTA and GTF files:
+First, load the NxtIRF package:
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
+```{r, eval = FALSE}
 library(NxtIRFcore)
-NxtIRFdata::chrZ_genome() # Provides the path to the NxtIRF chrZ example genome
-NxtIRFdata::chrZ_gtf()    # Provides the path to the NxtIRF chrZ example GTF
 ```
 
 NxtIRF generates a reference from a user-provided genome FASTA and 
@@ -67,34 +263,39 @@ aligned into one sequence to create a mock chromosome Z (chrZ). The gene
 annotations were modified to only contain the 7 genes with the modified genomic
 coordinates.
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
+```{r, eval = FALSE}
+ref_path = file.path(tempdir(), "Reference")
+
 GetReferenceResource(
-    reference_path = "Reference_mock",
+    reference_path = ref_path,
     fasta = NxtIRFdata::chrZ_genome(), 
     gtf = NxtIRFdata::chrZ_gtf()
 )
 
-BuildReference(reference_path = "Reference_mock")
+BuildReference(reference_path = ref_path)
 
-# or equivalently, in a one-step process (NOT RUN):
+# or equivalently, in a one-step process:
 
-# BuildReference(fasta_file = mock_genome, gtf_file = mock_gtf(),
-#     reference_path = "Reference_mock"
-# )
+BuildReference(
+    reference_path = ref_path,
+    fasta = NxtIRFdata::chrZ_genome(), 
+    gtf = NxtIRFdata::chrZ_gtf()
+)
+
 ```
 
 The first function, GetReferenceResource(), requires 3 arguments:
-(1) \code{fasta_file} The file (or url) of the genome FASTA file,
-(2) \code{gtf_file} The file (or url) of the gene annotation GTF file, and
-(3) \code{reference_path} The directory (ideally an empty directory) to create
+(1) `fasta` The file (or url) of the genome FASTA file,
+(2) `gtf` The file (or url) of the gene annotation GTF file, and
+(3) `reference_path` The directory (ideally an empty directory) to create
 the NxtIRF reference
 
-GetReferenceResource() processes the given source genome / annotation files,
+`GetReferenceResource()` processes the given source genome / annotation files,
 downloading them where necesssary, and saves a local copy of the GTF file as
 well as a compressed version of the FASTA sequence file (as a TwoBitFile which
 is a binary compressed version of the genome sequence).
 
-The next function, BuildReference(), uses the resources to build the NxtIRF
+The next function, `BuildReference()`, uses the resources to build the NxtIRF
 reference. NxtIRF builds its own version of alternative splicing annotations
 by comparing differential combinations of splice junctions between the
 transcripts of each gene. Events annotated include Skipped Exons (SE),
@@ -125,8 +326,11 @@ the mock reference using STAR.
 First, we download the example bam files using the following convenience 
 function:
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
-example_bams("bams") # Copies NxtIRF example BAM files to "bams" subdirectory
+```{r, eval = FALSE}
+bam_path = file.path(tempdir(), "bams")
+
+# Copies NxtIRF example BAM files to `bam_path` subdirectory; returns BAM paths
+example_bams(destination_path = bam_path)
 ```
 
 Often, alignment pipelines process multiple samples. NxtIRF provides convenience
@@ -137,40 +341,42 @@ the BAM files themselves (as in our case below), or as directory names
 "/path/to/project/BAMs/sample2/Unsorted.bam", etc). Sample name deduction can be
 done in both cases (level = 1 in the latter case)
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
-bams = Find_Bams("./bams", level = 0) # as BAM file names denote their sample names
+```{r,  eval = FALSE}
+# as BAM file names denote their sample names
+bams = Find_Bams(bam_path, level = 0) 
 
-# In the case where BAM files are labelled using sample names as parent directory names, use:
-# Find_Bams("./bams", level = 1)
+# In the case where BAM files are labelled using sample names as parent 
+# directory names (which oftens happens with the STAR aligner), use level = 1
 ```
 
 This convenience function retrieves a data frame with the first and second
 columns as the sample names and paths of all the BAM files found. We use this to
 run IRFinder on all the BAM files using the following:
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
+```{r, eval = FALSE}
+irf_path = file.path(tempdir(), "IRFinder_output")
 IRFinder(
-    bamfiles = bams[,2],
-    sample_names = bams[,1],
-    reference_path = "Reference_mock",
-    output_path = "IRFinder_output",
-    n_threads = 1,
-    overwrite = FALSE,
-    run_featureCounts = TRUE
+    bamfiles = bams$path,
+    sample_names = bams$sample,
+    reference_path = ref_path,
+    output_path = irf_path,
+    n_threads = 2,
+    run_featureCounts = FALSE
 )
 ```
 
-This runs IRFinder using 2 threads. Each thread processes a separate BAM file,
-using BiocParallel for multi-threading. Setting \code{overwrite = FALSE} ensures
+This runs IRFinder using 2 threads. Multi-threading is performed using OpenMP
+(where available). If OpenMP is not installed when NxtIRFcore was compiled, 
+BiocParallel will be used instead. Setting `overwrite = FALSE` ensures
 if IRFinder files were generated by a previous run, these would not be 
 overwritten. 
 
 Also (optionally), users can generate gene counts from the same
-reference using \code{run_featureCounts = TRUE} (requires the Rsubread package).
+reference using `run_featureCounts = TRUE` (requires the Rsubread package).
 The featureCounts output is stored in the "main.FC.Rds" file which can be
 retrieved using below:
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
+```{r, , eval = FALSE}
 gene_counts <- readRDS("IRFinder_output/main.FC.Rds")
 ```
 
@@ -191,11 +397,11 @@ Having run IRFinder on all individual BAM files of an experiment, we can collate
 this data using the CollateData() function. Again, we use a convenience function
 to generate a list of IRFinder output files:
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
-expr <- Find_IRFinder_Output("IRFinder_output")
+```{r, eval = FALSE}
+expr <- Find_IRFinder_Output(irf_path)
 ```
 
-\code{expr} is a 3-column data frame. The first two columns contain the sample 
+`expr` is a 3-column data frame. The first two columns contain the sample 
 names and IRFinder output file path (as a ".txt.gz" - gzipped text file). 
 This contains all of the original output from vanilla IRFinder, 
 as well as sample QC readouts). Feel free to unzip a file to see what output
@@ -211,13 +417,15 @@ NxtIRF releases)! We will demonstrate how to use COV files in a later section.
 ### Using CollateData() to parse IRFinder output from multiple files.
 
 Now that we have an organised list of IRFinder output files, we parse this into
-CollateData()
+`CollateData()`
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
+```{r, eval = FALSE}
+nxtirf_path = file.path(tempdir(), "NxtIRF_output")
+
 CollateData(
     Experiment = expr,
-    reference_path = "Reference_mock",
-    output_path = "NxtSE",
+    reference_path = ref_path,
+    output_path = nxtirf_path,
     IRMode = "SpliceOverMax",
     n_threads = 1
 )
@@ -227,25 +435,25 @@ CollateData extracts IR quantitation and junction counts and organises these
 counts into unified arrays of data. CollateData also compiles QC parameters
 for all samples, including read depth and strandedness (directionality).
 
-\code{IRMode} is a parameter that specifies how IRFinder calculates percentage
+`IRMode` is a parameter that specifies how IRFinder calculates percentage
 intron retention (PIR). Previously, IRFinder estimates spliced (or exonic)
 abundance by including junction reads that involve either flanking exon
-(\code{SpliceMax = max(SpliceLeft, SpliceRight)}). 
+`SpliceMax = max(SpliceLeft, SpliceRight)`. 
 This is done to correct for the possibility
 of alternate exons flanking the intron being assessed. NxtIRF extends this 
 estimate by accounting for the possibility that BOTH flanking exons may be
 alternate exons, thereby accounting for splice events that overlap the intron
 but does not involve the junctions of either flanking exons. We call this
-parameter \code{SpliceOverMax}, which includes \code{SpliceMax} with the
+parameter `SpliceOverMax`, which includes `SpliceMax` with the
 addition of distant splice events.
 
 ### Building a NxtSE object from collated data
 
-Now that CollateData() has created the unified data in the \code{"NxtSE"}
+Now that `CollateData()` has created the unified data in the \code{"NxtSE"}
 directory, we can retrieve the data as a NxtSE object:
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
-se <- MakeSE("NxtSE", RemoveOverlapping = TRUE)
+```{r, eval = FALSE}
+se = MakeSE(nxtirf_path, RemoveOverlapping = TRUE)
 ```
 
 Two things of note:
@@ -254,12 +462,12 @@ Two things of note:
 the collated data. It is possible (and particularly useful in large data sets)
 to read only a subset of samples. In this case, construct a data.frame object
 with the first column containing the desired sample names and parse this into
-the \code{colData} parameter as shown:
+the `colData` parameter as shown:
 
-```{r, results = FALSE, message = FALSE, warning = FALSE}
+```{r, eval = FALSE}
 subset_samples = colnames(se)[1:4]
 df = data.frame(sample = subset_samples)
-se_small = MakeSE("NxtSE", colData = df, RemoveOverlapping = TRUE)
+se_small = MakeSE(nxtirf_path, colData = df, RemoveOverlapping = TRUE)
 ```
 
 (2) In complex transcriptomes including those of human and mouse, alternative
@@ -269,7 +477,7 @@ NxtIRF removes overlapping introns by considering only introns belonging to
 the major splice isoforms. It estimates a list of introns of major isoforms
 by assessing the compatible splice junctions of each isoform, and removes
 overlapping introns belonging to minor isoforms. To disable this functionality,
-set \code{RemoveOverlapping = FALSE}.
+set `RemoveOverlapping = FALSE`.
 
 ### Filtering for Expressed Splicing Events 
 
@@ -286,17 +494,16 @@ vignette (please see the documentation for details).
 To filter the NxtSE object using default filters:
 
 ```{r, results = FALSE, message = FALSE, warning = FALSE}
-default_filters <- get_default_filters()
-expressed_events <- apply_filters(se, default_filters)
+expressed_events <- apply_filters(se, get_default_filters())
 
 se.filtered = se[expressed_events,]
 ```
 
-In the above code, \code{get_default_filters()} retrieves the default filters
-suggested by NxtIRF. \code{apply_filters} returns a vector containing which
+In the above code, `get_default_filters()` retrieves the default filters
+suggested by NxtIRF. `apply_filters` returns a vector containing which
 events are included if the filters are applied to the NxtSE object. Finally,
 we obtain a NxtSE object by subsetting the original NxtSE using the vector
-of \code{expressed_events}.
+of `expressed_events`.
 
 ### Performing analysis of Differential Alternative Splicing Events
 
@@ -311,9 +518,11 @@ To populate the NxtSE object with annotations, we can modify colData just as we
 would for a SummarizedExperiment object.
 
 ```{r }
-colData(se.filtered)$condition = rep(c("control", "treated"), each = 3)
-colData(se.filtered)$group = rep(c("A", "B"), 3)
-colData(se.filtered)
+colData(se.filtered)$condition = rep(c("A", "B"), each = 3)
+colData(se.filtered)$batch = rep(c("K", "L", "M"), 2)
+
+# To display what colData is:
+as.data.frame(colData(se.filtered))
 ```
 
 We can use either limma to perform differential alternative splicing analysis
@@ -321,36 +530,32 @@ We can use either limma to perform differential alternative splicing analysis
 ```{r }
 require("limma")
 
-# Compare by group-B vs group-A
-
-res_limma_group <- limma_ASE(
-    se = se.filtered,
-    test_factor = "group",
-    test_nom = "B",
-    test_denom = "A",
-)
-
-# Compare by condition-treated vs condition-control
+# Compare by condition-B vs condition-A
 
 res_limma_condition <- limma_ASE(
     se = se.filtered,
     test_factor = "condition",
-    test_nom = "treated",
-    test_denom = "control"
+    test_nom = "B",
+    test_denom = "A",
 )
 
-# Compare by condition-treated vs condition-control, batch-corrected by "condition"
+# Compare by condition-B vs condition-A, batch-corrected by "batch"
 
 res_limma_treatment_batchcorrected <- limma_ASE(
     se = se.filtered,
     test_factor = "condition",
-    test_nom = "treated",
-    test_denom = "control",
-    batch1 = "group"
+    test_nom = "B",
+    test_denom = "A",
+    batch1 = "batch"
 )
 ```
 
-NB: we can also use DESeq2 to perform the same analysis using \code{DESeq_ASE}
+NB: we can also use DESeq2 or DoubleExpSeq to perform the same analysis using
+`DESeq_ASE()` or `DoubleExpSeq_ASE()`. The differences are as follows:
+
+* Limma: models counts as log-normal distributed
+* DESeq2: models counts as negative binomial distributed
+* DoubleExpSeq: models alternative splicing ratios as beta-binomial distributed
 
 ### Scatter plot of differential Alternate Splicing Events
 
@@ -361,47 +566,38 @@ be used directly to produce a scatter plot comparing the two conditions:
 ```{r, fig.width = 7, fig.height = 5}
 library(ggplot2)
 
-ggplot(res_limma_condition, 
-        aes(x = 100 * AvgPSI_treated, y = 100 * AvgPSI_control)) + 
+ggplot(res_limma_condition, aes(x = 100 * AvgPSI_B, y = 100 * AvgPSI_A)) + 
     geom_point() +
     labs(title = "PSI values across conditions",
-         x = "PSI of treated condition", y = "PSI of control condition")
+         x = "PSI of condition B", y = "PSI of condition A")
 ```
 
-The columns are defined by the names of the conditions, so for the \code{group}
-differential analysis, one would do this instead:
-
-```{r, fig.width = 7, fig.height = 5}
-ggplot(res_limma_group, 
-        aes(x = 100 * AvgPSI_B, y = 100 * AvgPSI_A)) + 
-    geom_point() +
-    labs(title = "PSI values across groups",
-         x = "PSI of group B", y = "PSI of group A")
-```
+Note the columns in the results are defined by the names of the conditions
+"A" and "B".
 
 To filter for specific splicing events (e.g. IR only), simply filter the
 results data.frame by EventType:
 
 ```{r, fig.width = 7, fig.height = 5}
 ggplot(subset(res_limma_condition, EventType == "IR"), 
-        aes(x = 100 * AvgPSI_treated, y = 100 * AvgPSI_control)) + 
+        aes(x = 100 * AvgPSI_B, y = 100 * AvgPSI_A)) + 
     geom_point() +
     labs(title = "PIR values across conditions (IR Only)",
-         x = "PIR of treated condition", y = "PIR of control condition")
+         x = "PIR of condition B", y = "PIR of condition A")
 ```
 
 ### Volcano plot of differential Alternate Splicing Events
 
-\code{limma_ASE} and \code{DESeq_ASE} contain direct output from limma or DESeq2.
-The P.Value and pvalue of limma and DESeq2 output denote nominal P values, whereas
-multiple-correction is performed via the adj.P.Val and padj columns of limma
-and DESeq2, respectively. To plot these:
+`limma_ASE` and `DESeq_ASE` contain direct output from limma or DESeq2.
+The P.Value and pvalue of limma and DESeq2 output denote nominal P values, 
+whereas multiple-correction is performed via the adj.P.Val and padj columns of 
+limma and DESeq2, respectively. To plot these:
 
 ```{r, fig.width = 7, fig.height = 5}
 ggplot(res_limma_condition,
         aes(x = logFC, y = -log10(adj.P.Val))) + 
     geom_point() +
-    labs(title = "Differential analysis - treated vs control",
+    labs(title = "Differential analysis - B vs A",
          x = "Log2-fold change", y = "BH-adjusted P values (-log10)")
 ```
 
@@ -419,20 +615,21 @@ mat = make_matrix(
 )
 ```
 
-\code{make_matrix} has the option of supplying values as logit-transformed. This
-is useful to contrast where the majority of values are near the 0- or 1- boundary.
+`make_matrix()` has the option of supplying values as logit-transformed. This
+is useful to contrast where the majority of values are near the 0- or 1- 
+boundary.
 
 Also, when the dataset contains low-abundance splicing depths, samples with 
 splicing depths below a certain threshold can be excluded (replaced with NA).
-Simply set \code{depth_threshold} to a level below which sample-events will be
+Simply set `depth_threshold` to a level below which sample-events will be
 converted to NA. Also, events can be excluded from display if a certain fraction
 of samples have low coverage (i.e. return NA values). This filter can be set
-using \code{na.percent.max}. This is useful as events with high number of NA
+using `na.percent.max`. This is useful as events with high number of NA
 values can return errors in heatmap functions that also perform clustering
 
 With the matrix of values, one can produce a heatmap as shown:
 
-```{r, fig.width = 7, fig.height = 5}
+```{r, fig.width = 8, fig.height = 6}
 library(pheatmap)
 
 pheatmap(mat, annotation_col = as.data.frame(colData(se.filtered)))
@@ -458,18 +655,20 @@ can be compared across samples.
 We will first demonstrate by plotting the RNA-seq coverage of a single gene
 by a single sample
 
-```{r, fig.width = 7, fig.height = 5}
+```{r, fig.width = 8, fig.height = 6}
 res = Plot_Coverage(
     se = se.filtered, 
     Gene = "TP53", 
-    tracks = colnames(se.filtered)[1])
+    tracks = colnames(se.filtered)[1]
+)
 res$final_plot
 ```
- There are many transcripts in TP53! This is because by default, NxtIRF displays
- all annotated transcripts. For clarity, one can either collapse the transcripts
- at a per-gene level, by setting condense_tracks = TRUE:
+
+There are many transcripts in TP53! This is because by default, NxtIRF displays
+all annotated transcripts. For clarity, one can either collapse the transcripts
+at a per-gene level, by setting condense_tracks = TRUE:
  
-```{r, fig.width = 7, fig.height = 5}
+```{r, fig.width = 8, fig.height = 6}
 res = Plot_Coverage(
     se = se.filtered, 
     Gene = "TP53",
@@ -482,7 +681,7 @@ res$final_plot
 Alternatively, for fine control, one can supply a vector containing the
 transcript names to be displayed:
 
-```{r, fig.width = 7, fig.height = 5}
+```{r, fig.width = 8, fig.height = 6}
 res = Plot_Coverage(
     se = se.filtered, 
     Gene = "TP53",
@@ -515,12 +714,12 @@ res_limma_NSUN5 <- limma_ASE(
 head(res_limma_NSUN5$EventName)
 ```
 
-We can now visualise the top hit, NSUN5 intron 3. To visualise the IR event
+We can now visualise the top hit, NSUN5 intron 8. To visualise the IR event
 across conditions, we specify the type of condition to contrast. 
 The names of the tracks will be the names of the nominator (test) and 
 denominator (control) conditions
 
-```{r, fig.width = 7, fig.height = 5}
+```{r, fig.width = 8, fig.height = 6}
 res = Plot_Coverage(
     se = se.filtered, 
     Event = res_limma_NSUN5$EventName[1],
@@ -530,12 +729,12 @@ res = Plot_Coverage(
 res$final_plot
 ```
 
-Although NSUN5 intron 3 is the most differentially retained in the analysis, the
+Although NSUN5 intron 8 is the most differentially retained in the analysis, the
 difference isn't very apparent. This is because the difference between the
 absolute values is very small. In contrast, intron 2 looks more prominently
 different in the heatmap, so we can explore this as well:
 
-```{r, fig.width = 7, fig.height = 5}
+```{r, fig.width = 8, fig.height = 6}
 res = Plot_Coverage(
     se = se.filtered, 
     Event = "NSUN5/ENST00000252594_Intron2/clean",

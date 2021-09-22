@@ -419,7 +419,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     temp_output_path = file.path(output_path, "temp")
     n_jobs = length(jobs)
     
-    .log("Compiling Intron Retention List", "message", appendLF = FALSE)   
+    .log("Compiling Intron Retention List...", "message", appendLF = FALSE)   
     
     irf.list = BiocParallel::bplapply(seq_len(n_jobs),
         function(x, jobs, df.internal, temp_output_path, stranded) {

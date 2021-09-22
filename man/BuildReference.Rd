@@ -39,6 +39,7 @@ BuildReference_Full(
   chromosome_aliases = NULL,
   overwrite_resource = FALSE,
   genome_type = genome_type,
+  use_STAR_mappability = FALSE,
   nonPolyARef = GetNonPolyARef(genome_type),
   BlacklistRef = "",
   UseExtendedTranscripts = TRUE,
@@ -104,6 +105,13 @@ transcripts such as anti-sense and lincRNAs be included in searching
 for IR / AS events? Setting \code{FALSE} (vanilla IRFinder) will exclude
 transcripts other than \code{protein_coding} and
 \code{processed_transcript} transcripts from IR analysis.}
+
+\item{use_STAR_mappability}{(default FALSE) In \code{BuildReference_Full()},
+whether to use STAR to generate mappability regions. We recommend setting
+this to \code{FALSE} for the common genomes (human and mouse), and set this to
+\code{TRUE} for genomes not supported by \code{genome_type}. When set to false,
+the MappabilityExclusion default file for \code{genome_type} will automatically
+be used.}
 
 \item{n_threads}{The number of threads used to generate the STAR reference
 and mappability calculations. Multi-threading is not used for NxtIRF
