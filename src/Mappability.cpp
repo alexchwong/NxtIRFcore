@@ -45,7 +45,7 @@ std::string GenerateReadError(
     const unsigned int read_len, 
     const unsigned int error_pos,
     const unsigned int direction, 
-    const unsigned int error_seed
+    const size_t error_seed
 ) {
   
   // Copy https://github.com/williamritchie/IRFinder/blob/master/bin/util/generateReadsError.pl
@@ -188,7 +188,7 @@ int IRF_GenerateMappabilityReads(
       
   unsigned int direction = 0;
   char * read = new char[read_len + 1];
-  unsigned int seed = 0;
+  size_t num_reads = 0;
   
   string chr;
   string sequence;
@@ -214,10 +214,10 @@ int IRF_GenerateMappabilityReads(
         bufferPos += read_stride
     ) {
       memcpy(read, &buffer[bufferPos - 1], read_len);
-      seed += 1;
+      num_reads += 1;
       if(checkDNA(read, read_len)) {       
         std::string write_seq = GenerateReadError(
-          read, read_len, error_pos, direction, seed
+          read, read_len, error_pos, direction, num_reads
         ) ;
 
         if(is_stdout == 1) {
@@ -230,7 +230,7 @@ int IRF_GenerateMappabilityReads(
         direction = (direction == 0 ? 1 : 0);
         
         // update proogress bar
-        if(seed % 10000 == 0) {
+        if(num_reads % 100000 == 0) {
           p.increment(bufferPos - seq_progress);
           seq_progress = bufferPos;
         }
@@ -246,6 +246,7 @@ int IRF_GenerateMappabilityReads(
     outFA.flush();
     outFA.close();
   }
+  Rcout << num_reads << " synthetic reads generated\n";
   return(0);
 }
 
