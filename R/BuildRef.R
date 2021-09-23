@@ -285,7 +285,7 @@ GetReferenceResource <- function(
         reference_path = reference_path,
         fasta = fasta, gtf = gtf, 
         verbose = TRUE,
-        overwrite_resource = overwrite_resource,
+        overwrite = overwrite_resource,
         pseudo_fetch = TRUE
     )
 }
@@ -309,7 +309,9 @@ BuildReference <- function(
     reference_data = .get_reference_data(
         reference_path = reference_path,
         fasta = fasta, gtf = gtf, 
-        overwrite_resource = overwrite_resource
+        verbose = TRUE,
+        overwrite = overwrite_resource,
+        pseudo_fetch = FALSE
     )
     
     dash_progress("Processing gtf file", N_steps)
@@ -630,13 +632,13 @@ Get_GTF_file <- function(reference_path) {
     genome <- .fetch_fasta(
         reference_path = reference_path,
         fasta = fasta_use, ah_genome = ah_genome_use,
-        verbose = verbose, overwrite = overwrite_resource,
+        verbose = verbose, overwrite = overwrite,
         pseudo_fetch = pseudo_fetch
     )
     gtf_gr <- .fetch_gtf(
         gtf = gtf_use, ah_transcriptome = ah_gtf_use,
         reference_path = reference_path, 
-        verbose = verbose, overwrite = overwrite_resource,
+        verbose = verbose, overwrite = overwrite,
         pseudo_fetch = pseudo_fetch
     )
     # Save Resource details to settings.Rds:

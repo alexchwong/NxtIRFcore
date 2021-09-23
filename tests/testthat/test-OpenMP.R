@@ -17,7 +17,7 @@ test_that("NxtIRF OpenMP produces same output regardless of threads", {
     }
     if(!file.exists(file.path(tempdir(), "Reference", "IRFinder.ref.gz"))) {
         BuildReference(
-            fasta = mock_genome(), gtf = mock_gtf(),
+            fasta = NxtIRFdata::chrZ_genome(), gtf = NxtIRFdata::chrZ_gtf(),
             reference_path = file.path(tempdir(), "Reference")
         )
     }
