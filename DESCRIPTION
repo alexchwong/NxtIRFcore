@@ -25,6 +25,7 @@ Imports:
 	BiocGenerics,
 	BiocParallel,
 	Biostrings,
+	BSgenome,
 	DelayedArray,
 	DelayedMatrixStats,
 	genefilter,
