@@ -284,6 +284,7 @@ GetReferenceResource <- function(
     reference_data = .get_reference_data(
         reference_path = reference_path,
         fasta = fasta, gtf = gtf, 
+        verbose = TRUE,
         overwrite_resource = overwrite_resource,
         pseudo_fetch = TRUE
     )
@@ -594,7 +595,9 @@ Get_GTF_file <- function(reference_path) {
 # Sub
 
 .get_reference_data <- function(reference_path, fasta, gtf, 
-        overwrite_resource = FALSE, pseudo_fetch = FALSE) {
+        verbose = TRUE, overwrite = FALSE,
+        pseudo_fetch = FALSE
+) {
 
     # Checks fasta or gtf files exist if omitted, or are valid URLs
     .validate_path(reference_path, subdirs = "resource")
@@ -627,13 +630,13 @@ Get_GTF_file <- function(reference_path) {
     genome <- .fetch_fasta(
         reference_path = reference_path,
         fasta = fasta_use, ah_genome = ah_genome_use,
-        overwrite = overwrite_resource
+        verbose = verbose, overwrite = overwrite_resource,
+        pseudo_fetch = pseudo_fetch
     )
-    genome = import(genome)     # Fetch as DNAStringSet - avoid TwoBit lag
     gtf_gr <- .fetch_gtf(
         gtf = gtf_use, ah_transcriptome = ah_gtf_use,
         reference_path = reference_path, 
-        overwrite = overwrite_resource,
+        verbose = verbose, overwrite = overwrite_resource,
         pseudo_fetch = pseudo_fetch
     )
     # Save Resource details to settings.Rds:
@@ -666,6 +669,16 @@ Get_GTF_file <- function(reference_path) {
 
 ################################################################################
 
+.fetch_genome_as_required <- function(genome, pseudo_fetch) {
+    if(!pseudo_fetch) {
+        .log("Importing genome sequences to memory", "message", 
+            appendLF = FALSE)
+        genome = import(genome)     # Fetch as DNAStringSet - avoid TwoBit lag    
+        message("done")
+    }
+    return(genome)
+}
+
 # If fasta is a web resource
 #   - downloads this and rename as genome.fa inside "resource" dir
 #   - make a genome.2bit file
@@ -678,15 +691,18 @@ Get_GTF_file <- function(reference_path) {
 .fetch_fasta <- function(
         reference_path = "./Reference",
         fasta = "", ah_genome = "",
-        overwrite = FALSE, verbose = TRUE
+        verbose = TRUE, overwrite = FALSE,
+        pseudo_fetch = FALSE
 ) {
     if (ah_genome != "") {
         genome <- .fetch_fasta_ah(ah_genome, verbose = verbose)
         .fetch_fasta_save_2bit(genome, reference_path, overwrite)
+        genome = .fetch_genome_as_required(genome, pseudo_fetch)
         return(genome)
     } else if(fasta == "") {
         twobit = file.path(reference_path, "resource", "genome.2bit")
         genome <- TwoBitFile(twobit)
+        genome = .fetch_genome_as_required(genome, pseudo_fetch)
         return(genome)
     } else {
         # If no overwrite, quickly return genome.2bit if exists
@@ -707,6 +723,7 @@ Get_GTF_file <- function(reference_path) {
         }
         genome <- .fetch_fasta_file(fasta_file)
         .fetch_fasta_save_2bit(genome, reference_path, overwrite)
+        if(!pseudo_fetch) return(genome)
         rm(genome)
         gc()
         .log("Connecting to genome TwoBitFile...", "message", appendLF = FALSE)
