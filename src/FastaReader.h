@@ -27,6 +27,8 @@ class FastaReader {
     istream * IN;
     bool FirstSeq;
   public:
+    FastaReader();
+  
     std::string seqname;
     std::string sequence;
     
@@ -38,5 +40,6 @@ class FastaReader {
     std::vector<std::string> chr_names;
     // length of each chromosome
     // - not used when reading, used if optionally outputting an altered BAM file)
-    std::vector<int32_t> chr_lens;	
+    std::vector<int32_t> chr_lens;
+    size_t total_size;
 };

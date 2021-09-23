@@ -169,8 +169,10 @@ bool checkDNA(char * input_read, unsigned int read_len) {
 }
 
 // [[Rcpp::export]]
-int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
-	int read_len, int read_stride, int error_pos) {
+int IRF_GenerateMappabilityReads(
+  std::string genome_file, std::string out_fa,
+	int read_len, int read_stride, int error_pos
+) {
   
   std::ifstream inGenome;
   inGenome.open(genome_file, std::ifstream::in);
@@ -195,21 +197,28 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
   inFA.SetInputHandle(&inGenome);
   inFA.Profile();
   
-  Progress p(inFA.chr_names.size(), (is_stdout == 0));
+  Progress p(inFA.total_size, (is_stdout == 0));
   
   while(!inGenome.eof() && !inGenome.fail()) {
-    p.increment(1);
+    // p.increment(1);
     inFA.ReadSeq();
     sequence = inFA.sequence;
     chr = inFA.seqname;
     char * buffer = new char[sequence.length() + 1];
     std::strcpy (buffer, sequence.c_str());
 
-    for(unsigned int bufferPos = 1; (bufferPos < sequence.length() - read_len + 1); bufferPos += read_stride) {
+    size_t seq_progress = 0;
+    for(
+        unsigned int bufferPos = 1; 
+        bufferPos < sequence.length() - read_len + 1; 
+        bufferPos += read_stride
+    ) {
       memcpy(read, &buffer[bufferPos - 1], read_len);
       seed += 1;
       if(checkDNA(read, read_len)) {       
-        std::string write_seq = GenerateReadError(read, read_len, error_pos, direction, seed) ;
+        std::string write_seq = GenerateReadError(
+          read, read_len, error_pos, direction, seed
+        ) ;
 
         if(is_stdout == 1) {
           Rcout << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" << std::to_string(bufferPos)
@@ -218,9 +227,16 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
           outFA << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" << std::to_string(bufferPos)
             << '\n' << write_seq << '\n'; 
         }
-        direction = (direction == 0 ? 1 : 0);        
+        direction = (direction == 0 ? 1 : 0);
+        
+        // update proogress bar
+        if(seed % 10000 == 0) {
+          p.increment(bufferPos - seq_progress);
+          seq_progress = bufferPos;
+        }
       }
     }
+    p.increment(sequence.length() - seq_progress);
     delete[] buffer;
   }
   delete[] read;
@@ -235,13 +251,21 @@ int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa,
 
 #ifndef GALAXY
 // [[Rcpp::export]]
-int IRF_GenerateMappabilityRegions(std::string bam_file, std::string output_file, int threshold, int includeCov, bool verbose, int n_threads = 1){
+int IRF_GenerateMappabilityRegions(
+    std::string bam_file, std::string output_file, 
+    int threshold, int includeCov, bool verbose,
+    int n_threads
+){
   
   std::string s_output_txt = output_file + ".txt";
   std::string s_output_cov = output_file + ".cov";
 #else
-int IRF_GenerateMappabilityRegions(std::string bam_file, std::string s_output_txt, int threshold, std::string s_output_cov){	
+int IRF_GenerateMappabilityRegions(
+    std::string bam_file, std::string s_output_txt, 
+    int threshold, std::string s_output_cov
+  ){	
 	bool verbose = true;
+  int n_threads = 1;
 #endif
 
   // int use_threads = Set_Threads(n_threads);

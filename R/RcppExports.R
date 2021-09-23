@@ -37,7 +37,7 @@ IRF_GenerateMappabilityReads <- function(genome_file, out_fa, read_len, read_str
     .Call(`_NxtIRFcore_IRF_GenerateMappabilityReads`, genome_file, out_fa, read_len, read_stride, error_pos)
 }
 
-IRF_GenerateMappabilityRegions <- function(bam_file, output_file, threshold, includeCov, verbose, n_threads = 1L) {
+IRF_GenerateMappabilityRegions <- function(bam_file, output_file, threshold, includeCov, verbose, n_threads) {
     .Call(`_NxtIRFcore_IRF_GenerateMappabilityRegions`, bam_file, output_file, threshold, includeCov, verbose, n_threads)
 }
 

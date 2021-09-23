@@ -22,6 +22,12 @@ SOFTWARE.  */
 
 #include "FastaReader.h"
 
+FastaReader::FastaReader() {
+  total_size = 0;
+  IN = NULL;
+  FirstSeq = true;
+}
+
 void FastaReader::SetInputHandle(std::istream *in_stream) {
   IN = in_stream;
   FirstSeq = true;
@@ -32,11 +38,13 @@ void FastaReader::Profile() {
   chr_names.clear();
   chr_lens.clear();
   IN->seekg (0, std::ios_base::beg);
+  total_size = 0;
   
   while(!IN->eof() && !IN->fail()) {
     ReadSeq();
     chr_names.push_back(seqname);
     chr_lens.push_back((int32_t)sequence.length());
+    total_size += sequence.length();
   }
   IN->clear();
   IN->seekg (0, std::ios_base::beg);

@@ -183,7 +183,7 @@ Mappability_CalculateExclusions <- function(reference_path,
         output_file,
         threshold = threshold,
         includeCov = includeCov,
-        verbose = TRUE, n_threads
+        verbose = TRUE, n_threads = n_threads
     )
     # check file is actually made; then gzip it
     if(file.exists(paste0(output_file, ".txt"))) {
