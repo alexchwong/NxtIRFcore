@@ -1346,7 +1346,7 @@ Get_GTF_file <- function(reference_path) {
         ),
         strand = candidate.introns$strand
     )
-    donor_seq <- getSeq(genome, makeGRangesFromDataFrame(donor.introns))
+    donor_seq <- getSeq_small(genome, .grDT(donor.introns))
     acceptor.introns <- data.frame(
         seqnames = candidate.introns$seqnames,
         start = ifelse(candidate.introns$strand == "+",
@@ -1357,7 +1357,7 @@ Get_GTF_file <- function(reference_path) {
         ),
         strand = candidate.introns$strand
     )
-    acceptor_seq <- getSeq(genome, makeGRangesFromDataFrame(acceptor.introns))
+    acceptor_seq <- getSeq_small(genome, .grDT(acceptor.introns))
     candidate.introns$splice_motif <- paste0(donor_seq, acceptor_seq)
     
     return(candidate.introns)
@@ -2262,7 +2262,7 @@ Get_GTF_file <- function(reference_path) {
         c("seqnames", "start", "end", "strand", "transcript_id")]
     exon_gr <- .grDT(exon.DT)
     message("...exonic transcripts")
-    set(exon.DT,,"seq", as.character(getSeq(genome, exon_gr)))
+    set(exon.DT,,"seq", as.character(getSeq_small(genome, exon_gr)))
     final <- .gen_nmd_determine_spliced_exon(exon.DT, intron.DT, 
         threshold = threshold)
 
@@ -2414,7 +2414,7 @@ Get_GTF_file <- function(reference_path) {
     intron.part.short <- intron.part.upstream[get("type") == "intron"]
     intron.short_gr <- .grDT(intron.part.short)
     intron.part.short[, 
-        c("seq") := as.character(getSeq(genome, intron.short_gr))]
+        c("seq") := as.character(getSeq_small(genome, intron.short_gr))]
     intron.part.upstream[exon.DT,
         on = c("transcript_id", "seqnames", "start", "end", "strand"),
         c("seq") := get("i.seq")
@@ -2450,7 +2450,7 @@ Get_GTF_file <- function(reference_path) {
 
     intron.short_gr <- .grDT(intron.part.short)
     intron.part.short[, 
-        c("seq") := as.character(getSeq(genome, intron.short_gr))]
+        c("seq") := as.character(getSeq_small(genome, intron.short_gr))]
     intron.part.upstream[exon.DT,
         on = c("transcript_id", "seqnames", "start", "end", "strand"),
         c("seq") := get("i.seq")
@@ -3429,7 +3429,7 @@ Get_GTF_file <- function(reference_path) {
     ] # left_join with Exons
     Upstream_gr <- .grDT(na.omit(Upstream), keep.extra.columns = TRUE)
     
-    Upstream_seq <- getSeq(genome, Upstream_gr)
+    Upstream_seq <- getSeq_small(genome, Upstream_gr)
     Upstream[!is.na(get("seqnames")), c("seq") := as.character(Upstream_seq)]
 
     cols = c("EventID", "phase", "seq")
@@ -3477,7 +3477,7 @@ Get_GTF_file <- function(reference_path) {
         c("EventID", "seqnames", "start", "end", "width", "strand", "phase")
     ] # left_join with Exons
     Downstream_gr <- .grDT(na.omit(Downstream), keep.extra.columns = TRUE)
-    Downstream_seq <- getSeq(genome, Downstream_gr)
+    Downstream_seq <- getSeq_small(genome, Downstream_gr)
     Downstream[!is.na(get("seqnames")), 
         c("seq") := as.character(Downstream_seq)]
 
@@ -3510,7 +3510,7 @@ Get_GTF_file <- function(reference_path) {
         on = c("transcript_id", "exon_number"),
         c("EventID", "seqnames", "start", "end", "width", "strand", "phase")]
     Casette_gr <- .grDT(na.omit(Casette), keep.extra.columns = TRUE)
-    Casette_seq <- getSeq(genome, Casette_gr)
+    Casette_seq <- getSeq_small(genome, Casette_gr)
     Casette[!is.na(get("seqnames")),
         c("seq") := as.character(Casette_seq)]
 

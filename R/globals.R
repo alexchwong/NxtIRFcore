@@ -132,8 +132,6 @@ semi_join.DT = function(A, B, by, nomatch = 0) {
     psetdiff(unlist(range(grl), use.names = TRUE), grl)
 }
 
-
-
 make.path.relative = function(base, target) {
     if(Sys.info()["sysname"] == "Windows") {
         base = normalizePath(base, winslash = "/")
@@ -143,6 +141,16 @@ make.path.relative = function(base, target) {
     
     paste0(gsub('[^/]+/?', '../', sub(common, '', base)),
         sub(common, '', target))
+}
+
+getSeq_small <- function(genome, gr, chunk_size = 10000) {
+    retval = c()
+    if(chunk_size > length(gr)) chunk_size = length(gr)
+    for(i in seq(1, length(gr), by = chunk_size)) {
+        i_end = min(length(gr), i + chunk_size - 1)
+        retval = c(retval, getSeq(genome, gr[seq(i, i_end)]))
+    }
+    return(retval)
 }
 
 #' GGPLOT themes

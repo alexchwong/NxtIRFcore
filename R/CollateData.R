@@ -551,8 +551,8 @@ CollateData <- function(Experiment, reference_path, output_path,
         
         genome = Get_Genome(reference_path)
         junc.common.unanno[, c("splice_motif") := paste0(
-            as.character(getSeq(genome, left.gr)), 
-            as.character(getSeq(genome, right.gr))
+            as.character(getSeq_small(genome, left.gr)), 
+            as.character(getSeq_small(genome, right.gr))
         )]
         splice_motifs = data.frame(
             seqs = c("GTAG", "GCAG", "ATAC", "ATAG"),
