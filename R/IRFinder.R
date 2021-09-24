@@ -50,6 +50,7 @@ IRFinder <- function(
     # Check args
     if(length(bamfiles) != length(sample_names)) .log(paste("In IRFinder(),",
         "Number of BAM files and sample names must be the same"))
+    if(length(bamfiles) == 0) .log("bamfiles argument must not be empty")
     if(!all(file.exists(bamfiles))) .log(paste("In IRFinder(),",
         "some BAMs in bamfiles do not exist"))
     if(!dir.exists(dirname(output_path))) .log(paste("In IRFinder(),",
