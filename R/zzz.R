@@ -48,7 +48,8 @@ NULL
 #'   sample names and sample paths (in tempdir()) of example BAM files
 #' @export
 NxtIRF_example_bams <- function() {
-    example_bams()
+    bams = NxtIRFdata::example_bams()
+    if(length(bams) != 6) stop("Example bam fetching failed")
     return(Find_Bams(tempdir()))
 }
 
