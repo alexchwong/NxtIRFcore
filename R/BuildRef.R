@@ -104,9 +104,10 @@ NULL
 #'   `nonPolyARef` and `MappabilityRef` for selected genomes. Allowed options 
 #'   are: 'hg38', 'hg19', 'mm9', 'mm10'.
 #'   Note that the user can still set `nonPolyARef` and `MappabilityRef` values
-#'   to override the default files. Alternatively, use `GetNonPolyARef()` and
-#'   `GetMappabilityRef()` to retrieve NxtIRF-supplied default files
-#'   for the supported chromosomes (see examples below).
+#'   to override the default files. Alternatively, use `GetNonPolyARef()` to 
+#'   retrieve NxtIRF-supplied default files for non-polyA references, and
+#'   `get_mappability_exclusion()` for the Mappability Exclusion BED file
+#'   for the supported genomes in `genome_type`
 #' @param nonPolyARef A BED file (3 unnamed columns containing chromosome, 
 #'   start and end coordinates) of regions defining known non-polyadenylated 
 #'   transcripts. This file is used for QC analysis of IRFinder-processed files 
@@ -158,8 +159,8 @@ NULL
 #' 
 #' GetReferenceResource(
 #'     reference_path = file.path(tempdir(), "Reference"),
-#'     fasta = NxtIRFdata::chrZ_genome(), 
-#'     gtf = NxtIRFdata::chrZ_gtf()
+#'     fasta = chrZ_genome(), 
+#'     gtf = chrZ_gtf()
 #' )
 #' BuildReference(
 #'     reference_path = file.path(tempdir(), "Reference")
@@ -168,10 +169,6 @@ NULL
 #' # Gets path to the Non-PolyA BED file for hg19
 #'
 #' GetNonPolyARef("hg19")
-#'
-#' # Gets path to the Mappability Exclusion BED file for mm10 (from a tempdir())
-#'
-#' GetMappabilityRef("mm10")
 #'
 #' \dontrun{
 #' # Reference generation from user supplied FASTA and GTF files
@@ -394,19 +391,6 @@ GetNonPolyARef <- function(genome_type) {
     return(nonPolyAFile)
 }
 
-#' @describeIn BuildReference Returns the path to the NxtIRF-provided
-#'   Mappability Exclusion coordinates of lowly-mappable regions for genomes 
-#'   \code{hg38}, \code{hg19}, \code{mm10} and \code{mm9}, 
-#' @export
-GetMappabilityRef <- function(genome_type) {
-    if (!(genome_type %in% c("hg38", "hg19", "mm9", "mm10"))) {
-        mapfile <- ""
-    } else {
-        mapfile <- get_mappability_exclusion(genome_type)
-    }
-    return(mapfile)
-}
-
 Get_Genome <- function(reference_path, validate = TRUE, 
         as_DNAStringSet = FALSE) {
     if(validate) .validate_reference(reference_path)
@@ -542,14 +526,15 @@ Get_GTF_file <- function(reference_path) {
         nonPolyAFile <- .parse_valid_file(nonPolyARef, 
             "Reference generated without non-polyA reference") 
     }
-    map_file = file.path(normalizePath(reference_path), "Mappability",
-        "MappabilityExclusion.bed.gz")
+    map_path = file.path(normalizePath(reference_path), "Mappability")
+    map_file = file.path(map_path, "MappabilityExclusion.bed.gz")
     if(is_valid(MappabilityRef)) {
         MappabilityFile <- .parse_valid_file(MappabilityRef)
     } else if(file.exists(map_file)) {
         MappabilityFile <- .parse_valid_file(map_file)
     } else if(genome_type %in% c("hg38", "hg19", "mm9", "mm10")) {
-        MappabilityFile <- .parse_valid_file(GetMappabilityRef(genome_type))
+        MappabilityFile <- .parse_valid_file(get_mappability_exclusion(
+            genome_type, as_type = "bed.gz", path = map_path, overwrite = TRUE))
     } else {
         MappabilityFile <-
             .parse_valid_file(MappabilityRef, 
@@ -612,10 +597,10 @@ Get_GTF_file <- function(reference_path) {
         if(!file.exists(gtf)) .log(paste(gtf, "doesn't exist"))
     }
     # Check web links are valid
-    test_urls <- c(fasta, gtf)
-    for(url in test_urls) {
-        .url_test(url)
-    }
+    # test_urls <- c(fasta, gtf)
+    # for(url in test_urls) {
+        # .url_test(url)
+    # }
 
     fasta_use <- gtf_use <- ah_genome_use <- ah_gtf_use <- ""
     if(.is_AH_pattern(fasta)) {
@@ -659,21 +644,12 @@ Get_GTF_file <- function(reference_path) {
     return(FALSE)
 }
 
-.url_test <- function(url) {
-    if(any(startsWith(url, c("http", "ftp")))) {
-        ret = .check_if_url_exists(url)
-        if(!ret) {
-            .log(paste(url, "is not accessible at this time.",
-            "Please try again later"))
-        }
-    }
-}
 
 ################################################################################
 
 .fetch_genome_as_required <- function(genome, pseudo_fetch) {
     if(!pseudo_fetch) {
-        .log("Importing genome sequences to memory", "message", 
+        .log("Importing genome sequences to memory...", "message", 
             appendLF = FALSE)
         genome = import(genome)     # Fetch as DNAStringSet - avoid TwoBit lag    
         message("done")
@@ -2353,14 +2329,17 @@ Get_GTF_file <- function(reference_path) {
     exon.MLE.DT <- exon.MLE.DT[, c("transcript_id", "seq")]
     splice <- exon.MLE.DT[, lapply(.SD, paste0, collapse = ""), 
         by = "transcript_id"]
-    splice[is.na(rowSums(stringr::str_locate(get("seq"), "N"))),
+    # splice[is.na(rowSums(stringr::str_locate(get("seq"), "N"))),
+    splice[as.numeric(regexpr("N", get("seq"))) < 0,
         c("AA") := as.character(
             Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"))
         )
     ]
     # Find nucleotide position of first stop codon
     splice[, c("stop_pos") := 
-        stringr::str_locate(get("AA"), "\\*")[, 1] * 3 - 2]
+        # stringr::str_locate(get("AA"), "\\*")[, 1] * 3 - 2]
+        as.numeric(regexpr("\\*", get("AA"))) * 3 - 2]
+    splice[get("stop_pos") < 0, c("stop_pos") := NA]
     splice[, c("splice_len") := nchar(get("seq"))]
     splice[!is.na(get("AA")), 
         c("stop_to_EJ") := get("splice_len") - get("stop_pos")]
@@ -2498,7 +2477,8 @@ Get_GTF_file <- function(reference_path) {
     IRT[, c("seq") := substr(get("seq"), 1, 
         nchar(get("seq")) - (nchar(get("seq")) %% 3))]
     IRT[
-        is.na(rowSums(stringr::str_locate(get("seq"), "N"))),
+        # is.na(rowSums(stringr::str_locate(get("seq"), "N"))),
+        as.numeric(regexpr("N", get("seq"))) < 0,
         c("AA") := as.character(
             Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"))
         )
@@ -2506,7 +2486,9 @@ Get_GTF_file <- function(reference_path) {
 
     # Find nucleotide position of first stop codon
     IRT[, c("stop_pos") := 
-        stringr::str_locate(get("AA"), "\\*")[, 1] * 3 - 2]
+        # stringr::str_locate(get("AA"), "\\*")[, 1] * 3 - 2]
+        as.numeric(regexpr("\\*", get("AA"))) * 3 - 2]
+    IRT[get("stop_pos") < 0, c("stop_pos") := NA]
     IRT[, c("IRT_len") := nchar(get("seq"))]
     IRT[!is.na(get("AA")), c("stop_to_EJ") := 
         get("IRT_len") - get("stop_pos")]

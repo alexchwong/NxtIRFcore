@@ -2,60 +2,34 @@
 % Please edit documentation in R/zzz.R
 \name{example-NxtIRF-data}
 \alias{example-NxtIRF-data}
-\alias{example_bams}
 \alias{NxtIRF_example_bams}
 \alias{NxtIRF_example_NxtSE}
-\alias{get_mappability_exclusion}
-\title{NxtIRF Examples}
+\title{NxtIRF Example BAMs and NxtSE Experiment Object}
 \usage{
-get_mappability_exclusion(
-  genome_type = c("hg38", "hg19", "mm10", "mm9"),
-  destination_path = tempdir(),
-  overwrite = TRUE
-)
-
-example_bams(destination_path = tempdir())
-
 NxtIRF_example_bams()
 
 NxtIRF_example_NxtSE()
 }
-\arguments{
-\item{genome_type}{Either one of \code{hg38}, \code{hg19}, \code{mm10} or \code{mm9}}
-
-\item{destination_path}{The directory to place the downloaded example files.
-If left blank, gives the direct BiocFileCache path of the resource.}
-
-\item{overwrite}{(default = TRUE) Whether to overwrite file if already
-exists}
-}
 \value{
-See Functions section below.
+See \code{NxtIRF_example_bams()} returns a 2-column data frame containing
+sample names and BAM paths of the example dataset. \code{NxtIRF_example_NxtSE()}
+returns a NxtSE object.
 }
 \description{
-Contains files that provides a workable example for the
-NxtIRF package.\cr\cr
-A mock reference, with genome sequence (FASTA) and gene annotation (GTF)
-files are provided, based on the genes SRSF1, SRSF2, SRSF3, TRA2A, TRA2B,
-TP53 and NSUN5, of which sequences are used to construct an artificial
-chromosome Z. This was generated based on release-94 of Ensembl GRCh38 (hg38)
-reference.\cr\cr
-Also, there are 6 example bam files based on samples from the
+6 example bam files based on samples from the
 Leucegene dataset (GSE67039). Bam files are constructed
 based on the complete bam files of 6 samples from Leucegene,
 subsetted by regions containing the 7 above genes. Then, the reads of these
-subsetted BAMs were realigned to the mock reference using STAR.\cr\cr
-Additionally, there are files for Mappability exclusion regions generated
-using NxtIRF, suitable for use in generating references based on hg38,
-hg19, mm10 and mm9 genomes.
+subsetted BAMs were realigned to the NxtIRF example reference using
+STAR.\cr\cr
+A NxtSE SummarizedExperiment object was constructed by running \code{IRFinder()},
+\code{CollateData()} and \code{MakeSE()}
+on the example BAM files, using the NxtIRF example reference. A full pipeline
+of how this NxtSE was generated can be found in
+\code{system.file("scripts", "make_data.R", package = "NxtIRFcore")}
 }
 \section{Functions}{
 \itemize{
-\item \code{get_mappability_exclusion}: Temporary fn to get mappability
-
-\item \code{example_bams}: Makes a copy of the Leucegene example 
-BAM files, aligned to the NxtIRF mock genome, in the given destination path
-
 \item \code{NxtIRF_example_bams}: Returns a 2-column data frame, containing 
 sample names and sample paths (in tempdir()) of example BAM files
 
@@ -64,13 +38,6 @@ generated using the NxtIRF mock reference and example BAM files
 }}
 
 \examples{
-# returns the location of the Mappability exclusion BED for hg38
-
-get_mappability_exclusion("hg38") 
-
-# returns the locations of the 6 example bam files
-
-example_bams() 
 
 # returns a data frame with the first column as sample names, and the 
 # second column as BAM paths
@@ -78,11 +45,9 @@ example_bams()
 NxtIRF_example_bams() 
 
 # Returns a NxtSE object created by the example bams aligned to the
-
 # mock NxtSE reference
 
-NxtIRF_example_NxtSE() 
-
+se = NxtIRF_example_NxtSE() 
 
 }
 \references{

@@ -143,16 +143,6 @@ make.path.relative = function(base, target) {
         sub(common, '', target))
 }
 
-getSeq_small <- function(genome, gr, chunk_size = 10000) {
-    retval = c()
-    if(chunk_size > length(gr)) chunk_size = length(gr)
-    for(i in seq(1, length(gr), by = chunk_size)) {
-        i_end = min(length(gr), i + chunk_size - 1)
-        retval = c(retval, getSeq(genome, gr[seq(i, i_end)]))
-    }
-    return(retval)
-}
-
 #' GGPLOT themes
 #'
 #' A ggplot theme object for white background figures without a legend

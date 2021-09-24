@@ -14,33 +14,31 @@ Description: Interactively analyses Intron Retention and Alternative Splicing
     multi-platform compatibility. In addition, NxtIRF provides convenient 
     pipelines for downstream analysis and publication-ready visualisation tools.
 License: MIT + file LICENSE
+Depends: NxtIRFdata
 Imports:
-	methods, stats, utils, R.utils, magrittr, tools,
+	methods, stats, utils, tools, parallel,
+	magrittr,
 	Rcpp (>= 1.0.5),
 	data.table,
 	fst,
 	ggplot2,
-	NxtIRFdata,
-	AnnotationHub, ExperimentHub, BiocFileCache,
+	AnnotationHub, 
+	BiocFileCache,
 	BiocGenerics,
 	BiocParallel,
-	Biostrings,
+	Biostrings, 
 	BSgenome,
 	DelayedArray,
-	DelayedMatrixStats,
 	genefilter,
 	GenomeInfoDb,
 	GenomicRanges,
 	HDF5Array,
-	httr,
 	IRanges,
-	openssl,
-	parallel,
 	plotly,
+	R.utils,
 	rhdf5,
 	rtracklayer,
-	stringr,
-	SummarizedExperiment,
+	SummarizedExperiment, 
 	S4Vectors
 Remotes:
   alexchwong/NxtIRFdata

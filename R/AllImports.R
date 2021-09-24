@@ -1,4 +1,5 @@
-#' @useDynLib NxtIRFcore, .registration = TRUE 
+#' @useDynLib NxtIRFcore, .registration = TRUE
+#' @import NxtIRFdata
 #' @importFrom methods as is coerce callNextMethod new
 #' @importFrom stats as.formula model.matrix qt runif na.omit prcomp
 #' @importFrom utils download.file packageVersion getFromNamespace
@@ -11,17 +12,14 @@
 #' @importFrom fst read.fst write.fst
 #' @import ggplot2
 #' @importFrom AnnotationHub AnnotationHub cache
-#' @importFrom ExperimentHub ExperimentHub
 #' @importFrom BiocFileCache BiocFileCache bfcrpath bfcquery
 #' @importFrom BiocGenerics start end width strand
 #' @importFrom BiocGenerics nrow ncol rbind cbind
 #' @importFrom BiocParallel SnowParam MulticoreParam SerialParam
 #' @importFrom BiocParallel bpparam bplapply
 #' @importFrom Biostrings readDNAStringSet DNAStringSet translate 
-#' @importFrom Biostrings replaceAmbiguities type
 #' @importFrom BSgenome getSeq
 #' @importFrom DelayedArray qlogis plogis rowMeans DelayedArray
-#' @importFrom DelayedMatrixStats rowSds colVars
 #' @importFrom genefilter rowttests
 #' @importFrom GenomeInfoDb sortSeqlevels seqinfo seqlengths seqlevels<- 
 #' @importFrom GenomeInfoDb seqlevels seqlevelsStyle seqlevelsStyle<-
@@ -32,22 +30,19 @@
 #' @importFrom GenomicRanges flank setdiff seqnames psetdiff disjoin mcols<- 
 #' @importFrom GenomicRanges strand<- seqnames<-
 #' @importFrom HDF5Array HDF5Array writeHDF5Array h5writeDimnames 
-#' @importFrom httr HEAD GET status_code
 #' @importFrom IRanges IRanges Views RleList
-#' @importFrom openssl md5
 #' @importFrom parallel detectCores
 #' @importFrom plotly config layout plotlyOutput event_data ggplotly 
 #' @importFrom plotly plotlyProxy plotlyProxyInvoke renderPlotly subplot 
 #' @importFrom plotly highlight
 #' @importFrom rhdf5 h5createFile h5createDataset h5delete h5write h5createGroup
 #' @importFrom rtracklayer import export TwoBitFile track
-#' @importFrom stringr str_locate
 #' @importFrom SummarizedExperiment SummarizedExperiment 
 #' @importFrom SummarizedExperiment rowData colData rowData<- colData<-
 #' @importFrom SummarizedExperiment assay assays assay<- assays<-
 #' @importFrom SummarizedExperiment assayNames assayNames<-
-#' @importFrom S4Vectors coolcat metadata Rle metadata<- SimpleList 
-#' @importFrom S4Vectors endoapply from to setValidity2 DataFrame
+#' @importFrom S4Vectors metadata Rle metadata<- SimpleList 
+#' @importFrom S4Vectors from to setValidity2 DataFrame
 #' @importFrom S4Vectors bindCOLS bindROWS getListElement setListElement
 #' @importClassesFrom SummarizedExperiment SummarizedExperiment
 #' @importClassesFrom S4Vectors DataFrame

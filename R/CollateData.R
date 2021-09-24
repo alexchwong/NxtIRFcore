@@ -415,7 +415,7 @@ CollateData <- function(Experiment, reference_path, output_path,
 # Assume all IRFinder outputs are created from same ref. Checks this
 .collateData_irf_merge <- function(df.internal, jobs, BPPARAM_mod, 
         output_path, stranded) {
-    # Check MD5 of all introns are the same in all samples
+    # Check names of all introns are the same in all samples
     temp_output_path = file.path(output_path, "temp")
     n_jobs = length(jobs)
     
@@ -426,11 +426,10 @@ CollateData <- function(Experiment, reference_path, output_path,
             suppressPackageStartupMessages({
                 requireNamespace("data.table")
                 requireNamespace("stats")
-                requireNamespace("openssl")
             })
             work = jobs[[x]]
             block = df.internal[work]
-            irf.md5 = c()
+            irf.names = c()
             phrase = ifelse(stranded, "Dir_Chr", "Nondir_Chr")
             for(i in seq_len(length(work))) {
 
@@ -440,27 +439,28 @@ CollateData <- function(Experiment, reference_path, output_path,
                 
                 setnames(irf, c(phrase, "Start", "End", "Strand"), 
                     c("seqnames","start","end", "strand"))
-                irf.md5 = unique(c(irf.md5, 
-                    as.character(openssl::md5(paste(irf$Name, collapse=" ")))))
+                if(is.null(irf.names)) {
+                    irf.names = irf$Name
+                } else {
+                    if(!identical(irf.names, irf$Name))
+                        .collateData_stop_irf_mismatch()
+                }
                 fst::write.fst(as.data.frame(irf), 
                     file.path(temp_output_path, 
                         paste(block$sample[i], "irf.fst.tmp", sep=".")))
             }
-            return(irf.md5)
+            return(irf.names)
         },  jobs = jobs, df.internal = df.internal, 
             temp_output_path = temp_output_path, 
             stranded = stranded, BPPARAM = BPPARAM_mod
     )
-    
-    # Checks MD5s of common columns are the same
-    irf.md5.check = unique(unlist(irf.list))
-    if(length(irf.md5.check) > 1) {
-        .log(paste(
-            "MD5 check of IRFinder introns are not the same.",
-            "Perhaps some samples were processed by a different reference.",
-            "NxtIRF needs all samples to be processed by the same reference"))
+    # Checks common columns are the same
+    if(length(irf.list) > 1) {
+        for(i in seq_len(length(irf.list))) {
+            if(!identical(irf.list[[i]], irf.list[[1]]))
+                .collateData_stop_irf_mismatch()
+        }
     }
-    
     # Returns common columns
     irf = fst::read.fst(file.path(temp_output_path, 
         paste(df.internal$sample[1], "irf.fst.tmp", sep=".")),
@@ -470,6 +470,16 @@ CollateData <- function(Experiment, reference_path, output_path,
     
     message("done")
     return(irf.common)
+}
+
+.collateData_stop_irf_mismatch <- function() {
+    stopmsg = paste(
+        "Some IRFinder outputs were generated",
+        "with a different NxtIRF reference.",
+        "Suggest re-run IRFinder on all sample files",
+        "using thesame reference"
+    )
+    .log(stopmsg)
 }
 
 ################################################################################

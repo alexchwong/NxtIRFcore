@@ -49,8 +49,8 @@
 #' 
 #' GetReferenceResource(
 #'     reference_path = file.path(tempdir(), "Reference"),
-#'     fasta = NxtIRFdata::chrZ_genome(),
-#'     gtf = NxtIRFdata::chrZ_gtf()
+#'     fasta = chrZ_genome(),
+#'     gtf = chrZ_gtf()
 #' )
 #' Mappability_GenReads(
 #'     reference_path = file.path(tempdir(), "Reference"),
@@ -65,7 +65,7 @@
 #' ref_path = file.path(tempdir(), "Reference")
 #' setwd(ref_path)
 #' Rsubread::buildindex(basename = "./reference_index", 
-#'     reference = NxtIRFdata::chrZ_genome())
+#'     reference = chrZ_genome())
 #'
 #' # (2b) Align the synthetic reads using Rsubread::subjunc()
 #' 
@@ -74,7 +74,7 @@
 #'     readfile1 = file.path(ref_path, "Mappability", "Reads.fa"), 
 #'     output_file = file.path(ref_path, "Mappability", "AlignedReads.bam"), 
 #'     useAnnotation = TRUE, 
-#'     annot.ext = NxtIRFdata::chrZ_gtf(), 
+#'     annot.ext = chrZ_gtf(), 
 #'     isGTF = TRUE
 #' )
 #' 

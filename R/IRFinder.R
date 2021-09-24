@@ -196,20 +196,19 @@ IRFinder <- function(
     )
     
     # Append to existing main.FC.Rds if exists:
-    if(file.exists(file.path(dirname(output_files[1]), "main.FC.Rds"))) {
-        res.old = readRDS(
-            file.path(dirname(output_files[1]), "main.FC.Rds"))
+    outfile = file.path(dirname(output_files[1]), "main.FC.Rds")
+    if(file.exists(outfile)) {
+        res.old = readRDS(outfile)
 
-        # Check md5 of annotation to show same reference was used
+        # Check annotation df and Status vectors are identical
         anno.old = res.old$annotation[, 
             c("GeneID", "Chr", "Start", "End", "Strand")]
         anno.new = res$annotation[, 
             c("GeneID", "Chr", "Start", "End", "Strand")]
-
-        md5.old.stat = openssl::md5(paste(res.old$stat$Status, collapse=" "))
-        md5.stat = openssl::md5(paste(res$stat$Status, collapse=" "))
-        
-        if(identical(anno.old, anno.new) & md5.stat == md5.old.stat) {
+        if(
+            identical(anno.old, anno.new) & 
+            identical(res.old$stat$Status, res$stat$Status)
+        ) {
             new_samples = res$targets[!(res$targets %in% res.old$targets)]
             res$targets = c(res.old$targets, new_samples)
             res$stat = cbind(res.old$stat, res$stat[,new_samples])        
@@ -222,10 +221,9 @@ IRFinder <- function(
         }
     }
     if(all(c("counts", "annotation", "targets", "stat") %in% names(res))) {
-        saveRDS(res, file.path(dirname(output_files[1]), "main.FC.Rds"))
+        saveRDS(res, outfile)
     }
-    .log(paste("featureCounts ran succesfully; saved to",
-        file.path(dirname(output_files[1]), "main.FC.Rds")), "message")
+    .log(paste("featureCounts ran succesfully; saved to", outfile), "message")
 }
 
 # Validate arguments; return error if invalid

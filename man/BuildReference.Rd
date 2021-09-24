@@ -4,7 +4,6 @@
 \alias{BuildReference}
 \alias{GetReferenceResource}
 \alias{GetNonPolyARef}
-\alias{GetMappabilityRef}
 \alias{BuildReference_Full}
 \title{Builds reference files used by IRFinder / NxtIRF.}
 \usage{
@@ -29,8 +28,6 @@ BuildReference(
 )
 
 GetNonPolyARef(genome_type)
-
-GetMappabilityRef(genome_type)
 
 BuildReference_Full(
   reference_path,
@@ -76,9 +73,10 @@ using chromosome name aliases by matching these to the given reference.}
 \code{nonPolyARef} and \code{MappabilityRef} for selected genomes. Allowed options
 are: 'hg38', 'hg19', 'mm9', 'mm10'.
 Note that the user can still set \code{nonPolyARef} and \code{MappabilityRef} values
-to override the default files. Alternatively, use \code{GetNonPolyARef()} and
-\code{GetMappabilityRef()} to retrieve NxtIRF-supplied default files
-for the supported chromosomes (see examples below).}
+to override the default files. Alternatively, use \code{GetNonPolyARef()} to
+retrieve NxtIRF-supplied default files for non-polyA references, and
+\code{get_mappability_exclusion()} for the Mappability Exclusion BED file
+for the supported genomes in \code{genome_type}}
 
 \item{nonPolyARef}{A BED file (3 unnamed columns containing chromosome,
 start and end coordinates) of regions defining known non-polyadenylated
@@ -172,10 +170,6 @@ given reference path
 coordinates of known non-polyadenylated transcripts for genomes 
 \code{hg38}, \code{hg19}, \code{mm10} and \code{mm9},
 
-\item \code{GetMappabilityRef}: Returns the path to the NxtIRF-provided
-Mappability Exclusion coordinates of lowly-mappable regions for genomes 
-\code{hg38}, \code{hg19}, \code{mm10} and \code{mm9},
-
 \item \code{BuildReference_Full}: One-step function that fetches resources,
 creates a STAR reference (including mappability calculations), then
 creates the NxtIRF reference
@@ -186,8 +180,8 @@ creates the NxtIRF reference
 
 GetReferenceResource(
     reference_path = file.path(tempdir(), "Reference"),
-    fasta = NxtIRFdata::chrZ_genome(), 
-    gtf = NxtIRFdata::chrZ_gtf()
+    fasta = chrZ_genome(), 
+    gtf = chrZ_gtf()
 )
 BuildReference(
     reference_path = file.path(tempdir(), "Reference")
@@ -196,10 +190,6 @@ BuildReference(
 # Gets path to the Non-PolyA BED file for hg19
 
 GetNonPolyARef("hg19")
-
-# Gets path to the Mappability Exclusion BED file for mm10 (from a tempdir())
-
-GetMappabilityRef("mm10")
 
 \dontrun{
 # Reference generation from user supplied FASTA and GTF files

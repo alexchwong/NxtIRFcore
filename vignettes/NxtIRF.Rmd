@@ -73,10 +73,10 @@ via the NxtIRFdata package installed with NxtIRF:
 
 ```{r}
 # Provides the path to the example genome:
-NxtIRFdata::chrZ_genome()
+chrZ_genome()
 
 # Provides the path to the example gene annotation:
-NxtIRFdata::chrZ_gtf()
+chrZ_gtf()
 ```
 
 Using these two files, we construct a NxtIRF reference as follows:
@@ -85,8 +85,8 @@ Using these two files, we construct a NxtIRF reference as follows:
 ref_path = file.path(tempdir(), "Reference")
 BuildReference(
     reference_path = ref_path,
-    fasta = NxtIRFdata::chrZ_genome(),
-    gtf = NxtIRFdata::chrZ_gtf()
+    fasta = chrZ_genome(),
+    gtf = chrZ_gtf()
 )
 ```
 
@@ -95,20 +95,13 @@ BuildReference(
 NxtIRF provides an example set of 6 BAM files to demonstrate its use via this
 vignette.
 
-Firstly, retrieve the BAM files from ExperimentHub using the NxtIRFdata helper
-function `example_bams()`
-
-```{r, results='hide', message = FALSE, warning = FALSE}
-bam_path = file.path(tempdir(), "bams")
-example_bams(destination_path = bam_path)
-```
-
-This will load the BAM path and make a local copy at `bam_path`.
-
-Next, we need to assign sample names to these BAM files. 
+Firstly, retrieve the BAM files from ExperimentHub using the NxtIRF helper
+function `NxtIRF_example_bams()`. This makes a copy of the BAM files to the
+temporary directory:
 
 ```{r}
-bams = Find_Bams(bam_path, level = 0)
+bams = NxtIRF_example_bams()
+bams
 ```
 
 Finally, run NxtIRF/IRFinder as follows:
@@ -268,8 +261,8 @@ ref_path = file.path(tempdir(), "Reference")
 
 GetReferenceResource(
     reference_path = ref_path,
-    fasta = NxtIRFdata::chrZ_genome(), 
-    gtf = NxtIRFdata::chrZ_gtf()
+    fasta = chrZ_genome(), 
+    gtf = chrZ_gtf()
 )
 
 BuildReference(reference_path = ref_path)
@@ -278,8 +271,8 @@ BuildReference(reference_path = ref_path)
 
 BuildReference(
     reference_path = ref_path,
-    fasta = NxtIRFdata::chrZ_genome(), 
-    gtf = NxtIRFdata::chrZ_gtf()
+    fasta = chrZ_genome(), 
+    gtf = chrZ_gtf()
 )
 
 ```
