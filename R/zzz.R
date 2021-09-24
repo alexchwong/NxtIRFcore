@@ -48,7 +48,8 @@ NULL
 #'   sample names and sample paths (in tempdir()) of example BAM files
 #' @export
 NxtIRF_example_bams <- function() {
-    Find_Bams(dirname(example_bams())[1])
+    example_bams()
+    return(Find_Bams(tempdir()))
 }
 
 #' @describeIn example-NxtIRF-data Returns a (in-memory / realized) NxtSE object 
