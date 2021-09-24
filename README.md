@@ -1,5 +1,5 @@
 # NxtIRF
-![R CMD check](https://github.com/alexchwong/NxtIRFcore/actions/workflows/R-CMD-check.yaml/badge.svg?event=push)
+![R CMD check](https://github.com/alexchwong/NxtIRFcore/actions/workflows/check-bioc.yaml/badge.svg?event=push)
 
 NxtIRF quantifies Intron Retention and Alternative Splicing from BAM files using the IRFinder engine. Features interactive visualisation including RNA-seq coverage plots normalised by condition at the splice junction level.
 
