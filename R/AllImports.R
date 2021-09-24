@@ -17,7 +17,7 @@
 #' @importFrom BiocGenerics nrow ncol rbind cbind
 #' @importFrom BiocParallel SnowParam MulticoreParam SerialParam
 #' @importFrom BiocParallel bpparam bplapply
-#' @importFrom Biostrings readDNAStringSet DNAStringSet translate type
+#' @importFrom Biostrings readDNAStringSet DNAStringSet translate
 #' @importFrom BSgenome getSeq
 #' @importFrom DelayedArray qlogis plogis rowMeans DelayedArray
 #' @importFrom DelayedMatrixStats rowSds

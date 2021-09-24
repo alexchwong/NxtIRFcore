@@ -65,7 +65,8 @@ subfolders one level higher (\code{level = 1})
 
 \examples{
 # Retrieve all BAM files in a given folder, named by sample names
-bam_path = dirname(example_bams())[1]
+bam_path = tempdir()
+example_bams(path = bam_path)
 df.bams = Find_Samples(sample_path = bam_path, 
   suffix = ".bam", level = 0)
 # equivalent to:

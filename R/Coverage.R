@@ -951,11 +951,11 @@ plot_view_ref_fn <- function(
                 type != "intron"), 
             aes(xmin = get("start"), xmax = get("end"), 
                 ymin = get("plot_level") - 0.1 - 
-                    ifelse(type %in% c("CDS", "start_codon", "stop_codon"), 
-                        0.1, 0), 
+                    ifelse(get("type") %in% 
+                        c("CDS", "start_codon", "stop_codon"), 0.1, 0), 
                 ymax = get("plot_level") + 0.1 + 
-                    ifelse(type %in% c("CDS", "start_codon", "stop_codon"), 
-                        0.1, 0),
+                    ifelse(get("type") %in% 
+                        c("CDS", "start_codon", "stop_codon"), 0.1, 0),
                 fill = get("highlight")
             )
         )
