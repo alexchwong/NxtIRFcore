@@ -29,6 +29,7 @@ Imports:
 	Biostrings, 
 	BSgenome,
 	DelayedArray,
+	DelayedMatrixStats,
 	genefilter,
 	GenomeInfoDb,
 	GenomicRanges,
