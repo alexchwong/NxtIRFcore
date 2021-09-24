@@ -1,6 +1,3 @@
-# GitHub Actions
-.github/
-
 # R/Bioconductor hidden_file_ext
 *.renviron
 *.rprofile
@@ -55,5 +52,3 @@ src-x64/*
 Meta
 README.md
 doc
-
-# bump
