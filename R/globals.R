@@ -59,8 +59,9 @@ NxtIRF.CoordToGR = function(coordinates) {
 }
 
 NxtIRF.CheckPackageInstalled <- function(
-        package = "DESeq2", version = "1.0.0", 
-        returntype = c("error", "warning", "silent")) {
+        package = "DESeq2", version = "0.0.0", 
+        returntype = c("error", "warning", "silent")
+) {
     res = tryCatch(
         ifelse(packageVersion(package)>=version, TRUE, FALSE),
         error = function(e) FALSE)
@@ -70,6 +71,17 @@ NxtIRF.CheckPackageInstalled <- function(
             "and is required for this function"), type = returntype)
     }
     return(res)
+}
+
+.colourise <- function(text, color) {
+    if(!NxtIRF.CheckPackageInstalled("crayon", returntype = "silent") ||
+        !crayon::has_color()
+    ) return(text)
+    return(crayon::style(text, color))
+}
+
+.nxtcat <- function(...) {
+    cat(sprintf(...))
 }
 
 .validate_threads <- function(n_threads, as_BPPARAM = TRUE, ...) {

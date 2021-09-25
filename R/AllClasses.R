@@ -14,3 +14,23 @@ setClass("NxtSE",
 )
 
 
+#' The NxtFilterVars class
+#'
+#' This is a simple class to contain a number of filter settings
+#' for the filtering of alternative splicing and intron retention
+#' @name NxtFilter-class
+#' @export
+setClass("NxtFilter",
+    slots = c(
+        filterClass = "character",
+        filterType = "character",
+    
+        pcTRUE = "numeric",
+        minimum = "numeric",
+        maximum = "numeric",
+        minDepth = "numeric",
+        condition = "character",
+        minCond = "numeric",
+        EventTypes = "character"
+    )
+)

@@ -200,6 +200,13 @@ p = Plot_Coverage(
     Event = res_limma.filtered$EventName[1],
     tracks = colnames(se)[c(1,2,4,5)],
 )
+as_egg_ggplot(p)
+```
+
+Display the plotly interactive version of the coverage plot (not shown here)
+
+```{r eval = FALSE}
+# Running this will display an interactive plot
 p$final_plot
 ```
 
@@ -214,7 +221,7 @@ p = Plot_Coverage(
     stack_tracks = TRUE,
     t_test = TRUE,
 )
-p$final_plot
+as_egg_ggplot(p)
 ```
 
 ```{r include = FALSE}
@@ -498,6 +505,26 @@ events are included if the filters are applied to the NxtSE object. Finally,
 we obtain a NxtSE object by subsetting the original NxtSE using the vector
 of `expressed_events`.
 
+To view a description of what these filters actually do, simply display them:
+
+```{r}
+get_default_filters()
+```
+
+To construct custom filters, create a NxtFilter object as shown:
+
+```{r}
+f1 = NxtFilter(filterClass = "Data", filterType = "Depth", minimum = 20)
+f1
+```
+
+For more information about the filters available, refer to the manual for
+details:
+
+```{r eval=FALSE}
+?NxtFilter
+```
+
 ### Performing analysis of Differential Alternative Splicing Events
 
 Before performing differential analysis, we must annotate our samples. Currently
@@ -646,7 +673,9 @@ the intron depths reflect the fraction of transcripts with retained introns and
 can be compared across samples.
 
 We will first demonstrate by plotting the RNA-seq coverage of a single gene
-by a single sample
+by a single sample. `Plot_Coverage()` performs the calculations and generates
+a compound object containing both static and interactive plots. We can coerce
+this to a static plot using `as_egg_ggplot()`
 
 ```{r, fig.width = 8, fig.height = 6}
 res = Plot_Coverage(
@@ -654,6 +683,15 @@ res = Plot_Coverage(
     Gene = "TP53", 
     tracks = colnames(se.filtered)[1]
 )
+
+as_egg_ggplot(res)
+```
+
+The interactive plot (not run here) can be displayed by directly calling
+the `final_plot` element of the object returned by `Plot_Coverage`
+
+```{r eval = FALSE}
+# Running this will display an interactive plot
 res$final_plot
 ```
 
@@ -668,7 +706,7 @@ res = Plot_Coverage(
     tracks = colnames(se.filtered)[1],
     condense_tracks = TRUE
 )
-res$final_plot
+as_egg_ggplot(res)
 ```
 
 Alternatively, for fine control, one can supply a vector containing the
@@ -681,7 +719,7 @@ res = Plot_Coverage(
     tracks = colnames(se.filtered)[1],
     selected_transcripts = c("TP53-201", "TP53-204")
 )
-res$final_plot
+as_egg_ggplot(res)
 ```
 
 In the heatmap in the previous section, we can see some retained introns in 
@@ -719,7 +757,7 @@ res = Plot_Coverage(
     condition = "NSUN5_IR",
     tracks = c("High", "Low"),
 )
-res$final_plot
+as_egg_ggplot(res)
 ```
 
 Although NSUN5 intron 8 is the most differentially retained in the analysis, the
@@ -734,7 +772,7 @@ res = Plot_Coverage(
     condition = "NSUN5_IR",
     tracks = c("High", "Low"),
 )
-res$final_plot
+as_egg_ggplot(res)
 ```
 
 There are more complex customisation options with NxtIRF's Plot_Coverage tool

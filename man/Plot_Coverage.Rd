@@ -2,6 +2,7 @@
 % Please edit documentation in R/Coverage.R
 \name{Plot_Coverage}
 \alias{Plot_Coverage}
+\alias{as_egg_ggplot}
 \title{Generate plotly / ggplot RNA-seq coverage plots from command line}
 \usage{
 Plot_Coverage(
@@ -23,6 +24,8 @@ Plot_Coverage(
   norm_event,
   bases_flanking = 100
 )
+
+as_egg_ggplot(p_obj)
 }
 \arguments{
 \item{se}{A NxtSE object, created by \code{\link[=MakeSE]{MakeSE()}}.
@@ -84,6 +87,10 @@ used to define the genomic coordinates of the viewing window.}
 used in conjunction with zoom_factor == 0. E.g. for a given region of
 chr1:10000-11000, if \code{zoom_factor = 0} and \code{bases_flanking = 100}, the
 region chr1:9900-11100 will be displayed.}
+
+\item{p_obj}{In \code{as_egg_ggplot}, takes the output of \code{Plot_Coverage} and
+plots all tracks in a static plot using \code{ggarrange} function of the
+\code{egg} package. Requires \code{egg} to be installed.}
 }
 \value{
 A list containing two objects. final_plot is the plotly object.
@@ -99,6 +106,12 @@ of intron retention or alternative splicing (differential exon coverage).
 It can normalise coverage of samples per condition using NxtIRF's SpliceOver
 parameter that normalises the flanking exon boundaries to 1.
 }
+\section{Functions}{
+\itemize{
+\item \code{as_egg_ggplot}: Coerce the Plot_Coverage output as a vertically
+stacked ggplot, using egg::ggarrange
+}}
+
 \examples{
 se = NxtIRF_example_NxtSE()
 
@@ -114,7 +127,11 @@ p = Plot_Coverage(
     tracks = colnames(se)[1:4]
 )
 
-# Display the interactive Coverage plotly plot:
+# Display a static ggplot / egg::ggarrange stacked plot:
+
+as_egg_ggplot(p)
+
+# Display the plotly-based interactive Coverage plot:
 p$final_plot
 
 # Plot the same event but by condition "treatment"
@@ -122,6 +139,6 @@ p = Plot_Coverage(
     se, rowData(se)$EventName[1], 
     tracks = c("A", "B"), condition = "treatment"
 )
-p$final_plot
+as_egg_ggplot(p)
 
 }

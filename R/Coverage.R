@@ -52,6 +52,9 @@
 #'    used in conjunction with zoom_factor == 0. E.g. for a given region of
 #'    chr1:10000-11000, if `zoom_factor = 0` and `bases_flanking = 100`, the
 #'    region chr1:9900-11100 will be displayed.
+#' @param p_obj In `as_egg_ggplot`, takes the output of `Plot_Coverage` and
+#'   plots all tracks in a static plot using `ggarrange` function of the
+#'   `egg` package. Requires `egg` to be installed.
 #' 
 #' @return A list containing two objects. final_plot is the plotly object. 
 #'   ggplot is a list of ggplot tracks.\cr\cr
@@ -74,7 +77,11 @@
 #'     tracks = colnames(se)[1:4]
 #' )
 #'
-#' # Display the interactive Coverage plotly plot:
+#' # Display a static ggplot / egg::ggarrange stacked plot:
+#'
+#' as_egg_ggplot(p)
+#' 
+#' # Display the plotly-based interactive Coverage plot:
 #' p$final_plot
 #' 
 #' # Plot the same event but by condition "treatment"
@@ -82,7 +89,7 @@
 #'     se, rowData(se)$EventName[1], 
 #'     tracks = c("A", "B"), condition = "treatment"
 #' )
-#' p$final_plot
+#' as_egg_ggplot(p)
 #' 
 #' @md
 #' @export
@@ -145,6 +152,21 @@ Plot_Coverage <- function(
         args$selected_transcripts = selected_transcripts
     return(do.call(plot_cov_fn, args))
 }
+
+#' @describeIn Plot_Coverage Coerce the Plot_Coverage output as a vertically
+#'   stacked ggplot, using egg::ggarrange
+#' @export
+as_egg_ggplot <- function(p_obj) {
+    NxtIRF.CheckPackageInstalled("egg")
+    if(
+        !("ggplot" %in% names(p_obj)) ||
+        !is(p_obj$ggplot[[1]], "ggplot") ||
+        !is(p_obj$ggplot[[6]], "ggplot")
+    ) .log("Given object is not a recognised Plot_Coverage output object")
+    plot_tracks = p_obj$ggplot[
+        unlist(lapply(p_obj$ggplot, function(x) !is.null(x)))]
+    egg::ggarrange(plots = plot_tracks, ncol = 1)
+} 
 
 #' Calls NxtIRF's C++ function to retrieve coverage
 #'
@@ -446,7 +468,9 @@ plot_cov_fn <- function(
     plot_tracks[[length(plot_tracks) + 1]] = p_ref$pl
     # Put the reference track in position #6 of ggplot list
     plot_objs$gp_track[[6]] = p_ref$gp
-    
+    plot_objs$gp_track[[6]] = plot_objs$gp_track[[6]] +
+        theme(legend.position = "none") +
+        labs(x = paste("Chromosome", view_chr))
     # Combine multiple tracks into a plotly plot
     final_plot <- plot_cov_fn_finalize(
         plot_tracks, view_start, view_end, graph_mode)
@@ -565,6 +589,9 @@ plot_cov_fn <- function(
                     paste(args$condition, args$tracks[[j]])
             }
         }
+        # remove x axis label, rename y axis
+        gp_track[[1]] = gp_track[[1]] + theme(axis.title.x = element_blank()) +
+            labs(x = "", y = "Normalized Coverage")
     }
     return(list(
         gp_track = gp_track, pl_track = pl_track
@@ -596,14 +623,15 @@ plot_cov_fn <- function(
             pl_track[[i]]$x$data[[2]]$showlegend = FALSE
             pl_track[[i]]$x$data[[3]]$showlegend = FALSE
             if(length(args$track_names) >= i) {
-                pl_track[[i]]$x$data[[2]]$name = args$track_names[i]
-                pl_track[[i]]$x$data[[3]]$name = args$track_names[i]
+                track_name = args$track_names[i]
             } else {
-                pl_track[[i]]$x$data[[2]]$name = paste(
-                    args$condition, args$tracks[[i]])
-                pl_track[[i]]$x$data[[3]]$name = 
-                    paste(args$condition, args$tracks[[i]])
+                track_name = paste(args$condition, args$tracks[[i]])
             }
+            pl_track[[i]]$x$data[[2]]$name = track_name
+            pl_track[[i]]$x$data[[3]]$name = track_name
+            gp_track[[i]] = gp_track[[i]] + 
+                theme(axis.title.x = element_blank()) + 
+                labs(x = "", y = track_name)
         }
     }
     return(list(
@@ -639,6 +667,8 @@ plot_cov_fn <- function(
             )
         )
         plot_objs$pl_track[[5]]$x$data[[2]]$showlegend = FALSE
+        plot_objs$gp_track[[5]] = plot_objs$gp_track[[5]] + 
+            theme(axis.title.x = element_blank())
     }
     return(plot_objs)
 }
@@ -681,10 +711,14 @@ plot_cov_fn <- function(
                     )
                     pl_track[[i]]$x$data[[2]]$showlegend = FALSE
                     if(!missing(track_names) && length(track_names) >= i) {
-                        pl_track[[i]]$x$data[[2]]$name = track_names[i]
+                        track_name = track_names[i]
                     } else {
-                        pl_track[[i]]$x$data[[2]]$name = track_samples
+                        track_name = track_samples
                     }
+                    pl_track[[i]]$x$data[[2]]$name = track_name
+                    gp_track[[i]] = gp_track[[i]] + 
+                        theme(axis.title.x = element_blank()) + 
+                        labs(x = "", y = track_name)
                 }
             }
         }
@@ -935,20 +969,18 @@ plot_view_ref_fn <- function(
     view_chr, view_start, view_end, highlight_events
 ) {
     group.DT = DTplotlist$group.DT
-    reduced.DT = DTplotlist$reduced.DT
+    reduced = as.data.frame(DTplotlist$reduced.DT)
     condense_this = DTplotlist$condense_this
     
-    p = ggplot(reduced.DT)
-    if(nrow(subset(as.data.frame(reduced.DT), type = "intron")) > 0) {
-        p = p + geom_segment(data = subset(as.data.frame(reduced.DT), 
-                type = "intron"), 
+    p = ggplot(reduced)
+    if(nrow(subset(reduced, type = "intron")) > 0) {
+        p = p + geom_segment(data = reduced[reduced$type == "intron",], 
             aes(x = get("start"), xend = get("end"), 
                 y = get("plot_level"), yend = get("plot_level"),
             color = get("highlight")))
     }
-    if(nrow(subset(as.data.frame(reduced.DT), type != "intron")) > 0) {
-        p = p + geom_rect(data = subset(as.data.frame(reduced.DT), 
-                type != "intron"), 
+    if(nrow(reduced[reduced$type != "intron",]) > 0) {
+        p = p + geom_rect(data = reduced[reduced$type != "intron",], 
             aes(xmin = get("start"), xmax = get("end"), 
                 ymin = get("plot_level") - 0.1 - 
                     ifelse(get("type") %in% 
