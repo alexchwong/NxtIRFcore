@@ -45,7 +45,7 @@ Remotes:
   alexchwong/NxtIRFdata
 LinkingTo: Rcpp, zlibbioc, RcppProgress
 Suggests: 
-    knitr, rmarkdown, pheatmap, shiny, openssl, crayon, egg
+    knitr, rmarkdown, pheatmap, shiny, openssl, crayon, egg,
     DESeq2, limma, DoubleExpSeq, Rsubread, testthat (>= 3.0.0)
 VignetteBuilder: knitr
 biocViews: Software, Transcriptomics, RNASeq, AlternativeSplicing, Coverage, 
