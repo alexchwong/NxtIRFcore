@@ -23,7 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.  */
 
 #include "ReadBlockProcessor_CoverageBlocks.h"
-#include "includedefine.h"
 
 void CoverageBlocks::loadRef(std::istringstream &IN) {
 	std::string myLine;

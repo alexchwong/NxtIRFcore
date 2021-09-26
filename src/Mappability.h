@@ -23,13 +23,11 @@ SOFTWARE.  */
 #ifndef CODE_MAPPABILITY
 #define CODE_MAPPABILITY
 
-#include "ReadBlockProcessor_FragmentsMap.h"
-#include "GZWriter.h"
-#include "BAM2blocks.h"
-#include "FastaReader.h"
 #include "includedefine.h"
+#include "IRFinder_Rcpp.h"
+// #include "IRFinder_Rcout.h" // For Rcout
 
-int Set_Threads(int n_threads);
+#include "FastaReader.h"
 
 std::string GenerateReadError(
     char * input_read, 

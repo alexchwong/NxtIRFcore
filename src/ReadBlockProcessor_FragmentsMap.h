@@ -25,7 +25,7 @@ SOFTWARE.  */
 
 #include "ReadBlockProcessor.h"
 #include "FragmentBlocks.h"
-#include "covWriter.h"
+#include "covWriter.h"    // This should already include Rcout
 
 class FragmentsMap : public ReadBlockProcessor {
   // Counts mappability.

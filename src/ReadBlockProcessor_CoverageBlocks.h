@@ -29,6 +29,9 @@ SOFTWARE.  */
 #include "ReadBlockProcessor_FragmentsMap.h"
 #include "FragmentBlocks.h"
 
+#include "IRFinder_Rcpp.h"
+// #include "IRFinder_Rcout.h" // For Rcout
+
 struct BEDrecord {
 	std::string chrName;
 	std::string name;

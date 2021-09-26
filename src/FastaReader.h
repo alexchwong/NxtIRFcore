@@ -20,6 +20,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.  */
 
+#ifndef CODE_FASTAREADER
+#define CODE_FASTAREADER
+
 #include "includedefine.h"
 
 class FastaReader {
@@ -43,3 +46,5 @@ class FastaReader {
     std::vector<int32_t> chr_lens;
     size_t total_size;
 };
+
+#endif

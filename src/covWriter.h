@@ -23,7 +23,7 @@ SOFTWARE.  */
 #ifndef CODE_COVWRITER
 #define CODE_COVWRITER
 
-#include "includedefine.h"
+#include "covCommon.h"
 
 static const unsigned int BGZF_max = 65536 - 18 - 8;
 

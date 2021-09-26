@@ -20,7 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.  */
 
-#include "includedefine.h"
 #include "ReadBlockProcessor_FragmentsMap.h"
 
 void FragmentsMap::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
@@ -229,7 +228,9 @@ int FragmentsMap::WriteBinary(
 
   os->InitializeCOV(chrs);
 
+#ifndef GALAXY
   Progress p(3 * chrs.size(), verbose);
+#endif
   for(unsigned int j = 0; j < 3; j++) {
     for(unsigned int i = 0; i < chrs.size(); i++) {
       unsigned int refID = chrs[i].refID;
@@ -238,7 +239,9 @@ int FragmentsMap::WriteBinary(
       itDest = &chrName_vec_final[j].at(refID);
       
       os->WriteFragmentsMap(itDest, i, j, n_threads_to_use);
+#ifndef GALAXY
       p.increment(1);
+#endif
     }
   }
   

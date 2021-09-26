@@ -25,8 +25,8 @@ SOFTWARE.  */
 #ifndef CODE_READBLOCKPROCESSOR
 #define CODE_READBLOCKPROCESSOR
 
+#include "includedefine.h"
 #include "FragmentBlocks.h"
-
 
 /*
 The code can be finished faster if we force a requirement that all input files are coordinate sorted by the start of each block.

@@ -22,24 +22,6 @@ SOFTWARE.  */
 
 #include "Mappability.h"
 
-int Set_Threads(int n_threads) {
-#ifdef _OPENMP
-  int use_threads = 1;
-	if(n_threads > 0 && n_threads <= omp_get_thread_limit()) {
-    use_threads = n_threads;
-	} else {
-		use_threads = omp_get_thread_limit();
-		if(use_threads < 1) {
-			use_threads = 1;
-		}
-	}
-	omp_set_num_threads(use_threads);
-  return(use_threads);
-#else
-	return(1);
-#endif
-}
-
 std::string GenerateReadError(
     char * input_read, 
     const unsigned int read_len, 
@@ -196,11 +178,13 @@ int IRF_GenerateMappabilityReads(
   FastaReader inFA;
   inFA.SetInputHandle(&inGenome);
   inFA.Profile();
-  
+
+#ifndef GALAXY
   Progress p(inFA.total_size, (is_stdout == 0));
-  
+#endif
+
   while(!inGenome.eof() && !inGenome.fail()) {
-    // p.increment(1);
+
     inFA.ReadSeq();
     sequence = inFA.sequence;
     chr = inFA.seqname;
@@ -229,14 +213,18 @@ int IRF_GenerateMappabilityReads(
         }
         direction = (direction == 0 ? 1 : 0);
         
-        // update proogress bar
+        // update progress bar
+#ifndef GALAXY
         if(num_reads % 100000 == 0) {
           p.increment(bufferPos - seq_progress);
           seq_progress = bufferPos;
         }
+#endif
       }
     }
+#ifndef GALAXY
     p.increment(sequence.length() - seq_progress);
+#endif
     delete[] buffer;
   }
   delete[] read;
@@ -247,125 +235,5 @@ int IRF_GenerateMappabilityReads(
     outFA.close();
   }
   Rcout << num_reads << " synthetic reads generated\n";
-  return(0);
-}
-
-#ifndef GALAXY
-// [[Rcpp::export]]
-int IRF_GenerateMappabilityRegions(
-    std::string bam_file, std::string output_file, 
-    int threshold, int includeCov, bool verbose,
-    int n_threads
-){
-  
-  std::string s_output_txt = output_file + ".txt";
-  std::string s_output_cov = output_file + ".cov";
-#else
-int IRF_GenerateMappabilityRegions(
-    std::string bam_file, std::string s_output_txt, 
-    int threshold, std::string s_output_cov
-  ){	
-	bool verbose = true;
-  int n_threads = 1;
-#endif
-
-  // int use_threads = Set_Threads(n_threads);
-
-  unsigned int n_threads_to_use = (unsigned int)n_threads;   // Should be sorted out in calling function
- 
-  std::string myLine;
-	if(verbose) Rcout << "Calculating Mappability Exclusions from aligned synthetic reads in BAM file " << bam_file << "\n";
-  
-  
-  // std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
-  pbam_in inbam((size_t)5e8, (size_t)1e9, 5);
-  // inbam.SetInputHandle(&inbam_stream, n_threads_to_use);
-    inbam.openFile(bam_file, n_threads_to_use);
-
-  // Assign children:
-  std::vector<FragmentsMap*> oFM;
-  std::vector<BAM2blocks*> BBchild;
-
-  for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    oFM.push_back(new FragmentsMap);
-    BBchild.push_back(new BAM2blocks);
-
-    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &(*oFM.at(i)), std::placeholders::_1) );
-    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &(*oFM.at(i)), std::placeholders::_1) );
-
-    BBchild.at(i)->openFile(&inbam);
-  }
-  
-  // BAM processing loop
-  Progress p(inbam.GetFileSize(), verbose);
-  // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
-  // unsigned int blocks_read_total = 0;
-  // int ret = 0;
-
-  while(0 == inbam.fillReads() && !p.check_abort()) {
-    p.increment(inbam.IncProgress());
-    
-    #ifdef _OPENMP
-    #pragma omp parallel for num_threads(n_threads_to_use) schedule(static,1)
-    #endif
-    for(unsigned int i = 0; i < n_threads_to_use; i++) {
-      BBchild.at(i)->processAll(i, true);
-    }
-  }
-
-  if(p.check_abort()) {
-    // interrupted:
-    for(unsigned int i = 0; i < n_threads_to_use; i++) {
-      delete oFM.at(i);
-      delete BBchild.at(i);
-    }
-    return(-1);
-  }
-
-  inbam.closeFile();
-  // inbam_stream.close();
-  // Rcout << "BAM processing finished\n";
-  
-  if(n_threads_to_use > 1) {
-    if(verbose) Rcout << "Compiling data from threads\n";
-  // Combine BB's and process spares
-    for(unsigned int i = 1; i < n_threads_to_use; i++) {
-      BBchild.at(0)->processSpares(*BBchild.at(i));
-      delete BBchild.at(i);
-    }
-  // Combine objects:
-    for(unsigned int i = 1; i < n_threads_to_use; i++) {
-      oFM.at(0)->Combine(*oFM.at(i));
-
-      delete oFM.at(i);
-    }
-  }
-
-#ifndef GALAXY
-  if(includeCov == 1) {
-#else
-  if(!s_output_cov.empty()) {
-#endif
-   // Write Coverage Binary file:
-    std::ofstream ofCOV;
-    ofCOV.open(s_output_cov, std::ofstream::binary);  
-    covWriter outCOV;
-    outCOV.SetOutputHandle(&ofCOV);
-    oFM.at(0)->WriteBinary(&outCOV, verbose, n_threads_to_use);
-    ofCOV.close();
-  }
-  
-  std::ofstream outFragsMap;
-  outFragsMap.open(s_output_txt, std::ifstream::out);
-	
-  oFM.at(0)->WriteOutput(&outFragsMap, threshold, verbose);
-  outFragsMap.flush(); outFragsMap.close();
-
-  // destroy objects:
-  // for(unsigned int i = 0; i < n_threads_to_use; i++) {
-    delete oFM.at(0);
-    delete BBchild.at(0);
-  // }
-
   return(0);
 }

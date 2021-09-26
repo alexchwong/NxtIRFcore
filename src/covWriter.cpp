@@ -22,7 +22,6 @@ SOFTWARE.  */
 
 #include "covWriter.h"
 
-
 buffer_out_chunk::buffer_out_chunk() {
   buffer = (char*)malloc(65536);
   // leave compressed buffer uninitialized until needed

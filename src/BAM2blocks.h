@@ -25,6 +25,11 @@ SOFTWARE.  */
 #ifndef CODE_BAM2BLOCKS
 #define CODE_BAM2BLOCKS
 
+#include "includedefine.h"
+// #include "IRFinder_Rcout.h"
+#include "IRFinder_Rcpp.h"
+#include "ompBAM.hpp"
+
 #include "FragmentBlocks.h"
 
 /* Little Endian .. for big endian each group of 4 bytes needs to be reversed before individual members are accessed. */

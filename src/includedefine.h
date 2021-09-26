@@ -25,44 +25,21 @@ SOFTWARE.  */
 #ifndef INCLUDEDEFINE_DEF
 #define INCLUDEDEFINE_DEF
 
-#include <cstring>
-#include <time.h>
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <sstream>
+#include <cstring>    // memcpy, strncmp, size_t
+#include <fstream>    // i/o
+#include <sstream>    // stringstream
 #include <limits>
-#include <sys/types.h>
-#include <vector>
-#include <map>
-#include <algorithm> // std::sort
+#include <sys/types.h>  // size_t, other type definitions
+#include <vector>     // std::vector
+#include <map>        // std::map
+#include <algorithm>  // std::sort std::min std::max
 #include <functional> // std::function
-#include <stdexcept>
-#include <math.h>
-#include <chrono>
-#include <thread>
 
-// [[Rcpp::depends(zlibbioc)]]
-#include <zlib.h>
-#include <zconf.h>
+#include <math.h>
 
 using namespace std;
 
-// Declare GALAXY in make file so that these sources can be compiled into
-// executable file from within Galaxy / Linux
-#ifndef GALAXY
-  #include <Rcpp.h>
-  using namespace Rcpp;
-  #include <progress.hpp>
-  // [[Rcpp::depends(RcppProgress)]]
-  
-  #include "ompBAM.hpp"
-#else
-  #define Rcout cout
-  #define Rcpp::Rcout cout
-  
-  #include "ompBAM.hpp"
-#endif
+
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -92,22 +69,5 @@ class chr_entry {
 inline bool operator< (const chr_entry& lhs, const chr_entry& rhs){
   return lhs.chr_name < rhs.chr_name;
 }
-
-union stream_uint64 {
-  char c[8];
-  uint64_t u;
-};
-union stream_uint32 {
-  char c[4];
-  uint32_t u;
-};
-union stream_int32 {
-  char c[4];
-  int32_t i;
-};
-union stream_uint16 {
-  char c[2];
-  uint16_t u;
-};
 
 #endif

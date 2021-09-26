@@ -23,10 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.  */
 
 #include "ReadBlockProcessor.h"
-#include "includedefine.h"
-// using namespace std;
-
-
 
 //chrName_junc_count holds the data structure -- ChrName(string) -> Junc Start/End -> count.
 //chrID_junc_count holds the ChrID -> ...
@@ -583,8 +579,6 @@ void FragmentsInROI::ProcessBlocks(const FragmentBlocks &blocks) {
     }
   }
 }
-
-
 
 void FragmentsInChr::ProcessBlocks(const FragmentBlocks &blocks) {
   (*chrID_count.at(blocks.chr_id))[blocks.direction]++;

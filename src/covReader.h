@@ -23,7 +23,7 @@ SOFTWARE.  */
 #ifndef CODE_COVREADER
 #define CODE_COVREADER
 
-#include "includedefine.h"
+#include "covCommon.h"
 
 class covReader {
 	private:

@@ -25,7 +25,6 @@ SOFTWARE.  */
 // WARNING: code is little endian only!
 
 #include "BAM2blocks.h"
-#include "includedefine.h"
 
 BAM2blocks::BAM2blocks() {
   oBlocks = FragmentBlocks(); //Right syntax to call the default constructor on an object variable, declared but not initialised?

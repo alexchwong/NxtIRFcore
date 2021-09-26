@@ -22,31 +22,38 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.  */
 
-#include "includedefine.h"
-
-#include "covReader.h"
-#include "covWriter.h"
-
-#include "ReadBlockProcessor.h"
-#include "ReadBlockProcessor_CoverageBlocks.h"
-#include "BAM2blocks.h"
-#include "GZReader.h"
-#include "GZWriter.h"
-#include "Mappability.h"
+#include "IRFinder.h"
 
 const char refEOF[5] =
 		"\x20\x45\x4f\x46";
 
-#ifndef GALAXY
+// [[Rcpp::export]]
+int Has_OpenMP() {
+#ifdef _OPENMP
+  return omp_get_max_threads();
+#else
+  return 0;
+#endif
+}
 
-    // [[Rcpp::export]]
-    int Has_OpenMP() {
-    #ifdef _OPENMP
-      return omp_get_max_threads();
-    #else
-      return 0;
-    #endif
-    }
+
+int Set_Threads(int n_threads) {
+#ifdef _OPENMP
+  int use_threads = 1;
+	if(n_threads > 0 && n_threads <= omp_get_thread_limit()) {
+    use_threads = n_threads;
+	} else {
+		use_threads = omp_get_thread_limit();
+		if(use_threads < 1) {
+			use_threads = 1;
+		}
+	}
+	omp_set_num_threads(use_threads);
+  return(use_threads);
+#else
+	return(1);
+#endif
+}
 
 // [[Rcpp::export]]
 bool IRF_Check_Cov(std::string s_in) {
@@ -72,6 +79,9 @@ bool IRF_Check_Cov(std::string s_in) {
   inCov_stream.close();	
 	return(true);
 }
+
+#ifndef GALAXY
+// Below are Rcpp-only functions
 
 // [[Rcpp::export]]
 List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end, int strand) {
@@ -213,25 +223,6 @@ List IRF_RLEList_From_Cov(std::string s_in, int strand) {
 }
 
 // [[Rcpp::export]]
-int IRF_gunzip(std::string s_in, std::string s_out) {
-  
-  GZReader gz_in;
-  int ret = gz_in.LoadGZ(s_in, true);   // streamed mode
-  if(ret != 0) return(ret);
-	
-  std::ofstream out;
-  out.open(s_out, std::ofstream::binary);
-  std::string myLine;
-  
-  while(!gz_in.iss.eof()) {
-    getline(gz_in.iss, myLine, '\n');
-    out << myLine << "\n";
-  }
-  out.flush(); out.close();
-  return(0);
-}
-
-// [[Rcpp::export]]
 List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
   List Final_final_list;
   
@@ -315,9 +306,28 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
   return(Final_final_list);
 }
 
-#else
-	// galaxy
 #endif
+// End Rcpp-only functions
+
+// [[Rcpp::export]]
+int IRF_gunzip(std::string s_in, std::string s_out) {
+  
+  GZReader gz_in;
+  int ret = gz_in.LoadGZ(s_in, true);   // streamed mode
+  if(ret != 0) return(ret);
+	
+  std::ofstream out;
+  out.open(s_out, std::ofstream::binary);
+  std::string myLine;
+  
+  while(!gz_in.iss.eof()) {
+    getline(gz_in.iss, myLine, '\n');
+    out << myLine << "\n";
+  }
+  out.flush(); out.close();
+  return(0);
+}
+
 
 int ReadChrAlias(std::istringstream &IN,
     std::vector<std::string> &ref_names, 
@@ -473,7 +483,7 @@ int IRF_core(std::string const &bam_file,
     FragmentsInROI const &ROI_template,
     JunctionCount const &JC_template,
     bool const verbose,
-    int n_threads = 1
+    int n_threads
 ) {
   unsigned int n_threads_to_use = (unsigned int)n_threads;   // Should be sorted out in calling function
  
@@ -566,13 +576,15 @@ int IRF_core(std::string const &bam_file,
   }
   
   // BAM processing loop
+  
+#ifndef GALAXY
   Progress p(inbam.GetFileSize(), verbose);
-  // Rcout << "Total blocks: " << n_bgzf_blocks << '\n';
-  // unsigned int blocks_read_total = 0;
-  // int ret = 0;
-
   while(0 == inbam.fillReads() && !p.check_abort()) {
     p.increment(inbam.IncProgress());
+    
+#else
+  while(0 == inbam.fillReads()) {
+#endif
     
     #ifdef _OPENMP
     #pragma omp parallel for num_threads(n_threads_to_use) schedule(static,1)
@@ -583,6 +595,7 @@ int IRF_core(std::string const &bam_file,
     
   }
 
+  #ifndef GALAXY
   if(p.check_abort()) {
     // interrupted:
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
@@ -596,10 +609,9 @@ int IRF_core(std::string const &bam_file,
     }
     return(-1);
   }
+  #endif
 
   // inbam.closeFile();
-  // inbam_stream.close();
-  // Rcout << "BAM processing finished\n";
   
   if(n_threads_to_use > 1) {
     if(verbose) Rcout << "Compiling data from threads\n";
@@ -719,12 +731,18 @@ int IRF_core(std::string const &bam_file,
 
 #ifndef GALAXY
 // [[Rcpp::export]]
-int IRF_main(std::string bam_file, std::string reference_file, std::string output_file, bool verbose = true, int n_threads = 1){
+int IRF_main(
+    std::string bam_file, std::string reference_file, std::string output_file,
+    bool verbose, int n_threads
+) {
   
   std::string s_output_txt = output_file + ".txt.gz";
   std::string s_output_cov = output_file + ".cov";
 #else
-int IRF_main(std::string bam_file, std::string reference_file, std::string s_output_txt, std::string s_output_cov, int n_threads = 1){
+int IRF_main(
+    std::string bam_file, std::string reference_file, std::string s_output_txt,
+    std::string s_output_cov, int n_threads = 1
+){
 	
   bool verbose = true;
 #endif
@@ -777,7 +795,10 @@ int IRF_main(std::string bam_file, std::string reference_file, std::string s_out
 
 #ifndef GALAXY
 // [[Rcpp::export]]
-int IRF_main_multi(std::string reference_file, StringVector bam_files, StringVector output_files, int max_threads, bool verbose = true){
+int IRF_main_multi(
+    std::string reference_file, StringVector bam_files, StringVector output_files,
+    int max_threads, bool verbose
+){
 	
 	int use_threads = Set_Threads(max_threads);
 
@@ -886,5 +907,119 @@ int main(int argc, char * argv[]) {
       << argv[0] <<  " irfinder_galaxy process_mappability_bam mappedreads.bam mappability.bed {mappability.cov}";   
   }
 }
-	
+
 #endif
+
+#ifndef GALAXY
+// [[Rcpp::export]]
+int IRF_GenerateMappabilityRegions(
+    std::string bam_file, std::string output_file, 
+    int threshold, int includeCov, bool verbose,
+    int n_threads
+){
+  
+  std::string s_output_txt = output_file + ".txt";
+  std::string s_output_cov = output_file + ".cov";
+#else
+int IRF_GenerateMappabilityRegions(
+    std::string bam_file, std::string s_output_txt, 
+    int threshold, std::string s_output_cov
+){	
+	bool verbose = true;
+  int n_threads = 1;
+#endif
+
+  int use_threads = Set_Threads(n_threads);
+  unsigned int n_threads_to_use = (unsigned int)use_threads;
+ 
+  std::string myLine;
+	if(verbose) Rcout << "Calculating Mappability Exclusions from aligned synthetic reads in BAM file " << bam_file << "\n";
+
+  pbam_in inbam((size_t)5e8, (size_t)1e9, 5);
+  inbam.openFile(bam_file, n_threads_to_use);
+
+  // Assign children:
+  std::vector<FragmentsMap*> oFM;
+  std::vector<BAM2blocks*> BBchild;
+
+  for(unsigned int i = 0; i < n_threads_to_use; i++) {
+    oFM.push_back(new FragmentsMap);
+    BBchild.push_back(new BAM2blocks);
+
+    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &(*oFM.at(i)), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &(*oFM.at(i)), std::placeholders::_1) );
+
+    BBchild.at(i)->openFile(&inbam);
+  }
+  
+  // BAM processing loop
+#ifndef GALAXY
+  Progress p(inbam.GetFileSize(), verbose);
+  while(0 == inbam.fillReads() && !p.check_abort()) {
+    p.increment(inbam.IncProgress());
+  
+#else
+  while(0 == inbam.fillReads()) {
+#endif
+  
+    #ifdef _OPENMP
+    #pragma omp parallel for num_threads(n_threads_to_use) schedule(static,1)
+    #endif
+    for(unsigned int i = 0; i < n_threads_to_use; i++) {
+      BBchild.at(i)->processAll(i, true);
+    }
+  }
+
+#ifndef GALAXY
+  if(p.check_abort()) {
+    // interrupted:
+    for(unsigned int i = 0; i < n_threads_to_use; i++) {
+      delete oFM.at(i);
+      delete BBchild.at(i);
+    }
+    return(-1);
+  }
+#endif
+  
+  inbam.closeFile();
+
+  if(n_threads_to_use > 1) {
+    if(verbose) Rcout << "Compiling data from threads\n";
+  // Combine BB's and process spares
+    for(unsigned int i = 1; i < n_threads_to_use; i++) {
+      BBchild.at(0)->processSpares(*BBchild.at(i));
+      delete BBchild.at(i);
+    }
+  // Combine objects:
+    for(unsigned int i = 1; i < n_threads_to_use; i++) {
+      oFM.at(0)->Combine(*oFM.at(i));
+
+      delete oFM.at(i);
+    }
+  }
+
+#ifndef GALAXY
+  if(includeCov == 1) {
+#else
+  if(!s_output_cov.empty()) {
+#endif
+   // Write Coverage Binary file:
+    std::ofstream ofCOV;
+    ofCOV.open(s_output_cov, std::ofstream::binary);  
+    covWriter outCOV;
+    outCOV.SetOutputHandle(&ofCOV);
+    oFM.at(0)->WriteBinary(&outCOV, verbose, n_threads_to_use);
+    ofCOV.close();
+  }
+  
+  std::ofstream outFragsMap;
+  outFragsMap.open(s_output_txt, std::ifstream::out);
+	
+  oFM.at(0)->WriteOutput(&outFragsMap, threshold, verbose);
+  outFragsMap.flush(); outFragsMap.close();
+
+  delete oFM.at(0);
+  delete BBchild.at(0);
+
+  return(0);
+}

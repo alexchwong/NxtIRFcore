@@ -37,8 +37,7 @@ SOFTWARE.  */
   #include <omp.h>    // For OpenMP
 #endif
 
-// #include "Rcpp.h"     // For Rcout
-// The above is declared in includedefine.h
+#include "IRFinder_Rcpp.h" // For Rcpp
 
 #include "pbam_defs.hpp"
 #include "pbam1_t.hpp"

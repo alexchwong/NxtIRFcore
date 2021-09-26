@@ -58,18 +58,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// IRF_gunzip
-int IRF_gunzip(std::string s_in, std::string s_out);
-RcppExport SEXP _NxtIRFcore_IRF_gunzip(SEXP s_inSEXP, SEXP s_outSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type s_in(s_inSEXP);
-    Rcpp::traits::input_parameter< std::string >::type s_out(s_outSEXP);
-    rcpp_result_gen = Rcpp::wrap(IRF_gunzip(s_in, s_out));
-    return rcpp_result_gen;
-END_RCPP
-}
 // IRF_gunzip_DF
 List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin);
 RcppExport SEXP _NxtIRFcore_IRF_gunzip_DF(SEXP s_inSEXP, SEXP s_header_beginSEXP) {
@@ -79,6 +67,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type s_in(s_inSEXP);
     Rcpp::traits::input_parameter< StringVector >::type s_header_begin(s_header_beginSEXP);
     rcpp_result_gen = Rcpp::wrap(IRF_gunzip_DF(s_in, s_header_begin));
+    return rcpp_result_gen;
+END_RCPP
+}
+// IRF_gunzip
+int IRF_gunzip(std::string s_in, std::string s_out);
+RcppExport SEXP _NxtIRFcore_IRF_gunzip(SEXP s_inSEXP, SEXP s_outSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type s_in(s_inSEXP);
+    Rcpp::traits::input_parameter< std::string >::type s_out(s_outSEXP);
+    rcpp_result_gen = Rcpp::wrap(IRF_gunzip(s_in, s_out));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -112,21 +112,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// IRF_GenerateMappabilityReads
-int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa, int read_len, int read_stride, int error_pos);
-RcppExport SEXP _NxtIRFcore_IRF_GenerateMappabilityReads(SEXP genome_fileSEXP, SEXP out_faSEXP, SEXP read_lenSEXP, SEXP read_strideSEXP, SEXP error_posSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type genome_file(genome_fileSEXP);
-    Rcpp::traits::input_parameter< std::string >::type out_fa(out_faSEXP);
-    Rcpp::traits::input_parameter< int >::type read_len(read_lenSEXP);
-    Rcpp::traits::input_parameter< int >::type read_stride(read_strideSEXP);
-    Rcpp::traits::input_parameter< int >::type error_pos(error_posSEXP);
-    rcpp_result_gen = Rcpp::wrap(IRF_GenerateMappabilityReads(genome_file, out_fa, read_len, read_stride, error_pos));
-    return rcpp_result_gen;
-END_RCPP
-}
 // IRF_GenerateMappabilityRegions
 int IRF_GenerateMappabilityRegions(std::string bam_file, std::string output_file, int threshold, int includeCov, bool verbose, int n_threads);
 RcppExport SEXP _NxtIRFcore_IRF_GenerateMappabilityRegions(SEXP bam_fileSEXP, SEXP output_fileSEXP, SEXP thresholdSEXP, SEXP includeCovSEXP, SEXP verboseSEXP, SEXP n_threadsSEXP) {
@@ -143,18 +128,33 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// IRF_GenerateMappabilityReads
+int IRF_GenerateMappabilityReads(std::string genome_file, std::string out_fa, int read_len, int read_stride, int error_pos);
+RcppExport SEXP _NxtIRFcore_IRF_GenerateMappabilityReads(SEXP genome_fileSEXP, SEXP out_faSEXP, SEXP read_lenSEXP, SEXP read_strideSEXP, SEXP error_posSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type genome_file(genome_fileSEXP);
+    Rcpp::traits::input_parameter< std::string >::type out_fa(out_faSEXP);
+    Rcpp::traits::input_parameter< int >::type read_len(read_lenSEXP);
+    Rcpp::traits::input_parameter< int >::type read_stride(read_strideSEXP);
+    Rcpp::traits::input_parameter< int >::type error_pos(error_posSEXP);
+    rcpp_result_gen = Rcpp::wrap(IRF_GenerateMappabilityReads(genome_file, out_fa, read_len, read_stride, error_pos));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_NxtIRFcore_Has_OpenMP", (DL_FUNC) &_NxtIRFcore_Has_OpenMP, 0},
     {"_NxtIRFcore_IRF_Check_Cov", (DL_FUNC) &_NxtIRFcore_IRF_Check_Cov, 1},
     {"_NxtIRFcore_IRF_RLE_From_Cov", (DL_FUNC) &_NxtIRFcore_IRF_RLE_From_Cov, 5},
     {"_NxtIRFcore_IRF_RLEList_From_Cov", (DL_FUNC) &_NxtIRFcore_IRF_RLEList_From_Cov, 2},
-    {"_NxtIRFcore_IRF_gunzip", (DL_FUNC) &_NxtIRFcore_IRF_gunzip, 2},
     {"_NxtIRFcore_IRF_gunzip_DF", (DL_FUNC) &_NxtIRFcore_IRF_gunzip_DF, 2},
+    {"_NxtIRFcore_IRF_gunzip", (DL_FUNC) &_NxtIRFcore_IRF_gunzip, 2},
     {"_NxtIRFcore_IRF_main", (DL_FUNC) &_NxtIRFcore_IRF_main, 5},
     {"_NxtIRFcore_IRF_main_multi", (DL_FUNC) &_NxtIRFcore_IRF_main_multi, 5},
-    {"_NxtIRFcore_IRF_GenerateMappabilityReads", (DL_FUNC) &_NxtIRFcore_IRF_GenerateMappabilityReads, 5},
     {"_NxtIRFcore_IRF_GenerateMappabilityRegions", (DL_FUNC) &_NxtIRFcore_IRF_GenerateMappabilityRegions, 6},
+    {"_NxtIRFcore_IRF_GenerateMappabilityReads", (DL_FUNC) &_NxtIRFcore_IRF_GenerateMappabilityReads, 5},
     {NULL, NULL, 0}
 };
 
