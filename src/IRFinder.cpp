@@ -24,8 +24,6 @@ SOFTWARE.  */
 
 #include "IRFinder.h"
 
-const char refEOF[5] =
-		"\x20\x45\x4f\x46";
 
 // [[Rcpp::export]]
 int Has_OpenMP() {
