@@ -8,14 +8,12 @@
 
 #include "BAM2blocks.h"
 
-#include "covReader.h"
-#include "covWriter.h"
+#include "covTools.h"
 
 #include "ReadBlockProcessor.h"
 #include "ReadBlockProcessor_CoverageBlocks.h"  // includes FragmentsMap
 
-#include "GZReader.h"
-#include "GZWriter.h"
+#include "GZTools.h"
 
 int Has_OpenMP();
 int Set_Threads(int n_threads);

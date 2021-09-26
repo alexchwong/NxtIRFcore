@@ -1,4 +1,4 @@
-/* covWriter.h Writes COV files (BAM coverage)
+/* covTools.h Reads and writes COV files (BAM coverage)
 
 Copyright (C) 2021 Alex Chit Hei Wong
 
@@ -20,12 +20,84 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.  */
 
-#ifndef CODE_COVWRITER
-#define CODE_COVWRITER
 
-#include "covCommon.h"
+#ifndef _CODE_COVTOOLS
+#define _CODE_COVTOOLS
+
+#include "includedefine.h"
+#include "IRFinder_Rcpp.h"
+// #include "IRFinder_Rcout.h" // For Rcout
+
+#include <zlib.h>
+#include <zconf.h>
+
+#include "pbam_defs.hpp"
+
+union stream_uint64 {
+  char c[8];
+  uint64_t u;
+};
+union stream_uint32 {
+  char c[4];
+  uint32_t u;
+};
+union stream_int32 {
+  char c[4];
+  int32_t i;
+};
+union stream_uint16 {
+  char c[2];
+  uint16_t u;
+};
 
 static const unsigned int BGZF_max = 65536 - 18 - 8;
+
+class covReader {
+	private:
+    // Buffers
+    char * compressed_buffer;
+    char * buffer;
+
+    unsigned long bufferPos;  // Position of decompressed buffer
+    unsigned long bufferMax;  // Size of decompressed buffer
+    
+    uint32_t index_begin;     // File position of first byte of COV index
+    uint32_t body_begin;      // File position of first byte of COV body
+    
+    istream * IN;
+    
+    int IS_EOF;               // Set to 1 if istream hits eof()
+    int IS_FAIL;              // Set to 1 if istream hits fail()
+    
+    size_t IS_LENGTH;         // Size of COV file
+    size_t EOF_POS;           // Position of first byte of BGZF EOF block
+       
+    std::vector<std::string> chr_names;   // seqnames
+    std::vector<uint32_t> chr_lens;       // chromosome lengths
+
+  public:
+    covReader();
+    ~covReader();
+    void SetInputHandle(std::istream *in_stream);
+    
+    int ReadBuffer();
+    int read(char * dest, unsigned int len);
+    int ignore(unsigned int len);
+    bool eof();
+    bool fail();
+
+    // Input functions
+    
+    int ReadHeader();
+    int GetChrs(std::vector<chr_entry> &chrs);
+    int FetchPos(const std::string seqname, const uint32_t start, const int strand,
+      uint64_t * file_offset, uint32_t * block_start);
+    int FetchRLE(const std::string seqname, 
+      const uint32_t start, const uint32_t end, const int strand,
+      std::vector<int> * values, std::vector<unsigned int> * lengths
+    );
+};
+
 
 // Body buffer for CovWriter
 class buffer_out_chunk {

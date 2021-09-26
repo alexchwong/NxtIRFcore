@@ -13,10 +13,6 @@
   
   // [[Rcpp::depends(RcppProgress)]]
   #include <progress.hpp>
-  
-#else
-  #define Rcout cout
-  #define Rcpp::Rcout cout
 #endif
 
 #endif

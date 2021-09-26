@@ -159,14 +159,20 @@ int IRF_GenerateMappabilityReads(
   std::ifstream inGenome;
   inGenome.open(genome_file, std::ifstream::in);
   
-  // Allows writing to standard output if filename is '-'
-  int is_stdout = 0;
   std::ofstream outFA;
+  
+  // STDOUT output is only allowed in GALAXY MODE
+  // Allows writing to standard output if filename is '-'
+#ifdef GALAXY
+  int is_stdout = 0;
   if(out_fa == "-") {
     is_stdout = 1;
   } else {
     outFA.open(out_fa, std::ios::binary);    
   }
+#else
+  outFA.open(out_fa, std::ios::binary);    
+#endif
       
   unsigned int direction = 0;
   char * read = new char[read_len + 1];
@@ -180,7 +186,7 @@ int IRF_GenerateMappabilityReads(
   inFA.Profile();
 
 #ifndef GALAXY
-  Progress p(inFA.total_size, (is_stdout == 0));
+  Progress p(inFA.total_size);
 #endif
 
   while(!inGenome.eof() && !inGenome.fail()) {
@@ -204,13 +210,22 @@ int IRF_GenerateMappabilityReads(
           read, read_len, error_pos, direction, num_reads
         ) ;
 
+#ifdef GALAXY
         if(is_stdout == 1) {
-          Rcout << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" << std::to_string(bufferPos)
+          Rcout << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" 
+            << std::to_string(bufferPos)
             << '\n' << write_seq << '\n';  
         } else {
-          outFA << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" << std::to_string(bufferPos)
+          outFA << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" 
+            << std::to_string(bufferPos)
             << '\n' << write_seq << '\n'; 
         }
+#else
+        outFA << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" 
+          << std::to_string(bufferPos)
+          << '\n' << write_seq << '\n'; 
+#endif
+
         direction = (direction == 0 ? 1 : 0);
         
         // update progress bar
@@ -230,10 +245,17 @@ int IRF_GenerateMappabilityReads(
   delete[] read;
   
   inGenome.close();
+
+#ifdef GALAXY
   if(is_stdout == 0) {
     outFA.flush();
     outFA.close();
   }
+#else  
+  outFA.flush();
+  outFA.close();
+#endif
+  
   Rcout << num_reads << " synthetic reads generated\n";
   return(0);
 }

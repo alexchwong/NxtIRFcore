@@ -1,4 +1,4 @@
-/* GZReader.h Reads Gzipped files
+/* GZTools.h Reads Gzipped files
 
 Copyright (C) 2021 Alex Chit Hei Wong
 
@@ -55,6 +55,24 @@ class GZReader {
     
     // public access to istringstream version of buffer
     std::istringstream iss; 
+};
+
+class GZWriter {
+private:
+  ostream * OUT;
+  
+  char compressed_buffer[CHUNK_gz];
+  
+  char buffer[CHUNK_gz];
+  unsigned int bufferPos = 0;
+  
+public:
+  void SetOutputHandle(std::ostream *out_stream);
+
+  int writebuffer(const char * src, unsigned int len);
+  int writeline(const std::string& s_src);
+  int writestring(const std::string& s_src);
+  int flush(bool final = false);
 };
 
 #endif
