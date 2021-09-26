@@ -25,6 +25,10 @@ SOFTWARE.  */
 #ifndef CODE_READBLOCKPROCESSOR_COVERAGEBLOCKS
 #define CODE_READBLOCKPROCESSOR_COVERAGEBLOCKS
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "ReadBlockProcessor.h"
 #include "ReadBlockProcessor_FragmentsMap.h"
 #include "FragmentBlocks.h"

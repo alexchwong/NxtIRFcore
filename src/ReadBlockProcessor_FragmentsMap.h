@@ -27,6 +27,10 @@ SOFTWARE.  */
 #include "FragmentBlocks.h"
 #include "covTools.h"    // This should already include Rcout
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 class FragmentsMap : public ReadBlockProcessor {
   // Counts mappability.
 private:

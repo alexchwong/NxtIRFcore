@@ -33,11 +33,11 @@ IRF_main_multi <- function(reference_file, bam_files, output_files, max_threads,
     .Call(`_NxtIRFcore_IRF_main_multi`, reference_file, bam_files, output_files, max_threads, verbose)
 }
 
-IRF_GenerateMappabilityRegions <- function(bam_file, output_file, threshold, includeCov, verbose, n_threads) {
-    .Call(`_NxtIRFcore_IRF_GenerateMappabilityRegions`, bam_file, output_file, threshold, includeCov, verbose, n_threads)
-}
-
 IRF_GenerateMappabilityReads <- function(genome_file, out_fa, read_len, read_stride, error_pos) {
     .Call(`_NxtIRFcore_IRF_GenerateMappabilityReads`, genome_file, out_fa, read_len, read_stride, error_pos)
+}
+
+IRF_GenerateMappabilityRegions <- function(bam_file, output_file, threshold, includeCov, verbose, n_threads) {
+    .Call(`_NxtIRFcore_IRF_GenerateMappabilityRegions`, bam_file, output_file, threshold, includeCov, verbose, n_threads)
 }
 

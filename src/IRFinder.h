@@ -2,23 +2,29 @@
 #define CODE_IRFINDER
 
 #include "includedefine.h"
+#include "IRFinder_Rcpp.h"    // Full Rcpp functionality incl RcppProgress
 
-// Full Rcpp functionality
-#include "IRFinder_Rcpp.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
-#include "BAM2blocks.h"
-
-#include "covTools.h"
-
-#include "ReadBlockProcessor.h"
-#include "ReadBlockProcessor_CoverageBlocks.h"  // includes FragmentsMap
-
-#include "GZTools.h"
+#include "BAM2blocks.h"       // For BB
+#include "covTools.h"         // For COV I/O
+#include "FastaReader.h"
+#include "GZTools.h"          // For gzip I/O
+#include "ReadBlockProcessor_CoverageBlocks.h"  // includes FragmentsMap and others
 
 int Has_OpenMP();
 int Set_Threads(int n_threads);
-
 bool IRF_Check_Cov(std::string s_in);
+std::string GenerateReadError(
+    char * input_read, 
+    const unsigned int read_len, 
+    const unsigned int error_pos,
+    const unsigned int direction, 
+    const unsigned int error_seed
+);
+bool checkDNA(char * input_read, unsigned int read_len);
 
 #ifndef GALAXY
 // Rcpp-only functions
@@ -76,10 +82,15 @@ int IRF_core(std::string const &bam_file,
       int max_threads = 1, bool verbose = true
   );
 
+  int IRF_GenerateMappabilityReads(
+    std::string genome_file, std::string out_fa,
+    int read_len, int read_stride, int error_pos
+  );
+
   int IRF_GenerateMappabilityRegions(
-      std::string bam_file, std::string output_file, 
-      int threshold, int includeCov, bool verbose,
-      int n_threads
+    std::string bam_file, std::string output_file, 
+    int threshold, int includeCov = 0, bool verbose = true,
+    int n_threads = 1
   );
 
 #else
@@ -88,10 +99,15 @@ int IRF_core(std::string const &bam_file,
       std::string s_output_cov, int n_threads = 1
   );
 
-  int IRF_GenerateMappabilityRegions(
-      std::string bam_file, std::string s_output_txt, 
-      int threshold, std::string s_output_cov
+  int IRF_GenerateMappabilityReads(
+    std::string genome_file, std::string out_fa,
+    int read_len, int read_stride, int error_pos
   );
+
+  int IRF_GenerateMappabilityRegions(
+    std::string bam_file, std::string s_output_txt, 
+    int threshold, std::string s_output_cov = ""
+  );	
 
   int main(int argc, char * argv[]);
 #endif

@@ -33,6 +33,10 @@ SOFTWARE.  */
 
 #include "pbam_defs.hpp"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 union stream_uint64 {
   char c[8];
   uint64_t u;

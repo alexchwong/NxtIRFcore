@@ -36,7 +36,6 @@ int Has_OpenMP() {
 #endif
 }
 
-
 int Set_Threads(int n_threads) {
 #ifdef _OPENMP
   int use_threads = 1;
@@ -79,6 +78,139 @@ bool IRF_Check_Cov(std::string s_in) {
   inCov_stream.close();	
 	return(true);
 }
+
+// ########################### MAPPABILITY INTERNAL FN #########################
+
+
+std::string GenerateReadError(
+    char * input_read, 
+    const unsigned int read_len, 
+    const unsigned int error_pos,
+    const unsigned int direction, 
+    const size_t error_seed
+) {
+  
+  // Copy https://github.com/williamritchie/IRFinder/blob/master/bin/util/generateReadsError.pl
+
+  char * new_read_inter = new char[read_len + 1];
+  new_read_inter[read_len] = '\0';
+  memcpy(&new_read_inter[0], input_read, read_len);  
+
+  char error_nuc = '\0';  // set this as something to avoid warning at compile
+  if(error_seed % 3 == 0) {
+    switch(new_read_inter[error_pos - 1]) {
+      case 'A':
+        error_nuc = 'G'; break;
+      case 'C':
+        error_nuc = 'A'; break;
+      case 'G':
+        error_nuc = 'T'; break;
+      case 'T':
+        error_nuc = 'C'; break;
+      case 'a':
+        error_nuc = 'g'; break;
+      case 'c':
+        error_nuc = 'a'; break;
+      case 'g':
+        error_nuc = 't'; break;
+      case 't':
+        error_nuc = 'c'; break;
+      default:
+        error_nuc = 'N';
+    }
+  } else if(error_seed % 3 == 1) {
+    switch(new_read_inter[error_pos - 1]) {
+      case 'A':
+        error_nuc = 'T'; break;
+      case 'C':
+        error_nuc = 'G'; break;
+      case 'G':
+        error_nuc = 'C'; break;
+      case 'T':
+        error_nuc = 'A'; break;
+      case 'a':
+        error_nuc = 't'; break;
+      case 'c':
+        error_nuc = 'g'; break;
+      case 'g':
+        error_nuc = 'c'; break;
+      case 't':
+        error_nuc = 'a'; break;
+      default:
+        error_nuc = 'N';
+    }
+  } else {
+    switch(new_read_inter[error_pos - 1]) {
+      case 'A':
+        error_nuc = 'C'; break;
+      case 'C':
+        error_nuc = 'T'; break;
+      case 'G':
+        error_nuc = 'A'; break;
+      case 'T':
+        error_nuc = 'G'; break;
+      case 'a':
+        error_nuc = 'c'; break;
+      case 'c':
+        error_nuc = 't'; break;
+      case 'g':
+        error_nuc = 'a'; break;
+      case 't':
+        error_nuc = 'g'; break;
+      default:
+        error_nuc = 'N';
+    }
+  }
+  
+  memcpy(&new_read_inter[error_pos - 1], &error_nuc, 1);
+  
+  char * new_read = new char[read_len + 1];
+  new_read[read_len] = '\0';
+  if(direction == 0) {
+    memcpy(&new_read[0], new_read_inter, read_len);  
+  } else {
+    for(unsigned int i = 0; i < read_len; i++) {
+      switch(new_read_inter[i]) {   
+        case 'A':
+          new_read[read_len - i - 1] = 'T'; break;
+        case 'T':
+          new_read[read_len - i - 1] = 'A'; break;
+        case 'G':
+          new_read[read_len - i - 1] = 'C'; break;
+        case 'C':
+          new_read[read_len - i - 1] = 'G'; break;
+        case 'a':
+          new_read[read_len - i - 1] = 't'; break;
+        case 't':
+          new_read[read_len - i - 1] = 'a'; break;
+        case 'g':
+          new_read[read_len - i - 1] = 'c'; break;
+        case 'c':
+          new_read[read_len - i - 1] = 'g'; break;
+        default :
+          new_read[read_len - i - 1] = 'N';
+      }         
+    }
+  }
+
+  string return_str = string(new_read);
+  delete[] new_read;
+  return(return_str);
+}
+
+// Replicate old PERL script; return true if N's constitute less than half of length
+bool checkDNA(char * input_read, unsigned int read_len) {
+  unsigned int numN = 0;
+  for(unsigned int i = 0; i < read_len; i++) {
+    if(input_read[i]!='A' && input_read[i]!='T' && input_read[i]!='G' && input_read[i]!='C' &&
+      input_read[i]!='a' && input_read[i]!='t' && input_read[i]!='g' && input_read[i]!='c') {
+      numN++;
+    }
+  }
+  return(numN < read_len / 2);
+}
+
+
 
 #ifndef GALAXY
 // Below are Rcpp-only functions
@@ -865,50 +997,120 @@ int IRF_main_multi(
   return(0);
 }
 
-#else
-// Galaxy main
-int main(int argc, char * argv[]) {
-	// Usage:
-    // irfinder_galaxy main sample.bam IRFinder.ref.gz OutputHeader
-    // irfinder_galaxy gen_map_reads genome.fa reads_to_map.fa 70 10
-    // irfinder_galaxy process_mappability_bam mappedreads.bam mappability.bed
+#endif
 
-  if(std::string(argv[1]) == "gen_map_reads") {
-      std::string s_genome = argv[2];
-      std::string s_output = argv[3];
-      int read_len = atoi(argv[4]);
-      int read_stride = atoi(argv[5]);
-      int read_error = atoi(argv[4]) / 2;
-      IRF_GenerateMappabilityReads(s_genome, s_output, read_len, read_stride, read_error);
-      exit(0);
-  } else if(std::string(argv[1]) == "process_mappability_bam") {
-      std::string s_bam = argv[2];
-      std::string s_output = argv[3];
-      int threshold = atoi(argv[4]);
-      if(argc == 6) {
-        std::string s_cov = argv[5];
-        IRF_GenerateMappabilityRegions(s_bam, s_output, threshold, s_cov);
-        exit(0);          
-      } else {
-        IRF_GenerateMappabilityRegions(s_bam, s_output, threshold);
-        exit(0);
-      }
-  } else if(std::string(argv[1]) == "main") {
-      std::string s_bam = argv[2];
-      std::string s_ref = argv[3];
-      std::string s_output_txt = argv[4];		
-      std::string s_output_cov = argv[5];		
-  IRF_main(s_bam, s_ref, s_output_txt, s_output_cov);
+// ############################ MAPPABILITY READS AND REGIONS ##################
+
+// [[Rcpp::export]]
+int IRF_GenerateMappabilityReads(
+  std::string genome_file, std::string out_fa,
+	int read_len, int read_stride, int error_pos
+) {
+  
+  std::ifstream inGenome;
+  inGenome.open(genome_file, std::ifstream::in);
+  
+  std::ofstream outFA;
+  
+  // STDOUT output is only allowed in GALAXY MODE
+  // Allows writing to standard output if filename is '-'
+#ifdef GALAXY
+  int is_stdout = 0;
+  if(out_fa == "-") {
+    is_stdout = 1;
   } else {
-    Rcout << "Usage:\n\t"
-      << argv[0] <<  " main samplename.bam IRFinder.ref.gz samplename.txt.gz samplename.cov\n"
-      << argv[0] <<  " main samplename.bam IRFinder.ref.gz samplename.txt.gz samplename.cov\n"
-      << argv[0] <<  " irfinder_galaxy gen_map_reads genome.fa reads_to_map.fa 70 10\n"
-      << argv[0] <<  " irfinder_galaxy process_mappability_bam mappedreads.bam mappability.bed {mappability.cov}";   
+    outFA.open(out_fa, std::ios::binary);    
   }
+#else
+  outFA.open(out_fa, std::ios::binary);    
+#endif
+      
+  unsigned int direction = 0;
+  char * read = new char[read_len + 1];
+  size_t num_reads = 0;
+  
+  string chr;
+  string sequence;
+
+  FastaReader inFA;
+  inFA.SetInputHandle(&inGenome);
+  inFA.Profile();
+
+#ifndef GALAXY
+  Progress p(inFA.total_size);
+#endif
+
+  while(!inGenome.eof() && !inGenome.fail()) {
+
+    inFA.ReadSeq();
+    sequence = inFA.sequence;
+    chr = inFA.seqname;
+    char * buffer = new char[sequence.length() + 1];
+    std::strcpy (buffer, sequence.c_str());
+
+    size_t seq_progress = 0;
+    for(
+        unsigned int bufferPos = 1; 
+        bufferPos < sequence.length() - read_len + 1; 
+        bufferPos += read_stride
+    ) {
+      memcpy(read, &buffer[bufferPos - 1], read_len);
+      num_reads += 1;
+      if(checkDNA(read, read_len)) {       
+        std::string write_seq = GenerateReadError(
+          read, read_len, error_pos, direction, num_reads
+        ) ;
+
+#ifdef GALAXY
+        if(is_stdout == 1) {
+          Rcout << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" 
+            << std::to_string(bufferPos)
+            << '\n' << write_seq << '\n';  
+        } else {
+          outFA << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" 
+            << std::to_string(bufferPos)
+            << '\n' << write_seq << '\n'; 
+        }
+#else
+        outFA << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" 
+          << std::to_string(bufferPos)
+          << '\n' << write_seq << '\n'; 
+#endif
+
+        direction = (direction == 0 ? 1 : 0);
+        
+        // update progress bar
+#ifndef GALAXY
+        if(num_reads % 100000 == 0) {
+          p.increment(bufferPos - seq_progress);
+          seq_progress = bufferPos;
+        }
+#endif
+      }
+    }
+#ifndef GALAXY
+    p.increment(sequence.length() - seq_progress);
+#endif
+    delete[] buffer;
+  }
+  delete[] read;
+  
+  inGenome.close();
+
+#ifdef GALAXY
+  if(is_stdout == 0) {
+    outFA.flush();
+    outFA.close();
+  }
+#else  
+  outFA.flush();
+  outFA.close();
+#endif
+  
+  Rcout << num_reads << " synthetic reads generated\n";
+  return(0);
 }
 
-#endif
 
 #ifndef GALAXY
 // [[Rcpp::export]]
@@ -1023,3 +1225,51 @@ int IRF_GenerateMappabilityRegions(
 
   return(0);
 }
+
+// ############################# GALAXY MAIN ###################################
+
+#ifdef GALAXY
+
+// Galaxy main
+int main(int argc, char * argv[]) {
+	// Usage:
+    // irfinder_galaxy main sample.bam IRFinder.ref.gz OutputHeader
+    // irfinder_galaxy gen_map_reads genome.fa reads_to_map.fa 70 10
+    // irfinder_galaxy process_mappability_bam mappedreads.bam mappability.bed
+
+  if(std::string(argv[1]) == "gen_map_reads") {
+      std::string s_genome = argv[2];
+      std::string s_output = argv[3];
+      int read_len = atoi(argv[4]);
+      int read_stride = atoi(argv[5]);
+      int read_error = atoi(argv[4]) / 2;
+      IRF_GenerateMappabilityReads(s_genome, s_output, read_len, read_stride, read_error);
+      exit(0);
+  } else if(std::string(argv[1]) == "process_mappability_bam") {
+      std::string s_bam = argv[2];
+      std::string s_output = argv[3];
+      int threshold = atoi(argv[4]);
+      if(argc == 6) {
+        std::string s_cov = argv[5];
+        IRF_GenerateMappabilityRegions(s_bam, s_output, threshold, s_cov);
+        exit(0);          
+      } else {
+        IRF_GenerateMappabilityRegions(s_bam, s_output, threshold);
+        exit(0);
+      }
+  } else if(std::string(argv[1]) == "main") {
+      std::string s_bam = argv[2];
+      std::string s_ref = argv[3];
+      std::string s_output_txt = argv[4];		
+      std::string s_output_cov = argv[5];		
+  IRF_main(s_bam, s_ref, s_output_txt, s_output_cov);
+  } else {
+    Rcout << "Usage:\n\t"
+      << argv[0] <<  " main samplename.bam IRFinder.ref.gz samplename.txt.gz samplename.cov\n"
+      << argv[0] <<  " main samplename.bam IRFinder.ref.gz samplename.txt.gz samplename.cov\n"
+      << argv[0] <<  " irfinder_galaxy gen_map_reads genome.fa reads_to_map.fa 70 10\n"
+      << argv[0] <<  " irfinder_galaxy process_mappability_bam mappedreads.bam mappability.bed {mappability.cov}";   
+  }
+}
+
+#endif
