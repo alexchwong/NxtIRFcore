@@ -61,23 +61,27 @@ IRFinder <- function(
     s_output = file.path(normalizePath(output_path), sample_names)
     if(!overwrite) {
         already_exist = (
-            file.exists(paste(s_output, "txt.gz")) &
-            file.exists(paste(s_output, ".cov"))
+            file.exists(paste0(s_output, ".txt.gz")) &
+            file.exists(paste0(s_output, ".cov"))
         )
     } else {
         already_exist = rep(FALSE, length(bamfiles))
     }
 
     # Call wrapper
-    .run_IRFinder(
-        reference_path = reference_path,
-        bamfiles = bamfiles[!already_exist],
-        output_files = s_output[!already_exist],
-        max_threads = n_threads, Use_OpenMP = Use_OpenMP,
-        run_featureCounts = run_featureCounts,
-        overwrite_IRFinder_output = overwrite,
-        verbose = verbose
-    )
+    if(!all(already_exist)) {
+        .run_IRFinder(
+            reference_path = reference_path,
+            bamfiles = bamfiles[!already_exist],
+            output_files = s_output[!already_exist],
+            max_threads = n_threads, Use_OpenMP = Use_OpenMP,
+            run_featureCounts = run_featureCounts,
+            overwrite_IRFinder_output = overwrite,
+            verbose = verbose
+        )
+    } else {
+        .log("IRFinder has already been run on given BAM files", "message")
+    }
 }
 
 # IRFinder wrapper to R/C++. Handles whether OpenMP or BiocParallel is used

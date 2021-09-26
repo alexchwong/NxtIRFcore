@@ -10,7 +10,8 @@ CollateData(
   output_path,
   IRMode = c("SpliceOverMax", "SpliceMax"),
   samples_per_block = 16,
-  n_threads = 1
+  n_threads = 1,
+  overwrite = FALSE
 )
 }
 \arguments{
@@ -50,6 +51,10 @@ Setting this to a lower value may help in memory-constrained systems.}
 
 \item{n_threads}{The number of threads to use. On low
 memory systems, reduce the number of \code{n_threads} and \code{samples_per_block}}
+
+\item{overwrite}{(default FALSE) If collated NxtSE data already exists and
+all its samples match that of \code{Experiment}, \code{CollateData()} will not
+attempt to overwrite.}
 }
 \value{
 None. \code{CollateData()} writes to the directory given by
@@ -65,11 +70,18 @@ QC information is extracted, and data is organised for quick
 downstream access such as \code{\link[=MakeSE]{MakeSE()}}.
 }
 \examples{
+BuildReference(
+    reference_path = file.path(tempdir(), "Reference"),
+    fasta = chrZ_genome(), 
+    gtf = chrZ_gtf()
+)
+
 bams = NxtIRF_example_bams()
 IRFinder(bams$path, bams$sample,
   reference_path = file.path(tempdir(), "Reference"),
   output_path = file.path(tempdir(), "IRFinder_output")
 )
+
 expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
 CollateData(expr, 
   reference_path = file.path(tempdir(), "Reference"),
@@ -77,5 +89,5 @@ CollateData(expr,
 )
 }
 \seealso{
-\code{\link[=IRFinder]{IRFinder()}}, \code{\link[=MakeSE]{MakeSE()}}
+\link{IRFinder}, \link{MakeSE}
 }

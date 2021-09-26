@@ -1,9 +1,7 @@
 test_that("NxtIRF pipeline reproduces NxtSE object", {
     bams = NxtIRF_example_bams()
-    chr_alias = data.frame(
-        old = "chrZ", new = "chrZ"
-    )
-    
+    chr_alias = data.frame(old = "chrZ", new = "chrZ")
+
     BuildReference(
         fasta = chrZ_genome(), 
         gtf = chrZ_gtf(),
@@ -14,13 +12,15 @@ test_that("NxtIRF pipeline reproduces NxtSE object", {
     IRFinder(bams$path, bams$sample,
         reference_path = file.path(tempdir(), "Reference"),
         output_path = file.path(tempdir(), "IRFinder_output"),
-        overwrite = TRUE, n_threads = 1, verbose = TRUE
+        n_threads = 1
     )
     expr <- Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
+    
     CollateData(expr, 
         reference_path = file.path(tempdir(), "Reference"),
         output_path = file.path(tempdir(), "NxtIRF_output")
     )
+
     se <- MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
     
     # Test identical assays

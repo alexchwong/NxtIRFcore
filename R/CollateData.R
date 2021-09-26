@@ -39,39 +39,58 @@
 #'   Setting this to a lower value may help in memory-constrained systems.
 #' @param n_threads The number of threads to use. On low
 #'   memory systems, reduce the number of `n_threads` and `samples_per_block`
+#' @param overwrite (default FALSE) If collated NxtSE data already exists and
+#'   all its samples match that of `Experiment`, `CollateData()` will not 
+#'   attempt to overwrite.
 #' @return None. \code{CollateData()} writes to the directory given by 
 #'   \code{output_path}
 #' @examples
+#' BuildReference(
+#'     reference_path = file.path(tempdir(), "Reference"),
+#'     fasta = chrZ_genome(), 
+#'     gtf = chrZ_gtf()
+#' )
+#'
 #' bams = NxtIRF_example_bams()
 #' IRFinder(bams$path, bams$sample,
 #'   reference_path = file.path(tempdir(), "Reference"),
 #'   output_path = file.path(tempdir(), "IRFinder_output")
 #' )
+#' 
 #' expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
 #' CollateData(expr, 
 #'   reference_path = file.path(tempdir(), "Reference"),
 #'   output_path = file.path(tempdir(), "NxtIRF_output")
 #' )
-#' @seealso [IRFinder()], [MakeSE()]
+#' @seealso [IRFinder], [MakeSE]
 #' @md
 #' @export
 CollateData <- function(Experiment, reference_path, output_path,
         IRMode = c("SpliceOverMax", "SpliceMax"), 
-        samples_per_block = 16, n_threads = 1) {
-
+        samples_per_block = 16, n_threads = 1, overwrite = FALSE
+) {
     IRMode = match.arg(IRMode)
     if(IRMode == "") .log(paste("In CollateData(),",
         "IRMode must be either 'SpliceOverMax' (default) or 'SpliceMax'"))
     
     N_steps <- 8
     dash_progress("Validating Experiment; checking COV files...", N_steps)
-    
     .log("Validating Experiment; checking COV files...", "message")
     BPPARAM_mod = .validate_threads(n_threads)
     norm_output_path = .collateData_validate(Experiment, 
-        reference_path, output_path)   
+        reference_path, output_path)
     coverage_files = .collateData_COV(Experiment)
     df.internal <- .collateData_expr(Experiment)
+    if(!overwrite && file.exists(file.path(output_path, "NxtSE.rds"))) {
+        se = .MakeSE_load_NxtSE(file.path(output_path, "NxtSE.rds"))
+        if( all(colnames(se) %in% df.internal$sample) & 
+            all(df.internal$sample %in% colnames(se))
+        ){
+            .log("NxtIRF already collated this experiment in given directory",
+                "message")
+            return()
+        }
+    }
     jobs = .collateData_jobs(nrow(df.internal), BPPARAM_mod, samples_per_block)
 
     dash_progress("Compiling Sample Stats", N_steps)
