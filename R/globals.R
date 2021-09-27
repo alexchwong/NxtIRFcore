@@ -106,17 +106,13 @@ NxtIRF.CheckPackageInstalled <- function(
     } else {
         return(n_threads_to_use)
     }
-
 }
 
 NxtIRF.SplitVector <- function(vector = "", n_workers = 1) {
-    if(!is.numeric(n_workers) || n_workers < 1) {
+    if(!is.numeric(n_workers) || n_workers < 1)
         .log("n_workers must be at least 1")
-    }
     n_workers_use = as.integer(n_workers)
-    if(length(vector) < 1) {
-        .log("vector to split must be of length at least 1")
-    }
+    if(length(vector) < 1) .log("vector to split must be of length at least 1")
     
     if(n_workers_use > length(vector)) n_workers_use = length(vector)
     vector_starts = round(seq(1, length(vector) + 1, 
@@ -130,12 +126,13 @@ NxtIRF.SplitVector <- function(vector = "", n_workers = 1) {
     return(return_val)
 }
 
+# Semi-join a data.table. Equivalent to dplyr::semi_join(A, B, by = by)
 semi_join.DT = function(A, B, by, nomatch = 0) {
     A[A[B, on = by, which = TRUE, nomatch = nomatch]]
 }
 
+# Converts data table to GRanges object, preserving info
 .grDT <- function(DT, ...) {
-    # Converts data table to GRanges object, preserving info
     if(nrow(DT) == 0) return(GenomicRanges::GRanges(NULL))
     makeGRangesFromDataFrame(as.data.frame(DT), ...)
 }
@@ -201,6 +198,7 @@ theme_white_legend = theme(axis.line.x = element_line(colour = "black"),
             # axis.title.y=element_blank()
             )
 
+# Compatibility for running inside a shiny withProgress block
 dash_progress <- function(message = "", total_items = 1, add_msg = FALSE) {
     if(total_items != round(total_items) | total_items < 1) {
         .log("dash_progress needs at least 1 item")
@@ -218,12 +216,14 @@ dash_progress <- function(message = "", total_items = 1, add_msg = FALSE) {
     }
 }
 
+# Equivalent to shiny::withProgress with compatibility if shiny is missing.
 dash_withProgress <- function(expr, min = 0, max = 1,
     value = min + (max - min) * 0.1,
     message = NULL, detail = NULL,
     # style = getShinyOption("progress.style", default = "notification"),
     # session = getDefaultReactiveDomain(),
-    env = parent.frame(), quoted = FALSE) {
+    env = parent.frame(), quoted = FALSE
+) {
 
     has_shiny = NxtIRF.CheckPackageInstalled(
         package = "shiny", returntype = "silent")
@@ -243,11 +243,3 @@ dash_withProgress <- function(expr, min = 0, max = 1,
         eval(expr, env)
     }
 }
-
-#' Retrieves a data frame containing names and paths of example BAM files
-#'
-#' Intended to be run using the NxtIRF mock reference genome and gene 
-#' annotations
-
-
-

@@ -45,7 +45,7 @@ object (see \code{\link{NxtSE-methods}}) to contain IRFinder output
 produced by \code{\link{CollateData}}
 \item \code{\link{apply_filters}} - Easily specify and apply a list of
 filters to exclude low-abundance splicing events from downstream analysis
-\item \code{\link{limma_ASE}}, \code{\link{DESeq_ASE}} - perform
+\item \code{\link{ASE-methods}} - perform
 differential alternate splice event (ASE) analysis on a filtered NxtSE
 \item \code{\link{make_diagonal}}, \code{\link{make_matrix}}: Generate
 data to produce scatter plots or heatmaps of ASE events
@@ -53,9 +53,9 @@ data to produce scatter plots or heatmaps of ASE events
 individual samples or across samples grouped by user-specified conditions
 }
 
-See \code{vignette("NxtIRFcore")} for worked examples on how to use NxtIRF
+See \code{browseVignettes("NxtIRFcore")} for worked examples on how to use NxtIRF
 }
 \author{
-Alex Wong, Ulf Schmitz, William Ritchie
+Alex Wong
 }
 \keyword{package}
