@@ -168,28 +168,54 @@ as_egg_ggplot <- function(p_obj) {
     egg::ggarrange(plots = plot_tracks, ncol = 1)
 } 
 
-#' Calls NxtIRF's C++ function to retrieve coverage
+#' Calls NxtIRF's C++ function to retrieve coverage from a COV file
 #'
 #' This function returns an RLE or RLEList containing coverage data from the
 #' given COV file
 #' @param file The file name of the COV file
 #' @param seqname Either blank, or a character string denoting the chromosome 
-#'  name
-#' @param start The 0-based start coordinate 
-#' @param end The 0-based end coordinate
+#'  name. If blank, retrieves RLEList containing whole-transcriptome coverage
+#' @param start,end The 0-based genomic coordinates. If `start = 0` and
+#'   `end = 0`, will retrieve RLE of specified chromosome.
 #' @param strand Either "*", "+", or "-"
 #' @return If seqname is left as "", returns an RLEList of the whole BAM file.
 #'   If seqname and coordinates are given, returns an RLE containing the
-#'   chromosome coordinate. Coordinates outside the given range will be set to 0
+#'   chromosome coordinate. Coverage outside the given range will be set to 0
 #' @examples
 #' se <- NxtIRF_example_NxtSE()
 #' 
 #' cov_file <- covfile(se)[1]
 #'
+#' # Retrieve Coverage as RLE
+#'
 #' cov <- GetCoverage(cov_file, seqname = "chrZ", 
 #'   start = 10000, end = 20000,
 #'   strand = "*"
 #' )
+#'
+#' # Retrieve Coverage as data.frame
+#'
+#' cov.df <- GetCoverage_DF(cov_file, seqname = "chrZ", 
+#'   start = 10000, end = 20000,
+#'   strand = "*"
+#' )
+#'
+#' # Plot coverage using ggplot:
+#'
+#' require(ggplot2)
+#' ggplot(cov.df, aes(x = coordinate, y = value)) + geom_line() + theme_white
+#'
+#' # Export COV data as BigWig
+#'
+#' cov_whole = GetCoverage(cov_file)
+#' bw_file = file.path(tempdir(), "sample.bw")
+#' rtracklayer::export(cov_whole, bw_file, "bw")
+#'
+#' @name Coverage
+#' @md
+NULL
+
+#' @describeIn Coverage Retrieves alignment coverage as an RLE or RLElist
 #' @export
 GetCoverage <- function(file, seqname = "", start = 0, end = 0, 
         strand = c("*", "+", "-")) {
@@ -202,9 +228,9 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
         ifelse(strand == "+", 1, 0))
         
     if(!is.numeric(start) || !is.numeric(end) || 
-            (as.numeric(start) > as.numeric(end))) {
+            (as.numeric(start) >= as.numeric(end) & as.numeric(end) > 0)) {
         .log(paste("In GetCoverage(),",
-            "Null or negative regions not allowed"))
+            "Zero or negative regions are not allowed"))
     }
     if(seqname == "") {
         raw_list = IRF_RLEList_From_Cov(normalizePath(file), strand_int)
@@ -237,6 +263,18 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
     }
 }
 
+#' @describeIn Coverage Retrieves alignment coverage as a data.frame
+#' @export
+GetCoverage_DF <- function(file, seqname = "", start = 0, end = 0, 
+        strand = c("*", "+", "-")) {
+    if(seqname == "") .log("seqname must not be omitted in GetCoverage_DF")
+    cov = GetCoverage(file, seqname, start, end, strand)
+    view = IRanges::Views(cov, start + 1, end)
+    view.df = as.data.frame(view[[1]])
+    return(data.frame(
+        coordinate = seq(start + 1, end), value = view.df$value
+    ))
+}
 
 ########## Internal functions ##########
 
@@ -504,7 +542,7 @@ plot_cov_fn <- function(
 
             if(length(avail_files[samples]) > 0 &&
                     all(file.exists(avail_files[samples]))) {
-                df = as.data.frame(GetCoverage_DF(
+                df = as.data.frame(.internal_get_coverage_as_df(
                     samples, avail_files[samples],
                     view_chr, view_start, view_end, view_strand))
                 # bin anything with cur_zoom > 5
@@ -689,7 +727,7 @@ plot_cov_fn <- function(
             filename = avail_files[which(
                 names(avail_files) == track_samples)]
             if(length(filename) == 1 && file.exists(filename)) {
-                df = GetCoverage_DF("sample", filename,
+                df = .internal_get_coverage_as_df("sample", filename,
                     view_chr, view_start, view_end, view_strand)
                 df = bin_df(df, max(1, 3^(cur_zoom - 5)))
                 data.list[[i]] <- as.data.table(df)
@@ -784,7 +822,7 @@ plot_cov_fn_finalize <- function(
     return(final_plot)
 }
 
-GetCoverage_DF <- function(samples, files, seqname, start, end, 
+.internal_get_coverage_as_df <- function(samples, files, seqname, start, end, 
         strand = c("*", "+", "-")) {
     strand = match.arg(strand)
     if(!(strand %in% c("*", "+", "-"))) {

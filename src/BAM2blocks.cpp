@@ -541,7 +541,7 @@ int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
     }
   }
   if(ret < 4) {
-    Rcout << "Error occurred in BAM2Blocks processAll - likely a bug\n";
+    cout << "Error occurred in BAM2Blocks processAll - likely a bug\n";
     return(-1);
   }
   return(0);

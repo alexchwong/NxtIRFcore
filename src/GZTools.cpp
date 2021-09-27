@@ -89,7 +89,7 @@ int GZReader::GetBuffer() {
       const char * error_string;
       error_string = gzerror (gz_in, & err);
       if (err) {
-        Rcout << "Exception during zlib decompression: (" << err << ") " << error_string;
+        cout << "Exception during zlib decompression: (" << err << ") " << error_string;
         free(data);
 				return(err);
       }
@@ -139,7 +139,7 @@ int GZReader::LoadGZ(std::string s_filename, bool asStream, bool lazymode) {
           const char * error_string;
           error_string = gzerror (gz_in, & err);
           if (err) {
-            Rcout << "Exception during zlib decompression: (" << err << ") " << error_string;
+            cout << "Exception during zlib decompression: (" << err << ") " << error_string;
             free(data);
 						return(err);
           }
@@ -250,7 +250,7 @@ int GZWriter::flush(bool final) {
     
     ret = deflateInit2(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY);
     if (ret != Z_OK) {
-      Rcout << "Exception during zlib initialization: (" << ret << ") "  << strm.msg;
+      cout << "Exception during zlib initialization: (" << ret << ") "  << strm.msg;
 			return(ret);
     }
 
@@ -262,7 +262,7 @@ int GZWriter::flush(bool final) {
     ret = deflate(&strm, Z_FINISH);  
 
     if (ret != Z_OK && ret != Z_STREAM_END) {
-        Rcout << "Exception during zlib deflate: (" << ret << ") " << strm.msg;
+        cout << "Exception during zlib deflate: (" << ret << ") " << strm.msg;
 				return(ret);
     }
 

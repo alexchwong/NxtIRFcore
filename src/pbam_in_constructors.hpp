@@ -40,12 +40,12 @@ inline pbam_in::pbam_in(
   
   // Limits chunk size to be above 1 Mb
   if(file_buffer_cap / chunks_per_file_buffer < 1024576) {
-    Rcout << "FILE_BUFFER_CAP / chunks_per_file_buffer (chunk size) must be above 1Mb\n";
+    cout << "FILE_BUFFER_CAP / chunks_per_file_buffer (chunk size) must be above 1Mb\n";
     return;
   }
   // Ensures decompressed data buffer is bigger than file buffer. For sanity reasons.
   if(data_buffer_cap < file_buffer_cap) {
-    Rcout << "DATA_BUFFER_CAP must not be smaller than FILE_BUFFER_CAP\n";
+    cout << "DATA_BUFFER_CAP must not be smaller than FILE_BUFFER_CAP\n";
     return;
   }  
 

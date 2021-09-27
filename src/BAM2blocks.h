@@ -26,7 +26,6 @@ SOFTWARE.  */
 #define CODE_BAM2BLOCKS
 
 #include "includedefine.h"
-// #include "IRFinder_Rcout.h"
 #include "IRFinder_Rcpp.h"
 #include "ompBAM.hpp"
 

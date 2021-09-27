@@ -59,7 +59,7 @@ void covReader::SetInputHandle(std::istream *in_stream) {
   if(strncmp(check_eof_buffer, bamEOF, bamEOFlength) == 0) {
     EOF_POS = IS_LENGTH - bamEOFlength;
   } else {
-    // Rcout << "EOF bit not detected\n";
+    // cout << "EOF bit not detected\n";
     EOF_POS = 0;
     IS_EOF = 1;
     IS_FAIL = 1;				
@@ -83,7 +83,7 @@ int covReader::ReadBuffer() {
   IN->read(GzipCheck, bamGzipHeadLength);
 
    if(strncmp(bamGzipHead, GzipCheck, bamGzipHeadLength) != 0) {
-    Rcout << "Exception during BAM decompression - BGZF header corrupt: (at " 
+    cout << "Exception during BAM decompression - BGZF header corrupt: (at " 
       << IN->tellg() << " bytes) ";
     return(Z_BUF_ERROR);
   }
@@ -106,13 +106,13 @@ int covReader::ReadBuffer() {
 
   ret = inflateInit2(&zs, -15);
   if(ret != Z_OK) {
-    Rcout << "Exception during BAM decompression - inflateInit2() fail: (" 
+    cout << "Exception during BAM decompression - inflateInit2() fail: (" 
       << ret << ") ";
     return(ret);
   }
   ret = inflate(&zs, Z_FINISH);
   if(ret != Z_OK && ret != Z_STREAM_END) {
-    Rcout << "Exception during BAM decompression - inflate() fail: (" 
+    cout << "Exception during BAM decompression - inflate() fail: (" 
       << ret << ") ";
     return(ret);
   }
@@ -240,12 +240,12 @@ int covReader::ReadHeader() {
   char cov_header[4];
   int ret = read(cov_header,4);
   if(ret != Z_OK) {
-    Rcout << "File is not BGZF compressed; unlikely to be COV file\n";
+    cout << "File is not BGZF compressed; unlikely to be COV file\n";
     return(ret);
   }
   std::string s_cov_header = "COV\x01";
   if(strncmp(cov_header, s_cov_header.c_str(), 4) != 0) {
-    Rcout << "COV file has incorrect header!\n";
+    cout << "COV file has incorrect header!\n";
     return(-1);
   }
   
@@ -493,21 +493,21 @@ int buffer_out_chunk::Compress() {
   // -15 to disable zlib header/footer
   int ret = deflateInit2(&zs, 6, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY); 
   if(ret != Z_OK) {
-    Rcout << "Exception during BAM decompression - deflateInit2() fail: (" 
+    cout << "Exception during BAM decompression - deflateInit2() fail: (" 
       << ret << ") ";
     return(ret);
   }
   
   ret = deflate(&zs, Z_FINISH);
   if(ret != Z_OK && ret != Z_STREAM_END) {
-    Rcout << "Exception during BAM decompression - deflate() fail: (" 
+    cout << "Exception during BAM decompression - deflate() fail: (" 
       << ret << ") ";
     return(ret);
   }
   
   ret = deflateEnd(&zs);
   if(ret != Z_OK) {
-    Rcout << "Exception during BAM decompression - deflateEnd() fail: (" 
+    cout << "Exception during BAM decompression - deflateEnd() fail: (" 
       << ret << ") ";
     return(ret);
   }
@@ -554,11 +554,11 @@ covWriter::~covWriter() {
 // - means zero depth, for length of chromosome
 int covWriter::WriteEmptyEntry(unsigned int refID) {
   if(chrs.size() == 0) {
-    Rcout << "ERROR: COV header missing\n";
+    cout << "ERROR: COV header missing\n";
     return(-1);
   }
   if(refID >= 3 * chrs.size()) {
-    Rcout << "ERROR: Invalid chrID parsed to covWriter\n";
+    cout << "ERROR: Invalid chrID parsed to covWriter\n";
     return(-1);
   }
 
@@ -721,11 +721,11 @@ int covWriter::WriteFragmentsMap(
     unsigned int n_threads_to_use
 ) {
   if(chrs.size() == 0) {
-    Rcout << "ERROR: COV header missing\n";
+    cout << "ERROR: COV header missing\n";
     return(-1);
   }
   if(chrID >= chrs.size()) {
-    Rcout << "ERROR: Invalid chrID parsed to covWriter\n";
+    cout << "ERROR: Invalid chrID parsed to covWriter\n";
     return(-1);
   }
   // Initialize the vector depending on vector size
@@ -783,11 +783,11 @@ int covWriter::WriteFragmentsMap(
 // Writes everything to file
 int covWriter::WriteToFile() {
   if(!OUT) {
-    Rcout << "No COV file set to write to";
+    cout << "No COV file set to write to";
     return(-1);
   }
   if(chrs.size() == 0) {
-    Rcout << "ERROR: COV header missing\n";
+    cout << "ERROR: COV header missing\n";
     return(-1);
   }
   

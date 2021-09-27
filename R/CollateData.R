@@ -1321,6 +1321,48 @@ CollateData <- function(Experiment, reference_path, output_path,
 
 ################################################################################
 
+# Reads the "on-disk memory" FST files and compile to H5
+.collateData_compile_assays_from_fst <- function(df.internal,
+        norm_output_path, samples_per_block) {
+
+    rowname_lists = 
+        .collateData_H5_initialize(nrow(df.internal), norm_output_path)
+
+    .collateData_H5_write_assays(df.internal, norm_output_path,
+        samples_per_block)
+    
+    # Retrieve assays:
+    assay.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth")
+    inc.todo = c("Up_Inc", "Down_Inc")
+    exc.todo = c("Up_Exc", "Down_Exc")
+    junc.todo = c("junc_PSI", "junc_counts")
+    stuff.todo = c(assay.todo, inc.todo, exc.todo, junc.todo)
+
+    h5filename = file.path(norm_output_path, "data.h5")
+    assays = list()
+    for(assay in assay.todo) {
+        h5writeDimnames(list(rowname_lists$EventName, df.internal$sample),
+            h5filename, assay)
+        assays[[assay]] <- HDF5Array(h5filename, assay)
+    }
+    for(inc in inc.todo) {
+        h5writeDimnames(list(rowname_lists$Inc_Events, df.internal$sample),
+            h5filename, inc)
+        assays[[inc]] <- HDF5Array(h5filename, inc)
+    }
+    for(exc in exc.todo) {
+        h5writeDimnames(list(rowname_lists$Exc_Events, df.internal$sample),
+            h5filename, exc)
+        assays[[exc]] <- HDF5Array(h5filename, exc)
+    }
+    for(junc in junc.todo) {
+        h5writeDimnames(list(rowname_lists$junc_rownames, df.internal$sample),
+            h5filename, junc)
+        assays[[junc]] <- HDF5Array(h5filename, junc)
+    }
+    return(assays)
+}
+
 # Initializes H5 arrays using rowData; return rownames as a list
 .collateData_H5_initialize <- function(num_samples, norm_output_path) {
     assay.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth")
@@ -1378,6 +1420,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     return(rowname_lists)
 }
 
+# Read temp FST files; add to H5 assays
 .collateData_H5_write_assays <- function(
         df.internal, norm_output_path, samples_per_block        
 ) {
@@ -1439,48 +1482,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     close(pb)
 }
 
-
-# Reads the "on-disk memory" FST files and compile to H5
-.collateData_compile_assays_from_fst <- function(df.internal,
-        norm_output_path, samples_per_block) {
-
-    rowname_lists = 
-        .collateData_H5_initialize(nrow(df.internal), norm_output_path)
-
-    .collateData_H5_write_assays(df.internal, norm_output_path,
-        samples_per_block)
-    
-    # Retrieve assays:
-    assay.todo = c("Included", "Excluded", "Depth", "Coverage", "minDepth")
-    inc.todo = c("Up_Inc", "Down_Inc")
-    exc.todo = c("Up_Exc", "Down_Exc")
-    junc.todo = c("junc_PSI", "junc_counts")
-    stuff.todo = c(assay.todo, inc.todo, exc.todo, junc.todo)
-
-    h5filename = file.path(norm_output_path, "data.h5")
-    assays = list()
-    for(assay in assay.todo) {
-        h5writeDimnames(list(rowname_lists$EventName, df.internal$sample),
-            h5filename, assay)
-        assays[[assay]] <- HDF5Array(h5filename, assay)
-    }
-    for(inc in inc.todo) {
-        h5writeDimnames(list(rowname_lists$Inc_Events, df.internal$sample),
-            h5filename, inc)
-        assays[[inc]] <- HDF5Array(h5filename, inc)
-    }
-    for(exc in exc.todo) {
-        h5writeDimnames(list(rowname_lists$Exc_Events, df.internal$sample),
-            h5filename, exc)
-        assays[[exc]] <- HDF5Array(h5filename, exc)
-    }
-    for(junc in junc.todo) {
-        h5writeDimnames(list(rowname_lists$junc_rownames, df.internal$sample),
-            h5filename, junc)
-        assays[[junc]] <- HDF5Array(h5filename, junc)
-    }
-    return(assays)
-}
+################################################################################
 
 # Writes sample stats to FST
 .collateData_write_stats <- function(df.internal, norm_output_path) {
@@ -1576,9 +1578,13 @@ CollateData <- function(Experiment, reference_path, output_path,
     saveRDS(se, filepath)
 }
 
-# Internals for save_NxtSE
+# Internals for save_NxtSE; adapted from HDF5Array saveHDF5SummarizedExperiment
+# - These are needed if the CollateData folder has been moved since last access
+# - allows relative paths to be used
 
-# Lifted from HDF5Array saveHDF5SummarizedExperiment
+# Saving a NxtSE object
+
+# Add single assay
 .collateData_simplify_assay_path <- function(assay) {
     DelayedArray::modify_seeds(assay,
         function(x) {
@@ -1588,6 +1594,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     )
 }
 
+# Add list of assays
 .collateData_simplify_assay_paths <- function(assays) {
     nassay <- length(assays)
     for (i in seq_len(nassay)) {
@@ -1597,6 +1604,9 @@ CollateData <- function(Experiment, reference_path, output_path,
     return(assays)
 }
 
+# Loading a NxtSE object
+
+# Fix a single assay
 .collateData_expand_assay_path <- function(assay, path) {
     DelayedArray::modify_seeds(assay,
         function(x) {
@@ -1606,6 +1616,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     )
 }
 
+# Fix a list of assays
 .collateData_expand_assay_paths <- function(assays, path) {
 
     nassay <- length(assays)

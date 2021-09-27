@@ -26,12 +26,12 @@ SOFTWARE.  */
 
 inline int pbam_in::fillReads() {
   if(!magic_header) {
-    Rcout << "Header is not yet read\n";
+    cout << "Header is not yet read\n";
     error_state = -1;
     return(-1);
   }
   if(n_ref == 0) {
-    Rcout << "No chromosome names stored. Is pbam_in::readHeader() been run yet?\n";
+    cout << "No chromosome names stored. Is pbam_in::readHeader() been run yet?\n";
     error_state = -1;
     return(-1);
   }
@@ -40,7 +40,7 @@ inline int pbam_in::fillReads() {
   if(read_cursors.size() > 0) {
     for(unsigned int i = 0; i < read_cursors.size(); i++) {
       if(read_cursors.at(i) < read_ptr_ends.at(i)) {
-        Rcout << "Thread " << i << " has reads remaining. Please debug your code "
+        cout << "Thread " << i << " has reads remaining. Please debug your code "
           << "and make sure all threads clear their reads before filling any more reads\n";
         error_state = -1;
         return(-1);
@@ -56,7 +56,7 @@ inline int pbam_in::fillReads() {
   size_t bytes_decompressed = decompress(DATA_BUFFER_CAP);
   if(bytes_decompressed == 0) {
     if(GetProgress() != GetFileSize()) {
-      Rcout << "Error occurred during decompression\n";
+      cout << "Error occurred during decompression\n";
       error_state = -1;
       return(-1);
     }
@@ -108,12 +108,12 @@ inline int pbam_in::fillReads() {
 // Internal
 inline size_t pbam_in::remainingThreadReadsBuffer(const unsigned int thread_id) {
   if(thread_id > threads_to_use) {
-    Rcout << "pbam_in object was not initialized with " << 
+    cout << "pbam_in object was not initialized with " << 
       thread_id << " threads\n";
     return(0);
   }
   if(read_cursors.size() <= thread_id) {
-    Rcout << "Thread " << thread_id << " is not initialized with reads\n";
+    cout << "Thread " << thread_id << " is not initialized with reads\n";
     return(0);
   }
   return(read_ptr_ends.at(thread_id) - read_cursors.at(thread_id));

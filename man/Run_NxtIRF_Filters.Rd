@@ -11,17 +11,17 @@
 \usage{
 get_default_filters()
 
-runFilter(se, filterObj)
-
 apply_filters(se, filters = get_default_filters())
+
+runFilter(se, filterObj)
 }
 \arguments{
 \item{se}{the NxtSE SummarizedExperiment to filter}
 
-\item{filterObj}{A single NxtFilter object.}
-
 \item{filters}{A vector or list of one or more NxtFilter objects. If left
 blank, the NxtIRF default filters will be used.}
+
+\item{filterObj}{A single NxtFilter object.}
 }
 \value{
 For \code{runFilter} and \code{apply_filters}, a vector of type \code{logical},
@@ -57,10 +57,10 @@ For an explanation of the various parameters mentioned here, see \link{NxtFilter
 \item \code{get_default_filters}: Returns a vector of recommended default
 NxtIRF filters
 
-\item \code{runFilter}: Run a single filter on a NxtSE object
-
 \item \code{apply_filters}: Run a vector or list of NxtFilter objects
 on a NxtSE object
+
+\item \code{runFilter}: Run a single filter on a NxtSE object
 }}
 
 \examples{

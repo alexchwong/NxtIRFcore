@@ -93,6 +93,11 @@ NULL
 #'   `BuildReference_Full()`, will not overwrite reference if one already exist.
 #'   An existing reference is checked by seeing whether `IRFinder.ref.gz`
 #'   already exist.
+#' @param force_download (default FALSE) When online resources are retrieved,
+#'   a local copy is stored in a `NxtIRFcore` BiocFileCache. Subsequent calls to
+#'   the web resource will fetch the local copy. Set `force_download` to `TRUE`
+#'   will force the resource to be downloaded from the web. Set this to `TRUE`
+#'   if the web resource has been updated since the last retrieval.
 #' @param chromosome_aliases (Optional) A 2-column data frame containing 
 #'   chromosome name conversions. The first column lists the chromosome names 
 #'   of the source reference files, and the second column gives the alias 
@@ -276,15 +281,52 @@ NULL
 GetReferenceResource <- function(
         reference_path = "./Reference",
         fasta = "", gtf = "",
-        overwrite = FALSE
+        overwrite = FALSE, force_download = FALSE
 ) {
     reference_data = .get_reference_data(
         reference_path = reference_path,
         fasta = fasta, gtf = gtf, 
         verbose = TRUE,
-        overwrite = overwrite,
+        overwrite = overwrite, force_download = force_download,
         pseudo_fetch = TRUE
     )
+}
+
+#' @describeIn BuildReference One-step function that fetches resources,
+#'   creates a STAR reference (including mappability calculations), then
+#'   creates the NxtIRF reference
+#' @export
+BuildReference_Full <- function(
+        reference_path,
+        fasta, gtf,
+        chromosome_aliases = NULL,
+        overwrite = FALSE, force_download = FALSE,
+        genome_type = genome_type,
+        use_STAR_mappability = FALSE,
+        nonPolyARef = GetNonPolyARef(genome_type), 
+        BlacklistRef = "", 
+        UseExtendedTranscripts = TRUE,
+        n_threads = 8
+) {
+    if(!overwrite && file.exists(file.path(reference_path, "IRFinder.ref.gz"))){
+        .log("NxtIRF reference already exists in given directory", "message")
+        return()
+    }
+
+    GetReferenceResource(reference_path = reference_path,
+        fasta = fasta, gtf = gtf,
+        overwrite = overwrite, force_download = force_download)
+
+    STAR_buildRef(reference_path = reference_path, 
+        also_generate_mappability = use_STAR_mappability, 
+        n_threads = n_threads)
+
+    BuildReference(reference_path = reference_path,
+        genome_type = genome_type,
+        nonPolyARef = nonPolyARef, 
+        BlacklistRef = BlacklistRef, 
+        chromosome_aliases = chromosome_aliases,
+        UseExtendedTranscripts = UseExtendedTranscripts)
 }
 
 #' @describeIn BuildReference First calls \code{GetReferenceResource()}
@@ -293,7 +335,7 @@ GetReferenceResource <- function(
 #' @export
 BuildReference <- function(
         reference_path = "./Reference",
-        fasta = "", gtf = "", overwrite = FALSE, 
+        fasta = "", gtf = "", overwrite = FALSE, force_download = FALSE,
         chromosome_aliases = NULL, genome_type = "", 
         nonPolyARef = "", MappabilityRef = "", BlacklistRef = "", 
         UseExtendedTranscripts = TRUE
@@ -304,16 +346,15 @@ BuildReference <- function(
         return()
     }
     extra_files <- .fetch_genome_defaults(reference_path,
-        genome_type, nonPolyARef, MappabilityRef, BlacklistRef)
+        genome_type, nonPolyARef, MappabilityRef, BlacklistRef,
+        force_download = force_download)
     N_steps <- 8
     dash_progress("Reading Reference Files", N_steps)
     reference_data = .get_reference_data(
         reference_path = reference_path,
-        fasta = fasta, gtf = gtf, 
-        verbose = TRUE,
-        overwrite = overwrite,
-        pseudo_fetch = FALSE
-    )
+        fasta = fasta, gtf = gtf, verbose = TRUE, 
+        overwrite = overwrite,  force_download = force_download,
+        pseudo_fetch = FALSE)
     
     dash_progress("Processing gtf file", N_steps)
     reference_data$gtf_gr = .validate_gtf_chromosomes(
@@ -334,9 +375,8 @@ BuildReference <- function(
     gc()
 
     dash_progress("Annotating IR-NMD", N_steps)
-    dash_withProgress(message = 'Determining NMD Transcripts', value = 0, {
-        .gen_nmd(reference_path, reference_data$genome)
-    })
+    dash_withProgress(message = 'Determining NMD Transcripts', value = 0, 
+        .gen_nmd(reference_path, reference_data$genome))
 
     dash_progress("Annotating Splice Events", N_steps)
     .gen_splice(reference_path)
@@ -351,6 +391,10 @@ BuildReference <- function(
     message("Reference build finished")
     dash_progress("Reference build finished", N_steps)
 
+    # Prepare a reference-specific cov_data for reference-only plots:
+    cov_data <- .prepare_covplot_data(reference_path)
+    saveRDS(cov_data, file.path(reference_path, "cov_data.Rds"))
+
     # Update settings.Rds only after everything is finalised
     settings.list = readRDS(file.path(reference_path, "settings.Rds"))
     settings.list$genome_type = genome_type
@@ -358,7 +402,6 @@ BuildReference <- function(
     settings.list$MappabilityRef = MappabilityRef
     settings.list$BlacklistRef = BlacklistRef
     settings.list$UseExtendedTranscripts = UseExtendedTranscripts
-    
     settings.list$BuildVersion = buildref_version
     
     saveRDS(settings.list, file.path(reference_path, "settings.Rds"))
@@ -440,9 +483,7 @@ Get_GTF_file <- function(reference_path) {
     if({
         reference_path != "" &&
         tryCatch(
-            ifelse(
-                normalizePath(dirname(reference_path)) != "", TRUE, TRUE
-            ),
+            ifelse(normalizePath(dirname(reference_path)) != "", TRUE, TRUE),
             error = function(e) FALSE
         )
     }) {
@@ -454,16 +495,15 @@ Get_GTF_file <- function(reference_path) {
     }
 
     base <- normalizePath(dirname(reference_path))
-    if (!dir.exists(file.path(base, basename(reference_path)))) {
+    if (!dir.exists(file.path(base, basename(reference_path)))) 
         dir.create(file.path(base, basename(reference_path)))
-    }
+
     if(!is.null(subdirs)) {
         for(subdir in subdirs) {
             dir_to_make = file.path(base, basename(reference_path), subdirs)
             if (!dir.exists(dir_to_make)) dir.create(dir_to_make)
         }
     }
-
     return(file.path(base, basename(reference_path)))
 }
 
@@ -521,32 +561,36 @@ Get_GTF_file <- function(reference_path) {
 }
 
 .fetch_genome_defaults <- function(reference_path, genome_type, 
-        nonPolyARef = "", MappabilityRef = "", BlacklistRef = "") {
+        nonPolyARef = "", MappabilityRef = "", BlacklistRef = "",
+        force_download = FALSE
+) {
     if(!is_valid(nonPolyARef)) {
         nonPolyAFile <- GetNonPolyARef(genome_type)
         nonPolyAFile <- .parse_valid_file(nonPolyAFile, 
             "Reference generated without non-polyA reference")        
     } else {
         nonPolyAFile <- .parse_valid_file(nonPolyARef, 
-            "Reference generated without non-polyA reference") 
+            "Reference generated without non-polyA reference",
+            force_download = force_download)
     }
     map_path = file.path(normalizePath(reference_path), "Mappability")
     map_file = file.path(map_path, "MappabilityExclusion.bed.gz")
     if(is_valid(MappabilityRef)) {
-        MappabilityFile <- .parse_valid_file(MappabilityRef)
+        MappabilityFile <- .parse_valid_file(MappabilityRef,
+            force_download = force_download)
     } else if(file.exists(map_file)) {
         MappabilityFile <- .parse_valid_file(map_file)
     } else if(genome_type %in% c("hg38", "hg19", "mm9", "mm10")) {
         MappabilityFile <- .parse_valid_file(get_mappability_exclusion(
             genome_type, as_type = "bed.gz", path = map_path, overwrite = TRUE))
     } else {
-        MappabilityFile <-
-            .parse_valid_file(MappabilityRef, 
-            "Reference generated without Mappability reference")        
+        MappabilityFile <- .parse_valid_file(MappabilityRef, 
+            "Reference generated without Mappability reference")
     }
     BlacklistFile <-
         .parse_valid_file(BlacklistRef, 
-            "Reference generated without Blacklist exclusion")
+            "Reference generated without Blacklist exclusion",
+            force_download = force_download)
     
     # Check files are valid BED files; fail early if not
     .check_is_BED(nonPolyAFile)
@@ -586,7 +630,7 @@ Get_GTF_file <- function(reference_path) {
 # Sub
 
 .get_reference_data <- function(reference_path, fasta, gtf, 
-        verbose = TRUE, overwrite = FALSE,
+        verbose = TRUE, overwrite = FALSE, force_download = FALSE,
         pseudo_fetch = FALSE
 ) {
 
@@ -600,11 +644,7 @@ Get_GTF_file <- function(reference_path) {
         gtf = file.path(reference_path, "resource", "transcripts.gtf.gz")
         if(!file.exists(gtf)) .log(paste(gtf, "doesn't exist"))
     }
-    # Check web links are valid
-    # test_urls <- c(fasta, gtf)
-    # for(url in test_urls) {
-        # .url_test(url)
-    # }
+    # URLS are checked at BiocFileCache step contained within .parse_valid_file
 
     fasta_use <- gtf_use <- ah_genome_use <- ah_gtf_use <- ""
     if(.is_AH_pattern(fasta)) {
@@ -621,14 +661,14 @@ Get_GTF_file <- function(reference_path) {
     genome <- .fetch_fasta(
         reference_path = reference_path,
         fasta = fasta_use, ah_genome = ah_genome_use,
-        verbose = verbose, overwrite = overwrite,
-        pseudo_fetch = pseudo_fetch
+        verbose = verbose, overwrite = overwrite, 
+        force_download = force_download, pseudo_fetch = pseudo_fetch
     )
     gtf_gr <- .fetch_gtf(
         gtf = gtf_use, ah_transcriptome = ah_gtf_use,
         reference_path = reference_path, 
         verbose = verbose, overwrite = overwrite,
-        pseudo_fetch = pseudo_fetch
+        force_download = force_download, pseudo_fetch = pseudo_fetch
     )
     # Save Resource details to settings.Rds:
     settings.list <- list(fasta_file = fasta_use, gtf_file = gtf_use,
@@ -669,11 +709,11 @@ Get_GTF_file <- function(reference_path) {
 #   - make a genome.2bit file
 # If ah_genome is not empty:
 #   - fetch AnnotationHub reference
-#   - create a genome.fa file
+#   - create a local genome.2bit file for portability
 .fetch_fasta <- function(
         reference_path = "./Reference",
         fasta = "", ah_genome = "",
-        verbose = TRUE, overwrite = FALSE,
+        verbose = TRUE, overwrite = FALSE, force_download = FALSE,
         pseudo_fetch = FALSE
 ) {
     if (ah_genome != "") {
@@ -698,7 +738,7 @@ Get_GTF_file <- function(reference_path) {
                 return(genome_2bit)
             }
         }       
-        fasta_file <- .parse_valid_file(fasta)
+        fasta_file <- .parse_valid_file(fasta, force_download = force_download)
         if(!file.exists(fasta_file)) {
             .log(paste("In .fetch_fasta(),",
                 "Given genome fasta file", fasta, "not found"))
@@ -761,13 +801,12 @@ Get_GTF_file <- function(reference_path) {
     }
 }
 
-
 ################################################################################
 
 .fetch_gtf <- function(
         reference_path = "./Reference",
         gtf = "", ah_transcriptome = "",  
-        verbose = TRUE, overwrite = FALSE,
+        verbose = TRUE, overwrite = FALSE, force_download = FALSE,
         pseudo_fetch = FALSE
 ) {
     r_path = file.path(reference_path, "resource")
@@ -776,7 +815,6 @@ Get_GTF_file <- function(reference_path) {
         gtf_gr <- .fetch_AH(ah_transcriptome, verbose = verbose,
             pseudo_fetch = pseudo_fetch)
         if(overwrite || !file.exists(gtf_path)) {
-            # cache_loc <- AnnotationHub::cache(ah_transcriptome)
             cache_loc <- .fetch_AH_cache_loc(ah_transcriptome, 
                 rdataclass = "GRanges", verbose = verbose)
             if(file.exists(cache_loc)) {
@@ -786,7 +824,7 @@ Get_GTF_file <- function(reference_path) {
         }
         return(gtf_gr)
     } else {
-        gtf_file = .parse_valid_file(gtf)
+        gtf_file = .parse_valid_file(gtf, force_download = force_download)
         if(!file.exists(gtf_file)) {
             .log(paste("In .fetch_gtf(),",
                 "Given transcriptome gtf file", gtf, "not found"))
@@ -891,17 +929,32 @@ Get_GTF_file <- function(reference_path) {
     }
 }
 
-.parse_valid_file <- function(file, msg = "") {
+.parse_valid_file <- function(file, msg = "", force_download = FALSE) {
     if (!is_valid(file)) {
         .log(msg, type = "message")
         return("")
     } else if ( any(startsWith(file, c("http", "ftp")))) {
         url <- file
-        # BiocFileCache this and return file path
+        # TODO: test URLs here
         cache <- tools::R_user_dir(package = "NxtIRFcore", which="cache")
         bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
-        path <- BiocFileCache::bfcrpath(bfc, url)
-        return(path)
+        res <- BiocFileCache::bfcquery(bfc, url, "fpath", exact = TRUE)
+        if(nrow(res) > 0 & !force_download) return(res$rpath[nrow(res)])
+        path <- tryCatch(BiocFileCache::bfcadd(bfc, url),
+            error = function(err) {
+                .log(paste("Web resource not accessible -", url), "message")
+                return(NA)
+            }
+        )
+        if(identical(path, NA)) {
+            if(nrow(res) == 0) return("")
+            .log("Returning local copy from cache", "message")
+            return(res$rpath[nrow(res)]) # fetch local copy if available
+        }
+        # remove prior versions from cache to remove glut
+        res <- BiocFileCache::bfcquery(bfc, url, "fpath", exact = TRUE)
+        BiocFileCache::bfcremove(bfc, res$rid[-nrow(res)])
+        return(res$rname[nrow(res)])
     } else if (!file.exists(file)) {
         .log(paste(file, "not found.", msg), type = "message")
         return("")
@@ -2075,6 +2128,7 @@ Get_GTF_file <- function(reference_path) {
     gc()
     return(readcons)    
 }
+
 .gen_irf_sj <- function(reference_path) {
     # ref-sj.ref
     # Reload candidate introns here, as we've filtered this before
@@ -2099,6 +2153,7 @@ Get_GTF_file <- function(reference_path) {
     gc()
     return(ref.sj)
 }
+
 .gen_irf_final <- function(reference_path,
         ref.cover, readcons, ref.ROI, ref.sj,
         chromosome_aliases
@@ -2217,28 +2272,22 @@ Get_GTF_file <- function(reference_path) {
     ]
     # determine here whether protein introns are CDS, 5' or 3' UTR introns
     UTR5 <- Misc[get("type") == "five_prime_utr"]
-    UTR5.introns <- .grlGaps(
-        split(
-            makeGRangesFromDataFrame(as.data.frame(UTR5)),
-            UTR5$transcript_id
-        )
-    )
+    UTR5.introns <- .grlGaps(split(
+        makeGRangesFromDataFrame(as.data.frame(UTR5)),
+        UTR5$transcript_id
+    ))
     UTR5.introns <- as.data.table(UTR5.introns)
     UTR3 <- Misc[get("type") == "three_prime_utr"]
-    UTR3.introns <- .grlGaps(
-        split(
-            makeGRangesFromDataFrame(as.data.frame(UTR3)),
-            UTR3$transcript_id
-        )
-    )
+    UTR3.introns <- .grlGaps(split(
+        makeGRangesFromDataFrame(as.data.frame(UTR3)),
+        UTR3$transcript_id
+    ))
     UTR3.introns <- as.data.table(UTR3.introns)
 
-    CDS.introns <- .grlGaps(
-        split(
-            makeGRangesFromDataFrame(as.data.frame(Exons.tr)),
-            Exons.tr$transcript_id
-        )
-    )
+    CDS.introns <- .grlGaps(split(
+        makeGRangesFromDataFrame(as.data.frame(Exons.tr)),
+        Exons.tr$transcript_id
+    ))
     CDS.introns <- as.data.table(CDS.introns)
 
     protein.introns[UTR5.introns,
@@ -2333,7 +2382,6 @@ Get_GTF_file <- function(reference_path) {
     exon.MLE.DT <- exon.MLE.DT[, c("transcript_id", "seq")]
     splice <- exon.MLE.DT[, lapply(.SD, paste0, collapse = ""), 
         by = "transcript_id"]
-    # splice[is.na(rowSums(stringr::str_locate(get("seq"), "N"))),
     splice[as.numeric(regexpr("N", get("seq"))) < 0,
         c("AA") := as.character(
             Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"))
@@ -2341,7 +2389,6 @@ Get_GTF_file <- function(reference_path) {
     ]
     # Find nucleotide position of first stop codon
     splice[, c("stop_pos") := 
-        # stringr::str_locate(get("AA"), "\\*")[, 1] * 3 - 2]
         as.numeric(regexpr("\\*", get("AA"))) * 3 - 2]
     splice[get("stop_pos") < 0, c("stop_pos") := NA]
     splice[, c("splice_len") := nchar(get("seq"))]
@@ -2481,7 +2528,6 @@ Get_GTF_file <- function(reference_path) {
     IRT[, c("seq") := substr(get("seq"), 1, 
         nchar(get("seq")) - (nchar(get("seq")) %% 3))]
     IRT[
-        # is.na(rowSums(stringr::str_locate(get("seq"), "N"))),
         as.numeric(regexpr("N", get("seq"))) < 0,
         c("AA") := as.character(
             Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"))
@@ -2490,7 +2536,6 @@ Get_GTF_file <- function(reference_path) {
 
     # Find nucleotide position of first stop codon
     IRT[, c("stop_pos") := 
-        # stringr::str_locate(get("AA"), "\\*")[, 1] * 3 - 2]
         as.numeric(regexpr("\\*", get("AA"))) * 3 - 2]
     IRT[get("stop_pos") < 0, c("stop_pos") := NA]
     IRT[, c("IRT_len") := nchar(get("seq"))]
@@ -2735,8 +2780,6 @@ Get_GTF_file <- function(reference_path) {
     ]
     introns_skip_SE <- unique(introns_skip_SE,
         by = c("gene_id_b", "skip_coord"))
-    # Columns: skip_coord, gene_id_b, skip_transcript_id, skip_transcript_name,
-    #          skip_intron_number
 
     # Get junction EiEi+1 and annotate "skip" junction as EiEi+2
     introns_found_SE <- introns.skipcoord[,
@@ -3702,40 +3745,4 @@ Get_GTF_file <- function(reference_path) {
 }
 
 
-#' @describeIn BuildReference One-step function that fetches resources,
-#'   creates a STAR reference (including mappability calculations), then
-#'   creates the NxtIRF reference
-#' @export
-BuildReference_Full <- function(
-        reference_path,
-        fasta, gtf,
-        chromosome_aliases = NULL,
-        overwrite = FALSE,
-        genome_type = genome_type,
-        use_STAR_mappability = FALSE,
-        nonPolyARef = GetNonPolyARef(genome_type), 
-        BlacklistRef = "", 
-        UseExtendedTranscripts = TRUE,
-        n_threads = 8
-) {
-    if(!overwrite && file.exists(file.path(reference_path, "IRFinder.ref.gz"))){
-        .log("NxtIRF reference already exists in given directory", "message")
-        return()
-    }
-
-    GetReferenceResource(reference_path = reference_path,
-        fasta = fasta, gtf = gtf,
-        overwrite = overwrite)
-
-    STAR_buildRef(reference_path = reference_path, 
-        also_generate_mappability = use_STAR_mappability, 
-        n_threads = n_threads)
-
-    BuildReference(reference_path = reference_path,
-        genome_type = genome_type,
-        nonPolyARef = nonPolyARef, 
-        BlacklistRef = BlacklistRef, 
-        chromosome_aliases = chromosome_aliases,
-        UseExtendedTranscripts = UseExtendedTranscripts)
-}
 

@@ -1,6 +1,3 @@
-
-
-
 #' Constructs a matrix containing PSI values of the given ASE events
 #'
 #' This function takes an input SummarizedExperiment `se`, a list of 
@@ -113,7 +110,8 @@ make_matrix <- function(se, event_list, sample_list = colnames(se),
 #' @export
 make_diagonal <- function(se, event_list = rownames(se), 
         condition, nom_DE, 
-        denom_DE, depth_threshold = 10, logit_max = 5) {
+        denom_DE, depth_threshold = 10, logit_max = 5
+) {
 
     inc = assay(se, "Included")[event_list, ]
     exc = assay(se, "Excluded")[event_list, ]

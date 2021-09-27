@@ -32,12 +32,11 @@ SOFTWARE.  */
 #include <string>    
 #include <cstring>    // To compare between strings
 #include <vector>     // For vector types
+#include <iostream>   // For cout
 
 #ifdef _OPENMP
   #include <omp.h>    // For OpenMP
 #endif
-
-#include "IRFinder_Rcpp.h" // For Rcpp
 
 #include "pbam_defs.hpp"
 #include "pbam1_t.hpp"
@@ -45,16 +44,16 @@ SOFTWARE.  */
 
 inline void ompBAM_version() {
   std::string version = "0.99.0";
-  Rcout << "Compiled using ompBAM version " << version 
+  cout << "Compiled using ompBAM version " << version 
     << " for NxtIRFcore\n";
 }
 
 inline void is_compiled_with_OpenMP() {
   #ifdef _OPENMP
-    Rcout << "Compiled with OpenMP; " << omp_get_max_threads()
+    cout << "Compiled with OpenMP; " << omp_get_max_threads()
       << " threads available\n";
   #else
-    Rcout << "Compiled without OpenMP support\n";
+    cout << "Compiled without OpenMP support\n";
   #endif
 }
 

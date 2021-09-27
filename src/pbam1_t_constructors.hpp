@@ -60,7 +60,7 @@ inline bool pbam1_t::validate() const {
     std::string read_name_s;
     char *tmp = (char*)(read_buffer + 36);
     read_name_s.assign(tmp);
-    Rcout << "Invalid read: " << read_name_s << "\n";
+    cout << "Invalid read: " << read_name_s << "\n";
     return(false);
   }
   return(true);

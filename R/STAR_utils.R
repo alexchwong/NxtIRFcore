@@ -150,9 +150,7 @@ NULL
 
 #' @describeIn STAR-methods Checks whether STAR is installed, and its version
 #' @export
-STAR_version <- function() {
-    .validate_STAR_version(type = "message")
-}
+STAR_version <- function() .validate_STAR_version(type = "message")
 
 #' @describeIn STAR-methods Creates a STAR genome reference
 #' @export
@@ -463,6 +461,7 @@ STAR_align_fastq <- function(
     return(normalizePath(STAR_ref_path))
 }
 
+# Creates a temporary FASTA file from locally-stored TwoBit
 .STAR_get_FASTA <- function(reference_path) {
     genome.fa = file.path(reference_path, "resource", "genome.fa")
     if(!file.exists(genome.fa)) {
@@ -480,6 +479,7 @@ STAR_align_fastq <- function(
     return(genome.fa)
 }
 
+# Creates a temporary unzipped GTF for STAR
 .STAR_get_GTF <- function(reference_path) {
     transcripts.gtf = file.path(reference_path, "resource", "transcripts.gtf")
     if(!file.exists(transcripts.gtf)) {

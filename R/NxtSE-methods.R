@@ -102,6 +102,7 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     .se_to_nxtse(from)
 })
 
+# Converts a SummarizedExperiment to NxtSE object. Adapted from SingleCellExp
 .se_to_nxtse <- function(se) {
     old <- S4_disableValidity()
     if (!isTRUE(old)) {
@@ -134,6 +135,7 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     return(out)
 }
 
+# Check validity of metadata "Inc"
 .valid.NxtSE.meta_inc <- function(x) {
     if (!("Up_Inc" %in% names(metadata(x)))) {
         txt <- "Up_Inc is not found in NxtSE object"
@@ -160,6 +162,8 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     }
     NULL
 }
+
+# Check validity of metadata "Exc"
 .valid.NxtSE.meta_exc <- function(x) {
     if (!("Up_Exc" %in% names(metadata(x)))) {
         txt <- "Up_Exc is not found in NxtSE object"
@@ -187,6 +191,8 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     NULL
 }
 
+# Check validity of metadata "COV". Invalidates if some files are not COV
+# Will validate if all files are COV, or if all are empty
 .valid.NxtSE.meta_cov <- function(x) {
     cov_files <- metadata(x)[["cov_file"]]
     if(!all(file.exists(cov_files) | cov_files == "")){
@@ -212,6 +218,7 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     NULL
 }
 
+# Check validity of QC statistics
 .valid.NxtSE.meta_QC <- function(x) {
     sampleQC <- metadata(x)[["sampleQC"]]
     if(!identical(rownames(sampleQC), colnames(x))){
@@ -222,6 +229,7 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
     NULL
 }
 
+# Main validity check @ metadata
 .valid.NxtSE.metadata <- function(x)
 {
     c(
@@ -240,7 +248,7 @@ setAs("SummarizedExperiment", "NxtSE", function(from) {
 setValidity2("NxtSE", .valid.NxtSE)
 
 ################################################################################
-# Convenience functions:
+# Convenience functions. Some are adapted from SingleCellExperiment
 
 setMethod("show", "NxtSE",
     function(object)
@@ -308,6 +316,8 @@ setMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
         x@metadata[["Up_Inc"]][,,drop=FALSE]
     }
 })
+
+################################## GETTERS #####################################
 
 #' @describeIn NxtSE-methods Gets downstream included events (SE/MXE), or
 #'   downstream exon-intron spanning reads (IR)
@@ -385,6 +395,8 @@ setMethod("realize_NxtSE", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     down_exc(x) <- as.matrix(down_exc(x))
     return(x)
 })
+
+################################## SETTERS #####################################
 
 #' @describeIn NxtSE-methods Sets upstream included events (SE/MXE), or
 #'   upstream exon-intron spanning reads (IR)
@@ -465,6 +477,8 @@ setReplaceMethod("ref", c("NxtSE"), function(x, value) {
     x@metadata[["ref"]] <- value
     x
 })
+
+################################ SUBSETTERS ####################################
 
 #' @describeIn NxtSE-methods Subsets a NxtSE object
 #' @export
@@ -571,6 +585,9 @@ setMethod("[<-", c("NxtSE", "ANY", "ANY", "NxtSE"),
 
     callNextMethod()
 })
+
+################################# COMBINERS ####################################
+
 
 #' @describeIn NxtSE-methods Combines two NxtSE objects (by samples - columns)
 #' @export

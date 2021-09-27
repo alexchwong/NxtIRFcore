@@ -59,6 +59,7 @@ setMethod("show", "NxtFilter", function(object) {
     .cat_NxtFilter_filterSpecific(object)
 })
 
+# Describe class, type, and conditions filter will be applied across
 .cat_NxtFilter_common <- function(object) {
     .nxtcat(paste0("NxtFilter Class: ", .colourise("%s\t", "red")), 
         object@filterClass)
@@ -86,6 +87,7 @@ setMethod("show", "NxtFilter", function(object) {
     }
 }
 
+# Describe filter-specific functions
 .cat_NxtFilter_filterSpecific <- function(object) {
     if(object@filterType == "Depth") {
         .nxtcat(paste0("Minimum Event Depth: ", 
@@ -119,7 +121,7 @@ setMethod("show", "NxtFilter", function(object) {
     }
 }
 
-
+# Describe more info re specific functions
 .cat_filter_info <- function(mode, EventTypes = "") {
     if(mode == "minDepth") {
         cat("Event Depth refers to number of aligned splice reads plus ")

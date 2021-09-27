@@ -37,12 +37,6 @@ SOFTWARE.  */
 
 #include <math.h>
 
-#ifdef GALAXY
-#include <iostream>   // for cout
-#define Rcout cout
-#define Rcpp::Rcout cout
-#endif
-
 using namespace std;
 
 // Tell Linux not to cache the large files:

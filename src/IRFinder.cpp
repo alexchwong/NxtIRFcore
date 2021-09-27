@@ -210,7 +210,7 @@ bool checkDNA(char * input_read, unsigned int read_len) {
 
 
 
-#ifndef GALAXY
+#ifdef RNXTIRF
 // Below are Rcpp-only functions
 
 // [[Rcpp::export]]
@@ -241,7 +241,7 @@ List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end,
 	
   int ret = inCov.ReadHeader();
   if(ret < 0){
-		Rcout << s_in << " appears to not be valid COV file... exiting\n";
+		cout << s_in << " appears to not be valid COV file... exiting\n";
 		inCov_stream.close();	
     return(NULL_RLE);
   }
@@ -323,7 +323,7 @@ List IRF_RLEList_From_Cov(std::string s_in, int strand) {
   
   int ret = inCov.ReadHeader();
   if(ret == -1){
-		Rcout << s_in << " appears to not be valid COV file... exiting";
+		cout << s_in << " appears to not be valid COV file... exiting";
 		inCov_stream.close();	
     return(NULL_RLE);
   }
@@ -416,10 +416,10 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
         j++;
       }
       if(j > columns.size()) {
-        Rcout << "Detecting extra rows at line" << q << '\n';
+        cout << "Detecting extra rows at line" << q << '\n';
         // ignore for now
       } else if(j != columns.size()) {
-        Rcout << "Missing entries detected at line" << q << '\n';
+        cout << "Missing entries detected at line" << q << '\n';
         // attempt to repair by putting blank entries
         for(unsigned int k = j; k < columns.size(); k++) {
           column_data[columns.at(k)].push_back("");
@@ -499,7 +499,7 @@ int ReadChrAlias(std::istringstream &IN,
       ref_alias.push_back(myAlias);      
     }
   }
-  // Rcout << "Debug:" << ref_names.size() << " chromosome aliases loaded\n";
+  // cout << "Debug:" << ref_names.size() << " chromosome aliases loaded\n";
   return(0);
 }
 
@@ -540,7 +540,7 @@ int IRF_ref(std::string &reference_file,
   
   // Check non-empty IRF ref block name
   if(myLine.size() == 0) {
-    Rcout << "Invalid IRFinder reference detected\n";
+    cout << "Invalid IRFinder reference detected\n";
     return(-1);
   }
 
@@ -549,7 +549,7 @@ int IRF_ref(std::string &reference_file,
     
     // Check that data block is not empty.
     // if(myBuffer.size() == 0) {
-      // Rcout << "Invalid IRFinder reference detected\n";
+      // cout << "Invalid IRFinder reference detected\n";
       // return(-1);
     // }
     
@@ -557,35 +557,35 @@ int IRF_ref(std::string &reference_file,
       std::istringstream inCoverageBlocks;
       inCoverageBlocks.str(myBuffer);
       CB_template.loadRef(inCoverageBlocks);
-      // Rcout << "doneCover\n";
+      // cout << "doneCover\n";
       doneCover = true;
     } else if(myLine.find(headerSpans)!=std::string::npos && !doneSpans) {
       SP_template.setSpanLength(5,4);
       std::istringstream inSpansPoint;
       inSpansPoint.str(myBuffer);
       SP_template.loadRef(inSpansPoint);
-      // Rcout << "doneSpans\n";
+      // cout << "doneSpans\n";
       doneSpans = true;
     } else if(myLine.find(headerROI)!=std::string::npos && !doneROI) {
       std::istringstream inFragmentsInROI;
       inFragmentsInROI.str(myBuffer);
       ROI_template.loadRef(inFragmentsInROI);
-      // Rcout << "doneROI\n";
+      // cout << "doneROI\n";
       doneROI = true;
     } else if(myLine.find(headerSJ)!=std::string::npos && !doneSJ) {
       std::istringstream inJuncCount;
       inJuncCount.str(myBuffer);
       JC_template.loadRef(inJuncCount);
-      // Rcout << "doneSJ\n";
+      // cout << "doneSJ\n";
       doneSJ = true;
     } else if(myLine.find(headerChr)!=std::string::npos && !doneChrs) {
       std::istringstream inChrAlias;
       inChrAlias.str(myBuffer);
       ReadChrAlias(inChrAlias, ref_names, ref_alias, ref_lengths);
-      // Rcout << "doneChrs\n";
+      // cout << "doneChrs\n";
       doneChrs = true;
     } else {
-      Rcout << "Error: Invalid IRFinder reference block detected\n";
+      cout << "Error: Invalid IRFinder reference block detected\n";
       return(-1);
     }
 
@@ -596,7 +596,7 @@ int IRF_ref(std::string &reference_file,
   delete gz_in;
   
   if(!doneCover || !doneSpans || !doneROI || !doneSJ) {
-    Rcout << "Error: Incomplete IRFinder reference detected\n";
+    cout << "Error: Incomplete IRFinder reference detected\n";
     return(-1);
   }
   return(0);
@@ -618,11 +618,11 @@ int IRF_core(std::string const &bam_file,
   unsigned int n_threads_to_use = (unsigned int)n_threads;   // Should be sorted out in calling function
  
   std::string myLine;
-	if(verbose) Rcout << "Processing BAM file " << bam_file << "\n";
+	if(verbose) cout << "Processing BAM file " << bam_file << "\n";
   
   
   // std::ifstream inbam_stream;   inbam_stream.open(bam_file, std::ios::in | std::ios::binary);
-  // BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // Rcout << "BAMReader_Multi handle set\n";  
+  // BAMReader_Multi inbam;        inbam.SetInputHandle(&inbam_stream); // cout << "BAMReader_Multi handle set\n";  
   pbam_in inbam((size_t)5e8, (size_t)1e9, 5);
   // inbam.SetInputHandle(&inbam_stream, n_threads_to_use);
   inbam.openFile(bam_file, n_threads_to_use);
@@ -632,7 +632,7 @@ int IRF_core(std::string const &bam_file,
   std::vector<uint32_t> u32_chr_lens;
   int chrcount = inbam.obtainChrs(s_chr_names, u32_chr_lens);
   if(chrcount < 1) {
-    Rcout << bam_file << " - contains no chromosomes mapped\n";
+    cout << bam_file << " - contains no chromosomes mapped\n";
     return(-1);
   }
   
@@ -707,7 +707,7 @@ int IRF_core(std::string const &bam_file,
   
   // BAM processing loop
   
-#ifndef GALAXY
+#ifdef RNXTIRF
   Progress p(inbam.GetFileSize(), verbose);
   while(0 == inbam.fillReads() && !p.check_abort()) {
     p.increment(inbam.IncProgress());
@@ -725,7 +725,7 @@ int IRF_core(std::string const &bam_file,
     
   }
 
-  #ifndef GALAXY
+  #ifdef RNXTIRF
   if(p.check_abort()) {
     // interrupted:
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
@@ -744,7 +744,7 @@ int IRF_core(std::string const &bam_file,
   // inbam.closeFile();
   
   if(n_threads_to_use > 1) {
-    if(verbose) Rcout << "Compiling data from threads\n";
+    if(verbose) cout << "Compiling data from threads\n";
   // Combine BB's and process spares
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       BBchild.at(0)->processSpares(*BBchild.at(i));
@@ -768,7 +768,7 @@ int IRF_core(std::string const &bam_file,
     }
   }
 
-  if(verbose) Rcout << "Writing COV file\n";
+  if(verbose) cout << "Writing COV file\n";
 
   // Write Coverage Binary file:
   std::ofstream ofCOV;
@@ -779,7 +779,7 @@ int IRF_core(std::string const &bam_file,
   ofCOV.close();
 
 // Write output to file:  
-	if(verbose) Rcout << "Writing output file\n";
+	if(verbose) cout << "Writing output file\n";
 
   std::ofstream out;                            out.open(s_output_txt, std::ios::binary);  // Open binary file
   GZWriter outGZ;                               outGZ.SetOutputHandle(&out); // GZ compression
@@ -789,7 +789,7 @@ int IRF_core(std::string const &bam_file,
   // If first write failed, then output error and fail early
   int outret = outGZ.writeline("BAM_report\tValue"); 
   if(outret != Z_OK) {
-    Rcout << "Error writing gzip-compressed output file\n";
+    cout << "Error writing gzip-compressed output file\n";
     out.close();
     return(-1);
   }
@@ -807,18 +807,18 @@ int IRF_core(std::string const &bam_file,
   std::string myLine_Dir;
   std::string myLine_QC;
   
-  // Rcout << "Writing ROIs\n";
+  // cout << "Writing ROIs\n";
   oROI.at(0)->WriteOutput(myLine_ROI, myLine_QC);
-  // Rcout << "Writing Juncs\n";
+  // cout << "Writing Juncs\n";
 	oJC.at(0)->WriteOutput(myLine_JC, myLine_QC);
-  // Rcout << "Writing Spans\n";
+  // cout << "Writing Spans\n";
 	oSP.at(0)->WriteOutput(myLine_SP, myLine_QC);
-  // Rcout << "Writing Chrs\n";
+  // cout << "Writing Chrs\n";
 	oChr.at(0)->WriteOutput(myLine_Chr, myLine_QC);
-  // Rcout << "Writing CoverageBlocks\n";
+  // cout << "Writing CoverageBlocks\n";
 	oCB.at(0)->WriteOutput(myLine_ND, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0), n_threads_to_use);
   if (directionality != 0) {
-    // Rcout << "Writing Stranded CoverageBlocks\n";
+    // cout << "Writing Stranded CoverageBlocks\n";
     oCB.at(0)->WriteOutput(myLine_Dir, myLine_QC, *oJC.at(0), *oSP.at(0), *oFM.at(0), n_threads_to_use, directionality); // Directional.
 	}
 
@@ -859,7 +859,7 @@ int IRF_core(std::string const &bam_file,
 
 
 
-#ifndef GALAXY
+#ifdef RNXTIRF
 // [[Rcpp::export]]
 int IRF_main(
     std::string bam_file, std::string reference_file, std::string output_file,
@@ -883,9 +883,9 @@ int IRF_main(
   std::string s_ref = reference_file;
 		
   if(verbose) {
-    Rcout << "Running IRFinder on " << s_bam;
-    if(Has_OpenMP() != 0) Rcout << " with OpenMP ";
-    Rcout << "using " << use_threads << " threads"
+    cout << "Running IRFinder on " << s_bam;
+    if(Has_OpenMP() != 0) cout << " with OpenMP ";
+    cout << "using " << use_threads << " threads"
       << "\n" << "Reference: " << s_ref << "\n"
       << "Output file: " << s_output_txt << "\t" << s_output_cov << "\n\n"
       << "Reading reference file\n";
@@ -906,7 +906,7 @@ int IRF_main(
     *CB_template, *SP_template, *ROI_template, *JC_template, verbose
   );
   if(ret != 0) {
-    Rcout << "Reading Reference file failed. Check if IRFinder.ref.gz exists and is a valid NxtIRF-generated IRFinder reference\n";
+    cout << "Reading Reference file failed. Check if IRFinder.ref.gz exists and is a valid NxtIRF-generated IRFinder reference\n";
     return(ret);
   }
   // main:
@@ -914,7 +914,7 @@ int IRF_main(
     ref_names, ref_alias, ref_lengths,
     *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
     
-  if(ret != 0) Rcout << "Process interrupted running IRFinder on " << s_bam << '\n';
+  if(ret != 0) cout << "Process interrupted running IRFinder on " << s_bam << '\n';
   
   delete CB_template;
   delete SP_template;
@@ -923,7 +923,7 @@ int IRF_main(
   return(ret);
 }
 
-#ifndef GALAXY
+#ifdef RNXTIRF
 // [[Rcpp::export]]
 int IRF_main_multi(
     std::string reference_file, StringVector bam_files, StringVector output_files,
@@ -933,7 +933,7 @@ int IRF_main_multi(
 	int use_threads = Set_Threads(max_threads);
 
 	if(bam_files.size() != output_files.size() || bam_files.size() < 1) {
-		Rcout << "bam_files and output_files are of different sizes\n";
+		cout << "bam_files and output_files are of different sizes\n";
 		return(1);	
 	}
 	
@@ -945,7 +945,7 @@ int IRF_main_multi(
 	}
 
   std::string s_ref = reference_file;
-  Rcout << "Reading reference file\n";
+  cout << "Reading reference file\n";
   
   CoverageBlocksIRFinder * CB_template = new CoverageBlocksIRFinder;
   SpansPoint * SP_template = new SpansPoint;
@@ -961,30 +961,30 @@ int IRF_main_multi(
   ret = IRF_ref(s_ref, ref_names, ref_alias, ref_lengths,
     *CB_template, *SP_template, *ROI_template, *JC_template, false);
   if(ret != 0) {
-    Rcout << "Reading Reference file failed. Check if IRFinder.ref.gz exists and is a valid NxtIRF-generated IRFinder reference\n";
+    cout << "Reading Reference file failed. Check if IRFinder.ref.gz exists and is a valid NxtIRF-generated IRFinder reference\n";
     return(ret);
   }
 
-	Rcout << "Running IRFinder with OpenMP using " << use_threads << " threads\n";
+	cout << "Running IRFinder with OpenMP using " << use_threads << " threads\n";
 
   for(unsigned int z = 0; z < v_bam.size(); z++) {
     std::string s_bam = v_bam.at(z);
 		std::string s_output_txt = v_out.at(z) + ".txt.gz";
 		std::string s_output_cov = v_out.at(z) + ".cov";
-		// Rcout << "Processing " << s_bam << " with output " << v_out.at(z) << '\n';
+		// cout << "Processing " << s_bam << " with output " << v_out.at(z) << '\n';
     
     int ret2 = IRF_core(s_bam, s_output_txt, s_output_cov,
       ref_names, ref_alias, ref_lengths,
       *CB_template, *SP_template, *ROI_template, *JC_template, verbose, use_threads);
     if(ret2 != 0) {
-      Rcout << "Process interrupted running IRFinder on " << s_bam << '\n';
+      cout << "Process interrupted running IRFinder on " << s_bam << '\n';
       delete CB_template;
       delete SP_template;
       delete ROI_template;
       delete JC_template;
       return(ret);
     } else {
-      Rcout << s_bam << " processed\n";
+      cout << s_bam << " processed\n";
     }
 	}
 
@@ -1012,7 +1012,7 @@ int IRF_GenerateMappabilityReads(
   
   // STDOUT output is only allowed in GALAXY MODE
   // Allows writing to standard output if filename is '-'
-#ifdef GALAXY
+#ifndef RNXTIRF
   int is_stdout = 0;
   if(out_fa == "-") {
     is_stdout = 1;
@@ -1034,7 +1034,7 @@ int IRF_GenerateMappabilityReads(
   inFA.SetInputHandle(&inGenome);
   inFA.Profile();
 
-#ifndef GALAXY
+#ifdef RNXTIRF
   Progress p(inFA.total_size);
 #endif
 
@@ -1059,9 +1059,9 @@ int IRF_GenerateMappabilityReads(
           read, read_len, error_pos, direction, num_reads
         ) ;
 
-#ifdef GALAXY
+#ifndef RNXTIRF
         if(is_stdout == 1) {
-          Rcout << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" 
+          cout << (direction == 0 ? ">RF!" : ">RR!") << chr << "!" 
             << std::to_string(bufferPos)
             << '\n' << write_seq << '\n';  
         } else {
@@ -1078,7 +1078,7 @@ int IRF_GenerateMappabilityReads(
         direction = (direction == 0 ? 1 : 0);
         
         // update progress bar
-#ifndef GALAXY
+#ifdef RNXTIRF
         if(num_reads % 100000 == 0) {
           p.increment(bufferPos - seq_progress);
           seq_progress = bufferPos;
@@ -1086,7 +1086,7 @@ int IRF_GenerateMappabilityReads(
 #endif
       }
     }
-#ifndef GALAXY
+#ifdef RNXTIRF
     p.increment(sequence.length() - seq_progress);
 #endif
     delete[] buffer;
@@ -1095,7 +1095,7 @@ int IRF_GenerateMappabilityReads(
   
   inGenome.close();
 
-#ifdef GALAXY
+#ifndef RNXTIRF
   if(is_stdout == 0) {
     outFA.flush();
     outFA.close();
@@ -1105,12 +1105,12 @@ int IRF_GenerateMappabilityReads(
   outFA.close();
 #endif
   
-  Rcout << num_reads << " synthetic reads generated\n";
+  cout << num_reads << " synthetic reads generated\n";
   return(0);
 }
 
 
-#ifndef GALAXY
+#ifdef RNXTIRF
 // [[Rcpp::export]]
 int IRF_GenerateMappabilityRegions(
     std::string bam_file, std::string output_file, 
@@ -1133,7 +1133,7 @@ int IRF_GenerateMappabilityRegions(
   unsigned int n_threads_to_use = (unsigned int)use_threads;
  
   std::string myLine;
-	if(verbose) Rcout << "Calculating Mappability Exclusions from aligned synthetic reads in BAM file " << bam_file << "\n";
+	if(verbose) cout << "Calculating Mappability Exclusions from aligned synthetic reads in BAM file " << bam_file << "\n";
 
   pbam_in inbam((size_t)5e8, (size_t)1e9, 5);
   inbam.openFile(bam_file, n_threads_to_use);
@@ -1153,7 +1153,7 @@ int IRF_GenerateMappabilityRegions(
   }
   
   // BAM processing loop
-#ifndef GALAXY
+#ifdef RNXTIRF
   Progress p(inbam.GetFileSize(), verbose);
   while(0 == inbam.fillReads() && !p.check_abort()) {
     p.increment(inbam.IncProgress());
@@ -1170,7 +1170,7 @@ int IRF_GenerateMappabilityRegions(
     }
   }
 
-#ifndef GALAXY
+#ifdef RNXTIRF
   if(p.check_abort()) {
     // interrupted:
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
@@ -1184,7 +1184,7 @@ int IRF_GenerateMappabilityRegions(
   inbam.closeFile();
 
   if(n_threads_to_use > 1) {
-    if(verbose) Rcout << "Compiling data from threads\n";
+    if(verbose) cout << "Compiling data from threads\n";
   // Combine BB's and process spares
     for(unsigned int i = 1; i < n_threads_to_use; i++) {
       BBchild.at(0)->processSpares(*BBchild.at(i));
@@ -1198,7 +1198,7 @@ int IRF_GenerateMappabilityRegions(
     }
   }
 
-#ifndef GALAXY
+#ifdef RNXTIRF
   if(includeCov == 1) {
 #else
   if(!s_output_cov.empty()) {
@@ -1226,7 +1226,7 @@ int IRF_GenerateMappabilityRegions(
 
 // ############################# GALAXY MAIN ###################################
 
-#ifdef GALAXY
+#ifndef RNXTIRF
 
 // Galaxy main
 int main(int argc, char * argv[]) {
@@ -1262,7 +1262,7 @@ int main(int argc, char * argv[]) {
       std::string s_output_cov = argv[5];		
   IRF_main(s_bam, s_ref, s_output_txt, s_output_cov);
   } else {
-    Rcout << "Usage:\n\t"
+    cout << "Usage:\n\t"
       << argv[0] <<  " main samplename.bam IRFinder.ref.gz samplename.txt.gz samplename.cov\n"
       << argv[0] <<  " main samplename.bam IRFinder.ref.gz samplename.txt.gz samplename.cov\n"
       << argv[0] <<  " irfinder_galaxy gen_map_reads genome.fa reads_to_map.fa 70 10\n"

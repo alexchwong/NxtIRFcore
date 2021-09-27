@@ -26,7 +26,7 @@ std::string GenerateReadError(
 );
 bool checkDNA(char * input_read, unsigned int read_len);
 
-#ifndef GALAXY
+#ifdef RNXTIRF
 // Rcpp-only functions
 
   List IRF_RLE_From_Cov(
@@ -71,7 +71,7 @@ int IRF_core(std::string const &bam_file,
     int n_threads = 1
 );
 
-#ifndef GALAXY
+#ifdef RNXTIRF
   int IRF_main(
       std::string bam_file, std::string reference_file, std::string output_file, 
       bool verbose = true, int n_threads = 1

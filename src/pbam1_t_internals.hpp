@@ -177,7 +177,7 @@ inline void pbam1_t::build_tag_index() {
           break;
         default:
           tag_pos = block_size_val + 4;
-          Rcout << "Tag error - type " << std::string(1, tag_index_entry.type) 
+          cout << "Tag error - type " << std::string(1, tag_index_entry.type) 
             << "for tag" << tag_name << "not defined\n";
       }
     } // End of while loop to iterate over every tag

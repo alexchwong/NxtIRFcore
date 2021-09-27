@@ -50,11 +50,11 @@ inline int pbam_in::closeFile() {
 
 inline int pbam_in::obtainChrs(std::vector<std::string> & s_chr_names, std::vector<uint32_t> & u32_chr_lens) {
   if(!magic_header) {
-    Rcout << "Header is not yet read\n";
+    cout << "Header is not yet read\n";
     return(-1);
   }
   if(n_ref == 0) {
-    Rcout << 
+    cout << 
       "No chromosome names stored. Is pbam_in::readHeader() been run yet?\n";
     return(-1);
   }
@@ -81,7 +81,7 @@ inline int pbam_in::check_file() {
     char eof_check[bamEOFlength + 1];
     IN->read(eof_check, bamEOFlength);
     if(strncmp(bamEOF, eof_check, bamEOFlength) != 0) {
-      Rcout << "Error opening BAM - EOF bit corrupt. Perhaps this file is truncated?\n";
+      cout << "Error opening BAM - EOF bit corrupt. Perhaps this file is truncated?\n";
       IN = NULL;
       return(-1);
     }
@@ -102,14 +102,14 @@ inline int pbam_in::check_file() {
 
 inline int pbam_in::readHeader() {
   if(magic_header) {
-    Rcout << "Header is already read\n";
+    cout << "Header is already read\n";
     return(-1);
   }
   
   magic_header = (char*)malloc(8+1);
   read(magic_header, 8);
   if(strncmp(magic_header, magicstring, 4) != 0) {
-    Rcout << "Invalid BAM magic string\n";
+    cout << "Invalid BAM magic string\n";
     free(magic_header); magic_header = NULL;
     return(-1);
   }

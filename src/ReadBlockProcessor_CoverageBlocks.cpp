@@ -182,7 +182,7 @@ double CoverageBlocks::trimmedMeanFromHist(const std::map<unsigned int,unsigned 
 	unsigned int size = 0;
 	for (auto h : hist) {
 		size += h.second;
-    if(debug) Rcout << h.first << '\t' << h.second << '\n';
+    if(debug) cout << h.first << '\t' << h.second << '\n';
 	}
 	double skip_d = (double)size * ((100.0 - (double)centerPercent)/2.0) / 100.0; 
 	unsigned int skip = floor(skip_d);
@@ -272,7 +272,7 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC,
 	std::string KE = "known-exon";
 	
   unsigned int n_jobs = 1 + (BEDrecords.size() / n_threads);
-  // Rcout << "n_jobs = " << n_jobs << ", BEDrecords.size() = " << BEDrecords.size() << '\n';
+  // cout << "n_jobs = " << n_jobs << ", BEDrecords.size() = " << BEDrecords.size() << '\n';
 
 #ifdef _OPENMP
   #pragma omp parallel for
@@ -448,14 +448,14 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC,
 
           
         }catch (const std::out_of_range& e) {
-          #ifndef GALAXY
-            Rcout << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
+          #ifdef RNXTIRF
+            cout << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
           #else
             std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
           #endif
         }catch (const std::invalid_argument& e) {
-          #ifndef GALAXY
-            Rcout << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
+          #ifdef RNXTIRF
+            cout << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
           #else
             std::cerr << "Format error in name attribute - column 4 - of CoverageBlocks reference file. Record/line number: " << j << "\n";
           #endif
@@ -573,7 +573,7 @@ int FragmentsMap::sort_and_collapse_temp() {
 int FragmentsMap::sort_and_collapse_final(bool verbose) {
   if(!final_is_sorted) {
     sort_and_collapse_temp();
-    if(verbose)  Rcout << "Performing final sort of fragment maps\n";
+    if(verbose)  cout << "Performing final sort of fragment maps\n";
 
 #ifdef _OPENMP
       #pragma omp parallel for
@@ -697,11 +697,11 @@ int FragmentsMap::WriteBinary(
     // Perform this separately as this is now multi-threaded
     sort_and_collapse_final(verbose);   
   }
-  if(verbose)  Rcout << "Writing COV file\n";
+  if(verbose)  cout << "Writing COV file\n";
 
   os->InitializeCOV(chrs);
 
-#ifndef GALAXY
+#ifdef RNXTIRF
   Progress p(3 * chrs.size(), verbose);
 #endif
   for(unsigned int j = 0; j < 3; j++) {
@@ -712,7 +712,7 @@ int FragmentsMap::WriteBinary(
       itDest = &chrName_vec_final[j].at(refID);
       
       os->WriteFragmentsMap(itDest, i, j, n_threads_to_use);
-#ifndef GALAXY
+#ifdef RNXTIRF
       p.increment(1);
 #endif
     }
@@ -749,7 +749,7 @@ int FragmentsMap::WriteOutput(std::ostream *os,
   if(!final_is_sorted) {
     sort_and_collapse_final(verbose);
   }
-  if(verbose)  Rcout << "Writing Mappability Exclusions\n";
+  if(verbose)  cout << "Writing Mappability Exclusions\n";
   Progress p(sort_chr_names.size(), verbose);
   for(unsigned int i = 0; i < sort_chr_names.size(); i++) {
     // refID is reference ID as appears in BAM file; i is the nth chromosome as ordered in alpha order

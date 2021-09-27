@@ -65,6 +65,33 @@ get_default_filters <- function() {
     return(list(f1, f2, f3, f4))
 }
 
+#' @describeIn Run_NxtIRF_Filters Run a vector or list of NxtFilter objects
+#'   on a NxtSE object
+#' @export
+apply_filters <- function(se, filters = get_default_filters()) {
+   
+    if(!is.list(filters)) filters = list(filters)
+    if(length(filters) == 0) .log("No filters given")
+    for(i in length(filters)) {
+        if(!is(filters[[i]], "NxtFilter")) {
+            stopmsg = paste("Element", i, 
+                "of `filters` is not a NxtFilter object")
+            .log(stopmsg)
+        }
+    }
+    if(!is(se, "NxtSE")) {
+        .log(paste("In apply_filters(),",
+            "se must be a NxtSE object"))
+    }
+    filterSummary = rep(TRUE, nrow(se))
+    for(i in seq_len(length(filters))) {
+        filterSummary = filterSummary & runFilter(
+            se, filters[[i]]
+        )
+    }
+    return(filterSummary)
+}
+
 #' @describeIn Run_NxtIRF_Filters Run a single filter on a NxtSE object
 #' @export
 runFilter <- function(se, filterObj) {
@@ -111,33 +138,6 @@ runFilter <- function(se, filterObj) {
     } else {
         return(rep(TRUE, nrow(se)))
     }
-}
-
-#' @describeIn Run_NxtIRF_Filters Run a vector or list of NxtFilter objects
-#'   on a NxtSE object
-#' @export
-apply_filters <- function(se, filters = get_default_filters()) {
-   
-    if(!is.list(filters)) filters = list(filters)
-    if(length(filters) == 0) .log("No filters given")
-    for(i in length(filters)) {
-        if(!is(filters[[i]], "NxtFilter")) {
-            stopmsg = paste("Element", i, 
-                "of `filters` is not a NxtFilter object")
-            .log(stopmsg)
-        }
-    }
-    if(!is(se, "NxtSE")) {
-        .log(paste("In apply_filters(),",
-            "se must be a NxtSE object"))
-    }
-    filterSummary = rep(TRUE, nrow(se))
-    for(i in seq_len(length(filters))) {
-        filterSummary = filterSummary & runFilter(
-            se, filters[[i]]
-        )
-    }
-    return(filterSummary)
 }
 
 ################################################################################

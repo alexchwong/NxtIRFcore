@@ -1,6 +1,6 @@
-# Miscellaneous internal wrappers
+# Miscellaneous internal wrappers to NxtIRFcore.dll
 
-# Simple unzip function using NxtIRF.dll. 
+# Simple unzip function
 # To check gunzip produces same output using NxtIRF vs other utilities
 run_Gunzip = function(infile = "", outfile) {
     file_to_read = normalizePath(infile)

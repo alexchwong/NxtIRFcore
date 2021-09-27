@@ -26,7 +26,6 @@ SOFTWARE.  */
 
 #include "includedefine.h"
 #include "IRFinder_Rcpp.h"
-// #include "IRFinder_Rcout.h" // For Rcout
 
 #include <zlib.h>
 #include <zconf.h>
