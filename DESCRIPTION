@@ -70,7 +70,8 @@ Collate: AllImports.R
 	CollateData.R
 	MakeSE.R
 	Filters.R
-	DE_IR.R
+	ASE-methods.R
+	NxtIRFcore.R
 Encoding: UTF-8
 RoxygenNote: 7.1.2
 URL: https://github.com/alexchwong/NxtIRFcore

@@ -1,40 +1,66 @@
-#' A wrapper function to call NxtIRF/IRFinder
+#' Runs the OpenMP/C++-based NxtIRF/IRFinder algorithm
 #'
-#' This function calls IRFinder on one or more BAM files.
+#' This function calls the IRFinder C++ routine on one or more BAM files.
+#' The routine is an improved version over the original IRFinder, with
+#' OpenMP-based multi-threading and the production of compact "COV" files to
+#' record alignment coverage. A genome reference built using [BuildReference]
+#' is required.
+#' After IRFinder is run, users should call
+#' [CollateData] to collate individual outputs into an experiment / dataset.
+#'
+#' @details
+#' Typical run-times for a 100-million paired-end alignment BAM file takes 10
+#' minutes using a single core. Using 8 threads, the runtime is approximately
+#' 2 minutes. Approximately 10 Gb of RAM is used when OpenMP is used. If OpenMP
+#' is not used (see below), this memory usage is multiplied across the number
+#' of processor threads (i.e. 40 Gb if `n_threads = 4`).
+#' 
+#' OpenMP is natively available to Linux / Windows compilers, and OpenMP will
+#' be used if `Use_OpenMP` is set to `TRUE`, using multiple threads to process
+#' each BAM file. On Macs, if OpenMP is not available at compilation, 
+#' BiocParallel will be used, processing BAM files simultaneously, 
+#' with one BAM file per thread.
+#'
 #' @param bamfiles A vector containing file paths of 1 or more BAM files
 #' @param sample_names The sample names of the given BAM files. Must
 #'   be a vector of the same length as `bamfiles`
-#' @param reference_path The directory of the NxtIRF reference
-#' @param output_path The directory where NxtIRF/IRFinder output
-#'   should be stored
-#' @param n_threads The number of threads to use. On Linux / Windows, this will
-#'   use OpenMP from within the C++ subroutine. On Macs, BiocParallel
-#'   MulticoreParam will be used on single-threaded NxtIRF/IRFinder
-#' @param Use_OpenMP (default TRUE) Whether to use OpenMP to run IRFinder.
-#'   Typically Windows and Linux will natively support OpenMP, whereas MacOS
-#'   will not by default. If OpenMP is not available or `Use_OpenMP = FALSE`,
-#'   then IRFinder multi-threading will use BiocParallel (SerialParam() for
-#'   Windows, and MulticoreParam for Linux / MacOS).
-#' @param overwrite (default FALSE) If IRFinder output files already exist,
+#' @param reference_path The directory containing the NxtIRF reference
+#' @param output_path The output directory of this function
+#' @param n_threads (default `1`) The number of threads to use. See details.
+#' @param Use_OpenMP (default `TRUE`) Whether to use OpenMP to run IRFinder.
+#'   If set to `FALSE`, BiocParallel will be used if `n_threads` is set 
+#' @param overwrite (default `FALSE`) If IRFinder output files already exist,
 #'   will not attempt to re-run.
-#' @param run_featureCounts Whether this function will run 
-#'   `Rsubread::featureCounts()` on the BAM files. If so, the output will be
-#'   saved to "main.FC.Rds" in the output directory as a list object
-#' @param verbose (default FALSE) Set to `TRUE` to allow IRFinder to output
+#' @param run_featureCounts (default `FALSE`) Whether this function will run 
+#'   [Rsubread::featureCounts] on the BAM files after running IRFinder. 
+#'   If so, the output will be
+#'   saved to `"main.FC.Rds` in the `output_path` directory as a list object.
+#' @param verbose (default `FALSE`) Set to `TRUE` to allow IRFinder to output
 #'   progress bars and messages
-#' @return None. `IRFinder()` will save output to `output_path`. \cr\cr
-#'   sample.txt.gz: The main IRFinder output file containing the quantitation
+#' @return IRFinder output will be saved to `output_path`. Output files will be
+#'   named using the given sample names.
+#'   * sample.txt.gz: The main IRFinder output file containing the quantitation
 #'   of IR and splice junctions, as well as QC information\cr\cr
-#'   sample.cov: Contains coverage information in compressed binary. This
+#'   * sample.cov: Contains coverage information in compressed binary. This
 #'   format is 5-10X faster than BigWig format (see [GetCoverage()])\cr\cr
-#'   main.FC.Rds: A single file containing gene counts for the whole dataset
+#'   * main.FC.Rds: A single file containing gene counts for the whole dataset
 #'   (only if `run_featureCounts == TRUE`)
 #' @examples
+#'
+#' example_ref = file.path(tempdir(), "Reference")
+#' BuildReference(
+#'     reference_path = example_ref,
+#'     fasta = chrZ_genome(), 
+#'     gtf = chrZ_gtf()
+#' )
+#'
 #' bams = NxtIRF_example_bams()
 #' IRFinder(bams$path, bams$sample,
 #'   reference_path = file.path(tempdir(), "Reference"),
-#'   output_path = file.path(tempdir(), "IRFinder_output")
+#'   output_path = file.path(tempdir(), "IRFinder_output"),
+#'   n_threads = 2
 #' )
+#' @seealso [BuildReference] [CollateData] [IsCOV]
 #' @md
 #' @export
 IRFinder <- function(
@@ -50,6 +76,8 @@ IRFinder <- function(
     # Check args
     if(length(bamfiles) != length(sample_names)) .log(paste("In IRFinder(),",
         "Number of BAM files and sample names must be the same"))
+    if(length(sample_names) != length(unique(sample_names))) 
+        .log(paste("In IRFinder(), some sample names are not unique"))
     if(length(bamfiles) == 0) .log("bamfiles argument must not be empty")
     if(!all(file.exists(bamfiles))) .log(paste("In IRFinder(),",
         "some BAMs in bamfiles do not exist"))

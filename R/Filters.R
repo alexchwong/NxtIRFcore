@@ -14,8 +14,8 @@
 #'  mutually exclusive exon events, each junction must comprise at least 1/(2^2)
 #'  = 1/4 of all reads associated with each isoform).
 #'  For retained introns, the exon-intron overhangs must not differ by 1/4\cr\cr
-#' In all filters, we require at least 80% samples (`pcTRUE = 80`) from the 
-#'   entire dataset (i.e. `minCond = -1`).
+#' In all filters, we require at least 80% samples (`pcTRUE = 80`) 
+#'   to pass this filters from the entire dataset (`minCond = -1`).
 #' Events with event read depth (reads supporting either included or excluded 
 #'   isoforms) lower than 5 (`minDepth = 5`) are not assessed in filter #2, and 
 #'   in #3 and #4 this threshold is (`minDepth = 20`).\cr\cr
@@ -27,7 +27,7 @@
 #'   blank, the NxtIRF default filters will be used.
 #' @return For `runFilter` and `apply_filters`, a vector of type `logical`,
 #'   representing the rows of NxtSE that should be kept. 
-#'   For `get_default_filters`, returns a vector of default recommended filters
+#'   For `get_default_filters`, returns a list of default recommended filters
 #'   that should be parsed into `apply_filters`.
 #' @examples
 #' # see ?MakeSE on example code of generating this NxtSE object
@@ -39,12 +39,13 @@
 #' # View a description of what these filters do:
 #' filters
 #'
-#' # Filter the SummarizedExperiment using the first default filter ("Depth")
+#' # Filter the NxtSE using the first default filter ("Depth")
 #' se.depthfilter = se[runFilter(se, filters[[1]]),]
 #' 
+#' # Filter the NxtSE using all four default filters
 #' se.defaultFiltered = se[apply_filters(se, get_default_filters()),]
 #' @name Run_NxtIRF_Filters
-#' @aliases get_default_filters, apply_filters, runFilter
+#' @aliases get_default_filters apply_filters runFilter
 #' @seealso [NxtFilter] for details describing how to create and assign settings
 #'   to NxtFilter objects.
 #' @md
@@ -54,13 +55,13 @@ NULL
 #'   NxtIRF filters
 #' @export
 get_default_filters <- function() {
-    f1 = NxtFilter("Data", "Depth", minimum = 20)
-    f2 = NxtFilter("Data", "Coverage", 
+    f1 = NxtFilter("Data", "Depth", pcTRUE = 80, minimum = 20)
+    f2 = NxtFilter("Data", "Coverage", pcTRUE = 80, 
         minimum = 90, minDepth = 5, EventTypes = c("IR", "RI"))
-    f3 = NxtFilter("Data", "Coverage", 
+    f3 = NxtFilter("Data", "Coverage", pcTRUE = 80, 
         minimum = 60, minDepth = 20, 
         EventTypes = c("MXE", "SE", "AFE", "ALE", "A5SS", "A3SS"))
-    f4 = NxtFilter("Data", "Consistency", 
+    f4 = NxtFilter("Data", "Consistency", pcTRUE = 80, 
         maximum = 2, minDepth = 20, EventTypes = c("MXE", "SE", "RI"))
     return(list(f1, f2, f3, f4))
 }

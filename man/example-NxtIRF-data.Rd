@@ -13,20 +13,17 @@ NxtIRF_example_NxtSE()
 \value{
 See \code{NxtIRF_example_bams()} returns a 2-column data frame containing
 sample names and BAM paths of the example dataset. \code{NxtIRF_example_NxtSE()}
-returns a NxtSE object.
+returns a NxtSE object. See details.
 }
 \description{
-6 example bam files based on samples from the
-Leucegene dataset (GSE67039). Bam files are constructed
-based on the complete bam files of 6 samples from Leucegene,
-subsetted by regions containing the 7 above genes. Then, the reads of these
-subsetted BAMs were realigned to the NxtIRF example reference using
-STAR.\cr\cr
-A NxtSE SummarizedExperiment object was constructed by running \code{IRFinder()},
-\code{CollateData()} and \code{MakeSE()}
-on the example BAM files, using the NxtIRF example reference. A full pipeline
-of how this NxtSE was generated can be found in
-\code{system.file("scripts", "make_data.R", package = "NxtIRFcore")}
+\code{NxtIRF_example_bams()} is a wrapper function to obtain and make a local copy
+of 6 example files provided by the NxtIRFdata companion package to
+demonstrate the use of NxtIRFcore. See \link[NxtIRFdata:NxtIRFdata-package]{NxtIRFdata::example_bams} for
+a description of the provided BAM files.
+}
+\details{
+See the example code in \link{MakeSE} to see how the example NxtSE
+object was constructed.
 }
 \section{Functions}{
 \itemize{
@@ -34,7 +31,8 @@ of how this NxtSE was generated can be found in
 sample names and sample paths (in tempdir()) of example BAM files
 
 \item \code{NxtIRF_example_NxtSE}: Returns a (in-memory / realized) NxtSE object 
-generated using the NxtIRF mock reference and example BAM files
+that was pre-generated using the NxtIRF example reference and example 
+BAM files
 }}
 
 \examples{

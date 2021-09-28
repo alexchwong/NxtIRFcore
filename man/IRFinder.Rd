@@ -2,7 +2,7 @@
 % Please edit documentation in R/IRFinder.R
 \name{IRFinder}
 \alias{IRFinder}
-\title{A wrapper function to call NxtIRF/IRFinder}
+\title{Runs the OpenMP/C++-based NxtIRF/IRFinder algorithm}
 \usage{
 IRFinder(
   bamfiles = "./Unsorted.bam",
@@ -22,47 +22,76 @@ IRFinder(
 \item{sample_names}{The sample names of the given BAM files. Must
 be a vector of the same length as \code{bamfiles}}
 
-\item{reference_path}{The directory of the NxtIRF reference}
+\item{reference_path}{The directory containing the NxtIRF reference}
 
-\item{output_path}{The directory where NxtIRF/IRFinder output
-should be stored}
+\item{output_path}{The output directory of this function}
 
-\item{n_threads}{The number of threads to use. On Linux / Windows, this will
-use OpenMP from within the C++ subroutine. On Macs, BiocParallel
-MulticoreParam will be used on single-threaded NxtIRF/IRFinder}
+\item{n_threads}{(default \code{1}) The number of threads to use. See details.}
 
-\item{Use_OpenMP}{(default TRUE) Whether to use OpenMP to run IRFinder.
-Typically Windows and Linux will natively support OpenMP, whereas MacOS
-will not by default. If OpenMP is not available or \code{Use_OpenMP = FALSE},
-then IRFinder multi-threading will use BiocParallel (SerialParam() for
-Windows, and MulticoreParam for Linux / MacOS).}
+\item{Use_OpenMP}{(default \code{TRUE}) Whether to use OpenMP to run IRFinder.
+If set to \code{FALSE}, BiocParallel will be used if \code{n_threads} is set}
 
-\item{overwrite}{(default FALSE) If IRFinder output files already exist,
+\item{overwrite}{(default \code{FALSE}) If IRFinder output files already exist,
 will not attempt to re-run.}
 
-\item{run_featureCounts}{Whether this function will run
-\code{Rsubread::featureCounts()} on the BAM files. If so, the output will be
-saved to "main.FC.Rds" in the output directory as a list object}
+\item{run_featureCounts}{(default \code{FALSE}) Whether this function will run
+\link[Rsubread:featureCounts]{Rsubread::featureCounts} on the BAM files after running IRFinder.
+If so, the output will be
+saved to \verb{"main.FC.Rds} in the \code{output_path} directory as a list object.}
 
-\item{verbose}{(default FALSE) Set to \code{TRUE} to allow IRFinder to output
+\item{verbose}{(default \code{FALSE}) Set to \code{TRUE} to allow IRFinder to output
 progress bars and messages}
 }
 \value{
-None. \code{IRFinder()} will save output to \code{output_path}. \cr\cr
-sample.txt.gz: The main IRFinder output file containing the quantitation
+IRFinder output will be saved to \code{output_path}. Output files will be
+named using the given sample names.
+\itemize{
+\item sample.txt.gz: The main IRFinder output file containing the quantitation
 of IR and splice junctions, as well as QC information\cr\cr
-sample.cov: Contains coverage information in compressed binary. This
+\item sample.cov: Contains coverage information in compressed binary. This
 format is 5-10X faster than BigWig format (see \code{\link[=GetCoverage]{GetCoverage()}})\cr\cr
-main.FC.Rds: A single file containing gene counts for the whole dataset
+\item main.FC.Rds: A single file containing gene counts for the whole dataset
 (only if \code{run_featureCounts == TRUE})
 }
+}
 \description{
-This function calls IRFinder on one or more BAM files.
+This function calls the IRFinder C++ routine on one or more BAM files.
+The routine is an improved version over the original IRFinder, with
+OpenMP-based multi-threading and the production of compact "COV" files to
+record alignment coverage. A genome reference built using \link{BuildReference}
+is required.
+After IRFinder is run, users should call
+\link{CollateData} to collate individual outputs into an experiment / dataset.
+}
+\details{
+Typical run-times for a 100-million paired-end alignment BAM file takes 10
+minutes using a single core. Using 8 threads, the runtime is approximately
+2 minutes. Approximately 10 Gb of RAM is used when OpenMP is used. If OpenMP
+is not used (see below), this memory usage is multiplied across the number
+of processor threads (i.e. 40 Gb if \code{n_threads = 4}).
+
+OpenMP is natively available to Linux / Windows compilers, and OpenMP will
+be used if \code{Use_OpenMP} is set to \code{TRUE}, using multiple threads to process
+each BAM file. On Macs, if OpenMP is not available at compilation,
+BiocParallel will be used, processing BAM files simultaneously,
+with one BAM file per thread.
 }
 \examples{
+
+example_ref = file.path(tempdir(), "Reference")
+BuildReference(
+    reference_path = example_ref,
+    fasta = chrZ_genome(), 
+    gtf = chrZ_gtf()
+)
+
 bams = NxtIRF_example_bams()
 IRFinder(bams$path, bams$sample,
   reference_path = file.path(tempdir(), "Reference"),
-  output_path = file.path(tempdir(), "IRFinder_output")
+  output_path = file.path(tempdir(), "IRFinder_output"),
+  n_threads = 2
 )
+}
+\seealso{
+\link{BuildReference} \link{CollateData} \link{IsCOV}
 }

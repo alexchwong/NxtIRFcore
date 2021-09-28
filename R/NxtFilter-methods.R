@@ -1,3 +1,24 @@
+#' @describeIn NxtFilter-class Constructs a NxtFilter object
+#' @export
+NxtFilter <- function(
+        filterClass = c("Data", "Annotation"),
+        filterType = c(
+            "Depth", "Coverage", "Consistency",
+            "Protein_Coding", "NMD", "TSL"
+        ),
+        pcTRUE = 100, minimum = 20, maximum = 1, minDepth = 5,
+        condition = "", minCond = -1,
+        EventTypes = c("IR", "MXE", "SE", "A3SS", "A5SS", "AFE", "ALE", "RI")
+) {
+    nfv = new("NxtFilter",
+        filterClass = filterClass, filterType = filterType, pcTRUE = pcTRUE, 
+        minimum = minimum, maximum = maximum, minDepth = minDepth,
+        condition = condition, minCond = minCond,
+        EventTypes = EventTypes
+    )
+    nfv
+}
+
 setMethod("initialize", "NxtFilter", function(.Object,
         filterClass = c("Data", "Annotation"),
         filterType = c(
@@ -147,133 +168,4 @@ setMethod("show", "NxtFilter", function(object) {
             cat("alignments\n")
         }
     }
-}
-
-#' NxtIRF filters for quality alternative splicing and intron retention events
-#'
-#' @param filterClass Must be either `"Data"` or `"Annotation"`. See details
-#' @param filterType If `filterClass = "Data"`, then must be one of 
-#'   `c("Depth", "Coverage", "Consistency")`. If `filterClass = "Annotation"`,
-#'   must be one of `c("Protein_Coding", "NMD", "TSL")`. See details
-#' @param pcTRUE If conditions are set, what percentage of all samples in each
-#'   of the condition must the filter be satisfied for the event to pass the
-#'   filter check. Must be between 0 and 100 (default 100)
-#' @param minimum Filter-dependent argument. See details
-#' @param maximum Filter-dependent argument. See details
-#' @param minDepth Filter-dependent argument. See details
-#' @param condition (default "") If set, must match the name of an experimental
-#'   condition in the NxtSE object to be filtered, 
-#'   i.e. a column name in `colData(se)`. Leave blank to disable filtering
-#'   by condition
-#' @param minCond (default -1) If condition is set, how many minimum number of
-#'   conditions must pass criteria must the filters be passed. For example,
-#'   if condition = "Batch", and batches are "A", "B", or "C", setting
-#'   `minCond = 2` with `pcTRUE = 100` means that all samples within two of the
-#'   three types of `Batch` must pass the filter criteria for the ASE event
-#'   to pass the filter. Setting `-1` means all elements of `condition` must
-#'   pass criteria. Set to `-1` when the number of elements in the experimental
-#'   condition is unknown.
-#' @param EventTypes What types of events are considered for filtering. Must be 
-#'   one of `c("IR", "MXE", "SE", "A3SS", "A5SS", "AFE", "ALE", "RI")`. Events 
-#'   not specified in `EventTypes` are not filtered (i.e. they will pass the
-#'   filter without checks)
-#' @details
-#'   **Annotation Filters**\cr\cr 
-#'     - **Protein_Coding**: Filters for alternative splicing or IR events 
-#'       within protein reading frames. No additional parameters required.\cr\cr
-#'     - **NMD**: Filters for events in which one isoform is a
-#'       predicted NMD substrate.\cr\cr 
-#'     - **TSL**: filters for events in which both
-#'       isoforms have a TSL level below or equal to `minimum`\cr\cr 
-#'   **Data Filters**\cr\cr 
-#'     - **Depth**: Filters IR or alternative splicing events of transcripts
-#'       that are "expressed" with adequate `Depth` as calculated by the
-#'       sum of all splicing and IR reads spanning the event. Events with 
-#'       `Depth` below `minimum` are filtered out\cr\cr
-#'     - **Coverage**: Coverage means different things to IR and alternative
-#'       splicing.\cr\cr 
-#'     For *IR*, Coverage refers to the percentage of the measured intron
-#'       covered with reads. Introns of samples with an IntronDepth above 
-#'       `minDepth` are assessed, with introns with coverage 
-#'       below `minimum` are filtered out.\cr\cr 
-#'     For *Alternative Splicing*, Coverage refers to the percentage of all
-#'       splicing events observed across the genomic region that is compatible
-#'       with either the included or excluded event. This prevents NxtIRF from 
-#'       doing differential analysis between two minor isoforms. Instead of
-#'       IntronDepth, in AS events NxtIRF considers events where the spliced
-#'       reads from both exonic regions exceed `minDepth`.
-#'       Then, events with a splicing coverage below `minimum`
-#'       are excluded. We recommend testing IR events for > 90% coverage and AS
-#'       events for > 60% coverage as given in the default filters which can be
-#'       accessed using [get_default_filters]\cr\cr  
-#'     - **Consistency**: Skipped exons (SE) and mutually exclusive exons
-#'       (MXE) comprise reads of two contiguous splice junctions (for the
-#'       included casette exon). Summating counts from both junctions is
-#'       misleading as there may be overlapping events (e.g. alternate first 
-#'       / last exons) that only rely on one splice event. To ensure the SE /
-#'       MXE is the dominant event, we require both splice junctions to have
-#'       comparable counts.\cr\cr
-#'     Events are excluded if either of the upstream or downstream
-#'       event is lower than total splicing events by a log-2 magnitude 
-#'       above `maximum`. For example, if 
-#'       `maximum = 2`, we require both upstream and downstream
-#'       events to represent at least 1/(2^2) = 1/4 of the sum of upstream
-#'       and downstream event.
-#'       This is considered for each isoform of each event, as long as the
-#'       total counts belonging to the considered isoform is above 
-#'       `minDepth`.
-#'
-#'   We highly recommend using the default filters, which can be acquired 
-#'     using [get_default_filters]
-#' @return A NxtFilter object with the specified parameters
-#' @examples
-#' # Create a NxtFilter that filters for protein-coding ASE
-#' f1 = NxtFilter(filterClass = "Annotation", filterType = "Protein_Coding")
-#'
-#' # Create a NxtFilter that filters for Depth >= 20 in IR events
-#' f2 = NxtFilter(
-#'     filterClass = "Data", filterType = "Depth",
-#'     minimum = 20, EventTypes = c("IR", "RI")
-#' )
-#'
-#' # Create a NxtFilter that filters for Coverage > 60% in splice events
-#' # that must be satisfied in at least 2 categories of condition "Genotype"
-#' f3 = NxtFilter(
-#'     filterClass = "Data", filterType = "Coverage",
-#'     minimum = 60, EventTypes = c("MXE", "SE", "AFE", "ALE", "A3SS", "A5SS"),
-#'     condition = "Genotype", minCond = 2
-#' )
-#'
-#' # Create a NxtFilter that filters for Depth > 10 in all events
-#' # that must be satisfied in at least 50% of each gender
-#' f4 = NxtFilter(
-#'     filterClass = "Data", filterType = "Depth",
-#'     minimum = 10, condition = "gender", pcTRUE = 50
-#' )
-#'
-#' # Get a description of what these filters do:
-#' f1
-#' f2
-#' f3
-#'
-#' @seealso [Run_NxtIRF_Filters]
-#' @md
-#' @export
-NxtFilter <- function(
-        filterClass = c("Data", "Annotation"),
-        filterType = c(
-            "Depth", "Coverage", "Consistency",
-            "Protein_Coding", "NMD", "TSL"
-        ),
-        pcTRUE = 100, minimum = 20, maximum = 1, minDepth = 5,
-        condition = "", minCond = -1,
-        EventTypes = c("IR", "MXE", "SE", "A3SS", "A5SS", "AFE", "ALE", "RI")
-) {
-    nfv = new("NxtFilter",
-        filterClass = filterClass, filterType = filterType, pcTRUE = pcTRUE, 
-        minimum = minimum, maximum = maximum, minDepth = minDepth,
-        condition = condition, minCond = minCond,
-        EventTypes = EventTypes
-    )
-    nfv
 }

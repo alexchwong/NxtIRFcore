@@ -33,8 +33,8 @@ If seqname and coordinates are given, returns an RLE containing the
 chromosome coordinate. Coverage outside the given range will be set to 0
 }
 \description{
-This function returns an RLE or RLEList containing coverage data from the
-given COV file
+This function returns an RLE / RLEList or data.frame
+containing coverage data from the given COV file
 }
 \section{Functions}{
 \itemize{

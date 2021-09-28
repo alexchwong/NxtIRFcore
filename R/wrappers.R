@@ -51,6 +51,7 @@ get_multi_DT_from_gz = function(infile = "",
 #' cov_files = covfile(se)
 #'
 #' IsCOV(cov_files) # returns true if these are true COV files
+#' @seealso [IRFinder] [CollateData]
 #' @md
 #' @export
 IsCOV = function(coverage_files) {

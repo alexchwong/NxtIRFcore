@@ -1,95 +1,5 @@
-#' The NxtSE class methods
-#'
-#' The NxtSE class inherits from the \linkS4class{SummarizedExperiment} 
-#' class and is defined to represent that it is constructed from `MakeSE()`.
-#' @param x A NxtSE object
-#' @param i,j Row and column subscripts to subset a NxtSE object.
-#' @param ... In NxtSE(), additional arguments to be passed onto
-#'   SummarizedExperiment()
-#' @param withDimnames (default TRUE) Whether exported assays should be
-#'   supplied with row and column names of the NxtSE object.
-#'   See ?SummarizedExperiment::`subset,SummarizedExperiment-method`
-#' @param deparse.level See ?base::cbind for a description of this argument.
-#' @param drop A logical(1), ignored by these methods.
-#' @param value The value to replace. Must be a matrix for the 
-#'   up_inc<-, down_inc<-, up_exc<- and down_exc<- replacers, 
-#'   and a character vector for covfile<-
-#' @return See Functions section (below) for details
-#' @examples
-#' se <- NxtIRF_example_NxtSE()
-#'
-#' # Coerce NxtSE -> SummarizedExperiment
-#' se_raw <- as(se, "SummarizedExperiment")
-#' 
-#' # Coerce SummarizedExperiment -> NxtSE
-#' se_NxtSE <- as(se_raw, "NxtSE")
-#' identical(se, se_NxtSE) # Returns TRUE
-#' 
-#' # Get Junction reads of SE / MXE and spans-reads of IR events
-#' up_inc(se)
-#' down_inc(se)
-#' up_exc(se)
-#' down_exc(se)
-#' 
-#' # Get list of available coverage files
-#' covfile(se)
-#' 
-#' # Get sample QC information
-#' sampleQC(se)
-#'
-#' # Get resource NxtIRF data (used internally for Plot_Coverage())
-#' ref(se)
-#'
-#' # Subset functions
-#' se_by_samples = se[,1:3]
-#' se_by_events = se[1:10,]
-#' se_by_rowData = subset(se, EventType == "IR")
-#'
-#' # Cbind (bind event_identical NxtSE by samples)
-#' se_by_samples_1 = se[,1:3]
-#' se_by_samples_2 = se[,4:6]
-#' se_cbind = cbind(se_by_samples_1, se_by_samples_2)
-#' identical(se, se_cbind) # should return TRUE
-#'
-#' # Rbind (bind sample_identical NxtSE by events)
-#' se_IR = subset(se, EventType == "IR")
-#' se_SE = subset(se, EventType == "SE")
-#' se_IRSE = rbind(se_IR, se_SE)
-#' identical(se_IRSE, subset(se, EventType %in% c("IR", "SE"))) # TRUE
-#'
-#' # Convert HDF5-based NxtSE to in-memory se
-#' # MakeSE() creates a HDF5-based NxtSE object where all assay data is stored
-#' # as an h5 file instead of in-memory. All operations are performed as
-#' # delayed operations as per DelayedArray package.
-#' # To realize the NxtSE object as an in-memory object, use:
-#' 
-#' se_real <- realize_NxtSE(se)
-#'
-#' # To check the difference, run:
-#' up_inc(se)
-#' up_inc(se_real)
-#'
-#' @name NxtSE-methods
-#' @aliases
-#' up_inc up_inc,NxtSE-method
-#' up_inc<- up_inc<-,NxtSE-method
-#' down_inc down_inc,NxtSE-method
-#' down_inc<- down_inc<-,NxtSE-method
-#' up_exc up_exc,NxtSE-method
-#' up_exc<- up_exc<-,NxtSE-method
-#' down_exc down_exc,NxtSE-method
-#' down_exc<- down_exc<-,NxtSE-method
-#' covfile covfile,NxtSE-method
-#' covfile<- covfile<-,NxtSE-method
-#' sampleQC sampleQC,NxtSE-method
-#' sampleQC<- sampleQC<-,NxtSE-method
-#' ref ref,NxtSE-method
-#' realize_NxtSE realize_NxtSE,NxtSE-method
-#' coerce,SummarizedExperiment,NxtSE-method
-#' @md
-NULL
 
-#' @describeIn NxtSE-methods Constructor function for NxtSE; akin to
+#' @describeIn NxtSE-class Constructor function for NxtSE; akin to
 #'   SummarizedExperiment(...)
 NxtSE <- function(...) {
     se <- SummarizedExperiment(...)
@@ -306,7 +216,7 @@ sampleQC_withDimnames <- function(x, df) {
     df[x_dimnames,,drop=FALSE]
 }
 
-#' @describeIn NxtSE-methods Gets upstream included events (SE/MXE), or
+#' @describeIn NxtSE-class Gets upstream included events (SE/MXE), or
 #'   upstream exon-intron spanning reads (IR)
 #' @export
 setMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
@@ -319,7 +229,7 @@ setMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
 
 ################################## GETTERS #####################################
 
-#' @describeIn NxtSE-methods Gets downstream included events (SE/MXE), or
+#' @describeIn NxtSE-class Gets downstream included events (SE/MXE), or
 #'   downstream exon-intron spanning reads (IR)
 #' @export
 setMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
@@ -330,7 +240,7 @@ setMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     }
 })
 
-#' @describeIn NxtSE-methods Gets upstream excluded events (MXE only)
+#' @describeIn NxtSE-class Gets upstream excluded events (MXE only)
 #' @export
 setMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     if(withDimnames) {
@@ -340,7 +250,7 @@ setMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     }
 })
 
-#' @describeIn NxtSE-methods Gets downstream excluded events (MXE only)
+#' @describeIn NxtSE-class Gets downstream excluded events (MXE only)
 #' @export
 setMethod("down_exc", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     if(withDimnames) {
@@ -350,7 +260,7 @@ setMethod("down_exc", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     }
 })
 
-#' @describeIn NxtSE-methods Gets a named vector with
+#' @describeIn NxtSE-class Gets a named vector with
 #'   the paths to the corresponding COV files
 #' @export
 setMethod("covfile", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
@@ -361,7 +271,7 @@ setMethod("covfile", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     }
 })
 
-#' @describeIn NxtSE-methods Gets a data frame with the QC parameters
+#' @describeIn NxtSE-class Gets a data frame with the QC parameters
 #'   of the samples
 #' @export
 setMethod("sampleQC", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
@@ -372,14 +282,14 @@ setMethod("sampleQC", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     }
 })
 
-#' @describeIn NxtSE-methods Retrieves a list of annotation data associated 
+#' @describeIn NxtSE-class Retrieves a list of annotation data associated 
 #'   with this NxtSE object; primarily used in Plot_Coverage()
 #' @export
 setMethod("ref", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
     x@metadata[["ref"]]
 })
 
-#' @describeIn NxtSE-methods Converts all DelayedMatrix assays as matrices
+#' @describeIn NxtSE-class Converts all DelayedMatrix assays as matrices
 #'   (i.e. performs all delayed calculation and loads resulting object
 #'   to RAM)
 #' @export
@@ -398,7 +308,7 @@ setMethod("realize_NxtSE", c("NxtSE"), function(x, withDimnames=TRUE, ...) {
 
 ################################## SETTERS #####################################
 
-#' @describeIn NxtSE-methods Sets upstream included events (SE/MXE), or
+#' @describeIn NxtSE-class Sets upstream included events (SE/MXE), or
 #'   upstream exon-intron spanning reads (IR)
 #' @export
 setReplaceMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
@@ -412,7 +322,7 @@ setReplaceMethod("up_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     x
 })
 
-#' @describeIn NxtSE-methods Sets downstream included events (SE/MXE), or
+#' @describeIn NxtSE-class Sets downstream included events (SE/MXE), or
 #'   downstream exon-intron spanning reads (IR)
 #' @export
 setReplaceMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
@@ -426,7 +336,7 @@ setReplaceMethod("down_inc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     x
 })
 
-#' @describeIn NxtSE-methods Sets upstream excluded events (MXE only)
+#' @describeIn NxtSE-class Sets upstream excluded events (MXE only)
 #' @export
 setReplaceMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
@@ -439,7 +349,7 @@ setReplaceMethod("up_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     x
 })
 
-#' @describeIn NxtSE-methods Sets downstream excluded events (MXE only)
+#' @describeIn NxtSE-class Sets downstream excluded events (MXE only)
 #' @export
 setReplaceMethod("down_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     if (!is.matrix(value) & !is(value, "DelayedMatrix")) {
@@ -452,7 +362,7 @@ setReplaceMethod("down_exc", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     x
 })
 
-#' @describeIn NxtSE-methods Sets the paths to the corresponding COV files
+#' @describeIn NxtSE-class Sets the paths to the corresponding COV files
 #' @export
 setReplaceMethod("covfile", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     if(withDimnames) {
@@ -462,7 +372,7 @@ setReplaceMethod("covfile", c("NxtSE"), function(x, withDimnames=TRUE, value) {
     x
 })
 
-#' @describeIn NxtSE-methods Sets the values in the data frame containing
+#' @describeIn NxtSE-class Sets the values in the data frame containing
 #'   sample QC
 #' @export
 setReplaceMethod("sampleQC", c("NxtSE"), function(x, withDimnames=TRUE, value) {
@@ -480,7 +390,7 @@ setReplaceMethod("ref", c("NxtSE"), function(x, value) {
 
 ################################ SUBSETTERS ####################################
 
-#' @describeIn NxtSE-methods Subsets a NxtSE object
+#' @describeIn NxtSE-class Subsets a NxtSE object
 #' @export
 setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
     old <- S4_disableValidity()
@@ -545,7 +455,7 @@ setMethod("[", c("NxtSE", "ANY", "ANY"), function(x, i, j, ...) {
 
 })
 
-#' @describeIn NxtSE-methods Sets a subsetted NxtSE object
+#' @describeIn NxtSE-class Sets a subsetted NxtSE object
 #' @export
 setMethod("[<-", c("NxtSE", "ANY", "ANY", "NxtSE"), 
         function(x, i, j, ..., value) {
@@ -589,7 +499,7 @@ setMethod("[<-", c("NxtSE", "ANY", "ANY", "NxtSE"),
 ################################# COMBINERS ####################################
 
 
-#' @describeIn NxtSE-methods Combines two NxtSE objects (by samples - columns)
+#' @describeIn NxtSE-class Combines two NxtSE objects (by samples - columns)
 #' @export
 setMethod("cbind", "NxtSE", function(..., deparse.level=1) {
     old <- S4_disableValidity()
@@ -660,7 +570,7 @@ setMethod("cbind", "NxtSE", function(..., deparse.level=1) {
     BG_replaceSlots(out, metadata=metadata, check=FALSE)
 })
 
-#' @describeIn NxtSE-methods Combines two NxtSE objects (by AS/IR events - rows)
+#' @describeIn NxtSE-class Combines two NxtSE objects (by AS/IR events - rows)
 #' @export
 setMethod("rbind", "NxtSE", function(..., deparse.level=1) {
     old <- S4_disableValidity()

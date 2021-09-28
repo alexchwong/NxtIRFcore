@@ -2,11 +2,9 @@
 % Please edit documentation in R/Filters.R
 \name{Run_NxtIRF_Filters}
 \alias{Run_NxtIRF_Filters}
-\alias{get_default_filters,}
-\alias{apply_filters,}
-\alias{runFilter}
 \alias{get_default_filters}
 \alias{apply_filters}
+\alias{runFilter}
 \title{Filtering for IR and Alternative Splicing Events}
 \usage{
 get_default_filters()
@@ -26,7 +24,7 @@ blank, the NxtIRF default filters will be used.}
 \value{
 For \code{runFilter} and \code{apply_filters}, a vector of type \code{logical},
 representing the rows of NxtSE that should be kept.
-For \code{get_default_filters}, returns a vector of default recommended filters
+For \code{get_default_filters}, returns a list of default recommended filters
 that should be parsed into \code{apply_filters}.
 }
 \description{
@@ -45,8 +43,8 @@ events across the given region)\cr\cr
 mutually exclusive exon events, each junction must comprise at least 1/(2^2)
 = 1/4 of all reads associated with each isoform).
 For retained introns, the exon-intron overhangs must not differ by 1/4\cr\cr
-In all filters, we require at least 80\% samples (\code{pcTRUE = 80}) from the
-entire dataset (i.e. \code{minCond = -1}).
+In all filters, we require at least 80\% samples (\code{pcTRUE = 80})
+to pass this filters from the entire dataset (\code{minCond = -1}).
 Events with event read depth (reads supporting either included or excluded
 isoforms) lower than 5 (\code{minDepth = 5}) are not assessed in filter #2, and
 in #3 and #4 this threshold is (\code{minDepth = 20}).\cr\cr
@@ -73,9 +71,10 @@ filters = get_default_filters()
 # View a description of what these filters do:
 filters
 
-# Filter the SummarizedExperiment using the first default filter ("Depth")
+# Filter the NxtSE using the first default filter ("Depth")
 se.depthfilter = se[runFilter(se, filters[[1]]),]
 
+# Filter the NxtSE using all four default filters
 se.defaultFiltered = se[apply_filters(se, get_default_filters()),]
 }
 \seealso{

@@ -47,9 +47,10 @@ NULL
 #' se = NxtIRF_example_NxtSE()
 #' @seealso [MakeSE()]
 make_example_NxtSE <- function() {
+    require(NxtIRFcore)
     bams = NxtIRF_example_bams()
     BuildReference(
-        fasta = mock_genome(), gtf = mock_gtf(),
+        fasta = chrZ_genome(), gtf = chrZ_gtf(),
         reference_path = file.path(tempdir(), "Reference")
     )
     IRFinder(bams$path, bams$sample,

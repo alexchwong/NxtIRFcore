@@ -141,15 +141,30 @@ semi_join.DT = function(A, B, by, nomatch = 0) {
     psetdiff(unlist(range(grl), use.names = TRUE), grl)
 }
 
-make.path.relative = function(base, target) {
-    if(Sys.info()["sysname"] == "Windows") {
-        base = normalizePath(base, winslash = "/")
-    }
-    common = sub('^([^|]*)[^|]*(?:\\|\\1[^|]*)$', '^\\1/?', 
-        paste0(base, '|', target))
+make.path.relative = function(files, relative_to) {
+    if(!all(file.exists(files))) .log("Some files do not exist")
+    if(!all(file.exists(relative_to))) .log("Some directories do not exist")
+    if(length(relative_to) == 1) relative_to = rep(relative_to, length(files))
     
-    paste0(gsub('[^/]+/?', '../', sub(common, '', base)),
-        sub(common, '', target))
+    if(Sys.info()["sysname"] == "Windows") {
+        files = normalizePath(files, winslash = "/")
+        relative_to = normalizePath(relative_to, winslash = "/")
+    } else {
+        files = normalizePath(files)
+        relative_to = normalizePath(relative_to)
+    }
+    out = c()
+    for(i in seq_len(length(files))) {
+        f = files[i]
+        base = relative_to[i]
+    
+        common = sub('^([^|]*)[^|]*(?:\\|\\1[^|]*)$', '^\\1/?', 
+            paste0(base, '|', f))
+
+        out = c(out, paste0(gsub('[^/]+/?', '../', sub(common, '', base)),
+            sub(common, '', f)))
+    }
+    return(out)
 }
 
 #' GGPLOT themes

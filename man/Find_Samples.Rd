@@ -25,7 +25,7 @@ Find_IRFinder_Output(sample_path, level = 0)
 that match the given \code{suffix}}
 
 \item{suffix}{A vector of or or more strings that specifies the file suffix
-(e.g. 'bam' denotes BAM files, whereas "txt.gz" denotes gzipped txt
+(e.g. '.bam' denotes BAM files, whereas ".txt.gz" denotes gzipped txt
 files).}
 
 \item{level}{Whether sample names can be found in the file names themselves
@@ -48,19 +48,36 @@ as determined by \code{suffix}.
 Often, output files (whether it be raw sequencing files, aligned sequences)
 in BAM files, or IRFinder output files, are stored in a single folder.
 Sometimes, these are named according to the samples they represent. Other
-times, they have generic names but are partitioned in sub-folders named
-by sample names. This function (recursively) finds all files and extracts
-sample names assuming the files are named by sample names
-(\code{level = 0}). Alternately, the names can be derived from the
-subfolders one level higher (\code{level = 1})
+times, they have generic names but are partitioned in sub-folders that
+designate their sample names. This function (recursively) finds all files and
+extracts sample names assuming either the files are named by sample names
+(\code{level = 0}), or that their names can be derived from the
+parent folder (\code{level = 1}). Higher \code{level} also work (e.g. \code{level = 2})
+mean the parent folder of the parent folder of the file is named by sample
+names.
+}
+\details{
+Paired FASTQ files are assumed to be named using the suffix \verb{_1} and \verb{_2}
+after their common names; e.g. \code{sample_1.fastq}, \code{sample_2.fastq}. Alternate
+FASTQ suffixes for \code{Find_FASTQ()} include ".fq", ".fastq.gz", and ".fq.gz".
+
+In BAM files, often the parent directory denotes their sample names. In this
+case, use \code{level = 1} to automatically annotate the sample names using
+\code{Find_Bams()}.
 }
 \section{Functions}{
 \itemize{
-\item \code{Find_FASTQ}: Returns all FASTQ files in a given folder
+\item \code{Find_Samples}: Finds all files with the given suffix pattern.
+Annotates sample names based on file or parent folder names.
 
-\item \code{Find_Bams}: Returns all BAM files in a given folder
+\item \code{Find_FASTQ}: Use Find_Samples() to return all FASTQ files 
+in a given folder
 
-\item \code{Find_IRFinder_Output}: Returns all IRFinder output files in a given folder
+\item \code{Find_Bams}: Use Find_Samples() to return all BAM files in a 
+given folder
+
+\item \code{Find_IRFinder_Output}: Use Find_Samples() to return all IRFinder output 
+files in a given folder, including COV files
 }}
 
 \examples{

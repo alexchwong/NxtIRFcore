@@ -23,3 +23,6 @@ cov_files = covfile(se)
 
 IsCOV(cov_files) # returns true if these are true COV files
 }
+\seealso{
+\link{IRFinder} \link{CollateData}
+}

@@ -1,15 +1,46 @@
-#' STAR wrapper for building reference for STAR, and aligning raw 
-#' sequence (FASTQ or FASTA) files.
+#' STAR wrapper for building reference for STAR, and aligning RNA-sequencing
 #'
 #' These functions run the STAR aligner to build a STAR genome reference,
-#' (optionally) calculate mappability exclusion regions, and align one or more
+#' calculate mappability exclusion regions using STAR, and align one or more
 #' FASTQ files (single or paired) to the generated genome. These functions only
 #' work on Linux-based systems with STAR installed. STAR must be
-#' accessible via $PATH
+#' accessible via $PATH. See details and examples
+#'
+#' @details
+#' **Pre-requisites**
+#' 
+#' `STAR_buildRef` requires [GetReferenceResource] to be run to fetch the
+#' required genome and gene annotation files.
+#'
+#' `STAR_Mappability`, `STAR_align_experiment` and `STAR_align_fastq` requires a
+#' `STAR` genome, which can be built using `STAR_buildRef`
+#' 
+#' **Function Description**
+#'
+#' For `STAR_buildRef`: this function
+#'   will create a `STAR` genome reference in the `STAR` subdirectory in the
+#'   path given by `reference_path`. Optionally, it will run [STAR_Mappability]
+#'   if `also_generate_mappability` is set to `TRUE`
+#' 
+#' For `STAR_Mappability`: this function will first
+#'   will run [Mappability_GenReads], then use the given `STAR` genome to align 
+#'   the synthetic reads using `STAR`. The aligned BAM file will then be
+#'   processed using [Mappability_CalculateExclusions] to calculate the
+#'   lowly-mappable genomic regions,
+#'   producing the `MappabilityExclusion.bed.gz` output file.
+#'
+#' For `STAR_align_fastq`: aligns a single or pair of FASTQ files to the given
+#'   `STAR` genome using the `STAR` aligner.
+#'
+#' For `STAR_align_experiment`: aligns a set of FASTQ or paired FASTQ files
+#'   using the given
+#'   `STAR` genome using the `STAR` aligner.
+#'   A data.frame specifying sample names and corresponding FASTQ files are
+#'   required
 #'
 #' @param reference_path The path to the reference. 
-#'    \code{GetReferenceResource()} must first be run using this path
-#'    as its \code{reference_path}
+#'    [GetReferenceResource] must first be run using this path
+#'    as its `reference_path`
 #' @param STAR_ref_path (Default - the "STAR" subdirectory under 
 #'    \code{reference_path}) The directory containing the STAR reference to be
 #'    used or to contain the newly-generated STAR reference
@@ -58,14 +89,13 @@
 #' \dontrun{
 #'
 #' # The below workflow illustrates
-#' # 1) Getting the reference resource, including Mappability reads generation
+#' # 1) Getting the reference resource
 #' # 2) Building the STAR Reference, including Mappability Exclusion calculation
 #' # 3) Building the NxtIRF Reference, using the Mappability Exclusion file
 #' # 4) Aligning (a) one or (b) multiple raw sequencing samples.
 #'
 #'
 #' # 1) Reference generation from Ensembl's FTP links
-#' #     Additionally generates reads for Mappability calculation
 #' 
 #' FTP = "ftp://ftp.ensembl.org/pub/release-94/"
 #' 
@@ -78,16 +108,16 @@
 #' )
 #' 
 #' # 2) Generates STAR genome within the NxtIRF reference. Also generates
-#' #     mappability exclusion BED file inside the "Mappability/" sub-folder
+#' # mappability exclusion gzipped BED file inside the "Mappability/" sub-folder
 #' 
 #' STAR_buildRef(
 #'     reference_path = "Reference_FTP", 
-#'     n_threads = 32,
+#'     n_threads = 8,
 #'     also_generate_mappability = TRUE
 #' )
 #' 
-#' # 2 alt) Generates STAR genome of the example NxtIRF mock genome.
-#' #     This demonstrates using custom STAR parameters, as the mock
+#' # 2 alt) Generates STAR genome of the example NxtIRF genome.
+#' #     This demonstrates using custom STAR parameters, as the example NxtIRF
 #' #     genome is ~100k in length, so --genomeSAindexNbases needs to be
 #' #     adjusted to be min(14, log2(GenomeLength)/2 - 1)
 #' 
@@ -99,14 +129,15 @@
 #'
 #' STAR_buildRef(
 #'     reference_path = "Reference_chrZ", 
-#'     n_threads = 32,
+#'     n_threads = 8,
 #'     additional_args = c("--genomeSAindexNbases", "7")
 #'     also_generate_mappability = TRUE
 #' )
 #' 
 #' # 3) Build NxtIRF reference using the newly-generated Mappability exclusions
 #'
-#' #' NB: also specifies to use the hg38 nonPolyA resource from IRFinder
+#' #' NB: also specifies to use the hg38 nonPolyA resource
+#' 
 #' BuildReference(reference_path = "Reference_FTP", genome_type = "hg38")
 #' 
 #' # 4a) Align a single sample using the STAR reference
@@ -141,9 +172,7 @@
 #' @aliases
 #' STAR_buildRef STAR_align_experiment STAR_align_fastq
 #' @seealso
-#' \link{BuildReference} for \code{GetReferenceResource()}\cr\cr
-#' \link{Find_Samples} for \code{Find_FASTQ()}\cr\cr
-#' \link{Mappability-methods} for \code{Mappability_GenReads()}\cr\cr
+#' [BuildReference] [Find_Samples] [Mappability-methods]\cr\cr
 #' [The latest STAR documentation](https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf)
 #' @md
 NULL
@@ -152,7 +181,7 @@ NULL
 #' @export
 STAR_version <- function() .validate_STAR_version(type = "message")
 
-#' @describeIn STAR-methods Creates a STAR genome reference
+#' @describeIn STAR-methods Creates a STAR genome reference.
 #' @export
 STAR_buildRef <- function(reference_path, 
         STAR_ref_path = file.path(reference_path, "STAR"),
@@ -205,10 +234,7 @@ STAR_buildRef <- function(reference_path,
     .STAR_clean_temp_FASTA_GTF(reference_path)
 }
 
-#' @describeIn STAR-methods Full pipeline for calculation of mappability
-#'   exclusion zone calculation, with given reference. Requires STAR and a 
-#'   valid STAR reference.
-#'   Also requires GetReferenceResource() to have been run.
+#' @describeIn STAR-methods Calculates lowly-mappable genomic regions using STAR
 #' @export
 STAR_Mappability <- function(
         reference_path,
@@ -265,8 +291,8 @@ STAR_Mappability <- function(
     }
 }
 
-#' @describeIn STAR-methods Aligns multiple sets of FASTQ files, separated by
-#'   sample names
+#' @describeIn STAR-methods Aligns multiple sets of FASTQ files, belonging to
+#'   multiple samples
 #' @export
 STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
         trim_adaptor = "AGATCGGAAG", two_pass = FALSE, n_threads = 4) {

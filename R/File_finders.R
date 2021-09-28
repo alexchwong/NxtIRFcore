@@ -3,16 +3,27 @@
 #' Often, output files (whether it be raw sequencing files, aligned sequences)
 #' in BAM files, or IRFinder output files, are stored in a single folder.
 #' Sometimes, these are named according to the samples they represent. Other
-#' times, they have generic names but are partitioned in sub-folders named
-#' by sample names. This function (recursively) finds all files and extracts
-#' sample names assuming the files are named by sample names 
-#' (`level = 0`). Alternately, the names can be derived from the
-#' subfolders one level higher (`level = 1`)
+#' times, they have generic names but are partitioned in sub-folders that 
+#' designate their sample names. This function (recursively) finds all files and
+#' extracts sample names assuming either the files are named by sample names 
+#' (`level = 0`), or that their names can be derived from the
+#' parent folder (`level = 1`). Higher `level` also work (e.g. `level = 2`)
+#' mean the parent folder of the parent folder of the file is named by sample 
+#' names.
+#'
+#' @details
+#' Paired FASTQ files are assumed to be named using the suffix `_1` and `_2`
+#' after their common names; e.g. `sample_1.fastq`, `sample_2.fastq`. Alternate
+#' FASTQ suffixes for `Find_FASTQ()` include ".fq", ".fastq.gz", and ".fq.gz".
+#'
+#' In BAM files, often the parent directory denotes their sample names. In this
+#' case, use `level = 1` to automatically annotate the sample names using
+#' `Find_Bams()`.
 #' 
 #' @param sample_path The path in which to recursively search for files
 #'   that match the given `suffix`
 #' @param suffix A vector of or or more strings that specifies the file suffix 
-#'   (e.g. 'bam' denotes BAM files, whereas "txt.gz" denotes gzipped txt 
+#'   (e.g. '.bam' denotes BAM files, whereas ".txt.gz" denotes gzipped txt 
 #'   files).
 #' @param level Whether sample names can be found in the file names themselves
 #'   (level = 0), or their parent directory (level = 1). Potentially parent
@@ -40,6 +51,10 @@
 #' expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
 #' @name Find_Samples
 #' @md
+NULL
+
+#' @describeIn Find_Samples Finds all files with the given suffix pattern.
+#' Annotates sample names based on file or parent folder names.
 #' @export
 Find_Samples <- function(sample_path, suffix = ".txt.gz", level = 0) {
     if(length(suffix) == 0)
@@ -98,7 +113,8 @@ Find_Samples <- function(sample_path, suffix = ".txt.gz", level = 0) {
     return(as.data.frame(final[, cols, with = FALSE]))
 }
 
-#' @describeIn Find_Samples Returns all FASTQ files in a given folder
+#' @describeIn Find_Samples Use Find_Samples() to return all FASTQ files 
+#' in a given folder
 #' @export
 Find_FASTQ <- function(sample_path, paired = TRUE, 
         fastq_suffix = c("fastq", "fq", "fastq.gz", "fq.gz"), level = 0) {
@@ -111,13 +127,15 @@ Find_FASTQ <- function(sample_path, paired = TRUE,
     return(DT)
 }
 
-#' @describeIn Find_Samples Returns all BAM files in a given folder
+#' @describeIn Find_Samples Use Find_Samples() to return all BAM files in a 
+#' given folder
 #' @export
 Find_Bams <- function(sample_path, level = 0) {
     return(Find_Samples(sample_path, ".bam", level = level))
 }
 
-#' @describeIn Find_Samples Returns all IRFinder output files in a given folder
+#' @describeIn Find_Samples Use Find_Samples() to return all IRFinder output 
+#' files in a given folder, including COV files
 #' @export
 Find_IRFinder_Output <- function(sample_path, level = 0) {
     DT = Find_Samples(sample_path, c(".txt.gz", ".cov"), level = level)

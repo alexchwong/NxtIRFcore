@@ -1,28 +1,81 @@
-#' Use Limma, DESeq2 or DoubleExpSeq to test for differential ASEs 
-#'   (Alternative Splice Events)
+#' Use Limma, DESeq2 or DoubleExpSeq to test for differential Alternative 
+#' Splice Events
 #'
-#' @param se The SummarizedExperiment object created by `MakeSE()`. To reduce
-#'   runtime and false negatives due to multiple testing issues, please filter
-#'   the object using `apply_filter()`
-#' @param test_factor A string for the column name which contains the 
+#' @details
+#' 
+#' Using **limma**, NxtIRF models included and excluded counts as log-normal
+#' distributed, whereas 
+#' using **DESeq2**, NxtIRF models included and excluded counts as negative
+#' binomial distributed with dispersion shrinkage according to their mean count
+#' expressions.
+#' For **limma** and **DESeq2**, differential ASE are considered as the 
+#' "interaction" between included and excluded splice counts for each sample.
+#'  See [this vignette](https://rpubs.com/mikelove/ase) for an explanation of 
+#' how this is done.
+#'
+#' Using **DoubleExpSeq**, included and excluded counts are modelled using
+#' the generalized beta prime distribution, using empirical Bayes shrinkage
+#' to estimate dispersion.
+#'
+#' **EventType** are as follow: 
+#' * `IR` = (novel) intron retention
+#' * `MXE` = mutually exclusive exons
+#' * `SE` = skipped exons
+#' * `AFE` = alternate first exon
+#' * `ALE` = alternate last exon
+#' * `A5SS` = alternate 5'-splice site
+#' * `A3SS` = alternate 3'-splice site
+#' * `RI` = (known / annotated) intron retention. 
+#' 
+#' NB: NxtIRF separately considers known "RI" and novel "IR" events separately: 
+#' * `IR` novel events are calculated using the IRFinder method, whereby spliced
+#' transcripts are all isoforms that do not retain the intron, as estimated
+#' via the `SpliceMax` and `SpliceOverMax` methods - see [CollateData].
+#' * `RI` known retained introns are calculated by considering the specific
+#' spliced intron as a binary event paired with its retention. The spliced
+#' abundance is calculated exclusively by splice reads mapped to the
+#' specific intron boundaries. Known retained introns are those where the
+#' intron retaining transcript is an annotated transcript that is not otherwise
+#' an `retained_intron` or `sense_intronic` transcript biotypes annotated by
+#' the given reference
+#'
+#' NxtIRF considers "included" counts as those that represent abundance of the
+#' "included" isoform, whereas "excluded" counts represent the abundance of the
+#' "excluded" isoform. These are:
+#' 
+#' | EventType | Included | Excluded |
+#' | :---: | :---: | :---: |
+#' | IR or RI | Intron Retention | Spliced Intron |
+#' | MXE | Upstream exon inclusion | Downstream exon inclusion |
+#' | SE | Exon inclusion | Exon skipping |
+#' | AFE | Downstream exon usage | Upstream exon usage |
+#' | ALE | Upstream exon usage | Downstream exon usage |
+#' | A5SS | Downstream 5'-SS | Upstream 5'-SS |
+#' | A3SS | Upstream 3'-SS | Downstream 3'-SS |
+#'
+#' NB: by this convention, the "included" transcript always generates splice 
+#' junctions that are shorter than those of "excluded" transcripts.
+#'
+#' @param se The \linkS4class{NxtSE} object created by `MakeSE()`. To reduce
+#'   runtime and avoid excessive multiple testing, consider filtering
+#'   the object using [apply_filters]
+#' @param test_factor The condition type which contains the 
 #'   contrasting variable
-#' @param test_nom The condition in which to test for differential ASE. Usually
+#' @param test_nom The nominator condition to test for differential ASE. Usually
 #'   the "treatment" condition
-#' @param test_denom The condition in which to test against for differential 
+#' @param test_denom The denominator condition to test against for differential 
 #'   ASE. Usually the "control" condition
-#' @param batch1,batch2 (Limma and DESeq2 only) One or two columns containing 
-#'   batch information to normalise against (can be omitted).
-#' @param filter_antiover Whether to filter out IR events that overlap 
-#'   antisense genes (for unstranded RNAseq protocols)
-#' @param filter_antinear Whether to filter out IR events near but not 
-#'   overlapping antisense genes (for unstranded RNAseq protocols)
-#' @param n_threads (DESeq_ASE only) How many threads to use for DESeq2
+#' @param batch1,batch2 (Optional, limma and DESeq2 only) One or two condition
+#'   types containing batch information to account for.
+#' @param filter_antiover,filter_antinear Whether to remove novel IR events that
+#'   overlap over or near anti-sense genes. Default will exclude antiover but
+#'   not antinear introns. These are ignored if stranded RNA-seq protocols are
+#'   used.
+#' @param n_threads (DESeq2 only) How many threads to use for DESeq2
 #'   based analysis.
 #' @return A data table containing the following:
 #'   * EventName: The name of the ASE event
-#'   * EventType: The type of event. IR = intron retention, MXE = mutually 
-#'     exclusive event, SE = skipped exon, AFE = alternate first exon, ALE = 
-#'     alternate last exon, A5SS / A3SS = alternate 5' / 3' splice site
+#'   * EventType: The type of event. See details
 #'   * EventRegion: The genomic coordinates the event occupies.
 #'   * NMD_direction: Indicates whether one isoform is a NMD substrate. +1 means 
 #'     included isoform is NMD, -1 means the excluded isoform is NMD, and 0 
@@ -60,18 +113,33 @@
 #' 
 #' colData(se)$treatment = rep(c("A", "B"), each = 3)
 #' 
-#' if("limma" %in% rownames(installed.packages())) {
-#'     res_limma = limma_ASE(se, "treatment", "A", "B")
-#' }
-#'
-#' if("DESeq2" %in% rownames(installed.packages())) {
-#'     res_DESeq = DESeq_ASE(se, "treatment", "A", "B")
-#' }
+#' require("limma")
+#' res_limma = limma_ASE(se, "treatment", "A", "B")
 #' 
-#' if("DoubleExpSeq" %in% rownames(installed.packages())) {
-#'     res_DES = DoubleExpSeq_ASE(se, "treatment", "A", "B")
+#' require("DoubleExpSeq")
+#' res_DES = DoubleExpSeq_ASE(se, "treatment", "A", "B")
+#' 
+#' \dontrun{
+#' 
+#' require("DESeq2")
+#' res_DESeq = DESeq_ASE(se, "treatment", "A", "B")
+#'
 #' }
 #' @name ASE-methods
+#' @references
+#' Ritchie ME, Phipson B, Wu D, Hu Y, Law CW, Shi W, Smyth GK (2015). 
+#' 'limma powers differential expression analyses for RNA-sequencing and 
+#' microarray studies.' Nucleic Acids Research, 43(7), e47.
+#' \url{https://doi.org/10.1093/nar/gkv007}
+#'
+#' Love MI, Huber W, Anders S (2014). 'Moderated estimation of fold change and
+#' dispersion for RNA-seq data with DESeq2.' Genome Biology, 15, 550.
+#' \url{https://doi.org/10.1186/s13059-014-0550-8}
+#'
+#' Ruddy S, Johnson M, Purdom E (2016). 'Shrinkage of dispersion parameters in
+#' the binomial family, with application to differential exon skipping.'
+#' Ann. Appl. Stat. 10(2): 690-725. 
+#' \url{https://doi.org/10.1214/15-AOAS871}
 #' @md
 NULL
 

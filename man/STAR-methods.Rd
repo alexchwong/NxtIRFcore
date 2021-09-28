@@ -7,8 +7,7 @@
 \alias{STAR_align_fastq}
 \alias{STAR_version}
 \alias{STAR_Mappability}
-\title{STAR wrapper for building reference for STAR, and aligning raw
-sequence (FASTQ or FASTA) files.}
+\title{STAR wrapper for building reference for STAR, and aligning RNA-sequencing}
 \usage{
 STAR_version()
 
@@ -54,7 +53,7 @@ STAR_align_fastq(
 }
 \arguments{
 \item{reference_path}{The path to the reference.
-\code{GetReferenceResource()} must first be run using this path
+\link{GetReferenceResource} must first be run using this path
 as its \code{reference_path}}
 
 \item{STAR_ref_path}{(Default - the "STAR" subdirectory under
@@ -114,24 +113,53 @@ None. STAR will output files into the given output directories.
 }
 \description{
 These functions run the STAR aligner to build a STAR genome reference,
-(optionally) calculate mappability exclusion regions, and align one or more
+calculate mappability exclusion regions using STAR, and align one or more
 FASTQ files (single or paired) to the generated genome. These functions only
 work on Linux-based systems with STAR installed. STAR must be
-accessible via $PATH
+accessible via $PATH. See details and examples
+}
+\details{
+\strong{Pre-requisites}
+
+\code{STAR_buildRef} requires \link{GetReferenceResource} to be run to fetch the
+required genome and gene annotation files.
+
+\code{STAR_Mappability}, \code{STAR_align_experiment} and \code{STAR_align_fastq} requires a
+\code{STAR} genome, which can be built using \code{STAR_buildRef}
+
+\strong{Function Description}
+
+For \code{STAR_buildRef}: this function
+will create a \code{STAR} genome reference in the \code{STAR} subdirectory in the
+path given by \code{reference_path}. Optionally, it will run \link{STAR_Mappability}
+if \code{also_generate_mappability} is set to \code{TRUE}
+
+For \code{STAR_Mappability}: this function will first
+will run \link{Mappability_GenReads}, then use the given \code{STAR} genome to align
+the synthetic reads using \code{STAR}. The aligned BAM file will then be
+processed using \link{Mappability_CalculateExclusions} to calculate the
+lowly-mappable genomic regions,
+producing the \code{MappabilityExclusion.bed.gz} output file.
+
+For \code{STAR_align_fastq}: aligns a single or pair of FASTQ files to the given
+\code{STAR} genome using the \code{STAR} aligner.
+
+For \code{STAR_align_experiment}: aligns a set of FASTQ or paired FASTQ files
+using the given
+\code{STAR} genome using the \code{STAR} aligner.
+A data.frame specifying sample names and corresponding FASTQ files are
+required
 }
 \section{Functions}{
 \itemize{
 \item \code{STAR_version}: Checks whether STAR is installed, and its version
 
-\item \code{STAR_buildRef}: Creates a STAR genome reference
+\item \code{STAR_buildRef}: Creates a STAR genome reference.
 
-\item \code{STAR_Mappability}: Full pipeline for calculation of mappability
-exclusion zone calculation, with given reference. Requires STAR and a 
-valid STAR reference.
-Also requires GetReferenceResource() to have been run.
+\item \code{STAR_Mappability}: Calculates lowly-mappable genomic regions using STAR
 
-\item \code{STAR_align_experiment}: Aligns multiple sets of FASTQ files, separated by
-sample names
+\item \code{STAR_align_experiment}: Aligns multiple sets of FASTQ files, belonging to
+multiple samples
 
 \item \code{STAR_align_fastq}: Aligns a single sample (with single or paired FASTQ
 or FASTA files)
@@ -145,14 +173,13 @@ STAR_version()
 \dontrun{
 
 # The below workflow illustrates
-# 1) Getting the reference resource, including Mappability reads generation
+# 1) Getting the reference resource
 # 2) Building the STAR Reference, including Mappability Exclusion calculation
 # 3) Building the NxtIRF Reference, using the Mappability Exclusion file
 # 4) Aligning (a) one or (b) multiple raw sequencing samples.
 
 
 # 1) Reference generation from Ensembl's FTP links
-#     Additionally generates reads for Mappability calculation
 
 FTP = "ftp://ftp.ensembl.org/pub/release-94/"
 
@@ -165,16 +192,16 @@ GetReferenceResource(
 )
 
 # 2) Generates STAR genome within the NxtIRF reference. Also generates
-#     mappability exclusion BED file inside the "Mappability/" sub-folder
+# mappability exclusion gzipped BED file inside the "Mappability/" sub-folder
 
 STAR_buildRef(
     reference_path = "Reference_FTP", 
-    n_threads = 32,
+    n_threads = 8,
     also_generate_mappability = TRUE
 )
 
-# 2 alt) Generates STAR genome of the example NxtIRF mock genome.
-#     This demonstrates using custom STAR parameters, as the mock
+# 2 alt) Generates STAR genome of the example NxtIRF genome.
+#     This demonstrates using custom STAR parameters, as the example NxtIRF
 #     genome is ~100k in length, so --genomeSAindexNbases needs to be
 #     adjusted to be min(14, log2(GenomeLength)/2 - 1)
 
@@ -186,14 +213,15 @@ GetReferenceResource(
 
 STAR_buildRef(
     reference_path = "Reference_chrZ", 
-    n_threads = 32,
+    n_threads = 8,
     additional_args = c("--genomeSAindexNbases", "7")
     also_generate_mappability = TRUE
 )
 
 # 3) Build NxtIRF reference using the newly-generated Mappability exclusions
 
-#' NB: also specifies to use the hg38 nonPolyA resource from IRFinder
+#' NB: also specifies to use the hg38 nonPolyA resource
+
 BuildReference(reference_path = "Reference_FTP", genome_type = "hg38")
 
 # 4a) Align a single sample using the STAR reference
@@ -226,8 +254,6 @@ STAR_align_experiment(
 }
 }
 \seealso{
-\link{BuildReference} for \code{GetReferenceResource()}\cr\cr
-\link{Find_Samples} for \code{Find_FASTQ()}\cr\cr
-\link{Mappability-methods} for \code{Mappability_GenReads()}\cr\cr
+\link{BuildReference} \link{Find_Samples} \link{Mappability-methods}\cr\cr
 \href{https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf}{The latest STAR documentation}
 }

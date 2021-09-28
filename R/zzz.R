@@ -1,19 +1,17 @@
 #' NxtIRF Example BAMs and NxtSE Experiment Object
 #'
-#' 6 example bam files based on samples from the 
-#' Leucegene dataset (GSE67039). Bam files are constructed
-#' based on the complete bam files of 6 samples from Leucegene,
-#' subsetted by regions containing the 7 above genes. Then, the reads of these 
-#' subsetted BAMs were realigned to the NxtIRF example reference using 
-#' STAR.\cr\cr
-#' A NxtSE SummarizedExperiment object was constructed by running `IRFinder()`,
-#' `CollateData()` and `MakeSE()`
-#' on the example BAM files, using the NxtIRF example reference. A full pipeline
-#' of how this NxtSE was generated can be found in
-#' `system.file("scripts", "make_data.R", package = "NxtIRFcore")`
+#' `NxtIRF_example_bams()` is a wrapper function to obtain and make a local copy
+#' of 6 example files provided by the NxtIRFdata companion package to 
+#' demonstrate the use of NxtIRFcore. See [NxtIRFdata::example_bams] for
+#' a description of the provided BAM files. 
+#'
+#' @details
+#' See the example code in [MakeSE] to see how the example NxtSE
+#' object was constructed.
+#' 
 #' @return See `NxtIRF_example_bams()` returns a 2-column data frame containing
 #'   sample names and BAM paths of the example dataset. `NxtIRF_example_NxtSE()`
-#'   returns a NxtSE object.
+#'   returns a NxtSE object. See details.
 #' @examples
 #'
 #' # returns a data frame with the first column as sample names, and the 
@@ -54,7 +52,8 @@ NxtIRF_example_bams <- function() {
 }
 
 #' @describeIn example-NxtIRF-data Returns a (in-memory / realized) NxtSE object 
-#'   generated using the NxtIRF mock reference and example BAM files
+#' that was pre-generated using the NxtIRF example reference and example 
+#' BAM files
 #' @export
 NxtIRF_example_NxtSE <- function() {
     se = readRDS(system.file("extdata", 

@@ -7,38 +7,67 @@
 MakeSE(collate_path, colData, RemoveOverlapping = TRUE)
 }
 \arguments{
-\item{collate_path}{The output path given to CollateData() pointing to the
-collated data}
+\item{collate_path}{(Required) The output path of \link{CollateData} pointing
+to the collated data}
 
-\item{colData}{A data frame containing the sample annotation information.
-Note that the first column must contain the sample names. If the names of
-only a subset of samples are given, then \code{MakeSE()} will construct the SE
-object based only on the samples given. Omit \code{colData} to generate an SE
-object based on the whole dataset. The colData can be set later using
-\code{colData()} for \code{SummarizedExperiment} objects}
+\item{colData}{(Optional) A data frame containing the sample annotation
+information. The first column must contain the sample names.
+Omit \code{colData} to generate a NxtSE object of the whole dataset without
+any assigned annotations.
+Alternatively, if the names of only a subset of samples are given, then
+\code{MakeSE()} will construct the NxtSE object based only on the samples given.
+The colData can be set later using \code{colData()}}
 
-\item{RemoveOverlapping}{(default = TRUE) Whether to filter out overlapping
-introns of IR events belonging to minor isoforms. MakeSE will try to
-identify which junctions belong to major isoforms, then select the
-junctions from non-overlapping minor isoforms in an iterative approach,
-until no non-overlapping introns remain. This is important
-to make sure IR events are not 'double-counted'}
+\item{RemoveOverlapping}{(default = \code{TRUE}) Whether to filter out overlapping
+novel IR events belonging to minor isoforms. See details.}
 }
 \value{
 A NxtIRF SummarizedExperiment (\code{NxtSE}) object
 }
 \description{
-MakeSE() creates a NxtSE object from the data collated
-from IRFinder output using \code{\link[=CollateData]{CollateData()}}.
+Creates a \linkS4class{NxtSE} object from the data
+from IRFinder output collated using \link{CollateData}. This object is used
+for downstream differential analysis of IR and alternative splicing events
+using \link{ASE-methods} as well as visualisation using \link{Plot_Coverage}
 }
 \details{
-NxtSE is a specialised class which inherits from the
-\linkS4class{SummarizedExperiment} class, NxtSE is used in NxtIRF
-for downstream analysis. It contains processed data collated from IRFinder
-output from multiple samples. Counts of included or excluded
-IR and alternative splicing events, as well as relevant QC parameters
-are included. See \link{NxtSE-methods} for further details.
+If COV files assigned via \link{CollateData} have been moved relative to the
+\code{collate_path}, the created \linkS4class{NxtSE} object will not have any
+linked COV files and \link{Plot_Coverage} cannot be used. To reassign these
+files, a vector of file paths corresponding to all the COV files of the data
+set can be assigned using \code{covfile(se) <- vector_of_cov_files}. See
+example below for details.
+
+If \code{RemoveOverlapping = TRUE}, \code{MakeSE} will try to
+identify which introns belong to major isoforms, then remove introns of
+minor introns that overlaps those of major isoforms. Non-overlapping
+introns are then reassessed iteratively, until all introns are included
+or excluded in this way. This is important to ensure that overlapping
+novel IR events are not 'double-counted'.
 }
 \examples{
+BuildReference(
+    reference_path = file.path(tempdir(), "Reference"),
+    fasta = chrZ_genome(), 
+    gtf = chrZ_gtf()
+)
+
+bams = NxtIRF_example_bams()
+IRFinder(bams$path, bams$sample,
+  reference_path = file.path(tempdir(), "Reference"),
+  output_path = file.path(tempdir(), "IRFinder_output")
+)
+
+expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
+CollateData(expr, 
+  reference_path = file.path(tempdir(), "Reference"),
+  output_path = file.path(tempdir(), "NxtIRF_output")
+)
+
 se = MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
+
+# If COV files have been removed since the last call to CollateData()
+# reassign them to the NxtSE object, for example:
+
+covfile(se) <- expr$cov_file
 }

@@ -1,177 +1,108 @@
-#' NxtIRF package for IRFinder-based differential Alternative Splicing
-#' and Intron Retention analysis
-#' 
-#' The NxtIRF package analyses RNA-seq datasets (aligned as BAM files using 
-#' splice aware genome aligners such as STAR). It fully incorporates the
-#' IRFinder algorithm, porting its C++ code into the R platform using RCPP.
-#' @details
-#' Enhancements include:
-#'
-#' \itemize{
-#' \item One-step reference generation from user-supplied or AnnotationHub 
-#'   genome and gene annotations;
-#' \item Multi-threaded support for core IRFinder algorithm to simultaneously
-#'   analyse multiple BAM files;
-#' \item Streamlined integration of IRFinder results from large datasets;
-#' \item Easy generation of experimental designs and data handling using
-#'   NxtSE which is a SummarizedExperiment object extended for NxtIRF-based
-#'   analysis;
-#' \item Simplified workflow for filtering low-abundance splicing events and
-#'   limma- or DESeq2- based differential alternative splicing events analysis;
-#' \item Interactive workflow and visualisation tools using shinydashboard;
-#' \item Advanced RNA-seq coverage visualisation, including the ability to 
-#'   combine RNA-seq coverage of multiple samples using advanced normalisation 
-#'   methods across samples grouped by conditions;
-#' }
-#' 
-#' The main functions are:
-#'
-#' \itemize{
-#' \item \code{\link{BuildReference}} - Prepares genome and gene annotation
-#'   references (FASTA/TwoBit, GTF files), and synthesises the NxtIRF reference
-#'   for the IRFinder engine and NxtIRF-based analysis
-#' \item \code{\link{IRFinder}} - Runs the IRFinder C++ routine to analyse
-#'   single or multiple BAM files using the NxtIRF/IRFinder reference.
-#' \item \code{\link{CollateData}} - Combines multiple IRFinder outputs
-#'   into one unified data structure
-#' \item \code{\link{MakeSE}} - Constructs a \code{NxtSE} 
-#'   object (see \code{\link{NxtSE-methods}}) to contain IRFinder output 
-#'   produced by \code{\link{CollateData}}
-#' \item \code{\link{apply_filters}} - Easily specify and apply a list of
-#'   filters to exclude low-abundance splicing events from downstream analysis
-#' \item \code{\link{ASE-methods}} - perform
-#'   differential alternate splice event (ASE) analysis on a filtered NxtSE 
-#    object using limma or DESeq2
-#' \item \code{\link{make_diagonal}}, \code{\link{make_matrix}}: Generate
-#'   data to produce scatter plots or heatmaps of ASE events
-#' \item \code{\link{Plot_Coverage}}: Generate RNA-seq coverage plots of
-#'   individual samples or across samples grouped by user-specified conditions
-#' }
-#' 
-#' See `browseVignettes("NxtIRFcore")` for worked examples on how to use NxtIRF
-#' 
-#' @author Alex Wong
-#' 
-#' @docType package
-#' @name NxtIRFcore-package
-#' @aliases NxtIRFcore-package
-#' @keywords package
-#' @md
-NULL
-
 #' Builds reference files used by IRFinder / NxtIRF.
 #'
 #' @description
 #' These function builds the reference required by the IRFinder engine, as well
-#' as access-ready refined splice annotation data for NxtIRF. See examples
-#' below for some quick-start guides to making the NxtIRF reference.
+#' as alternative splicing annotation data for NxtIRF. See examples
+#' below for guides to making the NxtIRF reference.
 #' @details
 #' `GetReferenceResource()` processes the files, downloads resources from
 #' web links or from `AnnotationHub()`, and saves a local copy in the "resource"
-#' subdirectory within the given `reference_path`. \cr
-#' `GetReferenceResource()` can fetch genome resources using either:\cr
+#' subdirectory within the given `reference_path`. Resources are retrieved via
+#' either:
 #' 1. User-supplied FASTA and GTF file. This can be a file path, or a web link
 #'   (e.g. 'http://', 'https://' or 'ftp://'). Use `fasta` and `gtf`
-#'    to specify the files or web paths to use.\cr
+#'    to specify the files or web paths to use.
 #' 2. AnnotationHub genome and gene annotation (Ensembl): supply the names of
 #'    the genome sequence and gene annotations to `fasta` and `gtf`.
 #' 
 #' `BuildReference()` will first run `GetReferenceResource()` if resources are
 #' not yet saved locally (i.e. `GetReferenceResource()` is not already run). 
-#' Then, it creates the NxtIRF / IRFinder references.\cr\cr
+#' Then, it creates the NxtIRF / IRFinder references. Typical run-times are
+#' 5 to 10 minutes for human and mouse genomes (after resources are downloaded).
+#'
 #' NB: the parameters `fasta` and `gtf` can be omitted in `BuildReference()` if
-#' `GetReferenceResource()` is already run.\cr\cr
+#' `GetReferenceResource()` is already run.
+#'
 #' Typical usage involves running `BuildReference()` for human and mouse genomes
 #' and specifying the `genome_type` to use the default `MappabilityRef` and
 #' `nonPolyARef` files for the specified genome. For non-human non-mouse 
 #' genomes, use one of the following alternatives:
-#' * Create the NxtIRF reference without considering Mappability Exclusion 
-#'   regions, by only running `BuildReference()` without setting 
-#'   `MappabilityRef`,
+#' * Create the NxtIRF reference without using Mappability Exclusion regions. To
+#'     do this, simply run `BuildReference()` and omit `MappabilityRef`. This is
+#'     acceptable assuming the introns assessed are short and do not contain
+#'     intronic repeats
 #' * Calculating Mappability Exclusion regions using the STAR aligner, 
-#'     and building the NxtIRF reference, using the full pipeline function 
-#'     `BuildReference_Full()`, or
-#' * Prepare the reference using `GetReferenceResource()`, then use the steps
-#'   to calculate Mappability Exclusion regions as detailed in 
-#'   [Mappability-methods], followed by `BuildReference()`. Leave 
-#'   `MappabilityRef` blank to use the Mappability Exclusion calculated in
-#'   [Mappability-methods]. See example in [Mappability-methods] to see how
-#'   this is done.
+#'     and building the NxtIRF reference. This can be done using the 
+#'     `BuildReference_Full()` function, on systems where `STAR` is installed
+#' * Instead of using the STAR aligner, any genome splice-aware aligner could be
+#'     used. See [Mappability-methods] for details. After producing the
+#'     `MappabilityExclusion.bed.gz` file (in the `Mappability` subfolder), run
+#'     `BuildReference()` using this file (or simply leave it blank).
 #'
 #' BED files are tab-separated text files containing 3 unnamed columns
 #' specifying chromosome, start and end coordinates. To view an example BED
 #' file, open the file specified in the path returned by 
 #' `GetNonPolyARef("hg38")`
 #' 
-#' If `MappabilityRef` is left blank, BuildReference will perform the following
-#' checks:
-#' * First, search for a BED file located at 
-#'   `{reference_path}/Mappability/MappabilityExclusion.bed.gz`. This file
-#'   is generated by [STAR_Mappability] which runs
-#'   [Mappability_CalculateExclusions]. 
-#' * If the above file does not exist, then check if `genome_type` is set to a
-#'   supported valid genome, and will use its
-#'   default MappabilityExclusion file if this is set.
-#' * `BuildReference` will build the NxtIRF reference without using 
-#'   Mappability Exclusion regions.
-#'
 #' See examples below for common use cases.
 #'
-#' @param reference_path The directory path to store the reference files
+#' @param reference_path (REQUIRED) The directory path to store the generated 
+#'   reference files
 #' @param fasta The file path or web link to the user-supplied genome
 #'   FASTA file. Alternatively, the name of the AnnotationHub record containing
-#'   the genome resource.
+#'   the genome resource. May be omitted if `GetReferenceResource()` has already
+#'   been run using the same `reference_path`.
 #' @param gtf The file path or web link  to the user-supplied transcript 
 #'   GTF file (or gzipped GTF file). Alternatively, the name of the
-#'   AnnotationHub record containing the transcript GTF file
-#' @param overwrite (default `FALSE`) `GetReferenceResource()` if the genome 
-#'   FASTA and gene annotation GTF files already exist in the `resource` 
-#'   subdirectory, it will not be overwritten. In `BuildReference()` and 
-#'   `BuildReference_Full()`, the NxtIRF reference will not be overwritten 
-#'   if one already exist. An existing reference is considered to exist if
+#'   AnnotationHub record containing the transcript GTF file. May be omitted if
+#'   `GetReferenceResource()` has already been run using the same 
+#'   `reference_path`.
+#' @param overwrite (default `FALSE`) For `GetReferenceResource()`: if the 
+#'   genome FASTA and gene annotation GTF files already exist in the `resource` 
+#'   subdirectory, it will not be overwritten. For `BuildReference()` and 
+#'   `BuildReference_Full()`: the NxtIRF reference will not be overwritten 
+#'   if one already exist. A reference is considered to exist if
 #'   the file `IRFinder.ref.gz` is present inside `reference_path`.
 #' @param force_download (default `FALSE`) When online resources are retrieved,
 #'   a local copy is stored in the `NxtIRFcore` BiocFileCache. Subsequent calls
 #'   to the web resource will fetch the local copy. Set `force_download` to
 #'   `TRUE` will force the resource to be downloaded from the web. Set this to
-#'   `TRUE` if the web resource has been updated since the last retrieval.
-#' @param chromosome_aliases (Optional) A 2-column data frame containing 
-#'   chromosome name conversions. The first column lists the chromosome names 
-#'   of the source reference files, and the second column gives the alias 
-#'   chromosome names used in BAM files. See example below, or refer to
-#'   <https://github.com/dpryan79/ChromosomeMappings> for a list of
-#'   chromosome alias resources. Setting chromosome aliases allow NxtIRF to
-#'   process BAM files aligned to a set of chromosomes whose naming conventions
-#'   differ to that used to generate the NxtIRF reference (e.g. Ensembl refs
-#'   typically use chromosomes "1", "2", ..., "X", "Y", whereas UCSC/Gencode
-#'   refs use "chr1", "chr2", ..., "chrX", "chrY")
+#'   `TRUE` only if the web resource has been updated since the last retrieval.
+#' @param chromosome_aliases (Highly optional) A 2-column data frame containing 
+#'   chromosome name conversions. If this is set, allows IRFinder to parse BAM
+#'   files where alignments are made to a genome whose chromosomes are named 
+#'   differently to the reference genome. The most common scenario is where 
+#'   Ensembl genome typically use chromosomes "1", "2", ..., "X", "Y", whereas
+#'   UCSC/Gencode genome use "chr1", "chr2", ..., "chrX", "chrY". See example 
+#'   below. Refer to <https://github.com/dpryan79/ChromosomeMappings> for a 
+#'   list of chromosome alias resources.
 #' @param genome_type Allows `BuildReference()` to select default 
 #'   `nonPolyARef` and `MappabilityRef` for selected genomes. Allowed options 
 #'   are: `hg38`, `hg19`, `mm10`, and `mm9`.
-#'   Note that the user can still set `nonPolyARef` and `MappabilityRef` values
-#'   to override the default files. Alternatively, use `GetNonPolyARef()` to 
-#'   retrieve NxtIRF-supplied default files for non-polyA references, and
-#'   `get_mappability_exclusion()` for the Mappability Exclusion BED file
-#'   for the supported genomes in `genome_type`
-#' @param nonPolyARef A BED file of regions defining known non-polyadenylated 
-#'   transcripts. This file is used for QC analysis of IRFinder-processed files 
-#'   to measure Poly-A enrichment quality of samples. Leave blank to not use a 
-#'   `nonPolyARef` file (or to use default - see `genome_type`).
-#' @param MappabilityRef A BED file of low mappability regions due to repeat 
-#'   elements in the genome. See details.
+#' @param nonPolyARef (Optional) A BED file of regions defining known 
+#'   non-polyadenylated transcripts. This file is used for QC analysis of
+#'   IRFinder-processed files to measure Poly-A enrichment quality of samples. 
+#'   If omitted, and `genome_type` is defined, the default for the specified
+#'   genome will be used.
+#' @param MappabilityRef (Optional) A BED file of low mappability regions due to
+#'   repeat elements in the genome. If omitted, the file generated by
+#'   [Mappability_CalculateExclusions()] will be used where available, and if 
+#'   this is not, the default file for the specified `genome_type` will be used.
+#'   If `genome_type` is not specified, `MappabilityRef` is not used. 
+#'   See details.
 #' @param BlacklistRef A BED file of regions to be otherwise excluded from IR 
-#'   analysis. Leave blank to not use a `BlacklistRef` file.
+#'   analysis. If omitted, a blacklist is not used (this is the default).
 #' @param UseExtendedTranscripts (default `TRUE`) Should non-protein-coding 
-#'   transcripts such as anti-sense and lincRNAs be included in searching
-#'   for IR / AS events? Setting `FALSE` (vanilla IRFinder) will exclude 
-#'   transcripts other than `protein_coding` and 
+#'   transcripts such as anti-sense and lincRNA transcripts be included in 
+#'   searching for IR / AS events? Setting `FALSE` (vanilla IRFinder) will 
+#'   exclude transcripts other than `protein_coding` and 
 #'   `processed_transcript` transcripts from IR analysis.
 #' @param n_threads The number of threads used to generate the STAR reference
 #'   and mappability calculations. Multi-threading is not used for NxtIRF
 #'   reference generation (but multiple cores are utilised in data-table
 #'   and fst file processing automatically, where available). See [STAR-methods]
 #' @param use_STAR_mappability (default FALSE) In `BuildReference_Full()`,
-#'   whether to run `STAR_Mappability()` to calculate low-mappability regions. 
+#'   whether to run [STAR_Mappability] to calculate low-mappability regions. 
 #'   We recommend setting this to `FALSE` for the common genomes 
 #'   (human and mouse), and to `TRUE` for genomes not supported by 
 #'   `genome_type`. When set to false, the MappabilityExclusion default file
@@ -201,7 +132,7 @@ NULL
 #' the nonPolyA loci for the specified genome.
 #'
 #' @examples
-#' # Generate a NxtIRF reference using NxtIRF's example genome
+#' # Quick runnable example: generate a reference using NxtIRF's example genome
 #' 
 #' example_ref = file.path(tempdir(), "Reference")
 #' GetReferenceResource(
@@ -228,6 +159,8 @@ NULL
 #'
 #' \dontrun{
 #' 
+#' ### Long examples ###
+#'
 #' # Generate a NxtIRF reference from user supplied FASTA and GTF files for a
 #' # hg38-based genome:
 #'
@@ -300,8 +233,10 @@ NULL
 #'
 #' # One-step generation of NxtIRF and STAR references, using 4 threads.
 #' # NB1: requires a linux-based system with STAR installed.
-#' # NB2: A custom Mappability Exclusion file will be calculated using STAR
-#'        and will be used to generate the NxtIRF reference.
+#' # NB2: A STAR reference genome will be generated in the `STAR` subfolder
+#' #      inside the given `reference_path`.
+#' # NB3: A custom Mappability Exclusion file will be calculated using STAR
+#' #      and will be used to generate the NxtIRF reference.
 #'
 #' BuildReference_Full(
 #'     reference_path = "./Reference_with_STAR",
@@ -312,6 +247,7 @@ NULL
 #' )
 #'
 #' # NB: the above is equivalent to running the following in sequence:
+#'
 #' GetReferenceResource(
 #'     reference_path = "./Reference_with_STAR",
 #'     fasta = "genome.fa", gtf = "transcripts.gtf"
