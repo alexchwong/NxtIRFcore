@@ -41,8 +41,8 @@
 #'   named using the given sample names.
 #'   * sample.txt.gz: The main IRFinder output file containing the quantitation
 #'   of IR and splice junctions, as well as QC information\cr\cr
-#'   * sample.cov: Contains coverage information in compressed binary. This
-#'   format is 5-10X faster than BigWig format (see [GetCoverage()])\cr\cr
+#'   * sample.cov: Contains coverage information in compressed binary. See
+#'     [GetCoverage]
 #'   * main.FC.Rds: A single file containing gene counts for the whole dataset
 #'   (only if `run_featureCounts == TRUE`)
 #' @examples

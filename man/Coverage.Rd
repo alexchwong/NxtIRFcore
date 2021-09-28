@@ -22,7 +22,7 @@ GetCoverage_DF(
 \item{seqname}{Either blank, or a character string denoting the chromosome
 name. If blank, retrieves RLEList containing whole-transcriptome coverage}
 
-\item{start, end}{The 0-based genomic coordinates. If \code{start = 0} and
+\item{start, end}{1-based genomic coordinates. If \code{start = 0} and
 \code{end = 0}, will retrieve RLE of specified chromosome.}
 
 \item{strand}{Either "*", "+", or "-"}

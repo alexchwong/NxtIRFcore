@@ -48,8 +48,8 @@ named using the given sample names.
 \itemize{
 \item sample.txt.gz: The main IRFinder output file containing the quantitation
 of IR and splice junctions, as well as QC information\cr\cr
-\item sample.cov: Contains coverage information in compressed binary. This
-format is 5-10X faster than BigWig format (see \code{\link[=GetCoverage]{GetCoverage()}})\cr\cr
+\item sample.cov: Contains coverage information in compressed binary. See
+\link{GetCoverage}
 \item main.FC.Rds: A single file containing gene counts for the whole dataset
 (only if \code{run_featureCounts == TRUE})
 }

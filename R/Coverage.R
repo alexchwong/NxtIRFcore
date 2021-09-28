@@ -83,7 +83,8 @@
 #'   `Event`, `norm_event` will be used for normalisation and `Event` will be
 #'   used to define the genomic coordinates of the viewing window. `norm_event`
 #'   is required if `Event` is not set and `condition` is set.
-#' @param bases_flanking How many bases flanking the zoomed window. Useful when
+#' @param bases_flanking (Default = `100`) How many bases flanking the zoomed
+#'    window. Useful when
 #'    used in conjunction with zoom_factor == 0. E.g. for a given region of
 #'    chr1:10000-11000, if `zoom_factor = 0` and `bases_flanking = 100`, the
 #'    region chr1:9900-11100 will be displayed.
@@ -107,7 +108,7 @@
 #' # View the genome track, specifying a genomic region via coordinates:
 #' p = Plot_Genome(se, coordinates = "chrZ:10000-20000")
 #' p$ggplot
-#' 
+#'
 #' # Assign annotation re experimental conditions
 #'
 #' colData(se)$treatment = rep(c("A", "B"), each = 3)
@@ -151,7 +152,7 @@ Plot_Coverage <- function(
         seqname, start, end,   # Optional
         coordinates,
         strand = c("*", "+", "-"),
-        zoom_factor,
+        zoom_factor, bases_flanking = 100,
         tracks,
         track_names = tracks,
         condition,              
@@ -159,17 +160,15 @@ Plot_Coverage <- function(
         condense_tracks = FALSE,
         stack_tracks = FALSE,  
         t_test = FALSE,  
-        norm_event,
-        bases_flanking = 100
+        norm_event
 ) {
     
     if((missing(seqname) | missing(start) | missing(end)) & 
         !missing(coordinates)) {
-        seqname = tstrsplit(coordinates, split=":", fixed=TRUE)[[1]]
-        start = as.numeric(tstrsplit(
-            tstrsplit(coordinates, split=":", fixed=TRUE)[[2]],
-            split="-", fixed=TRUE)[[1]])
-        end = as.numeric(tstrsplit(coordinates, split="-", fixed=TRUE)[[2]])
+        gr = NxtIRF.CoordToGR(coordinates)
+        seqname = as.character(seqnames(gr))
+        start = start(gr)
+        end = end(gr)
     }
     # Validate given arguments
     .plot_cov_validate_args(se, tracks, condition, Event, Gene,
@@ -220,7 +219,7 @@ Plot_Coverage <- function(
 #'   genomic region, or belonging to a specified gene
 #' @export
 Plot_Genome <- function(se, reference_path, 
-    seqname, start, end, Gene, coordinates,
+    Gene, seqname, start, end, coordinates, zoom_factor, bases_flanking = 100,
     selected_transcripts,   
     condense_tracks = FALSE
 ) {
@@ -236,17 +235,16 @@ Plot_Genome <- function(se, reference_path,
     }
     if((missing(seqname) | missing(start) | missing(end)) & 
         !missing(coordinates)) {
-        seqname = tstrsplit(coordinates, split=":", fixed=TRUE)[[1]]
-        start = as.numeric(tstrsplit(
-            tstrsplit(coordinates, split=":", fixed=TRUE)[[2]],
-            split="-", fixed=TRUE)[[1]])
-        end = as.numeric(tstrsplit(coordinates, split="-", fixed=TRUE)[[2]])
+        gr = NxtIRF.CoordToGR(coordinates)
+        seqname = as.character(seqnames(gr))
+        start = BiocGenerics::start(gr)
+        end = BiocGenerics::end(gr)
     }
     .plot_cov_validate_args_loci(cov_data,
         Gene = Gene, seqname = seqname, start = start, end = end)
     
     coords <- .plot_genome_determine_params(
-        cov_data, Gene, seqname, start, end
+        cov_data, Gene, seqname, start, end, zoom_factor, bases_flanking
     )
 
     args = list(
@@ -295,7 +293,7 @@ as_egg_ggplot <- function(p_obj) {
 #' @param file The file name of the COV file
 #' @param seqname Either blank, or a character string denoting the chromosome 
 #'  name. If blank, retrieves RLEList containing whole-transcriptome coverage
-#' @param start,end The 0-based genomic coordinates. If `start = 0` and
+#' @param start,end 1-based genomic coordinates. If `start = 0` and
 #'   `end = 0`, will retrieve RLE of specified chromosome.
 #' @param strand Either "*", "+", or "-"
 #' @return If seqname is left as "", returns an RLEList of the whole BAM file.
@@ -348,7 +346,7 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
         ifelse(strand == "+", 1, 0))
         
     if(!is.numeric(start) || !is.numeric(end) || 
-            (as.numeric(start) >= as.numeric(end) & as.numeric(end) > 0)) {
+            (as.numeric(start) > as.numeric(end) & as.numeric(end) > 0)) {
         .log(paste("In GetCoverage(),",
             "Zero or negative regions are not allowed"))
     }
@@ -591,12 +589,20 @@ GetCoverage_DF <- function(file, seqname = "", start = 0, end = 0,
 }
 
 .plot_genome_determine_params <- function(
-    cov_data, Gene, seqname, start, end
+    cov_data, Gene, seqname, start, end, zoom_factor, bases_flanking
 ) {
+    if(!missing(zoom_factor)) {
+        tryCatch({
+            zoom_factor = as.numeric(zoom_factor)
+        }, error = function(e) {
+            zoom_factor = NULL
+        })
+    }
     if(!missing(seqname) & !missing(start) & !missing(end)) {
         view_chr = as.character(seqname)
         view_start = start
         view_end = end
+        if(!is_valid(zoom_factor)) zoom_factor = 0
     } else if(!missing(Gene)) {        
         if(Gene %in% cov_data$gene_list$gene_id) {
             gene.df = as.data.frame(
@@ -607,10 +613,18 @@ GetCoverage_DF <- function(file, seqname = "", start = 0, end = 0,
         }
         view_chr = as.character(gene.df$seqnames)
         view_start = gene.df$start
-        view_end = gene.df$end        
+        view_end = gene.df$end
+        if(!is_valid(zoom_factor)) zoom_factor = 0        
     } else {
         .log("Either coordinates or gene name should be given")
     }
+    if(zoom_factor < 0) zoom_factor = 0
+    # Apply zoom 
+    view_center = (view_start + view_end) / 2
+    view_length = view_end - view_start
+    new_view_length = view_length * 3 ^ zoom_factor + 2 * bases_flanking
+    view_start = round(view_center - new_view_length / 2)
+    view_end = round(view_center + new_view_length / 2)
     # Validate genomic window and shift if invalid
     if(view_start < 1) view_start = 1
     seqInfo = cov_data$seqInfo[view_chr]
@@ -1293,7 +1307,7 @@ plot_cov_fn_finalize <- function(
     }
     covData = list()
     for(i in seq_len(length(files))) {
-        cov = GetCoverage(files[i], seqname, start - 1, end, strand)
+        cov = GetCoverage(files[i], seqname, start, end, strand)
         view = IRanges::Views(cov, start, end)
         view.df = as.data.frame(view[[1]])
         covData[[i]] = view.df

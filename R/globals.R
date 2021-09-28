@@ -46,13 +46,33 @@ is_valid <- function(x) {
 #' @md
 #' @export
 NxtIRF.CoordToGR = function(coordinates) {
+    stopmsg = paste(
+        "Coordinates must take the form chrN:X, chrN:X-Y,",
+        "chrN:X-Y/+ or chrN:X-Y/-"
+    )
     temp = tstrsplit(coordinates,split="/")
-    strand = as.character(temp[[2]])
+    if(length(temp) == 2) {
+        strand = as.character(temp[[2]])
+    } else if(length(temp) == 1) {
+        strand = "*"
+    } else {
+        .log(stopmsg)
+    }
     temp2 = tstrsplit(temp[[1]],split=":")
-    seqnames = temp2[[1]]
-    temp3 = tstrsplit(temp2[[2]],split="-")
-    start = temp3[[1]]
-    end = temp3[[2]]
+    if(length(temp2) == 2) {
+        seqnames = temp2[[1]]
+        temp3 = tstrsplit(temp2[[2]],split="-")
+        start = temp3[[1]]
+        if(length(temp3) == 2) {
+            end = temp3[[2]]
+        } else if(length(temp3) == 1) {
+            end = temp3[[1]]
+        } else {
+            .log(stopmsg)
+        }
+    } else {
+        .log(stopmsg)
+    }    
     return(GRanges(seqnames = seqnames, ranges = IRanges(
         start = as.numeric(start), end = as.numeric(end)),
         strand = strand))
