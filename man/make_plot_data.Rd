@@ -9,7 +9,7 @@ heatmaps and scatter plots}
 \usage{
 make_matrix(
   se,
-  event_list = rownames(se)[1:10],
+  event_list,
   sample_list = colnames(se),
   method = c("PSI", "logit", "Z-score"),
   depth_threshold = 10,

@@ -80,7 +80,6 @@ get_default_filters <- function() {
 #'   on a NxtSE object
 #' @export
 apply_filters <- function(se, filters = get_default_filters()) {
-   
     if(!is.list(filters)) filters = list(filters)
     if(length(filters) == 0) .log("No filters given")
     for(i in length(filters)) {

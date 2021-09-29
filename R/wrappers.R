@@ -28,6 +28,8 @@ get_multi_DT_from_gz = function(infile = "",
     df.list = IRF_gunzip_DF(file_to_read, block_headers)
     for(i in seq_len(length(df.list))) {
         for(j in seq_len(length(df.list[[i]]))) {
+            # suppressWarnings to supress "NAs introduced by coercion"
+            # Intent of the function is to convert these to `NA`
             suppressWarnings({
                 if(all(df.list[[i]][[j]] == "NA" | 
                         !is.na(as.numeric(df.list[[i]][[j]])))) {

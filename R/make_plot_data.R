@@ -84,12 +84,13 @@ NULL
 #' @export
 make_matrix <- function(
         se, 
-        event_list = rownames(se)[1:10], 
+        event_list,
         sample_list = colnames(se), 
         method = c("PSI", "logit", "Z-score"), 
         depth_threshold = 10, logit_max = 5, na.percent.max = 0.1
 ) {
-
+    if(!any(event_list %in% rownames(se))) .log(
+        "None of events in event_list matches those in the NxtSE object")
     method = match.arg(method)
     inc = as.matrix(assay(se, "Included")[event_list, sample_list, drop = FALSE])
     exc = as.matrix(assay(se, "Excluded")[event_list, sample_list, drop = FALSE])
@@ -120,7 +121,8 @@ make_diagonal <- function(
         condition, nom_DE, denom_DE, 
         depth_threshold = 10, logit_max = 5
 ) {
-
+    if(!any(event_list %in% rownames(se))) .log(
+        "None of events in event_list matches those in the NxtSE object")
     inc = assay(se, "Included")[event_list, ]
     exc = assay(se, "Excluded")[event_list, ]
     mat = inc/(inc + exc)
