@@ -28,13 +28,15 @@ EOF
 
 	# Clean up.
 	rm -f test-omp.* a.out
+
+	# make the Makevars temp file
+	if [ ! -e "./src/Makevars.tmp" ]; then
+		touch ./src/Makevars.tmp
+	fi
 	
 	if [ "$R_OPENMP" = "work" ]; then
 		echo "Configuring OpenMP compiler / linker flags for MacOS"
-		#make the Makevars temp file
-		if [ ! -e "./src/Makevars.tmp" ]; then
-			touch ./src/Makevars.tmp
-		fi
+
 		
 		echo "OMPBAM_PKG_CXXFLAGS = -Xclang -fopenmp" > ./src/Makevars.tmp
 		echo "OMPBAM_PKG_LIBS = -lomp" >> ./src/Makevars.tmp
@@ -42,6 +44,8 @@ EOF
 		
 		cat ./src/Makevars.tmp ./src/Makevars.in > ./src/Makevars
 		rm ./src/Makevars.tmp
+	else
+	
 	fi
 
 elif [ "$(expr substr $(uname -s) 1 5)" = "Linux" ] ;then
