@@ -41,8 +41,6 @@ Imports:
 	rtracklayer,
 	SummarizedExperiment, 
 	S4Vectors
-Remotes:
-  alexchwong/NxtIRFdata
 LinkingTo: Rcpp, zlibbioc, RcppProgress
 Suggests: 
     knitr, rmarkdown, pheatmap, shiny, openssl, crayon, egg,
