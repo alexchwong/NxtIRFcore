@@ -17,14 +17,14 @@ int main() {
 EOF
 	
 	# First, try R CMD SHLIB to see if R can already compile
-	R_OPENMP="work"
-	"${R_HOME}/bin/R" CMD SHLIB test-omp.c >/dev/null 2>&1 || R_OPENMP="fail"
+	# R_OPENMP="work"
+	# "${R_HOME}/bin/R" CMD SHLIB test-omp.c >/dev/null 2>&1 || R_OPENMP="fail"
 
-	if [ "$R_OPENMP" = "fail" ]; then
+	# if [ "$R_OPENMP" = "fail" ]; then
 	  # Compilation failed -- try forcing -fopenmp instead.
 	  R_OPENMP="work"
-	  "${CC}" "${CFLAGS}" -Xclang -fopenmp test-omp.c || R_OPENMP="fail"
-	fi
+	  eval "$CC $CFLAGS -Xclang -fopenmp test-omp.c >/dev/null 2>&1" || R_OPENMP="fail"
+	# fi
 
 	# Clean up.
 	rm -f test-omp.* a.out
