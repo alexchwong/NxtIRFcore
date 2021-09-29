@@ -36,17 +36,20 @@ EOF
 	
 	if [ "$R_OPENMP" = "work" ]; then
 		echo "Configuring OpenMP compiler / linker flags for MacOS"
-
 		
 		echo "OMPBAM_PKG_CXXFLAGS = -Xclang -fopenmp" > ./src/Makevars.tmp
 		echo "OMPBAM_PKG_LIBS = -lomp" >> ./src/Makevars.tmp
-		echo "" >> ./src/Makevars.tmp
-		
-		cat ./src/Makevars.tmp ./src/Makevars.in > ./src/Makevars
-		rm ./src/Makevars.tmp
+		echo "" >> ./src/Makevars.tmp		
 	else
-	
+		echo "Configuring without OpenMP for MacOS"
+		
+		echo "OMPBAM_PKG_CXXFLAGS=" > ./src/Makevars.tmp
+		echo "OMPBAM_PKG_LIBS=" >> ./src/Makevars.tmp
+		echo "" >> ./src/Makevars.tmp		
 	fi
+
+	cat ./src/Makevars.tmp ./src/Makevars.in > ./src/Makevars
+	rm ./src/Makevars.tmp
 
 elif [ "$(expr substr $(uname -s) 1 5)" = "Linux" ] ;then
 	#if linux, make the Makevars temp file
