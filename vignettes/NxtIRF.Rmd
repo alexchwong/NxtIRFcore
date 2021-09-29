@@ -66,6 +66,16 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install("NxtIRFcore")
 ```
 
+(Optional) For **MacOS** users, make sure OpenMP libraries are installed 
+correctly. We recommend users follow this 
+[guide](https://mac.r-project.org/openmp/), but the
+quickest way to get started is to install `libomp` via brew:
+
+```{bash eval=FALSE}
+brew install libomp
+```
+
+
 ### Loading NxtIRF
 
 ```{r}
