@@ -5,9 +5,10 @@ NxtIRF quantifies Intron Retention and Alternative Splicing from BAM files using
 ## Installation
 
 ### On current R (>= 4.0.0)
-* Development version from Github:
+* Development version from Github (NxtIRFcore and its dependency NxtIRFdata):
 ```
 library("devtools")
+install_github("alexchwong/NxtIRFdata")
 install_github("alexchwong/NxtIRFcore", dependencies=TRUE, build_vignettes=TRUE)
 ```
 
