@@ -68,12 +68,16 @@ based analysis.}
 \value{
 A data table containing the following:
 \itemize{
-\item EventName: The name of the ASE event
-\item EventType: The type of event. See details
-\item EventRegion: The genomic coordinates the event occupies.
+\item EventName: The name of the ASE event. This identifies each ASE
+in downstream functions including \link{make_diagonal}, \link{make_matrix},
+and \link{Plot_Coverage}
+\item EventType: The type of event. See details section above.
+\item EventRegion: The genomic coordinates the event occupies. This spans the
+most upstream and most downstream splice junction involved in the ASE,
+and is use to guide the \link{Plot_Coverage} function.
 \item NMD_direction: Indicates whether one isoform is a NMD substrate. +1 means
 included isoform is NMD, -1 means the excluded isoform is NMD, and 0
-means neither (or both) are NMD substrates
+means there is no change in NMD status (i.e. both / neither are NMD)
 \item AvgPSI_nom, Avg_PSI_denom: the average percent spliced in / percent
 IR levels for the two conditions being contrasted. \code{nom} and \code{denom} in
 column names are replaced with the condition names
@@ -82,7 +86,7 @@ column names are replaced with the condition names
 \strong{limma specific output}
 \itemize{
 \item logFC, AveExpr, t, P.Value, adj.P.Val, B: limma topTable columns of
-differential ASE. See \code{?limma::topTable} for details.
+differential ASE. See \link[limma:toptable]{limma::topTable} for details.
 \item inc/exc_(logFC, AveExpr, t, P.Value, adj.P.Val, B): limma results
 for differential testing for raw included / excluded counts only
 }
@@ -90,7 +94,7 @@ for differential testing for raw included / excluded counts only
 \strong{DESeq2 specific output}
 \itemize{
 \item baseMean, log2FoldChange, lfcSE, stat, pvalue, padj:
-DESeq2 results columns for differential ASE; see \code{?DESeq2::results} for
+DESeq2 results columns for differential ASE; see \link[DESeq2:results]{DESeq2::results} for
 details.
 \item inc/exc_(baseMean, log2FoldChange, lfcSE, stat, pvalue, padj):
 DESeq2 results for differential testing for
@@ -106,7 +110,7 @@ raw included / excluded counts only
 \item n_eff: Number of effective samples (i.e. non-zero or non-unity PSI)
 \item mDepth: Mean Depth of splice coverage in each of the two groups.
 \item Dispersion_Reduced, Dispersion_Full: Dispersion values for reduced and
-full models. See \code{?DoubleExpSeq::DBGLM1} for details.
+full models. See \link[DoubleExpSeq:DBGLM1]{DoubleExpSeq::DBGLM1} for details.
 }
 }
 \description{
@@ -142,21 +146,30 @@ to estimate dispersion.
 
 NB: NxtIRF separately considers known "RI" and novel "IR" events separately:
 \itemize{
-\item \code{IR} novel events are calculated using the IRFinder method, whereby spliced
-transcripts are all isoforms that do not retain the intron, as estimated
-via the \code{SpliceMax} and \code{SpliceOverMax} methods - see \link{CollateData}.
-\item \code{RI} known retained introns are calculated by considering the specific
+\item \strong{IR} novel events are calculated using the IRFinder method, whereby
+spliced transcripts are \strong{all} isoforms that do not retain the intron, as
+estimated via the \code{SpliceMax} and \code{SpliceOverMax} methods
+}
+\itemize{
+\item see \link{CollateData}.
+}
+\itemize{
+\item \strong{RI} known retained introns are calculated by considering the specific
 spliced intron as a binary event paired with its retention. The spliced
 abundance is calculated exclusively by splice reads mapped to the
 specific intron boundaries. Known retained introns are those where the
-intron retaining transcript is an annotated transcript that is not otherwise
-an \code{retained_intron} or \code{sense_intronic} transcript biotypes annotated by
-the given reference
+intron retaining transcript is an \strong{annotated} transcript.
+Furthermore, the IR-transcript's \code{transcript_biotype} must not be
+an \code{retained_intron} or \code{sense_intronic}.
 }
 
 NxtIRF considers "included" counts as those that represent abundance of the
 "included" isoform, whereas "excluded" counts represent the abundance of the
-"excluded" isoform. These are:\tabular{ccc}{
+"excluded" isoform.
+For consistency, it applies a convention whereby
+the "included" transcript is one where its splice junctions
+are by definition shorter than those of "excluded" transcripts.
+Specifically, this means the included / excluded isoforms are as follows:\tabular{ccc}{
    EventType \tab Included \tab Excluded \cr
    IR or RI \tab Intron Retention \tab Spliced Intron \cr
    MXE \tab Upstream exon inclusion \tab Downstream exon inclusion \cr
@@ -166,10 +179,6 @@ NxtIRF considers "included" counts as those that represent abundance of the
    A5SS \tab Downstream 5'-SS \tab Upstream 5'-SS \cr
    A3SS \tab Upstream 3'-SS \tab Downstream 3'-SS \cr
 }
-
-
-NB: by this convention, the "included" transcript always generates splice
-junctions that are shorter than those of "excluded" transcripts.
 }
 \section{Functions}{
 \itemize{

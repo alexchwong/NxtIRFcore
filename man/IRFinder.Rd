@@ -32,7 +32,8 @@ be a vector of the same length as \code{bamfiles}}
 If set to \code{FALSE}, BiocParallel will be used if \code{n_threads} is set}
 
 \item{overwrite}{(default \code{FALSE}) If IRFinder output files already exist,
-will not attempt to re-run.}
+will not attempt to re-run. If \code{run_featureCounts} is \code{TRUE}, will not
+overwrite gene counts of previous run unless \code{overwrite} is \code{TRUE}.}
 
 \item{run_featureCounts}{(default \code{FALSE}) Whether this function will run
 \link[Rsubread:featureCounts]{Rsubread::featureCounts} on the BAM files after running IRFinder.

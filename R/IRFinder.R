@@ -30,7 +30,8 @@
 #' @param Use_OpenMP (default `TRUE`) Whether to use OpenMP to run IRFinder.
 #'   If set to `FALSE`, BiocParallel will be used if `n_threads` is set 
 #' @param overwrite (default `FALSE`) If IRFinder output files already exist,
-#'   will not attempt to re-run.
+#'   will not attempt to re-run. If `run_featureCounts` is `TRUE`, will not
+#'   overwrite gene counts of previous run unless `overwrite` is `TRUE`.
 #' @param run_featureCounts (default `FALSE`) Whether this function will run 
 #'   [Rsubread::featureCounts] on the BAM files after running IRFinder. 
 #'   If so, the output will be
@@ -103,12 +104,24 @@ IRFinder <- function(
             bamfiles = bamfiles[!already_exist],
             output_files = s_output[!already_exist],
             max_threads = n_threads, Use_OpenMP = Use_OpenMP,
-            run_featureCounts = run_featureCounts,
+            # run_featureCounts = run_featureCounts,
             overwrite_IRFinder_output = overwrite,
             verbose = verbose
         )
     } else {
         .log("IRFinder has already been run on given BAM files", "message")
+    }
+    
+    s_output = file.path(normalizePath(output_path), sample_names)
+    if(!all(file.exists(paste0(s_output, ".txt.gz"))))
+        .log(paste("Some IRFinder outputs could not be found.",
+            "IRFinder must have crashed"))
+    # Run featureCounts
+    if(run_featureCounts) {
+        .irfinder_run_featureCounts(
+            reference_path, s_output, 
+            bamfiles, sample_names, n_threads, overwrite
+        )
     }
 }
 
@@ -119,7 +132,7 @@ IRFinder <- function(
         output_files = "./Sample",
         max_threads = max(parallel::detectCores() - 2, 1),
         Use_OpenMP = TRUE,
-        run_featureCounts = FALSE,
+        # run_featureCounts = FALSE,
         overwrite_IRFinder_output = FALSE,
         verbose = TRUE
     ) {
@@ -162,10 +175,7 @@ IRFinder <- function(
             )
         }
     }
-    if(run_featureCounts == TRUE) {
-        .irfinder_run_featureCounts(reference_path, output_files, 
-            s_bam, n_threads)
-    }
+
 }
 
 # Call C++/IRFinder on a single sample. Used for BiocParallel
@@ -199,9 +209,11 @@ IRFinder <- function(
 
 # Runs featureCounts on given BAM files, intended to be run after IRFinder
 # as the IRFinder determines the strandedness and paired-ness of the experiment
-.irfinder_run_featureCounts <- function(reference_path, output_files, 
-        s_bam, n_threads) {
-    NxtIRF.CheckPackageInstalled("Rsubread", "2.4.0")
+.irfinder_run_featureCounts <- function(
+        reference_path, output_files, 
+        s_bam, s_names, n_threads, overwrite
+) {
+    .check_package_installed("Rsubread", "2.4.0")
     gtf_file <- Get_GTF_file(reference_path)
     
     # determine paired-ness, strandedness, assume all BAMS are the same
@@ -217,46 +229,64 @@ IRFinder <- function(
     strand = direct$Value[9]
     if(strand == -1) strand = 2
     
-    # Run FeatureCounts in bulk
-    res = Rsubread::featureCounts(
-        s_bam,
-        annot.ext = gtf_file,
-        isGTFAnnotationFile = TRUE,
-        strandSpecific = strand,
-        isPairedEnd = paired,
-        requireBothEndsMapped = paired,
-        nthreads = n_threads
-    )
-    
-    # Append to existing main.FC.Rds if exists:
+    # Check which have already been run, do not run if overwrite = FALSE
     outfile = file.path(dirname(output_files[1]), "main.FC.Rds")
-    if(file.exists(outfile)) {
+    if(file.exists(outfile) & !overwrite) {
         res.old = readRDS(outfile)
-
-        # Check annotation df and Status vectors are identical
-        anno.old = res.old$annotation[, 
-            c("GeneID", "Chr", "Start", "End", "Strand")]
-        anno.new = res$annotation[, 
-            c("GeneID", "Chr", "Start", "End", "Strand")]
-        if(
-            identical(anno.old, anno.new) & 
-            identical(res.old$stat$Status, res$stat$Status)
-        ) {
-            new_samples = res$targets[!(res$targets %in% res.old$targets)]
-            res$targets = c(res.old$targets, new_samples)
-            res$stat = cbind(res.old$stat, res$stat[,new_samples])        
-            res$counts = cbind(res.old$counts, res$counts[,new_samples])
-        } else {
-            .log(paste(
-                "featureCounts output not compatible with previous output",
-                "in main.FC.Rds. Overwriting previous output"
-            ), "warning")
+        need_to_do = (!(s_names %in% colnames(gene_counts$counts)))
+    } else {
+        need_to_do = rep(TRUE, length(s_bam))
+    }
+    
+    if(any(need_to_do)) {
+        # Run FeatureCounts in bulk
+        res = Rsubread::featureCounts(
+            s_bam[need_to_do],
+            annot.ext = gtf_file,
+            isGTFAnnotationFile = TRUE,
+            strandSpecific = strand,
+            isPairedEnd = paired,
+            requireBothEndsMapped = paired,
+            nthreads = n_threads
+        )
+        res$targets = s_names[need_to_do]
+        colnames(res$counts) = s_names[need_to_do]
+        colnames(res$stat)[-1] = s_names[need_to_do]
+        columns = c("counts", "annotation", "targets", "stat")
+        # Append to existing main.FC.Rds if exists, overwriting where necessary:
+        if(file.exists(outfile)) {
+            res.old = readRDS(outfile)
+            if(!all(columns %in% names(res))) {
+                .log(paste(outfile, 
+                    "found but was not a valid NxtIRF featureCounts",
+                    "output; overwriting previous output"
+                ), "warning")
+            } else if(
+                identical(res.old$annotation, res$annotation) & 
+                identical(res.old$stat$Status, res$stat$Status)
+            ) {
+                new_samples = res$targets[!(res$targets %in% res.old$targets)]
+                res$targets = c(res.old$targets, new_samples)
+                res$stat = cbind(res.old$stat, res$stat[,new_samples])        
+                res$counts = cbind(res.old$counts, res$counts[,new_samples])
+            } else {
+                .log(paste(
+                    "featureCounts output not compatible with previous",
+                    "output in", outfile, "; overwriting previous output"
+                ), "warning")
+            }
         }
+        if(all(columns %in% names(res))) {
+            saveRDS(res, outfile)
+        } else {
+            .log("Error encountered when running featureCounts")
+        }
+        .log(paste("featureCounts ran succesfully; saved to", 
+            outfile), "message")
+    } else {
+        .log("featureCounts has already been run on given BAM files", "message")
     }
-    if(all(c("counts", "annotation", "targets", "stat") %in% names(res))) {
-        saveRDS(res, outfile)
-    }
-    .log(paste("featureCounts ran succesfully; saved to", outfile), "message")
+
 }
 
 # Validate arguments; return error if invalid

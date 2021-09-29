@@ -83,7 +83,7 @@ parsed into STAR. See examples below.}
 
 \item{Experiment}{A two or three-column data frame with the columns denoting
 sample names, forward-FASTQ and reverse-FASTQ files. This can be
-conveniently generated using \code{Find_FASTQ()}}
+conveniently generated using \link{Find_FASTQ}}
 
 \item{BAM_output_path}{The path under which STAR outputs the aligned BAM
 files. In \code{STAR_align_experiment()}, STAR will output aligned

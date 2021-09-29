@@ -1,14 +1,18 @@
 #' Processes data from IRFinder output
 #'
 #' CollateData unifies a list of [IRFinder] output files belonging to an 
-#' experiment. All sample IRFinder outputs must be generated using the same
-#' reference. The combination of junction counts and IR quantification from
+#' experiment. 
+#'
+#' @details
+#' All sample IRFinder outputs must be generated using the same
+#' reference. 
+#'
+#' The combination of junction counts and IR quantification from
 #' IRFinder is used to calculate percentage spliced in (PSI) of alternative
 #' splice events, and percent intron retention (PIR) of retained introns. Also,
 #' QC information is extracted. Data is organised in a H5file and FST files
 #' for memory and processor efficient downstream access using [MakeSE].
-#'
-#' @details
+#' 
 #'   The original IRFinder algorithm, see the following 
 #'   [wiki](https://github.com/williamritchie/IRFinder/wiki/IRFinder-Output),
 #'   uses `SpliceMax` to estimate abundance of spliced transcripts.
@@ -95,7 +99,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     BPPARAM_mod = .validate_threads(n_threads)
     norm_output_path = .collateData_validate(Experiment, 
         reference_path, output_path)
-    coverage_files = make.path.relative(
+    coverage_files = .make_path_relative(
         .collateData_COV(Experiment), output_path)
     df.internal <- .collateData_expr(Experiment)
     if(!overwrite && file.exists(file.path(output_path, "NxtSE.rds"))) {
@@ -139,7 +143,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     .log("Generating NxtIRF assays", "message")
 
     # Use 1 sample per job, with progress BPPARAM
-    jobs_2 <- NxtIRF.SplitVector(seq_len(nrow(df.internal)), 
+    jobs_2 <- .split_vector(seq_len(nrow(df.internal)), 
         nrow(df.internal))
     BPPARAM_mod_progress = .validate_threads(n_threads, progressbar = TRUE,
         tasks = nrow(df.internal))
@@ -272,7 +276,7 @@ CollateData <- function(Experiment, reference_path, output_path,
 .collateData_jobs <- function(n_expr, BPPARAM_mod, samples_per_block) {
     n_jobs = min(ceiling(n_expr / samples_per_block), 
         BPPARAM_mod$workers)
-    jobs = NxtIRF.SplitVector(seq_len(n_expr), n_jobs)  
+    jobs = .split_vector(seq_len(n_expr), n_jobs)  
     return(jobs)
 }
 
@@ -1504,6 +1508,8 @@ CollateData <- function(Experiment, reference_path, output_path,
 # Writes sample stats to FST
 .collateData_write_stats <- function(df.internal, norm_output_path) {
     outfile = file.path(norm_output_path, "stats.fst")
+    # Convert path to relative path, for reproducibility:
+    df.internal$path <- .make_path_relative(df.internal$path, norm_output_path)
     write.fst(as.data.frame(df.internal), outfile)
 }
 

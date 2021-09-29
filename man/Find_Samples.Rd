@@ -12,7 +12,7 @@ Find_Samples(sample_path, suffix = ".txt.gz", level = 0)
 Find_FASTQ(
   sample_path,
   paired = TRUE,
-  fastq_suffix = c("fastq", "fq", "fastq.gz", "fq.gz"),
+  fastq_suffix = c(".fastq", ".fq", ".fastq.gz", ".fq.gz"),
   level = 0
 )
 
@@ -37,7 +37,7 @@ of parent directory (level = 2). Support max level <= 3 (for sanity).}
 paired files (of the format "sample_1.fastq", "sample_2.fastq")}
 
 \item{fastq_suffix}{The name of the FASTQ suffix. Options are:
-"fastq", "fastq.gz", "fq", or "fq.gz"}
+".fastq", ".fastq.gz", ".fq", or ".fq.gz"}
 }
 \value{
 A multi-column data frame with the first column containing
@@ -45,16 +45,18 @@ the sample name, and subsequent columns being the file paths with suffix
 as determined by \code{suffix}.
 }
 \description{
-Often, output files (whether it be raw sequencing files, aligned sequences)
-in BAM files, or IRFinder output files, are stored in a single folder.
-Sometimes, these are named according to the samples they represent. Other
-times, they have generic names but are partitioned in sub-folders that
-designate their sample names. This function (recursively) finds all files and
+Often, files e.g. raw sequencing FASTQ files, alignment BAM files,
+or IRFinder output files, are stored in a single folder under some directory
+structure.
+They can be grouped by being in common directory or having common names.
+Often, their sample names can be gleaned by these common names or the names
+of the folders in which they are contained.
+This function (recursively) finds all files and
 extracts sample names assuming either the files are named by sample names
 (\code{level = 0}), or that their names can be derived from the
 parent folder (\code{level = 1}). Higher \code{level} also work (e.g. \code{level = 2})
 mean the parent folder of the parent folder of the file is named by sample
-names.
+names. See details section below.
 }
 \details{
 Paired FASTQ files are assumed to be named using the suffix \verb{_1} and \verb{_2}
@@ -64,6 +66,15 @@ FASTQ suffixes for \code{Find_FASTQ()} include ".fq", ".fastq.gz", and ".fq.gz".
 In BAM files, often the parent directory denotes their sample names. In this
 case, use \code{level = 1} to automatically annotate the sample names using
 \code{Find_Bams()}.
+
+IRFinder outputs two files per BAM processed. These are named by the given
+sample names. The text output is named "sample1.txt.gz", and the COV file
+is named "sample1.cov", where \code{sample1} is the name of the sample. These
+files can be organised / tabulated using the function \code{Find_IRFinder_Output}.
+The generic function \code{Find_Samples} will organise the IRFinder text output
+files but exclude the COV files. Use the latter as the \code{Experiment} in
+\link{CollateData} if one decides to collate an experiment without linked COV
+files, for portability reasons.
 }
 \section{Functions}{
 \itemize{
@@ -93,4 +104,25 @@ df.bams = Find_Bams(bam_path, level = 0)
 # named by sample names
 
 expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
+
+\dontrun{
+
+# Find FASTQ files in a directory, named by sample names
+# where files are in the form: 
+# - "./sample_folder/sample1.fastq"
+# - "./sample_folder/sample2.fastq"
+
+Find_FASTQ("./sample_folder", paired = FALSE, fastq_suffix = ".fastq")
+
+# Find paired gzipped FASTQ files in a directory, named by parent directory
+# where files are in the form: 
+# - "./sample_folder/sample1/raw_1.fq.gz"
+# - "./sample_folder/sample1/raw_2.fq.gz"
+# - "./sample_folder/sample2/raw_1.fq.gz"
+# - "./sample_folder/sample2/raw_2.fq.gz"
+
+Find_FASTQ("./sample_folder", paired = TRUE, fastq_suffix = ".fq.gz")
+
+}
+
 }

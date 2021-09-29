@@ -57,14 +57,18 @@ will have to be re-assigned using \verb{covfile(se)<-}. See \link{MakeSE}
 }
 \description{
 CollateData unifies a list of \link{IRFinder} output files belonging to an
-experiment. All sample IRFinder outputs must be generated using the same
-reference. The combination of junction counts and IR quantification from
+experiment.
+}
+\details{
+All sample IRFinder outputs must be generated using the same
+reference.
+
+The combination of junction counts and IR quantification from
 IRFinder is used to calculate percentage spliced in (PSI) of alternative
 splice events, and percent intron retention (PIR) of retained introns. Also,
 QC information is extracted. Data is organised in a H5file and FST files
 for memory and processor efficient downstream access using \link{MakeSE}.
-}
-\details{
+
 The original IRFinder algorithm, see the following
 \href{https://github.com/williamritchie/IRFinder/wiki/IRFinder-Output}{wiki},
 uses \code{SpliceMax} to estimate abundance of spliced transcripts.

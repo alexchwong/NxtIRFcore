@@ -1,8 +1,10 @@
-#' Creates a custom Mappability Exclusion BED file
+#' Calculate low mappability genomic regions
 #'
 #' @description
-#' These functions calculate Mappability Exclusion regions using the 
-#' given genome FASTA file. See details and examples below.
+#' These functions empirically calculate low-mappability (Mappability Exclusion)
+#' regions using the given genome FASTA file. A splice-aware alignment software
+#' capable of aligning reads to the genome is required.
+#' See details and examples below.
 #' 
 #' @details Creating a Mappability Exclusion BED file is a three-step process.
 #' \cr
@@ -24,6 +26,9 @@
 #'
 #' NB: [STAR_Mappability] runs all 3 steps required, using the `STAR` aligner.
 #' This only works in systems where `STAR` is installed.
+#'
+#' NB2: In systems where `STAR` is not available, consider using HISAT2 or
+#' Rsubread. A working example using Rsubread is shown below.
 #'
 #' @param reference_path The directory of the reference prepared by
 #'   `GetReferenceResource()`
@@ -55,16 +60,20 @@
 #'   `MappabilityRef` is not specified.
 #' @examples
 #' 
-#' # (1) Creates resource files and systematically generate reads based on
-#' # the NxtIRF mock genome:
+#' # (1a) Creates genome resource files 
+#' 
+#' ref_path = file.path(tempdir(), "Reference")
 #' 
 #' GetReferenceResource(
-#'     reference_path = file.path(tempdir(), "Reference"),
+#'     reference_path = ref_path,
 #'     fasta = chrZ_genome(),
 #'     gtf = chrZ_gtf()
 #' )
+#'
+#' # (1b) Systematically generate reads based on the NxtIRF example genome:
+#' 
 #' Mappability_GenReads(
-#'     reference_path = file.path(tempdir(), "Reference"),
+#'     reference_path = ref_path
 #' )
 #' 
 #' \dontrun{
@@ -73,7 +82,6 @@
 #' 
 #' # (2a) Build the Rsubread genome index:
 #' 
-#' ref_path = file.path(tempdir(), "Reference")
 #' setwd(ref_path)
 #' Rsubread::buildindex(basename = "./reference_index", 
 #'     reference = chrZ_genome())
@@ -89,7 +97,7 @@
 #'     isGTF = TRUE
 #' )
 #' 
-#' # (3) Analyse the aligned reads for low-mappability regions:
+#' # (3) Analyse the aligned reads in the BAM file for low-mappability regions:
 #' 
 #' Mappability_CalculateExclusions(
 #'     reference_path = ref_path,

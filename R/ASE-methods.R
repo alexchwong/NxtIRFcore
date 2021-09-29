@@ -28,20 +28,25 @@
 #' * `RI` = (known / annotated) intron retention. 
 #' 
 #' NB: NxtIRF separately considers known "RI" and novel "IR" events separately: 
-#' * `IR` novel events are calculated using the IRFinder method, whereby spliced
-#' transcripts are all isoforms that do not retain the intron, as estimated
-#' via the `SpliceMax` and `SpliceOverMax` methods - see [CollateData].
-#' * `RI` known retained introns are calculated by considering the specific
+#' * **IR** novel events are calculated using the IRFinder method, whereby 
+#' spliced transcripts are **all** isoforms that do not retain the intron, as 
+#' estimated via the `SpliceMax` and `SpliceOverMax` methods 
+#' - see [CollateData].
+#' * **RI** known retained introns are calculated by considering the specific
 #' spliced intron as a binary event paired with its retention. The spliced
 #' abundance is calculated exclusively by splice reads mapped to the
 #' specific intron boundaries. Known retained introns are those where the
-#' intron retaining transcript is an annotated transcript that is not otherwise
-#' an `retained_intron` or `sense_intronic` transcript biotypes annotated by
-#' the given reference
+#' intron retaining transcript is an **annotated** transcript.
+#' Furthermore, the IR-transcript's `transcript_biotype` must not be 
+#' an `retained_intron` or `sense_intronic`.
 #'
 #' NxtIRF considers "included" counts as those that represent abundance of the
 #' "included" isoform, whereas "excluded" counts represent the abundance of the
-#' "excluded" isoform. These are:
+#' "excluded" isoform. 
+#' For consistency, it applies a convention whereby
+#' the "included" transcript is one where its splice junctions
+#' are by definition shorter than those of "excluded" transcripts.
+#' Specifically, this means the included / excluded isoforms are as follows:
 #' 
 #' | EventType | Included | Excluded |
 #' | :---: | :---: | :---: |
@@ -53,8 +58,6 @@
 #' | A5SS | Downstream 5'-SS | Upstream 5'-SS |
 #' | A3SS | Upstream 3'-SS | Downstream 3'-SS |
 #'
-#' NB: by this convention, the "included" transcript always generates splice 
-#' junctions that are shorter than those of "excluded" transcripts.
 #'
 #' @param se The \linkS4class{NxtSE} object created by `MakeSE()`. To reduce
 #'   runtime and avoid excessive multiple testing, consider filtering
@@ -74,25 +77,29 @@
 #' @param n_threads (DESeq2 only) How many threads to use for DESeq2
 #'   based analysis.
 #' @return A data table containing the following:
-#'   * EventName: The name of the ASE event
-#'   * EventType: The type of event. See details
-#'   * EventRegion: The genomic coordinates the event occupies.
+#'   * EventName: The name of the ASE event. This identifies each ASE
+#'     in downstream functions including [make_diagonal], [make_matrix],
+#'     and [Plot_Coverage]
+#'   * EventType: The type of event. See details section above.
+#'   * EventRegion: The genomic coordinates the event occupies. This spans the
+#'     most upstream and most downstream splice junction involved in the ASE,
+#'     and is use to guide the [Plot_Coverage] function.
 #'   * NMD_direction: Indicates whether one isoform is a NMD substrate. +1 means 
 #'     included isoform is NMD, -1 means the excluded isoform is NMD, and 0 
-#'     means neither (or both) are NMD substrates
+#'     means there is no change in NMD status (i.e. both / neither are NMD)
 #'   * AvgPSI_nom, Avg_PSI_denom: the average percent spliced in / percent 
 #'     IR levels for the two conditions being contrasted. `nom` and `denom` in
 #'     column names are replaced with the condition names
 #'
 #'   **limma specific output**
 #'   * logFC, AveExpr, t, P.Value, adj.P.Val, B: limma topTable columns of 
-#'     differential ASE. See `?limma::topTable` for details.
+#'     differential ASE. See [limma::topTable] for details.
 #'   * inc/exc_(logFC, AveExpr, t, P.Value, adj.P.Val, B): limma results 
 #'     for differential testing for raw included / excluded counts only
 #'
 #'   **DESeq2 specific output**
 #'   * baseMean, log2FoldChange, lfcSE, stat, pvalue, padj: 
-#'     DESeq2 results columns for differential ASE; see `?DESeq2::results` for
+#'     DESeq2 results columns for differential ASE; see [DESeq2::results] for
 #'     details.
 #'   * inc/exc_(baseMean, log2FoldChange, lfcSE, stat, pvalue, padj): 
 #'     DESeq2 results for differential testing for
@@ -106,7 +113,7 @@
 #'   * n_eff: Number of effective samples (i.e. non-zero or non-unity PSI)
 #'   * mDepth: Mean Depth of splice coverage in each of the two groups.
 #'   * Dispersion_Reduced, Dispersion_Full: Dispersion values for reduced and 
-#'     full models. See `?DoubleExpSeq::DBGLM1` for details.
+#'     full models. See [DoubleExpSeq::DBGLM1] for details.
 #' @examples
 #' # see ?MakeSE on example code of generating this NxtSE object
 #' se = NxtIRF_example_NxtSE()
@@ -150,7 +157,7 @@ limma_ASE <- function(se, test_factor, test_nom, test_denom,
         batch1 = "", batch2 = "",
         filter_antiover = TRUE, filter_antinear = FALSE) {
     
-    NxtIRF.CheckPackageInstalled("limma", "3.44.0")
+    .check_package_installed("limma", "3.44.0")
     .ASE_check_args(colData(se), test_factor, 
         test_nom, test_denom, batch1, batch2)
     se_use <- .ASE_filter(
@@ -194,7 +201,7 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
         batch1 = "", batch2 = "",
         n_threads = 1,
         filter_antiover = TRUE, filter_antinear = FALSE) { 
-    NxtIRF.CheckPackageInstalled("DESeq2", "1.30.0")
+    .check_package_installed("DESeq2", "1.30.0")
     .ASE_check_args(colData(se), test_factor, 
         test_nom, test_denom, batch1, batch2)
     BPPARAM_mod <- .validate_threads(n_threads)
@@ -239,7 +246,7 @@ DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom,
         # batch1 = "", batch2 = "",
         filter_antiover = TRUE, filter_antinear = FALSE) {
     
-    NxtIRF.CheckPackageInstalled("DoubleExpSeq", "1.1")
+    .check_package_installed("DoubleExpSeq", "1.1")
     .ASE_check_args(colData(se), test_factor, 
         test_nom, test_denom, "", "")
     se_use <- .ASE_filter(

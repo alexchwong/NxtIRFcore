@@ -241,7 +241,7 @@ setClass("NxtSE",
 #'
 #' @name NxtFilter-class
 #' @aliases NxtFilter
-#' @seealso Run_NxtIRF_Filters
+#' @seealso [Run_NxtIRF_Filters]
 #' @md
 #' @export
 setClass("NxtFilter",

@@ -53,13 +53,15 @@ biocViews: Software, Transcriptomics, RNASeq, AlternativeSplicing, Coverage,
 SystemRequirements: C++11
 Collate: AllImports.R
 	RcppExports.R
-	globals.R
 	AllClasses.R
 	AllGenerics.R
 	NxtFilter-methods.R
 	NxtSE-methods.R
-	zzz.R
+	globals.R
+	ggplot_themes.R
+	example_data.R
 	wrappers.R
+	make_plot_data.R
 	Coverage.R
 	utils.R
 	File_finders.R
@@ -71,7 +73,7 @@ Collate: AllImports.R
 	MakeSE.R
 	Filters.R
 	ASE-methods.R
-	NxtIRFcore.R
+	NxtIRFcore-package.R
 Encoding: UTF-8
 RoxygenNote: 7.1.2
 URL: https://github.com/alexchwong/NxtIRFcore

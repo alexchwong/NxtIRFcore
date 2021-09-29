@@ -351,7 +351,7 @@ BuildReference(
 }
 }
 \seealso{
-\link{Mappability-methods}\cr\cr
-\link{STAR-methods}\cr\cr
+\link{Mappability-methods} for methods to calculate low mappability regions\cr\cr
+\link{STAR-methods} for a list of STAR wrapper functions\cr\cr
 \link[AnnotationHub]{AnnotationHub}\cr\cr
 }

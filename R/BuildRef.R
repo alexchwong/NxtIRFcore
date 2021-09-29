@@ -264,8 +264,8 @@
 #'
 #' }
 #' @seealso 
-#' [Mappability-methods]\cr\cr
-#' [STAR-methods]\cr\cr
+#' [Mappability-methods] for methods to calculate low mappability regions\cr\cr
+#' [STAR-methods] for a list of STAR wrapper functions\cr\cr
 #' \link[AnnotationHub]{AnnotationHub}\cr\cr
 #' @name BuildReference
 #' @md
@@ -418,6 +418,8 @@ BuildReference_Full <- function(
         .log("NxtIRF reference already exists in given directory", "message")
         return()
     }
+    
+    .validate_STAR_version()
 
     GetReferenceResource(reference_path = reference_path,
         fasta = fasta, gtf = gtf,
@@ -1939,7 +1941,7 @@ Get_GTF_file <- function(reference_path) {
     # Exclude exclbases / width > 0.3
     IntronCover.summa <-
         IntronCover.summa[get("exclbases") / get("intron_width") < 0.3]
-    IntronCover <- semi_join.DT(IntronCover, IntronCover.summa,
+    IntronCover <- .semi_join_DT(IntronCover, IntronCover.summa,
         by = "intron_id")
     IntronCover.summa <- .gen_irf_irfname(IntronCover.summa, 
         stranded = stranded)
@@ -3229,7 +3231,7 @@ Get_GTF_file <- function(reference_path) {
     Exons$transcript_support_level = tstrsplit(Exons$transcript_support_level,
         split=" ", fixed=TRUE)[[1]]
     RI.ranges = AS_Table[get("EventType") == "RI"]
-    RI.gr = NxtIRF.CoordToGR(RI.ranges$Event1b)
+    RI.gr = CoordToGR(RI.ranges$Event1b)
     OL = findOverlaps(RI.gr, Exons, type = "within")
     RI.DT = data.table(
         EventType = "RI", 

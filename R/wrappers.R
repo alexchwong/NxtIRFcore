@@ -41,26 +41,3 @@ get_multi_DT_from_gz = function(infile = "",
 }
 
 
-#' Validates the given file as a valid COV file
-#' @param coverage_files A vector containing the file names of files to be
-#'   checked
-#' @return `TRUE` if all files are valid COV files. `FALSE` otherwise
-#' @examples
-#' se = NxtIRF_example_NxtSE()
-#'
-#' cov_files = covfile(se)
-#'
-#' IsCOV(cov_files) # returns true if these are true COV files
-#' @seealso [IRFinder] [CollateData]
-#' @md
-#' @export
-IsCOV = function(coverage_files) {
-    for(i in coverage_files) {
-        if(file.exists(i) && IRF_Check_Cov(normalizePath(i))) {
-            # do nothing
-        } else {
-            return(FALSE)
-        }
-    }    
-    return(TRUE)
-}

@@ -48,7 +48,7 @@
 #'   calculates Mappability Exclusion regions.
 #' @param map_depth_threshold (Default 4) The depth of mapped reads
 #'   threshold at or below which Mappability exclusion regions are defined. See
-#'   \link{Mappability-methods}.
+#'   [Mappability-methods].
 #'   Ignored if \code{also_generate_mappability = FALSE}
 #' @param sjdbOverhang (Default = 149) A STAR setting indicating the length of 
 #'   the donor / acceptor sequence on each side of the junctions. Ideally equal 
@@ -59,11 +59,11 @@
 #'   parsed into STAR. See examples below.
 #' @param Experiment A two or three-column data frame with the columns denoting
 #'   sample names, forward-FASTQ and reverse-FASTQ files. This can be 
-#'   conveniently generated using \code{Find_FASTQ()}
+#'   conveniently generated using [Find_FASTQ]
 #' @param BAM_output_path The path under which STAR outputs the aligned BAM
-#'   files. In \code{STAR_align_experiment()}, STAR will output aligned
+#'   files. In `STAR_align_experiment()`, STAR will output aligned
 #'   BAMS inside subdirectories of this folder, named by sample names. In
-#'   \code{STAR_align_fastq()}, STAR will output directly into this path.
+#'   `STAR_align_fastq()`, STAR will output directly into this path.
 #' @param trim_adaptor The sequence of the Illumina adaptor to trim via STAR's
 #'   \code{--clip3pAdapterSeq} option
 #' @param two_pass Whether to use two-pass mapping. In 

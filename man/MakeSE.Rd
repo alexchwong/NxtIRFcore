@@ -22,7 +22,9 @@ The colData can be set later using \code{colData()}}
 novel IR events belonging to minor isoforms. See details.}
 }
 \value{
-A NxtIRF SummarizedExperiment (\code{NxtSE}) object
+A \linkS4class{NxtSE} object containing the compiled data in
+DelayedArrays pointing to the assay data contained in the given
+\code{collate_path}
 }
 \description{
 Creates a \linkS4class{NxtSE} object from the data
@@ -31,6 +33,14 @@ for downstream differential analysis of IR and alternative splicing events
 using \link{ASE-methods} as well as visualisation using \link{Plot_Coverage}
 }
 \details{
+\code{MakeSE} retrieves the generic SummarizedExperiment structure saved by
+\link{CollateData}, and initialises a \linkS4class{NxtSE} object. It references
+the required on-disk assay data using DelayedArrays, thereby utilising
+'on-disk' memory to conserve memory usage.
+
+To convert the on-disk memory into RAM, use \link{realize_NxtSE}. See example
+below.
+
 If COV files assigned via \link{CollateData} have been moved relative to the
 \code{collate_path}, the created \linkS4class{NxtSE} object will not have any
 linked COV files and \link{Plot_Coverage} cannot be used. To reassign these
@@ -46,6 +56,10 @@ or excluded in this way. This is important to ensure that overlapping
 novel IR events are not 'double-counted'.
 }
 \examples{
+
+# The following code can be used to reproduce the NxtSE object
+# that can be fetched with NxtIRF_example_NxtSE()
+
 BuildReference(
     reference_path = file.path(tempdir(), "Reference"),
     fasta = chrZ_genome(), 
@@ -66,8 +80,21 @@ CollateData(expr,
 
 se = MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
 
+# "Realize" NxtSE object to load all H5 assays into memory:
+
+se = realize_NxtSE(se)
+
 # If COV files have been removed since the last call to CollateData()
 # reassign them to the NxtSE object, for example:
 
-covfile(se) <- expr$cov_file
+covfile_path <- system.file("extdata", package = "NxtIRFcore")
+covfile_df <- Find_Samples(covfile_path, ".cov")
+
+covfile(se) <- covfile_df$path
+
+# Check that the produced object is identical to the example NxtSE
+
+example_se = NxtIRF_example_NxtSE()
+identical(se, example_se)  # should return TRUE
+
 }

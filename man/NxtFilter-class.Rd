@@ -158,5 +158,5 @@ f4
 
 }
 \seealso{
-Run_NxtIRF_Filters
+\link{Run_NxtIRF_Filters}
 }

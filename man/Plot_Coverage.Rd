@@ -4,8 +4,7 @@
 \alias{Plot_Coverage}
 \alias{Plot_Genome}
 \alias{as_egg_ggplot}
-\title{Generate plotly / ggplot RNA-seq genome and coverage plots from command line.
-For some quick working examples, see the Examples section below.}
+\title{RNA-seq Coverage Plots and Genome Tracks}
 \usage{
 Plot_Coverage(
   se,
@@ -163,13 +162,23 @@ samples of the same experimental condition. After normalisation, mean and
 variance of coverage can be computed as ratios relative to total transcript
 abundance. This method can visualise alternatively included genomic regions
 including casette exons, alternate splice site usage, and intron retention.
+
+\code{Plot_Coverage} generates plots showing depth of alignments to
+the genomic axis. Plots can be generated for individual samples or samples
+grouped by experimental conditions. In the latter, mean and 95\% confidence
+intervals are shown.
+
+\code{Plot_Genome} generates genome transcript tracks only. Protein-coding
+regions are denoted by thick rectangles, whereas non-protein coding
+transcripts or untranslated regions are denoted with thin rectangles.
+Introns are denoted as lines.
 }
 \section{Functions}{
 \itemize{
-\item \code{Plot_Coverage}: generates a coverage plot illustrating differential
-expression of intron retention or alternative splicing (differential exon
-coverage). It can normalise coverage of samples per condition using NxtIRF's
-SpliceOver parameter that normalises the flanking exon boundaries to 1.
+\item \code{Plot_Coverage}: generates plots showing depth of alignments to 
+the genomic axis. Plots can be generated for individual samples or samples
+grouped by experimental conditions. In the latter, mean and 95% confidence
+intervals are shown.
 
 \item \code{Plot_Genome}: Generates a plot of transcripts within a given
 genomic region, or belonging to a specified gene

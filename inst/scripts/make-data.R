@@ -35,9 +35,9 @@
 #' }
 NULL
 
-#' Sample NxtSE object using mock reference and example bam files
+#' Sample NxtSE object using the NxtIRF example reference and example bam files
 #'
-#' This function generates a mock reference, and runs IRFinder on example
+#' This function generates an example reference, and runs IRFinder on example
 #' bam files. This object is used in downstream examples throughout
 #' the documentation of all functions that use NxtSE objects as input
 #' @examples

@@ -6,6 +6,14 @@
 #' using [ASE-methods] as well as visualisation using [Plot_Coverage]
 #'
 #' @details
+#' `MakeSE` retrieves the generic SummarizedExperiment structure saved by
+#' [CollateData], and initialises a \linkS4class{NxtSE} object. It references
+#' the required on-disk assay data using DelayedArrays, thereby utilising
+#' 'on-disk' memory to conserve memory usage.
+#'
+#' To convert the on-disk memory into RAM, use [realize_NxtSE]. See example 
+#' below.
+#'
 #' If COV files assigned via [CollateData] have been moved relative to the
 #' `collate_path`, the created \linkS4class{NxtSE} object will not have any
 #' linked COV files and [Plot_Coverage] cannot be used. To reassign these
@@ -32,9 +40,15 @@
 #' @param RemoveOverlapping (default = `TRUE`) Whether to filter out overlapping
 #'   novel IR events belonging to minor isoforms. See details.
 #'
-#' @return A NxtIRF SummarizedExperiment (`NxtSE`) object 
+#' @return A \linkS4class{NxtSE} object containing the compiled data in
+#' DelayedArrays pointing to the assay data contained in the given 
+#' `collate_path`
 #'
 #' @examples
+#'
+#' # The following code can be used to reproduce the NxtSE object
+#' # that can be fetched with NxtIRF_example_NxtSE()
+#'
 #' BuildReference(
 #'     reference_path = file.path(tempdir(), "Reference"),
 #'     fasta = chrZ_genome(), 
@@ -55,10 +69,23 @@
 #' 
 #' se = MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
 #'
+#' # "Realize" NxtSE object to load all H5 assays into memory:
+#' 
+#' se = realize_NxtSE(se)
+#'
 #' # If COV files have been removed since the last call to CollateData()
 #' # reassign them to the NxtSE object, for example:
 #'
-#' covfile(se) <- expr$cov_file
+#' covfile_path <- system.file("extdata", package = "NxtIRFcore")
+#' covfile_df <- Find_Samples(covfile_path, ".cov")
+#'
+#' covfile(se) <- covfile_df$path
+#'
+#' # Check that the produced object is identical to the example NxtSE
+#' 
+#' example_se = NxtIRF_example_NxtSE()
+#' identical(se, example_se)  # should return TRUE
+#'
 #' @md
 #' @export
 MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
@@ -236,7 +263,7 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
 
 # Selects introns of major isoforms
 .makeSE_iterate_IR_select_events <- function(se.coords, junc_PSI) {
-    gr = NxtIRF.CoordToGR(se.coords)
+    gr = CoordToGR(se.coords)
     gr.reduced = reduce(gr)
 
     OL = findOverlaps(gr, gr.reduced)
@@ -252,8 +279,8 @@ MakeSE = function(collate_path, colData, RemoveOverlapping = TRUE) {
 .makeSE_iterate_IR_retrieve_excluded_introns <- function(
         se.coords.final, se.coords.excluded) {
     if(length(se.coords.excluded) > 0) {
-        final.gr = NxtIRF.CoordToGR(se.coords.final)
-        excluded.gr = NxtIRF.CoordToGR(se.coords.excluded)
+        final.gr = CoordToGR(se.coords.final)
+        excluded.gr = CoordToGR(se.coords.excluded)
 
         OL = findOverlaps(excluded.gr, final.gr)
         include = which(!(

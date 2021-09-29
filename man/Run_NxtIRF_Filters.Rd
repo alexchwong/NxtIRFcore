@@ -14,17 +14,18 @@ apply_filters(se, filters = get_default_filters())
 runFilter(se, filterObj)
 }
 \arguments{
-\item{se}{the NxtSE SummarizedExperiment to filter}
+\item{se}{the \linkS4class{NxtSE} object to filter}
 
 \item{filters}{A vector or list of one or more NxtFilter objects. If left
 blank, the NxtIRF default filters will be used.}
 
-\item{filterObj}{A single NxtFilter object.}
+\item{filterObj}{A single \linkS4class{NxtFilter} object.}
 }
 \value{
-For \code{runFilter} and \code{apply_filters}, a vector of type \code{logical},
+For \code{runFilter} and \code{apply_filters}: a vector of type \code{logical},
 representing the rows of NxtSE that should be kept.
-For \code{get_default_filters}, returns a list of default recommended filters
+
+For \code{get_default_filters}: returns a list of default recommended filters
 that should be parsed into \code{apply_filters}.
 }
 \description{
@@ -33,21 +34,25 @@ criteria. See \link{NxtFilter} for details.
 }
 \details{
 We highly recommend using the default filters, which are as follows:
-\cr\cr
-(1) Depth filter of 20,\cr\cr
-(2) Coverage filter requiring 90\% coverage in IR events.\cr\cr
-(3) Coverage filter requiring 60\% coverage in AS events
+\itemize{
+\item (1) Depth filter of 20,
+\item (2) Coverage filter requiring 90\% coverage in IR events.
+\item (3) Coverage filter requiring 60\% coverage in AS events
 (i.e. Included + Excluded isoforms must cover at least 60\% of all junction
-events across the given region)\cr\cr
-(4) Consistency filter requring log difference of 2 (for skipped exon and
+events across the given region)
+\item (4) Consistency filter requring log difference of 2 (for skipped exon and
 mutually exclusive exon events, each junction must comprise at least 1/(2^2)
 = 1/4 of all reads associated with each isoform).
-For retained introns, the exon-intron overhangs must not differ by 1/4\cr\cr
+For retained introns, the exon-intron overhangs must not differ by 1/4
+}
+
 In all filters, we require at least 80\% samples (\code{pcTRUE = 80})
 to pass this filters from the entire dataset (\code{minCond = -1}).
+
 Events with event read depth (reads supporting either included or excluded
 isoforms) lower than 5 (\code{minDepth = 5}) are not assessed in filter #2, and
-in #3 and #4 this threshold is (\code{minDepth = 20}).\cr\cr
+in #3 and #4 this threshold is (\code{minDepth = 20}).
+
 For an explanation of the various parameters mentioned here, see \link{NxtFilter}
 }
 \section{Functions}{
@@ -62,19 +67,24 @@ on a NxtSE object
 }}
 
 \examples{
-# see ?MakeSE on example code of generating this NxtSE object
+# see ?MakeSE on example code of how this object was generated
+
 se = NxtIRF_example_NxtSE()
 
 # Get the list of NxtIRF recommended filters
+
 filters = get_default_filters()
 
 # View a description of what these filters do:
+
 filters
 
 # Filter the NxtSE using the first default filter ("Depth")
+
 se.depthfilter = se[runFilter(se, filters[[1]]),]
 
 # Filter the NxtSE using all four default filters
+
 se.defaultFiltered = se[apply_filters(se, get_default_filters()),]
 }
 \seealso{
