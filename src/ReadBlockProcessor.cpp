@@ -113,55 +113,25 @@ void JunctionCount::ProcessBlocks(const FragmentBlocks &blocks) {
 
 void JunctionCount::Combine(const JunctionCount &child) {
   for(unsigned int j = 0; j < 2; j++) {
-
-    // for (auto itChr=chrName_junc_count.begin(); itChr!=chrName_junc_count.end(); itChr++) {
-      // for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
-        /* Summate elements in child into parent with each key: */
-        // itPos->second[j] += child.lookup(itChr->first, itPos->first.first, itPos->first.second, j);
-      // }
-    // }
-
-    // for (auto itChr=chrName_juncLeft_count.begin(); itChr!=chrName_juncLeft_count.end(); itChr++) {
-      // for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
-        // itPos->second[j] += child.lookupLeft(itChr->first, itPos->first, j);
-      // }
-    // }
-
-    // for (auto itChr=chrName_juncRight_count.begin(); itChr!=chrName_juncRight_count.end(); itChr++) {
-      // for (auto itPos = itChr->second.begin(); itPos != itChr->second.end(); itPos++) {
-        // itPos->second[j] += child.lookupRight(itChr->first, itPos->first, j);
-      // }
-    // }
     for(unsigned int i = 0; i < chrName_junc_count.size(); i++) {
       auto itChr1=child.chrName_junc_count.begin();
       for(unsigned int k = 0; k < i; k++) itChr1++;
-      // for (auto itChr=child.chrName_junc_count.begin(); itChr!=child.chrName_junc_count.end(); itChr++) {
         for (auto itPos = itChr1->second.begin(); itPos != itChr1->second.end(); itPos++) {
           // Insert missing entries from child:
-          // if(lookup(itChr->first, itPos->first.first, itPos->first.second, j) == 0) {
-            chrName_junc_count.at(itChr1->first)[make_pair(itPos->first.first, itPos->first.second)][j] += 
-              itPos->second[j];
-          // }
+          chrName_junc_count.at(itChr1->first)[
+            make_pair(itPos->first.first, itPos->first.second)
+          ][j] += itPos->second[j];
         }
-      // }
       auto itChr2=child.chrName_juncLeft_count.begin();
       for(unsigned int k = 0; k < i; k++) itChr2++;
-      // for (auto itChr=child.chrName_juncLeft_count.begin(); itChr!=child.chrName_juncLeft_count.end(); itChr++) {
         for (auto itPos = itChr2->second.begin(); itPos != itChr2->second.end(); itPos++) {
-          // if(lookupLeft(itChr->first, itPos->first, j) == 0) {
-            chrName_juncLeft_count.at(itChr2->first)[itPos->first][j] += itPos->second[j];
-          // }
+          chrName_juncLeft_count.at(itChr2->first)[itPos->first][j] += itPos->second[j];
         }
-      // }
       auto itChr3=child.chrName_juncRight_count.begin();
       for(unsigned int k = 0; k < i; k++) itChr3++;
-      // for (auto itChr=child.chrName_juncRight_count.begin(); itChr!=child.chrName_juncRight_count.end(); itChr++) {
         for (auto itPos = itChr3->second.begin(); itPos != itChr3->second.end(); itPos++) {
-          // if(lookupRight(itChr->first, itPos->first, j) == 0) {
-            chrName_juncRight_count.at(itChr3->first)[itPos->first][j] += itPos->second[j];
-          // }
+          chrName_juncRight_count.at(itChr3->first)[itPos->first][j] += itPos->second[j];
         }
-      // }
     }
   }
 }
@@ -304,10 +274,6 @@ unsigned int JunctionCount::lookupRight(std::string ChrName, unsigned int right)
   return 0;
 }
 
-
-
-
-
 int SpansPoint::WriteOutput(std::string& output, std::string& QC) const {
   std::ostringstream oss; std::ostringstream oss_qc; 
   int spans_reads = 0;  
@@ -330,7 +296,6 @@ int SpansPoint::WriteOutput(std::string& output, std::string& QC) const {
     QC.append(oss_qc.str());
   return 0;
 }
-
 
 unsigned int SpansPoint::lookup(std::string chrName, unsigned int pos, bool direction) const {
   auto it_pos = std::lower_bound(chrName_pos.at(chrName).begin(), chrName_pos.at(chrName).end(), pos);
@@ -359,7 +324,6 @@ unsigned int SpansPoint::lookup(std::string chrName, unsigned int pos) const {
       );
   }
 }
-
 
 void SpansPoint::setSpanLength(unsigned int overhang_left, unsigned int overhang_right) {
   overhangLeft = overhang_left;
@@ -400,7 +364,6 @@ void SpansPoint::Combine(const SpansPoint &child) {
     }
   }
 }
-
 
 void SpansPoint::loadRef(std::istringstream &IN) {
   // TODO: will we ever want to store some additional info -- eg: String name of each position? Not right now.
@@ -488,8 +451,10 @@ int FragmentsInROI::WriteOutput(std::string& output, std::string& QC) const {
     } else if(ROI_type.compare(0, 8, "NonPolyA") == 0) {
       count_NonPolyA += (itID->second + RegionID_counter[0].at(itID->first));  
     }
-    oss << itID->first << "\t" << (itID->second + RegionID_counter[0].at(itID->first)) << "\t" 
-      << itID->second << "\t" << RegionID_counter[0].at(itID->first) << "\n";
+    oss << itID->first << "\t" 
+      << (itID->second + RegionID_counter[0].at(itID->first))  << "\t" 
+      << itID->second << "\t" 
+      << RegionID_counter[0].at(itID->first) << "\n";
     //Outputs tab separated: ROIname, total hits, positive-strand hits, negative-strand hits.
   }
     output = oss.str();

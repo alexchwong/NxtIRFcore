@@ -862,9 +862,9 @@ reference. Valid options for `genome_path` are "hg38", "hg19", "mm10" and "mm9".
 
 ```{r eval=FALSE}
 BuildReference(
-	reference_path = ref_path,
+    reference_path = ref_path,
     fasta = "genome.fa", gtf = "transcripts.gtf",
-	genome_type = "hg38"
+    genome_type = "hg38"
 )
 ```
 
@@ -930,9 +930,9 @@ generate a NxtIRF reference without this reference:
 
 ```{r eval=FALSE}
 BuildReference(
-	reference_path = ref_path,
+    reference_path = ref_path,
     fasta = "genome.fa", gtf = "transcripts.gtf",
-	genome_type = ""
+    genome_type = ""
 )
 ```
 
@@ -947,7 +947,7 @@ function will:
 
 ```{r eval=FALSE}
 BuildReference_Full(
-	reference_path = ref_path,
+    reference_path = ref_path,
     fasta = "genome.fa", gtf = "transcripts.gtf",
     genome_type = "",
     use_STAR_mappability = TRUE,
@@ -1032,17 +1032,17 @@ ref_path = "./Reference"
 # Ensure genome resources are prepared from genome FASTA and GTF file:
 
 if(!file.exists(file.path(ref_path, "resources"))) {
-	GetReferenceResource(
-		reference_path = ref_path,
-		fasta = "genome.fa",
-		gtf = "transcripts.gtf"
-	)
+    GetReferenceResource(
+        reference_path = ref_path,
+        fasta = "genome.fa",
+        gtf = "transcripts.gtf"
+    )
 }
 
 # Generate a STAR genome reference:
 STAR_BuildRef(
-	reference_path = ref_path,
-	n_threads = 8
+    reference_path = ref_path,
+    n_threads = 8
 )
 
 ```
@@ -1074,7 +1074,7 @@ STAR_align_experiment(
     STAR_ref_path = file.path("Reference_FTP", "STAR"),
     BAM_output_path = "./bams",
     n_threads = 8,
-	two_pass = FALSE
+    two_pass = FALSE
 )
 ```
 
@@ -1099,12 +1099,12 @@ To use IRFinder using 4 OpenMP threads:
 # assume NxtIRF reference has been generated in `ref_path`
 
 IRFinder(
-	bamfiles = bams$path,
-	sample_names = bams$sample,
-	reference_path = ref_path,
-	output_path = "./IRFinder_output",
-	n_threads = 4,
-	Use_OpenMP = TRUE
+    bamfiles = bams$path,
+    sample_names = bams$sample,
+    reference_path = ref_path,
+    output_path = "./IRFinder_output",
+    n_threads = 4,
+    Use_OpenMP = TRUE
 )
 ```
 
@@ -1122,9 +1122,9 @@ This data.frame can be directly used to run `CollateData`:
 
 ```{r eval = FALSE}
 CollateData(
-	Experiment = expr,
-	reference_path = ref_path,
-	output_path = "./NxtIRF_output"
+    Experiment = expr,
+    reference_path = ref_path,
+    output_path = "./NxtIRF_output"
 )
 ```
 

@@ -1,12 +1,8 @@
 #ifndef CODE_IRFINDER_RCPP
 #define CODE_IRFINDER_RCPP
 
-// Avoid including full Rcpp.h library as this increases compile time dramatically
-
-// Also imports RcppProgress
-
-// Declare GALAXY in make file so that these sources can be compiled into
-// executable file from within Galaxy / Linux
+// Declare RNXTIRF in Makevars
+// If not declared, this will produce an executable that does not depend on Rcpp
 #ifdef RNXTIRF
   #include <Rcpp.h>
   using namespace Rcpp;

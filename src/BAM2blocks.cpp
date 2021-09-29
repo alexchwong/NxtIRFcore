@@ -79,7 +79,6 @@ BAM2blocks::~BAM2blocks() {
 unsigned int BAM2blocks::openFile(pbam_in * _IN) {
   // Pass pbam_in object to BB child object
   // Not thread safe!
-  // 
   
   IN = _IN;
   
@@ -142,7 +141,6 @@ void BAM2blocks::cigar2block(uint32_t * cigar, uint16_t n_cigar_op, std::vector<
     cigar++;
   }
   ret_genome_len = relpos;
-//  *ret_blocks = curblock+1;  // Unnecessary if we are using vectors in the expected manner - changing their length as needed.
 }
 
 
@@ -156,10 +154,8 @@ unsigned int BAM2blocks::processPair(pbam1_t * read1, pbam1_t * read2) {
   pbam1_t * r1 = read1;
   pbam1_t * r2 = read2;
   
-  string debugstate;
+  // string debugstate;
 
-  //int r2_blocks;
-  //char dir;
 
   if (r1->flag() & 0x40) {
     //this is first of pair.
@@ -187,7 +183,7 @@ unsigned int BAM2blocks::processPair(pbam1_t * read1, pbam1_t * read2) {
     cLongPairs++;
     //reads do not intersect
     oBlocks.readCount = 2;
-    debugstate.append( "-Long-");
+    // debugstate.append( "-Long-");
   }else if (r1->pos() + r1_genome_len >= r2->pos() + r2_genome_len){
     if(r1->pos() == r2->pos() && r1_genome_len > r2_genome_len) {
       cIntersectPairs++;
@@ -198,9 +194,9 @@ unsigned int BAM2blocks::processPair(pbam1_t * read1, pbam1_t * read2) {
     }    
     // Read 2 is a short read & read 1 fully contains it (or perhaps just a trimmed read with two exactly complementary reads remaining).
     oBlocks.readCount = 1;
-    debugstate.append( "-Short-");    
+    // debugstate.append( "-Short-");    
   }else{
-    debugstate.append( "-Intersect-");
+    // debugstate.append( "-Intersect-");
     cIntersectPairs++;
     
     oBlocks.readCount = 1;
@@ -285,8 +281,8 @@ unsigned int BAM2blocks::processPair(pbam1_t * read1, pbam1_t * read2) {
     }
   }
   //DEBUG:
-  oBlocks.readName.append(debugstate);
-  oBlocks.readName.append(to_string(oBlocks.readCount));
+  // oBlocks.readName.append(debugstate);
+  // oBlocks.readName.append(to_string(oBlocks.readCount));
 // TODO - restructure -- we could instead do the manipulation from 2 reads-> 1 synthetic in a non-const callback.
 //        not required until that future flexibility is needed if part of the framework is repurposed.
   for (auto & callback : callbacksProcessBlocks ) {
@@ -299,7 +295,7 @@ unsigned int BAM2blocks::processPair(pbam1_t * read1, pbam1_t * read2) {
 unsigned int BAM2blocks::processSingle(pbam1_t * read1, bool mappability_mode) {
   int r1_genome_len;
 
-  string debugstate;
+  // string debugstate;
 
   if (read1->flag() & 0x10) {
     oBlocks.direction = 0;

@@ -110,18 +110,27 @@ void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
 }
 
 // Using FragmentsMap
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, 
+void CoverageBlocks::fillHist(
+    std::map<unsigned int,unsigned int> &hist, 
+    const unsigned int &refID, 
     const std::vector<std::pair<unsigned int,unsigned int>> &blocks, 
-    const FragmentsMap &FM, bool debug) const{
+    const FragmentsMap &FM, 
+    bool debug
+) const{
       
 	for (auto it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
 		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, 2, refID, debug);
 	}
 }
 
-void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const unsigned int &refID, 
-    const std::vector<std::pair<unsigned int,unsigned int>> &blocks, bool direction, 
-    const FragmentsMap &FM, bool debug) const{
+void CoverageBlocks::fillHist(
+    std::map<unsigned int,unsigned int> &hist, 
+    const unsigned int &refID, 
+    const std::vector<std::pair<unsigned int,unsigned int>> &blocks, 
+    bool direction, 
+    const FragmentsMap &FM,
+    bool debug
+) const{
       
 	for (auto it_blocks=blocks.begin(); it_blocks!=blocks.end(); it_blocks++) {
 		FM.updateCoverageHist(hist, it_blocks->first, it_blocks->second, direction ? 1 : 0, refID, debug);
@@ -129,7 +138,9 @@ void CoverageBlocks::fillHist(std::map<unsigned int,unsigned int> &hist, const u
 }
 
 
-double CoverageBlocks::meanFromHist(const std::map<unsigned int,unsigned int> &hist) const {
+double CoverageBlocks::meanFromHist(
+    const std::map<unsigned int,unsigned int> &hist
+) const {
 	unsigned long long total = 0;
 	unsigned int count = 0;
 	
@@ -140,7 +151,9 @@ double CoverageBlocks::meanFromHist(const std::map<unsigned int,unsigned int> &h
 	return (total/(double)count);
 }
 
-double CoverageBlocks::coverageFromHist(const std::map<unsigned int,unsigned int> &hist) const {
+double CoverageBlocks::coverageFromHist(
+    const std::map<unsigned int,unsigned int> &hist
+) const {
 	if (hist.find(0) == hist.end()) {
 		return 1.0; //No bases are at zero cover.
 	}
@@ -152,7 +165,10 @@ double CoverageBlocks::coverageFromHist(const std::map<unsigned int,unsigned int
 }
 
 
-double CoverageBlocks::percentileFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int percentile) const {
+double CoverageBlocks::percentileFromHist(
+    const std::map<unsigned int,unsigned int> &hist, 
+    unsigned int percentile
+) const {
 	unsigned int size = 0;
 	for (auto h : hist) {
 		size += h.second;
@@ -178,7 +194,11 @@ double CoverageBlocks::percentileFromHist(const std::map<unsigned int,unsigned i
 	return std::numeric_limits<double>::quiet_NaN();
 }
 
-double CoverageBlocks::trimmedMeanFromHist(const std::map<unsigned int,unsigned int> &hist, unsigned int centerPercent, bool debug) const {
+double CoverageBlocks::trimmedMeanFromHist(
+    const std::map<unsigned int,unsigned int> &hist, 
+    unsigned int centerPercent, 
+    bool debug
+) const {
 	unsigned int size = 0;
 	for (auto h : hist) {
 		size += h.second;
@@ -215,7 +235,7 @@ double CoverageBlocks::trimmedMeanFromHist(const std::map<unsigned int,unsigned 
 }
 
 
-
+// Not used
 int CoverageBlocks::WriteOutput(std::string& output, const FragmentsMap &FM) const {
 
 // This output function will be generic -- outputting Chr/Start/Stop/Name/Dir/ Score - Mean50 (that bit probably cmd line customisable).
@@ -272,7 +292,6 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC,
 	std::string KE = "known-exon";
 	
   unsigned int n_jobs = 1 + (BEDrecords.size() / n_threads);
-  // cout << "n_jobs = " << n_jobs << ", BEDrecords.size() = " << BEDrecords.size() << '\n';
 
 #ifdef _OPENMP
   #pragma omp parallel for
@@ -494,6 +513,7 @@ int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC,
 	return 0;
 }
 
+// ############################# FRAGMENTS MAP (COV) ###########################
 
 void FragmentsMap::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
   std::vector< std::pair<unsigned int, int> > empty_vector;
@@ -533,6 +553,7 @@ void FragmentsMap::ProcessBlocks(const FragmentBlocks &blocks) {
   }
 }
 
+// Temporarily sorts the nested vector to reduce memory use; occurs every 1M reads
 int FragmentsMap::sort_and_collapse_temp() {
   // Sort temp vectors and append to final:
   for(unsigned int j = 0; j < 3; j++) {
@@ -570,6 +591,7 @@ int FragmentsMap::sort_and_collapse_temp() {
   return(0);
 }
 
+// Final sorting. Also converts from loci/diff to loci/depth
 int FragmentsMap::sort_and_collapse_final(bool verbose) {
   if(!final_is_sorted) {
     sort_and_collapse_temp();
@@ -606,13 +628,11 @@ int FragmentsMap::sort_and_collapse_final(bool verbose) {
             }
             loci = it_pos->first;
           }
-          // if(incremental) {
-            depth += it_pos->second;
-          // } else {
-            // depth = it_pos->second;
-          // }
+
+          depth += it_pos->second;
+
           if(it_pos->first == 0) {
-            old_depth = depth;  // ensure never trigger write when first time it_pos->first != loci
+            old_depth = depth;  // ensure never trigger write when first time 
           }       
         }
         itDest->push_back( std::make_pair(old_loci, old_depth) );
@@ -726,18 +746,7 @@ int FragmentsMap::WriteOutput(std::ostream *os,
     int threshold, bool verbose)  {
 
   // This is called on mappability
-  // Issue is map constructs auto-sort
-  // Need to put chrs and lengths into a map structure
-  /*
-  std::map< std::string, int32_t > chrmap;
-  
-  // Arrange chromosomes in same order as arranged by mapping chrs
-  for(unsigned int i = 0; i < chr_names.size(); i++) {
-      chrmap.insert({chr_names[i], chr_lens[i]});
-  }
-  // Re-push into alphabetical ordered chromosomes
-  */
-  
+
   std::vector<std::string> sort_chr_names;
   std::vector<int32_t> sort_chr_lens;
   for (auto chr = chrs.begin(); chr != chrs.end(); chr++) {
