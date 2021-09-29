@@ -233,7 +233,7 @@ IRFinder <- function(
     outfile = file.path(dirname(output_files[1]), "main.FC.Rds")
     if(file.exists(outfile) & !overwrite) {
         res.old = readRDS(outfile)
-        need_to_do = (!(s_names %in% colnames(gene_counts$counts)))
+        need_to_do = (!(s_names %in% res.old$targets))
     } else {
         need_to_do = rep(TRUE, length(s_bam))
     }
