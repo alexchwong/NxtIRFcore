@@ -107,6 +107,7 @@ void CoverageBlocks::ChrMapUpdate(const std::vector<chr_entry> &chrmap) {
 
 void CoverageBlocks::ProcessBlocks(const FragmentBlocks &blocks) {
   // do nothing
+  (void)(blocks);
 }
 
 // Using FragmentsMap
@@ -267,6 +268,7 @@ int CoverageBlocks::WriteOutput(std::string& output, const FragmentsMap &FM) con
 
 void CoverageBlocksIRFinder::Combine(CoverageBlocksIRFinder &child) {
   // do nothing; combining not necessary
+  (void)(child);
 }
 
 int CoverageBlocksIRFinder::WriteOutput(std::string& output, std::string& QC, 
@@ -670,6 +672,7 @@ void FragmentsMap::Combine(FragmentsMap &child) {
 
 // updateCoverageHist from completed FragmentMap - directional:
 void FragmentsMap::updateCoverageHist(std::map<unsigned int,unsigned int> &hist, unsigned int start, unsigned int end, unsigned int dir, const unsigned int &refID, bool debug) const {
+  (void)(debug);
   
   if(refID >= chrName_vec_final[dir].size()) {
     hist.insert({0,0});
@@ -759,7 +762,9 @@ int FragmentsMap::WriteOutput(std::ostream *os,
     sort_and_collapse_final(verbose);
   }
   if(verbose)  cout << "Writing Mappability Exclusions\n";
+#ifdef RNXTIRF
   Progress p(sort_chr_names.size(), verbose);
+#endif
   for(unsigned int i = 0; i < sort_chr_names.size(); i++) {
     // refID is reference ID as appears in BAM file; i is the nth chromosome as ordered in alpha order
     refID = chrs[i].refID;
@@ -792,7 +797,9 @@ int FragmentsMap::WriteOutput(std::ostream *os,
     if(!covered) {
       *os << chrs[i].chr_len << "\n";    
     }
+#ifdef RNXTIRF
     p.increment(1);
+#endif
   }
   return 0;
 }
