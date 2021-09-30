@@ -1283,14 +1283,12 @@ int IRF_GenerateMappabilityRegions(
 void print_usage(std::string exec) {
   cout << "Usage:\n\t"
     << exec << " about\n\t\tDisplays version and OpenMP status\n\t"
-    << exec <<  " main in.bam IRFinder.ref.gz out.txt.gz out.cov\n\t\t"
-    << "(runs NxtIRF in one thread)\n\t"
-    << exec <<  " main -t 4 in.bam IRFinder.ref.gz out.txt.gz out.cov\n\t\t"
-    << "(runs NxtIRF using 4 threads)\n\t"
+    << exec <<  " main (-t 4) in.bam IRFinder.ref.gz out.txt.gz out.cov\n\t\t"
+    << "(runs NxtIRF - optionally using 4 threads)\n\t"
     << exec <<  " gen_map_reads genome.fa reads_out.fa 70 10\n\t\t"
     << "(where synthetic read length = 70, and read stride = 10)\n\t"
-    << exec <<  " gen_map_regions aligned_reads.bam 4 map.bed {map.cov}\n\t\t"   
-    << "(where threshold for low mappability = 4\n";
+    << exec <<  " gen_map_regions (-t 4) aligned_reads.bam 4 map.bed {map.cov}\n\t\t"   
+    << "(where threshold for low mappability = 4, - optionally using 4 threads\n";
 }
 
 // main
