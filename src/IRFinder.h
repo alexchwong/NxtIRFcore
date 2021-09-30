@@ -106,7 +106,7 @@ int IRF_core(std::string const &bam_file,
 
   int IRF_GenerateMappabilityRegions(
     std::string bam_file, std::string s_output_txt, 
-    int threshold, std::string s_output_cov = ""
+    int threshold, int n_threads = 1, std::string s_output_cov = ""
   );	
 
   int main(int argc, char * argv[]);

@@ -5,6 +5,10 @@ Has_OpenMP <- function() {
     .Call(`_NxtIRFcore_Has_OpenMP`)
 }
 
+Test_OpenMP_For <- function() {
+    .Call(`_NxtIRFcore_Test_OpenMP_For`)
+}
+
 IRF_Check_Cov <- function(s_in) {
     .Call(`_NxtIRFcore_IRF_Check_Cov`, s_in)
 }

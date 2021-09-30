@@ -33,6 +33,30 @@ int Has_OpenMP() {
 #endif
 }
 
+// [[Rcpp::export]]
+int Test_OpenMP_For() {
+// Returns -1 if no OpenMP; 0 if OpenMP works; 1 if compiled with OpenMP and only 1 thread; and 2 if compiled with OpenMP but parallel loops don't work
+  
+#ifdef _OPENMP
+  bool test_res = false;
+  if(omp_get_thread_limit() == 1) {
+    return 1;
+  } else {
+    bool std_false = (bool)omp_in_parallel();
+    // Test 2 threads
+    #pragma omp parallel for num_threads(2) schedule(static,1)
+    for(unsigned int i = 0; i < 2; i++) {
+      #pragma omp critical
+      test_res = (bool)omp_in_parallel();   // returns true iff in parallel loop
+    }
+    if(test_res && !std_false) return 0;
+  }
+  return 2;
+#else
+  return -1;
+#endif
+}
+
 int Set_Threads(int n_threads) {
 #ifdef _OPENMP
   int use_threads = 1;
@@ -49,6 +73,18 @@ int Set_Threads(int n_threads) {
 #else
 	return(1);
 #endif
+}
+
+
+inline bool see_if_file_exists(const std::string& name) {
+    std::ifstream f;
+    f.open(name);
+    if(f){
+      // cout << "File " << name << " exists\n";
+      return(true);
+    }
+    // cout << "File " << name << " doesn't exist\n";
+    return(false);
 }
 
 // [[Rcpp::export]]
@@ -220,6 +256,11 @@ List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end,
     _["lengths"] = 0 
   );
   
+  if(!see_if_file_exists(s_in)) {
+    cout << "File " << s_in << " does not exist!\n";
+    return(NULL_RLE);
+  }
+  
   if(start > end || start < 0){
     return(NULL_RLE);
   }
@@ -296,6 +337,11 @@ List IRF_RLEList_From_Cov(std::string s_in, int strand) {
     _["lengths"] = 0 
   );
   
+  if(!see_if_file_exists(s_in)) {
+    cout << "File " << s_in << " does not exist!\n";
+    return(NULL_RLE);
+  }
+
   List RLEList;
   
   std::ifstream inCov_stream;
@@ -343,6 +389,11 @@ List IRF_RLEList_From_Cov(std::string s_in, int strand) {
 // [[Rcpp::export]]
 List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
   List Final_final_list;
+
+  if(!see_if_file_exists(s_in)) {
+    cout << "File " << s_in << " does not exist!\n";
+    return(Final_final_list);
+  }
   
   GZReader gz_in;
   int ret = gz_in.LoadGZ(s_in, false, true);   // lazy mode
@@ -430,6 +481,11 @@ List IRF_gunzip_DF(std::string s_in, StringVector s_header_begin) {
 // [[Rcpp::export]]
 int IRF_gunzip(std::string s_in, std::string s_out) {
   
+  if(!see_if_file_exists(s_in)) {
+    cout << "File " << s_in << " does not exist!\n";
+    return(-1);
+  }
+
   GZReader gz_in;
   int ret = gz_in.LoadGZ(s_in, true);   // streamed mode
   if(ret != 0) return(ret);
@@ -502,6 +558,13 @@ int IRF_ref(std::string &reference_file,
     JunctionCount &JC_template, 
     bool verbose
 ) { 
+  (void)(verbose);
+
+  if(!see_if_file_exists(reference_file)) {
+    cout << "File " << reference_file << " does not exist!\n";
+    return(-1);
+  }
+
   GZReader * gz_in = new GZReader;
   int ret = gz_in->LoadGZ(reference_file, true);   // streamed mode
   if(ret != 0) return(-1);
@@ -592,6 +655,11 @@ int IRF_core(std::string const &bam_file,
     int n_threads
 ) {
   unsigned int n_threads_to_use = (unsigned int)n_threads;   // Should be sorted out in calling function
+ 
+  if(!see_if_file_exists(bam_file)) {
+    cout << "File " << bam_file << " does not exist!\n";
+    return(-1);
+  } 
  
   std::string myLine;
 	if(verbose) cout << "Processing BAM file " << bam_file << "\n";
@@ -740,8 +808,6 @@ int IRF_core(std::string const &bam_file,
     }
   }
 
-  if(verbose) cout << "Writing COV file\n";
-
   // Write Coverage Binary file:
   std::ofstream ofCOV;
   ofCOV.open(s_output_cov, std::ofstream::binary);
@@ -839,7 +905,7 @@ int IRF_main(
 #else
 int IRF_main(
     std::string bam_file, std::string reference_file, std::string s_output_txt,
-    std::string s_output_cov, int n_threads = 1
+    std::string s_output_cov, int n_threads
 ){
 	
   bool verbose = true;
@@ -849,7 +915,16 @@ int IRF_main(
   
   std::string s_bam = bam_file;
   std::string s_ref = reference_file;
-		
+  
+  if(!see_if_file_exists(s_bam)) {
+    cout << "File " << s_bam << " does not exist!\n";
+    return(-1);
+  } 
+  if(!see_if_file_exists(s_ref)) {
+    cout << "File " << s_ref << " does not exist!\n";
+    return(-1);
+  } 
+  
   if(verbose) {
     cout << "Running IRFinder on " << s_bam;
     if(Has_OpenMP() != 0) cout << " with OpenMP ";
@@ -971,6 +1046,11 @@ int IRF_GenerateMappabilityReads(
   std::string genome_file, std::string out_fa,
 	int read_len, int read_stride, int error_pos
 ) {
+
+  if(!see_if_file_exists(genome_file)) {
+    cout << "File " << genome_file << " does not exist!\n";
+    return(-1);
+  } 
   
   std::ifstream inGenome;
   inGenome.open(genome_file, std::ifstream::in);
@@ -1012,8 +1092,9 @@ int IRF_GenerateMappabilityReads(
     chr = inFA.seqname;
     char * buffer = new char[sequence.length() + 1];
     std::strcpy (buffer, sequence.c_str());
-
+#ifdef RNXTIRF
     size_t seq_progress = 0;
+#endif
     for(
         unsigned int bufferPos = 1; 
         bufferPos < sequence.length() - read_len + 1; 
@@ -1090,11 +1171,15 @@ int IRF_GenerateMappabilityRegions(
 #else
 int IRF_GenerateMappabilityRegions(
     std::string bam_file, std::string s_output_txt, 
-    int threshold, std::string s_output_cov
+    int threshold, int n_threads, std::string s_output_cov
 ){	
 	bool verbose = true;
-  int n_threads = 1;
 #endif
+
+  if(!see_if_file_exists(bam_file)) {
+    cout << "File " << bam_file << " does not exist!\n";
+    return(-1);
+  } 
 
   int use_threads = Set_Threads(n_threads);
   unsigned int n_threads_to_use = (unsigned int)use_threads;
@@ -1195,48 +1280,127 @@ int IRF_GenerateMappabilityRegions(
 
 #ifndef RNXTIRF
 
+void print_usage(std::string exec) {
+  cout << "Usage:\n\t"
+    << exec << " about\n\t\tDisplays version and OpenMP status\n\t"
+    << exec <<  " main (-t 4) in.bam IRFinder.ref.gz out.txt.gz out.cov\n\t\t"
+    << "(runs NxtIRF - optionally using 4 threads)\n\t"
+    << exec <<  " gen_map_reads genome.fa reads_out.fa 70 10\n\t\t"
+    << "(where synthetic read length = 70, and read stride = 10)\n\t"
+    << exec <<  " gen_map_regions (-t 4) aligned_reads.bam 4 map.bed {map.cov}\n\t\t"   
+    << "(where threshold for low mappability = 4, - optionally using 4 threads\n";
+}
+
 // main
 int main(int argc, char * argv[]) {
 	// Command line usage:
-    // nxtirf main sample.bam IRFinder.ref.gz OutputHeader
+    // nxtirf main sample.bam IRFinder.ref.gz Output.txt.gz 
     // nxtirf gen_map_reads genome.fa reads_to_map.fa 70 10
     // nxtirf gen_map_regions mappedreads.bam mappability.bed
+  int n_thr = 1;
+  int ret = 0;
+  if(argc < 2) {
+    print_usage(argv[0]);
+    return 0;
+  } else if(std::string(argv[1]) == "gen_map_reads") {
+      if(argc < 3){
+        print_usage(argv[0]);
+        exit(1);
+      }
+      std::string s_genome,s_output;
+      int read_len,read_stride,read_error;
 
-  if(std::string(argv[1]) == "gen_map_reads") {
-      std::string s_genome = argv[2];
-      std::string s_output = argv[3];
-      int read_len = atoi(argv[4]);
-      int read_stride = atoi(argv[5]);
-      int read_error = atoi(argv[4]) / 2;
-      IRF_GenerateMappabilityReads(
+      s_genome = argv[2];
+      s_output = argv[3];
+
+      if(argc > 4) {
+        read_len = atoi(argv[4]);
+      } else {
+        read_len = 70;
+      }
+      if(argc > 5) {
+        read_stride = atoi(argv[5]);
+      } else {
+        read_stride = 10;
+      }
+      read_error = 1 + (read_len / 2);
+      ret = IRF_GenerateMappabilityReads(
         s_genome, s_output, read_len, read_stride, read_error
       );
-      exit(0);
-  } else if(std::string(argv[1]) == "process_mappability_bam") {
-      std::string s_bam = argv[2];
-      std::string s_output = argv[3];
-      int threshold = atoi(argv[4]);
-      if(argc == 6) {
-        std::string s_cov = argv[5];
-        IRF_GenerateMappabilityRegions(s_bam, s_output, threshold, s_cov);
-        exit(0);          
-      } else {
-        IRF_GenerateMappabilityRegions(s_bam, s_output, threshold);
-        exit(0);
+      if(ret == 0) exit(0);
+      exit(1);
+  } else if(std::string(argv[1]) == "gen_map_regions") {
+      if(argc < 5){
+        print_usage(argv[0]);
+        exit(1);
       }
+      
+      std::string s_bam,s_output,s_cov;
+      if(std::string(argv[2]) == "-t") {
+        n_thr = atoi(argv[3]);
+        s_bam = argv[4];
+        int threshold = atoi(argv[5]);
+        s_output = argv[6];
+        if(argc > 7) {
+          s_cov = argv[7];
+          ret = IRF_GenerateMappabilityRegions(s_bam, s_output, threshold, n_thr, s_cov);
+        } else {
+          ret = IRF_GenerateMappabilityRegions(s_bam, s_output, threshold, n_thr);
+        }
+      } else {
+        s_bam = argv[2];
+        s_output = argv[3];
+        int threshold = atoi(argv[4]);
+        if(argc > 5) {
+          s_cov = argv[5];
+          ret = IRF_GenerateMappabilityRegions(s_bam, s_output, threshold, n_thr,s_cov);
+        } else {
+          ret = IRF_GenerateMappabilityRegions(s_bam, s_output, threshold, n_thr);
+        }
+      }
+      exit(ret);;      
+  } else if(std::string(argv[1]) == "about") {
+      std::string version = "0.99.0";
+      cout << "NxtIRF version " << version << "\t";
+      int ret = Test_OpenMP_For();
+      if(ret == -1) {
+        cout << "compiled without OpenMP\n";
+      } else if(ret == 0) {
+        cout << "compiled with OpenMP, threads avail = " << Has_OpenMP() << "\n";
+      } else if(ret == 1) {
+        cout << "compiled with OpenMP, threads avail = " << 1 << "\n";
+      } else {
+        cout << "compiled with OpenMP but parallel loops could not be initialised" << "\n";
+      }
+      exit(0);
   } else if(std::string(argv[1]) == "main") {
-      std::string s_bam = argv[2];
-      std::string s_ref = argv[3];
-      std::string s_output_txt = argv[4];		
-      std::string s_output_cov = argv[5];		
-  IRF_main(s_bam, s_ref, s_output_txt, s_output_cov);
+      if(argc < 6){
+        print_usage(argv[0]);
+        exit(1);
+      }
+      
+      int n_thr = 1; std::string s_bam,s_ref,s_output_txt,s_output_cov;
+      
+      if(std::string(argv[2]) == "-t") {
+        n_thr = atoi(argv[3]);
+        s_bam = argv[4];
+        s_ref = argv[5];
+        s_output_txt = argv[6];		
+        s_output_cov = argv[7];
+      } else {
+        s_bam = argv[2];
+        s_ref = argv[3];
+        s_output_txt = argv[4];		
+        s_output_cov = argv[5];
+      }
+      ret = IRF_main(s_bam, s_ref, s_output_txt, s_output_cov, n_thr);
+      exit(ret);
   } else {
-    cout << "Usage:\n\t"
-      << argv[0] <<  " main samplename.bam IRFinder.ref.gz samplename.txt.gz samplename.cov\n"
-      << argv[0] <<  " main samplename.bam IRFinder.ref.gz samplename.txt.gz samplename.cov\n"
-      << argv[0] <<  " gen_map_reads genome.fa reads_to_map.fa 70 10\n"
-      << argv[0] <<  " gen_map_regions mappedreads.bam mappability.bed {mappability.cov}";   
+    print_usage(argv[0]);
+    exit(0);
   }
 }
 
 #endif
+
+// Has_OpenMP

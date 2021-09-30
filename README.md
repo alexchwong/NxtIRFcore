@@ -5,6 +5,16 @@ NxtIRF quantifies Intron Retention and Alternative Splicing from BAM files using
 ## Installation
 
 ### On current R (>= 4.0.0)
+
+* Requires Bioconductor devel version:
+
+```
+if (!requireNamespace("BiocManager", quietly=TRUE))
+    install.packages("BiocManager")
+BiocManager::install(version = "devel")
+BiocManager::valid()              # checks for out of date packages
+```
+
 * Development version from Github (NxtIRFcore and its dependency NxtIRFdata):
 ```
 library("devtools")

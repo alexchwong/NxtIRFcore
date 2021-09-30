@@ -20,6 +20,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// Test_OpenMP_For
+int Test_OpenMP_For();
+RcppExport SEXP _NxtIRFcore_Test_OpenMP_For() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(Test_OpenMP_For());
+    return rcpp_result_gen;
+END_RCPP
+}
 // IRF_Check_Cov
 bool IRF_Check_Cov(std::string s_in);
 RcppExport SEXP _NxtIRFcore_IRF_Check_Cov(SEXP s_inSEXP) {
@@ -146,6 +156,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_NxtIRFcore_Has_OpenMP", (DL_FUNC) &_NxtIRFcore_Has_OpenMP, 0},
+    {"_NxtIRFcore_Test_OpenMP_For", (DL_FUNC) &_NxtIRFcore_Test_OpenMP_For, 0},
     {"_NxtIRFcore_IRF_Check_Cov", (DL_FUNC) &_NxtIRFcore_IRF_Check_Cov, 1},
     {"_NxtIRFcore_IRF_RLE_From_Cov", (DL_FUNC) &_NxtIRFcore_IRF_RLE_From_Cov, 5},
     {"_NxtIRFcore_IRF_RLEList_From_Cov", (DL_FUNC) &_NxtIRFcore_IRF_RLEList_From_Cov, 2},

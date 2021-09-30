@@ -10,7 +10,7 @@ Mappability_GenReads(
   reference_path,
   read_len = 70,
   read_stride = 10,
-  error_pos = 36,
+  error_pos = 35,
   verbose = TRUE,
   alt_fasta_file
 )

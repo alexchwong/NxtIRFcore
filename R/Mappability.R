@@ -124,9 +124,9 @@ NULL
 #' genome FASTA file, for mappability calculations. 
 #' @export
 Mappability_GenReads <- function(reference_path,
-        read_len = 70, read_stride = 10, error_pos = 36,
+        read_len = 70, read_stride = 10, error_pos = 35,
         verbose = TRUE, alt_fasta_file) {
-    .gmr_check_params(read_len, read_stride, error_pos)
+    .gmr_check_params(read_len, read_stride, error_pos + 1)
     if(missing(alt_fasta_file)) {
         alt_fasta_file = .STAR_get_FASTA(reference_path)
         if(!file.exists(alt_fasta_file))
@@ -142,7 +142,7 @@ Mappability_GenReads <- function(reference_path,
     .log(paste("Generating synthetic reads, saving to", outfile), "message")
     .run_IRFinder_GenerateMapReads(
         normalizePath(alt_fasta_file), outfile,
-        read_len, read_stride, error_pos
+        read_len, read_stride, error_pos + 1
     )
     .STAR_clean_temp_FASTA_GTF(reference_path)
 }
