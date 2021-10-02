@@ -440,16 +440,16 @@ BuildReference_Full <- function(
 Get_Genome <- function(reference_path, validate = TRUE, 
         as_DNAStringSet = FALSE) {
     if(validate) .validate_reference(reference_path)
-    if(file.exists(file.path(reference_path, "resource", "genome.2bit"))) {
-        return(rtracklayer::TwoBitFile(
-            file.path(reference_path, "resource", "genome.2bit")))
+    twobit <- file.path(reference_path, "resource", "genome.2bit")
+    if(file.exists(twobit)) {
+        genome <- rtracklayer::TwoBitFile(twobit)
     } else if(file.exists(file.path(reference_path, "settings.Rds"))){
         settings = readRDS(file.path(reference_path, "settings.Rds"))
         genome = .fetch_AH(settings$ah_genome, rdataclass = "TwoBitFile")
     } else {
         .log("In Get_Genome, invalid reference_path supplied")
     }
-    if(as_DNAStringSet) return(import(genome))
+    if(as_DNAStringSet) genome <- rtracklayer::import(genome)
     return(genome)
 }
 
@@ -722,8 +722,16 @@ Get_GTF_file <- function(reference_path) {
         return(genome)
     } else if(fasta == "") {
         twobit = file.path(reference_path, "resource", "genome.2bit")
-        genome <- TwoBitFile(twobit)
-        genome = .fetch_genome_as_required(genome, pseudo_fetch)
+        if(file.exists(twobit)) {
+            .log("Connecting to genome TwoBitFile...", "message", 
+                appendLF = FALSE)
+            genome <- Get_Genome(reference_path, validate = FALSE,
+                as_DNAStringSet = !pseudo_fetch)
+            message("done")
+            return(genome)
+        } else {
+            .log("Resource genome is not available; `fasta` parameter required")
+        }
         return(genome)
     } else {
         # If no overwrite, quickly return genome.2bit if exists
@@ -732,25 +740,30 @@ Get_GTF_file <- function(reference_path) {
             if(file.exists(twobit)) {
                 .log("Connecting to genome TwoBitFile...", "message", 
                     appendLF = FALSE)
-                genome_2bit <- Get_Genome(reference_path, validate = FALSE)
+                genome <- Get_Genome(reference_path, validate = FALSE,
+                    as_DNAStringSet = !pseudo_fetch)
                 message("done")
-                return(genome_2bit)
+                return(genome)
             }
         }       
+        .log("Converting FASTA to local TwoBitFile...", "message", 
+            appendLF = FALSE)
         fasta_file <- .parse_valid_file(fasta, force_download = force_download)
-        if(!file.exists(fasta_file)) {
+        if(!file.exists(fasta_file))
             .log(paste("In .fetch_fasta(),",
                 "Given genome fasta file", fasta, "not found"))
-        }
         genome <- .fetch_fasta_file(fasta_file)
         .fetch_fasta_save_2bit(genome, reference_path, overwrite)
-        if(!pseudo_fetch) return(genome)
-        rm(genome)
-        gc()
-        .log("Connecting to genome TwoBitFile...", "message", appendLF = FALSE)
-            genome_2bit <- Get_Genome(reference_path, validate = FALSE)
         message("done")
-        return(genome_2bit)
+        rm(genome)
+        gc() # free memory before re-import
+        .log("Connecting to genome TwoBitFile...", "message", appendLF = FALSE)
+        genome <- Get_Genome(reference_path, validate = FALSE,
+            as_DNAStringSet = !pseudo_fetch)
+        # TwoBitFile's getSeq is slow on some linux systems (don't know why)
+        # Importing TwoBitFile as a proper DNAStringSet
+        message("done")
+        return(genome)
     }
 }
 
@@ -763,9 +776,9 @@ Get_GTF_file <- function(reference_path) {
 }
 
 .fetch_fasta_file <- function(fasta_file) {
-    .log("Importing genome into memory...", "message", appendLF = FALSE)
+    # .log("Importing genome into memory...", "message", appendLF = FALSE)
     genome <- Biostrings::readDNAStringSet(fasta_file)
-    message("done")
+    # message("done")
     return(genome)
 }
 
@@ -787,7 +800,7 @@ Get_GTF_file <- function(reference_path) {
             normalizePath(rtracklayer::path(genome)) == 
             normalizePath(genome.2bit)) return()    # prevent self-writing
     if(overwrite || !file.exists(genome.2bit)) {
-        .log("Saving genome as TwoBitFile...", "message", appendLF = FALSE)
+        # .log("Saving genome as TwoBitFile...", "message", appendLF = FALSE)
         if(overwrite && file.exists(genome.2bit)) {
             file.remove(genome.2bit)
         }
@@ -796,7 +809,7 @@ Get_GTF_file <- function(reference_path) {
         } else {
             rtracklayer::export(genome, genome.2bit, "2bit")
         }
-        message("done")
+        # message("done")
     }
 }
 
@@ -928,6 +941,13 @@ Get_GTF_file <- function(reference_path) {
     }
 }
 
+# debug function
+.get_NxtIRFcore_cache <- function() {
+    cache <- tools::R_user_dir(package = "NxtIRFcore", which="cache")
+    bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
+    bfc
+}
+
 .parse_valid_file <- function(file, msg = "", force_download = FALSE) {
     if (!is_valid(file)) {
         .log(msg, type = "message")
@@ -953,7 +973,7 @@ Get_GTF_file <- function(reference_path) {
         # remove prior versions from cache to remove glut
         res <- BiocFileCache::bfcquery(bfc, url, "fpath", exact = TRUE)
         BiocFileCache::bfcremove(bfc, res$rid[-nrow(res)])
-        return(res$rname[nrow(res)])
+        return(res$rpath[nrow(res)])
     } else if (!file.exists(file)) {
         .log(paste(file, "not found.", msg), type = "message")
         return("")
