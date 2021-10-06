@@ -1,2 +1,5 @@
+Changes in version 0.99.2 (2021-10-07)
++ Fixed bug in Find_FASTQ
+
 Changes in version 0.99.0 (2021-09-29)
 + Bioconductor Release

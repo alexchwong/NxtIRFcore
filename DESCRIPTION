@@ -1,7 +1,7 @@
 Package: NxtIRFcore
 Title: Core Engine for NxtIRF: a User-Friendly Intron Retention and Alternative 
   Splicing Analysis using the IRFinder Engine
-Version: 0.99.1
+Version: 0.99.2
 Date: 2021-09-29
 Authors@R: c(person("Alex Chit Hei", "Wong", email="a.wong@centenary.org.au", 
 		role=c("aut", "cre", "cph")),
