@@ -62,7 +62,7 @@
 #'   `Event` and `Gene`. E.g. for a given region of chr1:10000-11000,
 #'   use the parameters: `seqname = "chr1", start = 10000, end = 11000`
 #' @param coordinates A string specifying genomic coordinates can be given
-#'   instead of `seqname,start,end`. Must be of the format "chr:start-end", e.g. 
+#'   instead of `seqname,start,end`. Must be of the format "chr:start-end", e.g.
 #'   "chr1:10000-11000"
 #' @param strand Whether to show coverage of both strands "*" (default), or
 #'   from the "+" or "-" strand only.

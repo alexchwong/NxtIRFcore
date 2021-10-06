@@ -256,8 +256,8 @@ BuildReference(
     genome_type = "hg38" 
 )
 
-# NB: Setting `genome_type = hg38`, will automatically use default nonPolyARef
-# and MappabilityRef for `hg38`
+# NB: Setting `genome_type = hg38`, will automatically use default 
+# nonPolyARef and MappabilityRef for `hg38`
 
 # Reference generation from Ensembl's FTP links:
 

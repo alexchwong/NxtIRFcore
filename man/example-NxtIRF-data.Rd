@@ -30,7 +30,7 @@ in the example code in \link{MakeSE}
 \item \code{NxtIRF_example_bams}: Returns a 2-column data frame, containing 
 sample names and sample paths (in tempdir()) of example BAM files
 
-\item \code{NxtIRF_example_NxtSE}: Returns a (in-memory / realized) NxtSE object 
+\item \code{NxtIRF_example_NxtSE}: Returns a (in-memory / realized) NxtSE object
 that was pre-generated using the NxtIRF example reference and example 
 BAM files
 }}

@@ -51,7 +51,7 @@
 #'   [Mappability-methods].
 #'   Ignored if \code{also_generate_mappability = FALSE}
 #' @param sjdbOverhang (Default = 149) A STAR setting indicating the length of 
-#'   the donor / acceptor sequence on each side of the junctions. Ideally equal 
+#'   the donor / acceptor sequence on each side of the junctions. Ideally equal
 #'   to (mate_length - 1). As the most common read length is 150, the default
 #'   of this function is 149. See the STAR aligner manual for details.
 #' @param n_threads The number of threads to run the STAR aligner.
@@ -451,9 +451,10 @@ STAR_align_fastq <- function(
     
     if(paired) args = c(args, paste(fastq_2, collapse = ","))
     if(gzipped) args = c(args, "--readFilesCommand", shQuote("gzip -dc"))
-    if(is_valid(trim_adaptor)) args = c(args, "--clip3pAdapterSeq", trim_adaptor)
-    if(!is.null(additional_args) && all(is.character(additional_args))) args = c(args, 
-        additional_args)
+    if(is_valid(trim_adaptor)) 
+        args = c(args, "--clip3pAdapterSeq", trim_adaptor)
+    if(!is.null(additional_args) && all(is.character(additional_args))) 
+        args = c(args, additional_args)
 
     system2(command = "STAR", args = args)
 }
@@ -524,7 +525,8 @@ STAR_align_fastq <- function(
 .STAR_clean_temp_FASTA_GTF <- function(reference_path) {
     .log("Cleaning temp genome / gene annotation files", "message")
     genome.fa = file.path(reference_path, "resource", "genome.fa.temp")
-    transcripts.gtf = file.path(reference_path, "resource", "transcripts.gtf.temp")
+    transcripts.gtf = file.path(reference_path, 
+        "resource", "transcripts.gtf.temp")
     if(file.exists(genome.fa)) file.remove(genome.fa)
     if(file.exists(transcripts.gtf)) file.remove(transcripts.gtf)
 }

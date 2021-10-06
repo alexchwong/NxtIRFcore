@@ -84,7 +84,7 @@
 #'   * EventRegion: The genomic coordinates the event occupies. This spans the
 #'     most upstream and most downstream splice junction involved in the ASE,
 #'     and is use to guide the [Plot_Coverage] function.
-#'   * NMD_direction: Indicates whether one isoform is a NMD substrate. +1 means 
+#'   * NMD_direction: Indicates whether one isoform is a NMD substrate. +1 means
 #'     included isoform is NMD, -1 means the excluded isoform is NMD, and 0 
 #'     means there is no change in NMD status (i.e. both / neither are NMD)
 #'   * AvgPSI_nom, Avg_PSI_denom: the average percent spliced in / percent 

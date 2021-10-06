@@ -35,7 +35,7 @@
 #'   Omit `colData` to generate a NxtSE object of the whole dataset without
 #'   any assigned annotations.
 #'   Alternatively, if the names of only a subset of samples are given, then
-#'   `MakeSE()` will construct the NxtSE object based only on the samples given. 
+#'   `MakeSE()` will construct the NxtSE object based only on the samples given.
 #'   The colData can be set later using `colData()`
 #' @param RemoveOverlapping (default = `TRUE`) Whether to filter out overlapping
 #'   novel IR events belonging to minor isoforms. See details.

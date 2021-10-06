@@ -170,8 +170,8 @@
 #'     genome_type = "hg38" 
 #' )
 #'
-#' # NB: Setting `genome_type = hg38`, will automatically use default nonPolyARef
-#' # and MappabilityRef for `hg38`
+#' # NB: Setting `genome_type = hg38`, will automatically use default 
+#' # nonPolyARef and MappabilityRef for `hg38`
 #'
 #' # Reference generation from Ensembl's FTP links:
 #' 
@@ -694,7 +694,7 @@ Get_GTF_file <- function(reference_path) {
     if(!pseudo_fetch) {
         .log("Importing genome sequences to memory...", "message", 
             appendLF = FALSE)
-        genome = import(genome)     # Fetch as DNAStringSet - avoid TwoBit lag    
+        genome = import(genome)     # Fetch as DNAStringSet - avoid TwoBit lag
         message("done")
     }
     return(genome)

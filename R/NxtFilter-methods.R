@@ -150,7 +150,7 @@ setMethod("show", "NxtFilter", function(object) {
     } else if(mode == "Coverage minimum") {
         if(any(EventTypes %in% c("IR", "RI"))) {
             cat("In retained introns, coverage refers to the proportion of the")
-            cat(" measured intron that is covered by at least 1 alignment\n")    
+            cat(" measured intron that is covered by at least 1 alignment\n")
         }
         if(any(EventTypes %in% c("MXE", "SE", "ALE", "AFE", "A3SS", "A5SS"))) {
             cat("In splice events, coverage refers to the proportion of ")

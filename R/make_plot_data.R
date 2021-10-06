@@ -92,8 +92,10 @@ make_matrix <- function(
     if(!any(event_list %in% rownames(se))) .log(
         "None of events in event_list matches those in the NxtSE object")
     method = match.arg(method)
-    inc = as.matrix(assay(se, "Included")[event_list, sample_list, drop = FALSE])
-    exc = as.matrix(assay(se, "Excluded")[event_list, sample_list, drop = FALSE])
+    inc = as.matrix(assay(se, "Included")[
+        event_list, sample_list, drop = FALSE])
+    exc = as.matrix(assay(se, "Excluded")[
+        event_list, sample_list, drop = FALSE])
     mat = inc/(inc + exc)
     mat[inc + exc < depth_threshold] = NA
     mat = mat[rowSums(is.na(mat)) < na.percent.max * ncol(mat),, drop = FALSE]

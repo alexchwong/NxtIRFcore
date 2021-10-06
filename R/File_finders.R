@@ -151,8 +151,11 @@ Find_Samples <- function(sample_path, suffix = ".txt.gz", level = 0) {
 Find_FASTQ <- function(sample_path, paired = TRUE, 
         fastq_suffix = c(".fastq", ".fq", ".fastq.gz", ".fq.gz"), level = 0) {
     fastq_suffix = match.arg(fastq_suffix)
-    suffix_use = ifelse(paired, paste0(c("_1", "_2"), fastq_suffix), 
-        fastq_suffix)
+    if(paired) {
+        suffix_use = paste0(c("_1", "_2"), fastq_suffix)
+    } else {
+        suffix_use = fastq_suffix
+    }
     DT = Find_Samples(sample_path, suffix_use, level = level)
     colnames(DT)[2] = "forward"
     if(paired) colnames(DT)[3] = "reverse"

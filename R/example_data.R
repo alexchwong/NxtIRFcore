@@ -52,7 +52,7 @@ NxtIRF_example_bams <- function() {
     return(Find_Bams(tempdir()))
 }
 
-#' @describeIn example-NxtIRF-data Returns a (in-memory / realized) NxtSE object 
+#' @describeIn example-NxtIRF-data Returns a (in-memory / realized) NxtSE object
 #' that was pre-generated using the NxtIRF example reference and example 
 #' BAM files
 #' @export
