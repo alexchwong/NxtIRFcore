@@ -819,7 +819,7 @@ plot_view_ref_fn <- function(
 
     # Highlight events here
     # highlight_events is of syntax chrX:10000-11000/-
-    if(highlight_events != "")  
+    if(length(highlight_events) > 1 || highlight_events != "")  
         reduced.DT = determine_compatible_events(reduced.DT, highlight_events)
     
     return(list(
@@ -972,7 +972,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
             )
         )
     }
-    if(highlight_events != "") {
+    if(length(highlight_events) > 1 || highlight_events != "") {
         p = p + scale_color_manual(values = c("black", "blue", "red")) +
             scale_fill_manual(values = c("black", "blue", "red"))
     }
