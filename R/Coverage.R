@@ -439,7 +439,7 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
 
     if(is.null(gr$cov_mean)) gr$cov_mean = 0
     gr$cov_mean[todo] = round(
-        aggregate(data, IRanges(start(gr[todo]), end(gr[todo])), FUN = mean),
+        aggregate(cov_data, IRanges(start(gr[todo]), end(gr[todo])), FUN = mean),
         2
     )
 
