@@ -246,9 +246,7 @@ bool checkDNA(char * input_read, unsigned int read_len) {
 // Below are Rcpp-only functions
 
 // [[Rcpp::export]]
-List IRF_RLE_From_Cov(
-  std::string s_in, std::string seqname, int start, int end, int strand
-) {
+List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end, int strand) {
 // Returns an RLE covering the region described above
 // s_in: The coverage file
 // strand: 0 = -, 1 = +, 2 = *

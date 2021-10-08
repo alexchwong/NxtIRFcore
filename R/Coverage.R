@@ -488,10 +488,13 @@ GetCoverageRegions <- function(file, regions,
     return(regions)
 }
 
+
+
 #' @describeIn Coverage Retrieves alignment coverage as a data.frame
 #' @export
 GetCoverage_DF <- function(file, seqname = "", start = 0, end = 0, 
-        strand = c("*", "+", "-")) {
+        strand = c("*", "+", "-")
+) {
     if(seqname == "") .log("seqname must not be omitted in GetCoverage_DF")
     cov = GetCoverage(file, seqname, start, end, strand)
     view = IRanges::Views(cov, start + 1, end)
