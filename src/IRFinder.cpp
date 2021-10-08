@@ -1318,6 +1318,112 @@ int IRF_GenerateMappabilityRegions(
   return(0);
 }
 
+
+#ifdef RNXTIRF
+// [[Rcpp::export]]
+int IRF_BAM2COV(
+    std::string bam_file, std::string output_file, 
+    bool verbose, int n_threads
+){
+  
+#else
+int IRF_BAM2COV(
+    std::string bam_file, std::string output_file, int n_threads
+){	
+	bool verbose = true;
+#endif
+
+  std::string s_output_cov = output_file;
+
+  if(!see_if_file_exists(bam_file)) {
+    cout << "File " << bam_file << " does not exist!\n";
+    return(-1);
+  } 
+
+  int use_threads = Set_Threads(n_threads);
+  unsigned int n_threads_to_use = (unsigned int)use_threads;
+ 
+  std::string myLine;
+	if(verbose) cout << "Creating COV file from " << bam_file << "\n";
+
+  pbam_in inbam((size_t)5e8, (size_t)1e9, 5);
+  inbam.openFile(bam_file, n_threads_to_use);
+
+  // Assign children:
+  std::vector<FragmentsMap*> oFM;
+  std::vector<BAM2blocks*> BBchild;
+
+  for(unsigned int i = 0; i < n_threads_to_use; i++) {
+    oFM.push_back(new FragmentsMap);
+    BBchild.push_back(new BAM2blocks);
+
+    BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&FragmentsMap::ChrMapUpdate, &(*oFM.at(i)), std::placeholders::_1) );
+    BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&FragmentsMap::ProcessBlocks, &(*oFM.at(i)), std::placeholders::_1) );
+
+    BBchild.at(i)->openFile(&inbam);
+  }
+  
+  // BAM processing loop
+#ifdef RNXTIRF
+  Progress p(inbam.GetFileSize(), verbose);
+  while(0 == inbam.fillReads() && !p.check_abort()) {
+    p.increment(inbam.IncProgress());
+  
+#else
+  while(0 == inbam.fillReads()) {
+#endif
+  
+    #ifdef _OPENMP
+    #pragma omp parallel for num_threads(n_threads_to_use) schedule(static,1)
+    #endif
+    for(unsigned int i = 0; i < n_threads_to_use; i++) {
+      BBchild.at(i)->processAll(i, true);
+    }
+  }
+
+#ifdef RNXTIRF
+  if(p.check_abort()) {
+    // interrupted:
+    for(unsigned int i = 0; i < n_threads_to_use; i++) {
+      delete oFM.at(i);
+      delete BBchild.at(i);
+    }
+    return(-1);
+  }
+#endif
+  
+  inbam.closeFile();
+
+  if(n_threads_to_use > 1) {
+    if(verbose) cout << "Compiling data from threads\n";
+  // Combine BB's and process spares
+    for(unsigned int i = 1; i < n_threads_to_use; i++) {
+      BBchild.at(0)->processSpares(*BBchild.at(i));
+      delete BBchild.at(i);
+    }
+  // Combine objects:
+    for(unsigned int i = 1; i < n_threads_to_use; i++) {
+      oFM.at(0)->Combine(*oFM.at(i));
+
+      delete oFM.at(i);
+    }
+  }
+
+  // Write Coverage Binary file:
+  std::ofstream ofCOV;
+  ofCOV.open(s_output_cov, std::ofstream::binary);  
+  covWriter outCOV;
+  outCOV.SetOutputHandle(&ofCOV);
+  oFM.at(0)->WriteBinary(&outCOV, verbose, n_threads_to_use);
+  ofCOV.close();
+
+  delete oFM.at(0);
+  delete BBchild.at(0);
+
+  return(0);
+}
+
+
 // ################################## MAIN #####################################
 
 #ifndef RNXTIRF
@@ -1327,6 +1433,8 @@ void print_usage(std::string exec) {
     << exec << " about\n\t\tDisplays version and OpenMP status\n\t"
     << exec <<  " main (-t 4) in.bam IRFinder.ref.gz out.txt.gz out.cov\n\t\t"
     << "(runs NxtIRF - optionally using 4 threads)\n\t"
+    << exec <<  " bam2cov (-t 4) in.bam out.cov"
+    << "(runs NxtIRF's Bam to Cov utility - optionally using 4 threads)\n\t"
     << exec <<  " gen_map_reads genome.fa reads_out.fa 70 10\n\t\t"
     << "(where synthetic read length = 70, and read stride = 10)\n\t"
     << exec <<  " gen_map_regions (-t 4) aligned_reads.bam 4 map.bed {map.cov}\n\t\t"   
@@ -1336,7 +1444,8 @@ void print_usage(std::string exec) {
 // main
 int main(int argc, char * argv[]) {
 	// Command line usage:
-    // nxtirf main sample.bam IRFinder.ref.gz Output.txt.gz 
+    // nxtirf main -t N sample.bam IRFinder.ref.gz Output.txt.gz 
+    // nxtirf bam2cov -t N sample.bam sample.cov
     // nxtirf gen_map_reads genome.fa reads_to_map.fa 70 10
     // nxtirf gen_map_regions mappedreads.bam mappability.bed
   int n_thr = 1;
@@ -1436,6 +1545,27 @@ int main(int argc, char * argv[]) {
         s_output_cov = argv[5];
       }
       ret = IRF_main(s_bam, s_ref, s_output_txt, s_output_cov, n_thr);
+      exit(ret);
+  } else if(std::string(argv[1]) == "bam2cov") {
+      if(argc < 4){
+        print_usage(argv[0]);
+        exit(1);
+      }
+      
+      int n_thr = 1; std::string s_bam,s_output_cov;
+      
+      if(std::string(argv[2]) == "-t" && argc == 6) {
+        n_thr = atoi(argv[3]);
+        s_bam = argv[4];
+        s_output_cov = argv[5];
+      } else if(argc == 4){
+        s_bam = argv[2];
+        s_output_cov = argv[3];
+      } else {
+        print_usage(argv[0]);
+        exit(1);
+      }
+      ret = IRF_BAM2COV(s_bam, s_output_cov, n_thr);
       exit(ret);
   } else {
     print_usage(argv[0]);

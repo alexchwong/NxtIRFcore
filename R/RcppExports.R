@@ -49,3 +49,7 @@ IRF_GenerateMappabilityRegions <- function(bam_file, output_file, threshold, inc
     .Call(`_NxtIRFcore_IRF_GenerateMappabilityRegions`, bam_file, output_file, threshold, includeCov, verbose, n_threads)
 }
 
+IRF_BAM2COV <- function(bam_file, output_file, verbose, n_threads) {
+    .Call(`_NxtIRFcore_IRF_BAM2COV`, bam_file, output_file, verbose, n_threads)
+}
+
