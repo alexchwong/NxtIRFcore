@@ -417,37 +417,6 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
     }
 }
 
-.cov_get_mean <- function(data, start, end) {
-    return(round(
-        aggregate(data, IRanges(start, end), FUN = mean), 2
-        # sum(IRanges::Views(data, start, end)) / (end - start + 1), 2
-    ))
-}
-
-.cov_means <- function(gr, seq, strand, data) {
-    # data is an RLE
-    # seq and strand must match gr
-    if(!any(
-        as.character(seqnames(gr)) %in% seq &
-        as.character(strand(gr)) %in% strand
-    )) return(gr)
-    
-    if(is.null(gr$cov_mean)) gr$cov_mean = 0
-    cov_mean = gr$cov_mean
-    
-    todo = which(
-        as.character(seqnames(gr)) %in% seq & 
-        as.character(strand(gr)) %in% strand
-    )
-    if(length(todo) > 0) {
-        cov_mean[todo] = .cov_get_mean(data = data,
-            start = start(gr[todo]), end = end(gr[todo])
-        )
-    }
-    gr$cov_mean = cov_mean
-    return(gr)
-}
-
 .cov_process_regions <- function(file, gr, seq, strand_gr, strand_cov) {
     # adds cov_mean from cov file to gr, only for given seqname seq
     # strand_gr and strand_cov are matching strand info for gr and cov
@@ -467,7 +436,12 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
         max(end(gr[todo])), 
         strand_cov
     )
-    gr = .cov_means(gr, seq, strand_gr, cov_data)
+
+    if(is.null(gr$cov_mean)) gr$cov_mean = 0
+    gr$cov_mean[todo] = round(
+        aggregate(data, IRanges(start(gr[todo]), end(gr[todo])), FUN = mean),
+        2
+    )
 
     return(gr)
 }
