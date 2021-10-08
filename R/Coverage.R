@@ -417,6 +417,61 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
     }
 }
 
+.cov_get_mean <- function(data, start, end) {
+    return(round(
+        aggregate(data, IRanges(start, end), FUN = mean), 2
+        # sum(IRanges::Views(data, start, end)) / (end - start + 1), 2
+    ))
+}
+
+.cov_means <- function(gr, seq, strand, data) {
+    # data is an RLE
+    # seq and strand must match gr
+    if(!any(
+        as.character(seqnames(gr)) %in% seq &
+        as.character(strand(gr)) %in% strand
+    )) return(gr)
+    
+    if(is.null(gr$cov_mean)) gr$cov_mean = 0
+    cov_mean = gr$cov_mean
+    
+    todo = which(
+        as.character(seqnames(gr)) %in% seq & 
+        as.character(strand(gr)) %in% strand
+    )
+    if(length(todo) > 0) {
+        cov_mean[todo] = .cov_get_mean(data = data,
+            start = start(gr[todo]), end = end(gr[todo])
+        )
+    }
+    gr$cov_mean = cov_mean
+    return(gr)
+}
+
+.cov_process_regions <- function(file, gr, seq, strand_gr, strand_cov) {
+    # adds cov_mean from cov file to gr, only for given seqname seq
+    # strand_gr and strand_cov are matching strand info for gr and cov
+    if(!any(
+        as.character(seqnames(gr)) %in% seq &
+        as.character(strand(gr)) %in% strand_gr
+    )) return(gr)
+    
+    todo = which(
+        as.character(seqnames(gr)) %in% seq &
+        as.character(strand(gr)) %in% strand_gr
+    )
+
+    cov_data <- GetCoverage(
+        file, seq, 
+        min(start(gr[todo])) - 1, 
+        max(end(gr[todo])), 
+        strand_cov
+    )
+    gr = .cov_means(gr, seq, strand_gr, cov_data)
+
+    return(gr)
+}
+
 # Gets the per region total coverage:
 
 #' @describeIn Coverage Retrieves total and mean coverage of a GRanges object
@@ -437,29 +492,25 @@ GetCoverageRegions <- function(file, regions,
         .log("COV file and given regions have incompatible seqnames")
     seqlevels(regions, pruning.mode = "coarse") <- seqlevels
     if(length(regions) == 0) return(regions)
-    
-    seqs = as.numeric(seqnames(regions)) - 1
-    starts = c(start(regions) - 1)
-    ends = c(end(regions))
-    
+
     if(strandmode == "unstranded") {
-        strands = rep(2, length(regions))
+        for(seq in unique(seqnames(regions))) {
+            regions = .cov_process_regions(file, regions, seq, c("+", "-", "*"), "*")
+        }
     } else if(strandmode == "forward") {
-        strandlevels = c("-", "+", "*")
-        strands = as.numeric(
-            factor(as.character(strand(regions)), strandlevels)
-        ) - 1
+        for(seq in unique(seqnames(regions))) {
+            regions = .cov_process_regions(file, regions, seq, "*", "*")
+            regions = .cov_process_regions(file, regions, seq, "+", "+")
+            regions = .cov_process_regions(file, regions, seq, "-", "-")
+        }
     } else {
-        strandlevels = c("+", "-", "*")
-        strands = as.numeric(
-            factor(as.character(strand(regions)), strandlevels)
-        ) - 1
+        for(seq in unique(seqnames(regions))) {
+            regions = .cov_process_regions(file, regions, seq, "*", "*")
+            regions = .cov_process_regions(file, regions, seq, "-", "+")
+            regions = .cov_process_regions(file, regions, seq, "+", "-")
+        }
     }
-    
-    raw_vector = IRF_Regions_From_Cov(normalizePath(file), 
-        seqs, starts, ends, strands)
-    regions$cov_total = raw_vector
-    regions$cov_mean = round(regions$cov_total / width(regions), 2)
+
     return(regions)
 }
 

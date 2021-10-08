@@ -67,21 +67,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// IRF_Regions_From_Cov
-NumericVector IRF_Regions_From_Cov(std::string s_in, NumericVector i_seqnames, NumericVector i_starts, NumericVector i_ends, NumericVector i_strands);
-RcppExport SEXP _NxtIRFcore_IRF_Regions_From_Cov(SEXP s_inSEXP, SEXP i_seqnamesSEXP, SEXP i_startsSEXP, SEXP i_endsSEXP, SEXP i_strandsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type s_in(s_inSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type i_seqnames(i_seqnamesSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type i_starts(i_startsSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type i_ends(i_endsSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type i_strands(i_strandsSEXP);
-    rcpp_result_gen = Rcpp::wrap(IRF_Regions_From_Cov(s_in, i_seqnames, i_starts, i_ends, i_strands));
-    return rcpp_result_gen;
-END_RCPP
-}
 // IRF_RLEList_From_Cov
 List IRF_RLEList_From_Cov(std::string s_in, int strand);
 RcppExport SEXP _NxtIRFcore_IRF_RLEList_From_Cov(SEXP s_inSEXP, SEXP strandSEXP) {
@@ -186,7 +171,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_NxtIRFcore_IRF_Check_Cov", (DL_FUNC) &_NxtIRFcore_IRF_Check_Cov, 1},
     {"_NxtIRFcore_IRF_RLE_From_Cov", (DL_FUNC) &_NxtIRFcore_IRF_RLE_From_Cov, 5},
     {"_NxtIRFcore_IRF_Cov_Seqnames", (DL_FUNC) &_NxtIRFcore_IRF_Cov_Seqnames, 1},
-    {"_NxtIRFcore_IRF_Regions_From_Cov", (DL_FUNC) &_NxtIRFcore_IRF_Regions_From_Cov, 5},
     {"_NxtIRFcore_IRF_RLEList_From_Cov", (DL_FUNC) &_NxtIRFcore_IRF_RLEList_From_Cov, 2},
     {"_NxtIRFcore_IRF_gunzip_DF", (DL_FUNC) &_NxtIRFcore_IRF_gunzip_DF, 2},
     {"_NxtIRFcore_IRF_gunzip", (DL_FUNC) &_NxtIRFcore_IRF_gunzip, 2},
