@@ -3,10 +3,17 @@
 \name{Coverage}
 \alias{Coverage}
 \alias{GetCoverage}
+\alias{GetCoverageRegions}
 \alias{GetCoverage_DF}
 \title{Calls NxtIRF's C++ function to retrieve coverage from a COV file}
 \usage{
 GetCoverage(file, seqname = "", start = 0, end = 0, strand = c("*", "+", "-"))
+
+GetCoverageRegions(
+  file,
+  regions,
+  strandmode = c("unstranded", "forward", "reverse")
+)
 
 GetCoverage_DF(
   file,
@@ -27,6 +34,9 @@ containing coverage of the entire file.}
 \code{end = 0}, will retrieve RLE of specified chromosome.}
 
 \item{strand}{Either "*", "+", or "-"}
+
+\item{regions}{A GRanges object for a set of regions to obtain mean / total
+coverage from the given COV file.}
 }
 \value{
 For \code{GetCoverage}: If seqname is left as "", returns an RLEList of the
@@ -36,6 +46,9 @@ the requested genomic region
 
 For \verb{GetCoverage_DF: Returns a two-column data frame, with the first column }coordinate\verb{denoting genomic coordinate, and the second column}value`
 containing the coverage depth for each coordinate nucleotide.
+
+For \verb{GetCoverageRegions: Returns a GRanges object with two extra metacolumns: }cov_total\verb{gives the total coverage * nucleotide values, and}cov_mean`
+gives the mean coverage.
 }
 \description{
 This function returns an RLE / RLEList or data.frame
@@ -55,6 +68,9 @@ search for the requested data from the COV file.
 \section{Functions}{
 \itemize{
 \item \code{GetCoverage}: Retrieves alignment coverage as an RLE or RLElist
+
+\item \code{GetCoverageRegions}: Retrieves total and mean coverage of a GRanges object
+from a COV file
 
 \item \code{GetCoverage_DF}: Retrieves alignment coverage as a data.frame
 }}

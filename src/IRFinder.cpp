@@ -246,7 +246,9 @@ bool checkDNA(char * input_read, unsigned int read_len) {
 // Below are Rcpp-only functions
 
 // [[Rcpp::export]]
-List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end, int strand) {
+List IRF_RLE_From_Cov(
+  std::string s_in, std::string seqname, int start, int end, int strand
+) {
 // Returns an RLE covering the region described above
 // s_in: The coverage file
 // strand: 0 = -, 1 = +, 2 = *
@@ -324,6 +326,126 @@ List IRF_RLE_From_Cov(std::string s_in, std::string seqname, int start, int end,
   );
 
   return(RLE);
+}
+
+// [[Rcpp::export]]
+StringVector IRF_Cov_Seqnames(
+  std::string s_in
+) {
+  
+  StringVector s_out;
+  
+  if(!see_if_file_exists(s_in)) {
+    cout << "File " << s_in << " does not exist!\n";
+    return(s_out);
+  }
+
+  std::ifstream inCov_stream;
+  inCov_stream.open(s_in, std::ifstream::binary);
+  
+  covReader inCov;
+  inCov.SetInputHandle(&inCov_stream);
+
+
+  if(inCov.fail()){
+    cout << "File " << s_in << " reading failed!\n";
+		inCov_stream.close();
+    return(s_out);
+  }
+  
+  int ret = inCov.ReadHeader();
+  if(ret == -1){
+		cout << s_in << " appears to not be valid COV file... exiting";
+		inCov_stream.close();	
+    return(s_out);
+  }
+  
+  std::vector<chr_entry> chrs;
+  inCov.GetChrs(chrs);
+
+  for(unsigned int i = 0; i < chrs.size(); i++) {
+    s_out.push_back(chrs.at(i).chr_name);
+  }
+
+  return(s_out);
+}
+
+// [[Rcpp::export]]
+NumericVector IRF_Regions_From_Cov(
+    std::string s_in,
+    NumericVector i_seqnames,
+    NumericVector i_starts, // must be 0-based
+    NumericVector i_ends,
+    NumericVector i_strands
+) {
+  // Returns a NumericVector giving sum of coverages of each region
+  // s_in: The coverage file
+  // strand: 0 = -, 1 = +, 2 = *
+  
+  NumericVector i_out;
+  
+  if(!see_if_file_exists(s_in)) {
+    cout << "File " << s_in << " does not exist!\n";
+    return(i_out);
+  }
+
+  int v_len = (int)(i_seqnames.size());
+  if(
+    v_len != (int)(i_starts.size()) ||
+    v_len != (int)(i_ends.size()) ||
+    v_len != (int)(i_strands.size())
+  ) {
+    cout << "Regions / region names size mismatch error\n";
+    return(i_out);
+  }
+
+  std::ifstream inCov_stream;
+  inCov_stream.open(s_in, std::ifstream::binary);
+  
+  covReader inCov;
+  inCov.SetInputHandle(&inCov_stream);
+
+  if(inCov.fail()){
+		inCov_stream.close();
+    return(i_out);
+  }
+  
+  int ret = inCov.ReadHeader();
+  if(ret == -1){
+		cout << s_in << " appears to not be valid COV file... exiting";
+		inCov_stream.close();	
+    return(i_out);
+  }
+  
+  std::vector<chr_entry> chrs;
+  inCov.GetChrs(chrs);
+
+  for (unsigned int i = 0; i < (unsigned int)v_len; i++) {
+    uint32_t eff_end = (uint32_t)i_ends(i);
+    uint32_t chr_len = (uint32_t)chrs.at(i_seqnames.at(i)).chr_len;
+    if(eff_end > chr_len) eff_end = chr_len;
+    uint32_t start = (uint32_t)i_starts(i);
+    
+    std::vector<int> values;
+    std::vector<unsigned int> lengths;
+
+    ret = inCov.FetchRLE(
+        chrs.at(i_seqnames.at(i)).chr_name, 
+        start, eff_end, (int)i_strands(i), &values, &lengths
+    );
+
+    if(ret == 0) {
+      size_t cov = 0;
+      for(unsigned int j = 0; j < values.size(); j++) {
+        cov += values.at(j) * lengths.at(j);
+      }
+      i_out.push_back(cov);
+    }
+  }
+
+  inCov_stream.close();
+  
+  return(i_out);
 }
 
 // [[Rcpp::export]]

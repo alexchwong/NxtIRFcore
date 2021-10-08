@@ -17,6 +17,14 @@ IRF_RLE_From_Cov <- function(s_in, seqname, start, end, strand) {
     .Call(`_NxtIRFcore_IRF_RLE_From_Cov`, s_in, seqname, start, end, strand)
 }
 
+IRF_Cov_Seqnames <- function(s_in) {
+    .Call(`_NxtIRFcore_IRF_Cov_Seqnames`, s_in)
+}
+
+IRF_Regions_From_Cov <- function(s_in, i_seqnames, i_starts, i_ends, i_strands) {
+    .Call(`_NxtIRFcore_IRF_Regions_From_Cov`, s_in, i_seqnames, i_starts, i_ends, i_strands)
+}
+
 IRF_RLEList_From_Cov <- function(s_in, strand) {
     .Call(`_NxtIRFcore_IRF_RLEList_From_Cov`, s_in, strand)
 }

@@ -320,6 +320,8 @@ as_egg_ggplot <- function(p_obj) {
 #' @param start,end 1-based genomic coordinates. If `start = 0` and
 #'   `end = 0`, will retrieve RLE of specified chromosome.
 #' @param strand Either "*", "+", or "-"
+#' @param regions A GRanges object for a set of regions to obtain mean / total
+#'   coverage from the given COV file.
 #' @return 
 #' For `GetCoverage`: If seqname is left as "", returns an RLEList of the 
 #'   whole BAM file, with each RLE in the list containing coverage data for
@@ -329,6 +331,10 @@ as_egg_ggplot <- function(p_obj) {
 #' For `GetCoverage_DF: Returns a two-column data frame, with the first column
 #' `coordinate` denoting genomic coordinate, and the second column `value`
 #' containing the coverage depth for each coordinate nucleotide.
+#'
+#' For `GetCoverageRegions: Returns a GRanges object with two extra metacolumns:
+#'   `cov_total` gives the total coverage * nucleotide values, and `cov_mean`
+#'   gives the mean coverage.
 #' @examples
 #' se <- NxtIRF_example_NxtSE()
 #' 
@@ -409,6 +415,52 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
         )
         final_RLE = S4Vectors::Rle(raw_RLE$values, raw_RLE$lengths)
     }
+}
+
+# Gets the per region total coverage:
+
+#' @describeIn Coverage Retrieves total and mean coverage of a GRanges object
+#' from a COV file
+#' @export
+GetCoverageRegions <- function(file, regions, 
+        strandmode = c("unstranded", "forward", "reverse")
+) {
+    strandmode = match.arg(strandmode)
+    if(strandmode == "") strandmode = "unstranded"
+    
+    if(!is(regions, "GRanges")) .log("regions must be a GRanges object")
+    if(!IsCOV(file)) .log("Given file is not of COV format")
+    seqlevels = IRF_Cov_Seqnames(normalizePath(file))
+    
+    # trim regions by available seqlevels
+    if(!any(seqlevels %in% seqlevels(regions))) 
+        .log("COV file and given regions have incompatible seqnames")
+    seqlevels(regions, pruning.mode = "coarse") <- seqlevels
+    if(length(regions) == 0) return(regions)
+    
+    seqs = as.numeric(seqnames(regions)) - 1
+    starts = c(start(regions) - 1)
+    ends = c(end(regions))
+    
+    if(strandmode == "unstranded") {
+        strands = rep(2, length(regions))
+    } else if(strandmode == "forward") {
+        strandlevels = c("-", "+", "*")
+        strands = as.numeric(
+            factor(as.character(strand(regions)), strandlevels)
+        ) - 1
+    } else {
+        strandlevels = c("+", "-", "*")
+        strands = as.numeric(
+            factor(as.character(strand(regions)), strandlevels)
+        ) - 1
+    }
+    
+    raw_vector = IRF_Regions_From_Cov(normalizePath(file), 
+        seqs, starts, ends, strands)
+    regions$cov_total = raw_vector
+    regions$cov_mean = round(regions$cov_total / width(regions), 2)
+    return(regions)
 }
 
 #' @describeIn Coverage Retrieves alignment coverage as a data.frame
