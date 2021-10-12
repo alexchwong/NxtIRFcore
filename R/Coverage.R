@@ -332,13 +332,13 @@ as_egg_ggplot <- function(p_obj) {
 #'   one chromosome. Otherwise, returns an RLE containing coverage data for
 #'   the requested genomic region
 #' 
-#' For `GetCoverage_DF: Returns a two-column data frame, with the first column
+#' For `GetCoverage_DF`: Returns a two-column data frame, with the first column
 #' `coordinate` denoting genomic coordinate, and the second column `value`
 #' containing the coverage depth for each coordinate nucleotide.
 #'
-#' For `GetCoverageRegions: Returns a GRanges object with two extra metacolumns:
-#'   `cov_total` gives the total coverage * nucleotide values, and `cov_mean`
-#'   gives the mean coverage.
+#' For `GetCoverageRegions`: Returns a GRanges object with an extra metacolumn:
+#'   `cov_mean`, which gives the mean coverage of each of the given ranges.
+#'
 #' @examples
 #' se <- NxtIRF_example_NxtSE()
 #' 

@@ -50,11 +50,12 @@ whole BAM file, with each RLE in the list containing coverage data for
 one chromosome. Otherwise, returns an RLE containing coverage data for
 the requested genomic region
 
-For \verb{GetCoverage_DF: Returns a two-column data frame, with the first column }coordinate\verb{denoting genomic coordinate, and the second column}value`
+For \code{GetCoverage_DF}: Returns a two-column data frame, with the first column
+\code{coordinate} denoting genomic coordinate, and the second column \code{value}
 containing the coverage depth for each coordinate nucleotide.
 
-For \verb{GetCoverageRegions: Returns a GRanges object with two extra metacolumns: }cov_total\verb{gives the total coverage * nucleotide values, and}cov_mean`
-gives the mean coverage.
+For \code{GetCoverageRegions}: Returns a GRanges object with an extra metacolumn:
+\code{cov_mean}, which gives the mean coverage.
 }
 \description{
 This function returns an RLE / RLEList or data.frame

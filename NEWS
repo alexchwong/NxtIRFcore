@@ -1,3 +1,8 @@
+Changes in version 0.99.6 (2021-10-07)
++ Added GetCoverageRegions() which calculates the mean coverage of each region
+in a given GRanges object
++ Added BAM2COV() which calculates and creates COV files from BAM files
+
 Changes in version 0.99.2 (2021-10-07)
 + Fixed bug in Find_FASTQ
 
