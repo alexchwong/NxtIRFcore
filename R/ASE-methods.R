@@ -163,6 +163,8 @@ limma_ASE <- function(se, test_factor, test_nom, test_denom,
     se_use <- .ASE_filter(
         se, filter_antiover, filter_antinear)
 
+    .log("Performing limma contrast for included / excluded counts separately",
+        "message")
     res.limma2 <- .ASE_limma_contrast(se_use, 
         test_factor, test_nom, test_denom,
         batch1, batch2)
@@ -175,6 +177,8 @@ limma_ASE <- function(se, test_factor, test_nom, test_denom,
         sub(".Excluded","",get("EventName"), fixed=TRUE)]
     res.exc = res.exc[get("AveExpr") > 1]
 
+    .log("Performing limma contrast for included / excluded counts together",
+        "message")
     rowData = as.data.frame(rowData(se_use))
     se_use = se_use[rowData$EventName %in% res.inc$EventName &
         rowData$EventName %in% res.exc$EventName,]
@@ -208,6 +212,8 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     se_use <- .ASE_filter(
         se, filter_antiover, filter_antinear)
 
+    .log("Performing DESeq2 contrast for included / excluded counts separately",
+        "message")
     res.IncExc <- .ASE_DESeq2_contrast(se_use, 
         test_factor, test_nom, test_denom,
         batch1, batch2, BPPARAM_mod)
@@ -218,6 +224,8 @@ DESeq_ASE <- function(se, test_factor, test_nom, test_denom,
     res.exc[, c("EventName") := 
         sub(".Excluded","",get("EventName"), fixed=TRUE)]
 
+    .log("Performing DESeq2 contrast for included / excluded counts separately",
+        "message")
     rowData = as.data.frame(rowData(se_use))
     se_use = se_use[rowData$EventName %in% res.inc$EventName &
         rowData$EventName %in% res.exc$EventName,]
@@ -252,6 +260,7 @@ DoubleExpSeq_ASE <- function(se, test_factor, test_nom, test_denom,
     se_use <- .ASE_filter(
         se, filter_antiover, filter_antinear)
 
+    .log("Running DoubleExpSeq::DBGLM1() on given data", "message")
     res.ASE <- .ASE_DoubleExpSeq_contrast_ASE(se_use, 
         test_factor, test_nom, test_denom)
     

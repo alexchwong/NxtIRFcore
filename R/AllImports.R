@@ -2,7 +2,7 @@
 #' @import NxtIRFdata
 #' @importFrom methods as is coerce callNextMethod new
 #' @importFrom parallel detectCores
-#' @importFrom stats as.formula model.matrix qt runif na.omit prcomp
+#' @importFrom stats as.formula model.matrix qt runif na.omit prcomp aggregate
 #' @importFrom utils download.file packageVersion getFromNamespace
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom tools R_user_dir
@@ -14,7 +14,7 @@
 #' @import ggplot2
 #' @importFrom AnnotationHub AnnotationHub cache
 #' @importFrom BiocFileCache BiocFileCache bfcrpath bfcquery
-#' @importFrom BiocGenerics start end width strand
+#' @importFrom BiocGenerics start end width
 #' @importFrom BiocGenerics nrow ncol rbind cbind
 #' @importFrom BiocParallel SnowParam MulticoreParam SerialParam
 #' @importFrom BiocParallel bpparam bplapply
@@ -45,7 +45,7 @@
 #' @importFrom SummarizedExperiment rowData colData rowData<- colData<-
 #' @importFrom SummarizedExperiment assay assays assay<- assays<-
 #' @importFrom SummarizedExperiment assayNames assayNames<-
-#' @importClassesFrom S4Vectors DataFrame
+#' @importClassesFrom S4Vectors DataFrame 
 #' @importClassesFrom SummarizedExperiment SummarizedExperiment
 NULL
 

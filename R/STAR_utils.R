@@ -497,7 +497,7 @@ STAR_align_fastq <- function(
         if(!file.exists(genome.2bit)) {
             .log(paste(genome.2bit, "not found"))
         }
-        .log("Extracting TwoBit file to temp genome FASTA", "message")
+        .log("Extracting temp genome FASTA from TwoBit file", "message")
         rtracklayer::export(
             rtracklayer::import(TwoBitFile(genome.2bit)),
             genome.fa, "fasta"

@@ -56,6 +56,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// IRF_Cov_Seqnames
+StringVector IRF_Cov_Seqnames(std::string s_in);
+RcppExport SEXP _NxtIRFcore_IRF_Cov_Seqnames(SEXP s_inSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type s_in(s_inSEXP);
+    rcpp_result_gen = Rcpp::wrap(IRF_Cov_Seqnames(s_in));
+    return rcpp_result_gen;
+END_RCPP
+}
 // IRF_RLEList_From_Cov
 List IRF_RLEList_From_Cov(std::string s_in, int strand);
 RcppExport SEXP _NxtIRFcore_IRF_RLEList_From_Cov(SEXP s_inSEXP, SEXP strandSEXP) {
@@ -153,12 +164,27 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// IRF_BAM2COV
+int IRF_BAM2COV(std::string bam_file, std::string output_file, bool verbose, int n_threads);
+RcppExport SEXP _NxtIRFcore_IRF_BAM2COV(SEXP bam_fileSEXP, SEXP output_fileSEXP, SEXP verboseSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type bam_file(bam_fileSEXP);
+    Rcpp::traits::input_parameter< std::string >::type output_file(output_fileSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(IRF_BAM2COV(bam_file, output_file, verbose, n_threads));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_NxtIRFcore_Has_OpenMP", (DL_FUNC) &_NxtIRFcore_Has_OpenMP, 0},
     {"_NxtIRFcore_Test_OpenMP_For", (DL_FUNC) &_NxtIRFcore_Test_OpenMP_For, 0},
     {"_NxtIRFcore_IRF_Check_Cov", (DL_FUNC) &_NxtIRFcore_IRF_Check_Cov, 1},
     {"_NxtIRFcore_IRF_RLE_From_Cov", (DL_FUNC) &_NxtIRFcore_IRF_RLE_From_Cov, 5},
+    {"_NxtIRFcore_IRF_Cov_Seqnames", (DL_FUNC) &_NxtIRFcore_IRF_Cov_Seqnames, 1},
     {"_NxtIRFcore_IRF_RLEList_From_Cov", (DL_FUNC) &_NxtIRFcore_IRF_RLEList_From_Cov, 2},
     {"_NxtIRFcore_IRF_gunzip_DF", (DL_FUNC) &_NxtIRFcore_IRF_gunzip_DF, 2},
     {"_NxtIRFcore_IRF_gunzip", (DL_FUNC) &_NxtIRFcore_IRF_gunzip, 2},
@@ -166,6 +192,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_NxtIRFcore_IRF_main_multi", (DL_FUNC) &_NxtIRFcore_IRF_main_multi, 5},
     {"_NxtIRFcore_IRF_GenerateMappabilityReads", (DL_FUNC) &_NxtIRFcore_IRF_GenerateMappabilityReads, 5},
     {"_NxtIRFcore_IRF_GenerateMappabilityRegions", (DL_FUNC) &_NxtIRFcore_IRF_GenerateMappabilityRegions, 6},
+    {"_NxtIRFcore_IRF_BAM2COV", (DL_FUNC) &_NxtIRFcore_IRF_BAM2COV, 4},
     {NULL, NULL, 0}
 };
 

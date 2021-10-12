@@ -241,7 +241,7 @@ int covReader::ReadHeader() {
   int ret = read(cov_header,4);
   if(ret != Z_OK) {
     cout << "File is not BGZF compressed; unlikely to be COV file\n";
-    return(ret);
+    return(-1);
   }
   std::string s_cov_header = "COV\x01";
   if(strncmp(cov_header, s_cov_header.c_str(), 4) != 0) {

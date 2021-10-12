@@ -17,6 +17,10 @@ IRF_RLE_From_Cov <- function(s_in, seqname, start, end, strand) {
     .Call(`_NxtIRFcore_IRF_RLE_From_Cov`, s_in, seqname, start, end, strand)
 }
 
+IRF_Cov_Seqnames <- function(s_in) {
+    .Call(`_NxtIRFcore_IRF_Cov_Seqnames`, s_in)
+}
+
 IRF_RLEList_From_Cov <- function(s_in, strand) {
     .Call(`_NxtIRFcore_IRF_RLEList_From_Cov`, s_in, strand)
 }
@@ -43,5 +47,9 @@ IRF_GenerateMappabilityReads <- function(genome_file, out_fa, read_len, read_str
 
 IRF_GenerateMappabilityRegions <- function(bam_file, output_file, threshold, includeCov, verbose, n_threads) {
     .Call(`_NxtIRFcore_IRF_GenerateMappabilityRegions`, bam_file, output_file, threshold, includeCov, verbose, n_threads)
+}
+
+IRF_BAM2COV <- function(bam_file, output_file, verbose, n_threads) {
+    .Call(`_NxtIRFcore_IRF_BAM2COV`, bam_file, output_file, verbose, n_threads)
 }
 

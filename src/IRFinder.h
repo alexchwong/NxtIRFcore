@@ -29,6 +29,8 @@ bool checkDNA(char * input_read, unsigned int read_len);
 #ifdef RNXTIRF
 // Rcpp-only functions
 
+  StringVector IRF_Cov_Seqnames(std::string s_in);
+
   List IRF_RLE_From_Cov(
     std::string s_in, std::string seqname, int start, int end, int strand
   );
@@ -93,6 +95,11 @@ int IRF_core(std::string const &bam_file,
     int n_threads = 1
   );
 
+  int IRF_BAM2COV(
+    std::string bam_file, std::string output_file, 
+    bool verbose = true, int n_threads = 1
+  );
+
 #else
   int IRF_main(
       std::string bam_file, std::string reference_file, std::string s_output_txt,
@@ -108,6 +115,10 @@ int IRF_core(std::string const &bam_file,
     std::string bam_file, std::string s_output_txt, 
     int threshold, int n_threads = 1, std::string s_output_cov = ""
   );	
+
+  int IRF_BAM2COV(
+    std::string bam_file, std::string output_file, int n_threads = 1
+  );
 
   int main(int argc, char * argv[]);
 #endif
