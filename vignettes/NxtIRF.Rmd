@@ -156,7 +156,9 @@ CollateData(
 )
 ```
 
-### Importing the NxtIRF SummarizedExperiment into memory:
+### Importing the collated data as a NxtSE object:
+
+The `NxtSE` is a data structure that inherits `SummarizedExperiment`
 
 ```{r, results='hide', message = FALSE, warning = FALSE}
 se = MakeSE(nxtirf_path)
@@ -1112,6 +1114,27 @@ IRFinder(
     bamfiles = bams$path,
     sample_names = bams$sample,
     reference_path = ref_path,
+    output_path = "./IRFinder_output",
+    n_threads = 4,
+    Use_OpenMP = TRUE
+)
+```
+
+## Creating COV files from BAM files without running IRFinder
+
+Sometimes one may wish to create a COV file from a BAM file without running
+the IRFinder algorithm. One reason might be because a NxtIRF/IRFinder reference
+is not available.
+
+To convert a list of BAM files, run `BAM2COV()`. This is a function structurally
+similar to `IRFinder()` but without the need to give the path to the NxtIRF
+reference:
+
+```{r eval=FALSE}
+
+BAM2COV(
+    bamfiles = bams$path,
+    sample_names = bams$sample,
     output_path = "./IRFinder_output",
     n_threads = 4,
     Use_OpenMP = TRUE
