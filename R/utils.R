@@ -10,7 +10,7 @@
 #' * `seqnames:start`
 #' * `seqnames:start-end`
 #' * `seqnames:start-end/strand`
-#'   
+#'
 #' The following examples are considered valid genomic coordinates:
 #' * "chr1:21535"
 #' * "chr3:10550-10730"
@@ -20,41 +20,41 @@
 #'   to be converted
 #' @return A GRanges object that corresponds to the given coordinates
 #' @examples
-#' se = NxtIRF_example_NxtSE()
+#' se <- NxtIRF_example_NxtSE()
 #'
-#' coordinates = rowData(se)$EventRegion
+#' coordinates <- rowData(se)$EventRegion
 #'
-#' gr = CoordToGR(coordinates)
+#' gr <- CoordToGR(coordinates)
 #' @md
 #' @export
-CoordToGR = function(coordinates) {
-    stopmsg = paste(
+CoordToGR <- function(coordinates) {
+    stopmsg <- paste(
         "Coordinates must take the form chrN:X, chrN:X-Y,",
         "chrN:X-Y/+ or chrN:X-Y/-"
     )
-    temp = tstrsplit(coordinates,split="/")
-    if(length(temp) == 2) {
-        strand = as.character(temp[[2]])
-    } else if(length(temp) == 1) {
-        strand = "*"
+    temp <- tstrsplit(coordinates, split = "/")
+    if (length(temp) == 2) {
+        strand <- as.character(temp[[2]])
+    } else if (length(temp) == 1) {
+        strand <- "*"
     } else {
         .log(stopmsg)
     }
-    temp2 = tstrsplit(temp[[1]],split=":")
-    if(length(temp2) == 2) {
-        seqnames = temp2[[1]]
-        temp3 = tstrsplit(temp2[[2]],split="-")
-        start = temp3[[1]]
-        if(length(temp3) == 2) {
-            end = temp3[[2]]
-        } else if(length(temp3) == 1) {
-            end = temp3[[1]]
+    temp2 <- tstrsplit(temp[[1]], split = ":")
+    if (length(temp2) == 2) {
+        seqnames <- temp2[[1]]
+        temp3 <- tstrsplit(temp2[[2]], split = "-")
+        start <- temp3[[1]]
+        if (length(temp3) == 2) {
+            end <- temp3[[2]]
+        } else if (length(temp3) == 1) {
+            end <- temp3[[1]]
         } else {
             .log(stopmsg)
         }
     } else {
         .log(stopmsg)
-    }    
+    }
     return(GRanges(seqnames = seqnames, ranges = IRanges(
         start = as.numeric(start), end = as.numeric(end)),
         strand = strand))
@@ -74,21 +74,21 @@ CoordToGR = function(coordinates) {
 #'   checked
 #' @return `TRUE` if all files are valid COV files. `FALSE` otherwise
 #' @examples
-#' se = NxtIRF_example_NxtSE()
+#' se <- NxtIRF_example_NxtSE()
 #'
-#' cov_files = covfile(se)
+#' cov_files <- covfile(se)
 #'
 #' IsCOV(cov_files) # returns true if these are true COV files
 #' @seealso [IRFinder] [CollateData]
 #' @md
 #' @export
-IsCOV = function(coverage_files) {
-    for(i in coverage_files) {
-        if(file.exists(i) && IRF_Check_Cov(normalizePath(i))) {
+IsCOV <- function(coverage_files) {
+    for (i in coverage_files) {
+        if (file.exists(i) && IRF_Check_Cov(normalizePath(i))) {
             # do nothing
         } else {
             return(FALSE)
         }
-    }    
+    }
     return(TRUE)
 }

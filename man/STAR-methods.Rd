@@ -169,7 +169,6 @@ or FASTA files)
 # 0) Check that STAR is installed and compatible with NxtIRF
 
 STAR_version()
-
 \dontrun{
 
 # The below workflow illustrates
@@ -181,12 +180,12 @@ STAR_version()
 
 # 1) Reference generation from Ensembl's FTP links
 
-FTP = "ftp://ftp.ensembl.org/pub/release-94/"
+FTP <- "ftp://ftp.ensembl.org/pub/release-94/"
 
 GetReferenceResource(
     reference_path = "Reference_FTP",
     fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
-        "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
+        "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"),
     gtf = paste0(FTP, "gtf/homo_sapiens/",
         "Homo_sapiens.GRCh38.94.chr.gtf.gz")
 )
@@ -195,7 +194,7 @@ GetReferenceResource(
 # mappability exclusion gzipped BED file inside the "Mappability/" sub-folder
 
 STAR_buildRef(
-    reference_path = "Reference_FTP", 
+    reference_path = "Reference_FTP",
     n_threads = 8,
     also_generate_mappability = TRUE
 )
@@ -207,14 +206,14 @@ STAR_buildRef(
 
 GetReferenceResource(
     reference_path = "Reference_chrZ",
-    fasta = chrZ_genome(), 
+    fasta = chrZ_genome(),
     gtf = chrZ_gtf()
 )
 
 STAR_buildRef(
-    reference_path = "Reference_chrZ", 
+    reference_path = "Reference_chrZ",
     n_threads = 8,
-    additional_args = c("--genomeSAindexNbases", "7")
+    additional_args = c("--genomeSAindexNbases", "7"),
     also_generate_mappability = TRUE
 )
 
@@ -235,7 +234,7 @@ STAR_align_fastq(
 
 # 4b) Align multiple samples, using two-pass alignment
 
-Experiment = data.frame(
+Experiment <- data.frame(
     sample = c("sample_A", "sample_B"),
     forward = file.path("raw_data", c("sample_A", "sample_B"),
         c("sample_A_1.fastq", "sample_B_1.fastq")),
@@ -247,10 +246,9 @@ STAR_align_experiment(
     Experiment = Experiment,
     STAR_ref_path = file.path("Reference_FTP", "STAR"),
     BAM_output_path = "./bams",
-    two_pass = TRUE, 
+    two_pass = TRUE,
     n_threads = 8
 )
-
 }
 }
 \seealso{

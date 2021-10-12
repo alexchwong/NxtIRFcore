@@ -62,27 +62,27 @@ novel IR events are not 'double-counted'.
 
 BuildReference(
     reference_path = file.path(tempdir(), "Reference"),
-    fasta = chrZ_genome(), 
+    fasta = chrZ_genome(),
     gtf = chrZ_gtf()
 )
 
-bams = NxtIRF_example_bams()
+bams <- NxtIRF_example_bams()
 IRFinder(bams$path, bams$sample,
   reference_path = file.path(tempdir(), "Reference"),
   output_path = file.path(tempdir(), "IRFinder_output")
 )
 
-expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
-CollateData(expr, 
+expr <- Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
+CollateData(expr,
   reference_path = file.path(tempdir(), "Reference"),
   output_path = file.path(tempdir(), "NxtIRF_output")
 )
 
-se = MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
+se <- MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
 
 # "Realize" NxtSE object to load all H5 assays into memory:
 
-se = realize_NxtSE(se)
+se <- realize_NxtSE(se)
 
 # If COV files have been removed since the last call to CollateData()
 # reassign them to the NxtSE object, for example:
@@ -94,7 +94,6 @@ covfile(se) <- covfile_df$path
 
 # Check that the produced object is identical to the example NxtSE
 
-example_se = NxtIRF_example_NxtSE()
-identical(se, example_se)  # should return TRUE
-
+example_se <- NxtIRF_example_NxtSE()
+identical(se, example_se) # should return TRUE
 }

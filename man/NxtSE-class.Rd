@@ -127,7 +127,7 @@ the paths to the corresponding COV files
 \item \code{sampleQC,NxtSE-method}: Gets a data frame with the QC parameters
 of the samples
 
-\item \code{ref,NxtSE-method}: Retrieves a list of annotation data associated 
+\item \code{ref,NxtSE-method}: Retrieves a list of annotation data associated
 with this NxtSE object; primarily used in Plot_Coverage()
 
 \item \code{realize_NxtSE,NxtSE-method}: Converts all DelayedMatrix assays as matrices
@@ -168,19 +168,19 @@ BuildReference(
     gtf = chrZ_gtf()
 )
 
-bams = NxtIRF_example_bams()
+bams <- NxtIRF_example_bams()
 IRFinder(bams$path, bams$sample,
   reference_path = file.path(tempdir(), "Reference"),
   output_path = file.path(tempdir(), "IRFinder_output")
 )
 
-expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
+expr <- Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
 CollateData(expr, 
   reference_path = file.path(tempdir(), "Reference"),
   output_path = file.path(tempdir(), "NxtIRF_output")
 )
 
-se = MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
+se <- MakeSE(collate_path = file.path(tempdir(), "NxtIRF_output"))
 
 # Coerce NxtSE -> SummarizedExperiment
 se_raw <- as(se, "SummarizedExperiment")
@@ -202,24 +202,24 @@ covfile(se)
 sampleQC(se)
 
 # Get resource NxtIRF data (used internally for Plot_Coverage())
-cov_data = ref(se)
+cov_data <- ref(se)
 names(cov_data)
 
 # Subset functions
-se_by_samples = se[,1:3]
-se_by_events = se[1:10,]
-se_by_rowData = subset(se, EventType == "IR")
+se_by_samples <- se[,1:3]
+se_by_events <- se[1:10,]
+se_by_rowData <- subset(se, EventType == "IR")
 
 # Cbind (bind event_identical NxtSE by samples)
-se_by_samples_1 = se[,1:3]
-se_by_samples_2 = se[,4:6]
-se_cbind = cbind(se_by_samples_1, se_by_samples_2)
+se_by_samples_1 <- se[,1:3]
+se_by_samples_2 <- se[,4:6]
+se_cbind <- cbind(se_by_samples_1, se_by_samples_2)
 identical(se, se_cbind) # should return TRUE
 
 # Rbind (bind sample_identical NxtSE by events)
-se_IR = subset(se, EventType == "IR")
-se_SE = subset(se, EventType == "SE")
-se_IRSE = rbind(se_IR, se_SE)
+se_IR <- subset(se, EventType == "IR")
+se_SE <- subset(se, EventType == "SE")
+se_IRSE <- rbind(se_IR, se_SE)
 identical(se_IRSE, subset(se, EventType \%in\% c("IR", "SE"))) # TRUE
 
 # Convert HDF5-based NxtSE to in-memory se

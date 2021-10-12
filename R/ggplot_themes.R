@@ -15,9 +15,9 @@ NULL
 
 #' @describeIn theme_white White theme without figure legend
 #' @export
-theme_white = theme(
+theme_white <- theme(
     axis.line.x = element_line(colour = "black"),
-    panel.grid.major = element_line(size = rel(0.5), colour="grey"),
+    panel.grid.major = element_line(size = rel(0.5), colour = "grey"),
     panel.grid.minor = element_blank(),
     panel.border = element_blank(),
     panel.background = element_blank(),
@@ -26,7 +26,7 @@ theme_white = theme(
     # axis.text.x.bottom = element_blank(),
     # axis.text.y = element_blank(),
     axis.line.x.bottom = element_blank(),
-    axis.text=element_text(size=rel(1.0)),
+    axis.text = element_text(size = rel(1.0)),
     plot.title = element_text(hjust = 0.5),
     # axis.title.x=element_blank(),
     # axis.title.y=element_blank()
@@ -34,9 +34,9 @@ theme_white = theme(
 
 #' @describeIn theme_white White theme but with a figure legend (if applicable)
 #' @export
-theme_white_legend = theme(
+theme_white_legend <- theme(
     axis.line.x = element_line(colour = "black"),
-    panel.grid.major = element_line(size = rel(0.5), colour="grey"),
+    panel.grid.major = element_line(size = rel(0.5), colour = "grey"),
     panel.grid.minor = element_blank(),
     panel.border = element_blank(),
     panel.background = element_blank(),
@@ -45,7 +45,7 @@ theme_white_legend = theme(
     # axis.text.x.bottom = element_blank(),
     # axis.text.y = element_blank(),
     axis.line.x.bottom = element_blank(),
-    axis.text=element_text(size=rel(1.0)),
+    axis.text = element_text(size = rel(1.0)),
     plot.title = element_text(hjust = 0.5),
     # axis.title.x=element_blank(),
     # axis.title.y=element_blank()
@@ -54,9 +54,9 @@ theme_white_legend = theme(
 #' @describeIn theme_white White theme with figure legend but without horizontal
 #' grid lines. Used internally in PlotGenome
 #' @export
-theme_white_legend_plot_track = theme(
+theme_white_legend_plot_track <- theme(
     axis.line.x = element_line(colour = "black"),
-    panel.grid.major.x = element_line(size = rel(0.5), colour="grey"),
+    panel.grid.major.x = element_line(size = rel(0.5), colour = "grey"),
     panel.grid.major.y = element_blank(),
     panel.grid.minor = element_blank(),
     panel.border = element_blank(),
@@ -66,7 +66,7 @@ theme_white_legend_plot_track = theme(
     # axis.text.x.bottom = element_blank(),
     # axis.text.y = element_blank(),
     axis.line.x.bottom = element_blank(),
-    axis.text=element_text(size=rel(1.0)),
+    axis.text = element_text(size = rel(1.0)),
     plot.title = element_text(hjust = 0.5),
     # axis.title.x=element_blank(),
     # axis.title.y=element_blank()

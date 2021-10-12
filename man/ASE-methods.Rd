@@ -195,21 +195,19 @@ to estimate group dispersions, followed by LRT
 
 \examples{
 # see ?MakeSE on example code of generating this NxtSE object
-se = NxtIRF_example_NxtSE()
+se <- NxtIRF_example_NxtSE()
 
-colData(se)$treatment = rep(c("A", "B"), each = 3)
+colData(se)$treatment <- rep(c("A", "B"), each = 3)
 
 require("limma")
-res_limma = limma_ASE(se, "treatment", "A", "B")
+res_limma <- limma_ASE(se, "treatment", "A", "B")
 
 require("DoubleExpSeq")
-res_DES = DoubleExpSeq_ASE(se, "treatment", "A", "B")
-
+res_DES <- DoubleExpSeq_ASE(se, "treatment", "A", "B")
 \dontrun{
 
 require("DESeq2")
-res_DESeq = DESeq_ASE(se, "treatment", "A", "B")
-
+res_DESeq <- DESeq_ASE(se, "treatment", "A", "B")
 }
 }
 \references{

@@ -69,11 +69,11 @@ on a NxtSE object
 \examples{
 # see ?MakeSE on example code of how this object was generated
 
-se = NxtIRF_example_NxtSE()
+se <- NxtIRF_example_NxtSE()
 
 # Get the list of NxtIRF recommended filters
 
-filters = get_default_filters()
+filters <- get_default_filters()
 
 # View a description of what these filters do:
 
@@ -81,11 +81,11 @@ filters
 
 # Filter the NxtSE using the first default filter ("Depth")
 
-se.depthfilter = se[runFilter(se, filters[[1]]),]
+se.depthfilter <- se[runFilter(se, filters[[1]]), ]
 
 # Filter the NxtSE using all four default filters
 
-se.defaultFiltered = se[apply_filters(se, get_default_filters()),]
+se.defaultFiltered <- se[apply_filters(se, get_default_filters()), ]
 }
 \seealso{
 \link{NxtFilter} for details describing how to create and assign settings

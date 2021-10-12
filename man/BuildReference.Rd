@@ -209,7 +209,7 @@ of the given reference path
 given reference path
 
 \item \code{GetNonPolyARef}: Returns the path to the BED file containing
-coordinates of known non-polyadenylated transcripts for genomes 
+coordinates of known non-polyadenylated transcripts for genomes
 \code{hg38}, \code{hg19}, \code{mm10} and \code{mm9},
 
 \item \code{BuildReference_Full}: One-step function that fetches resources,
@@ -220,10 +220,10 @@ creates the NxtIRF reference
 \examples{
 # Quick runnable example: generate a reference using NxtIRF's example genome
 
-example_ref = file.path(tempdir(), "Reference")
+example_ref <- file.path(tempdir(), "Reference")
 GetReferenceResource(
     reference_path = example_ref,
-    fasta = chrZ_genome(), 
+    fasta = chrZ_genome(),
     gtf = chrZ_gtf()
 )
 BuildReference(
@@ -232,17 +232,16 @@ BuildReference(
 
 # NB: the above is equivalent to:
 
-example_ref = file.path(tempdir(), "Reference")
+example_ref <- file.path(tempdir(), "Reference")
 BuildReference(
     reference_path = example_ref,
-    fasta = chrZ_genome(), 
+    fasta = chrZ_genome(),
     gtf = chrZ_gtf()
 )
 
 # Get the path to the Non-PolyA BED file for hg19
 
 GetNonPolyARef("hg19")
-
 \dontrun{
 
 ### Long examples ###
@@ -253,19 +252,19 @@ GetNonPolyARef("hg19")
 BuildReference(
     reference_path = "./Reference_user",
     fasta = "genome.fa", gtf = "transcripts.gtf",
-    genome_type = "hg38" 
+    genome_type = "hg38"
 )
 
-# NB: Setting `genome_type = hg38`, will automatically use default 
+# NB: Setting `genome_type = hg38`, will automatically use default
 # nonPolyARef and MappabilityRef for `hg38`
 
 # Reference generation from Ensembl's FTP links:
 
-FTP = "ftp://ftp.ensembl.org/pub/release-94/"
+FTP <- "ftp://ftp.ensembl.org/pub/release-94/"
 BuildReference(
     reference_path = "./Reference_FTP",
     fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
-        "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
+        "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"),
     gtf = paste0(FTP, "gtf/homo_sapiens/",
         "Homo_sapiens.GRCh38.94.chr.gtf.gz"),
     genome_type = "hg38"
@@ -275,31 +274,31 @@ BuildReference(
 
 # First, search for the relevant AnnotationHub record names:
 
-ah = AnnotationHub::AnnotationHub()
+ah <- AnnotationHub::AnnotationHub()
 AnnotationHub::query(ah, c("Homo Sapiens", "release-94"))
 # snapshotDate(): 2021-09-23
 # $dataprovider: Ensembl
 # $species: Homo sapiens
 # $rdataclass: TwoBitFile, GRanges
-# additional mcols(): taxonomyid, genome, description, coordinate_1_based, 
+# additional mcols(): taxonomyid, genome, description, coordinate_1_based,
 #   maintainer, rdatadateadded, preparerclass, tags,
-#   rdatapath, sourceurl, sourcetype 
-# retrieve records with, e.g., 'object[["AH64628"]]' 
+#   rdatapath, sourceurl, sourcetype
+# retrieve records with, e.g., 'object[["AH64628"]]'
 #
-#             title                                           
-#   AH64628 | Homo_sapiens.GRCh38.94.abinitio.gtf             
-#   AH64629 | Homo_sapiens.GRCh38.94.chr.gtf                  
-#   AH64630 | Homo_sapiens.GRCh38.94.chr_patch_hapl_scaff.gtf 
-#   AH64631 | Homo_sapiens.GRCh38.94.gtf                      
-#   AH65744 | Homo_sapiens.GRCh38.cdna.all.2bit               
-#   AH65745 | Homo_sapiens.GRCh38.dna.primary_assembly.2bit   
+#             title
+#   AH64628 | Homo_sapiens.GRCh38.94.abinitio.gtf
+#   AH64629 | Homo_sapiens.GRCh38.94.chr.gtf
+#   AH64630 | Homo_sapiens.GRCh38.94.chr_patch_hapl_scaff.gtf
+#   AH64631 | Homo_sapiens.GRCh38.94.gtf
+#   AH65744 | Homo_sapiens.GRCh38.cdna.all.2bit
+#   AH65745 | Homo_sapiens.GRCh38.dna.primary_assembly.2bit
 #   AH65746 | Homo_sapiens.GRCh38.dna_rm.primary_assembly.2bit
 #   AH65747 | Homo_sapiens.GRCh38.dna_sm.primary_assembly.2bit
-#   AH65748 | Homo_sapiens.GRCh38.ncrna.2bit   
+#   AH65748 | Homo_sapiens.GRCh38.ncrna.2bit
 
 BuildReference(
     reference_path = "./Reference_AH",
-    fasta = "AH65745", 
+    fasta = "AH65745",
     gtf = "AH64631",
     genome_type = "hg38"
 )
@@ -307,13 +306,13 @@ BuildReference(
 # Build a NxtIRF reference, setting chromosome aliases to allow
 # this reference to process BAM files aligned to UCSC-style genomes:
 
-chrom.df = GenomeInfoDb::genomeStyles()$Homo_sapiens
+chrom.df <- GenomeInfoDb::genomeStyles()$Homo_sapiens
 
 BuildReference(
     reference_path = "./Reference_UCSC",
-    fasta = "AH65745", 
+    fasta = "AH65745",
     gtf = "AH64631",
-    genome_type = "hg38", 
+    genome_type = "hg38",
     chromosome_aliases = chrom.df[, c("Ensembl", "UCSC")]
 )
 
@@ -326,7 +325,7 @@ BuildReference(
 
 BuildReference_Full(
     reference_path = "./Reference_with_STAR",
-    fasta = "genome.fa", gtf = "transcripts.gtf"
+    fasta = "genome.fa", gtf = "transcripts.gtf",
     genome_type = "",
     use_STAR_mappability = TRUE,
     n_threads = 4
@@ -339,15 +338,14 @@ GetReferenceResource(
     fasta = "genome.fa", gtf = "transcripts.gtf"
 )
 STAR_buildRef(
-    reference_path = reference_path, 
-    also_generate_mappability = TRUE, 
+    reference_path = reference_path,
+    also_generate_mappability = TRUE,
     n_threads = 4
 )
 BuildReference(
     reference_path = "./Reference_with_STAR",
     genome_type = ""
 )
-
 }
 }
 \seealso{

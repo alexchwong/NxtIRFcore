@@ -81,48 +81,46 @@ files, for portability reasons.
 \item \code{Find_Samples}: Finds all files with the given suffix pattern.
 Annotates sample names based on file or parent folder names.
 
-\item \code{Find_FASTQ}: Use Find_Samples() to return all FASTQ files 
+\item \code{Find_FASTQ}: Use Find_Samples() to return all FASTQ files
 in a given folder
 
-\item \code{Find_Bams}: Use Find_Samples() to return all BAM files in a 
+\item \code{Find_Bams}: Use Find_Samples() to return all BAM files in a
 given folder
 
-\item \code{Find_IRFinder_Output}: Use Find_Samples() to return all IRFinder output 
+\item \code{Find_IRFinder_Output}: Use Find_Samples() to return all IRFinder output
 files in a given folder, including COV files
 }}
 
 \examples{
 # Retrieve all BAM files in a given folder, named by sample names
-bam_path = tempdir()
+bam_path <- tempdir()
 example_bams(path = bam_path)
-df.bams = Find_Samples(sample_path = bam_path, 
+df.bams <- Find_Samples(sample_path = bam_path,
   suffix = ".bam", level = 0)
 # equivalent to:
-df.bams = Find_Bams(bam_path, level = 0)
+df.bams <- Find_Bams(bam_path, level = 0)
 
-# Retrieve all IRFinder output files in a given folder, 
+# Retrieve all IRFinder output files in a given folder,
 # named by sample names
 
-expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
-
+expr <- Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
 \dontrun{
 
 # Find FASTQ files in a directory, named by sample names
-# where files are in the form: 
+# where files are in the form:
 # - "./sample_folder/sample1.fastq"
 # - "./sample_folder/sample2.fastq"
 
 Find_FASTQ("./sample_folder", paired = FALSE, fastq_suffix = ".fastq")
 
 # Find paired gzipped FASTQ files in a directory, named by parent directory
-# where files are in the form: 
+# where files are in the form:
 # - "./sample_folder/sample1/raw_1.fq.gz"
 # - "./sample_folder/sample1/raw_2.fq.gz"
 # - "./sample_folder/sample2/raw_1.fq.gz"
 # - "./sample_folder/sample2/raw_2.fq.gz"
 
 Find_FASTQ("./sample_folder", paired = TRUE, fastq_suffix = ".fq.gz")
-
 }
 
 }

@@ -55,7 +55,7 @@ For \code{GetCoverage_DF}: Returns a two-column data frame, with the first colum
 containing the coverage depth for each coordinate nucleotide.
 
 For \code{GetCoverageRegions}: Returns a GRanges object with an extra metacolumn:
-\code{cov_mean}, which gives the mean coverage.
+\code{cov_mean}, which gives the mean coverage of each of the given ranges.
 }
 \description{
 This function returns an RLE / RLEList or data.frame
@@ -88,35 +88,35 @@ cov_file <- covfile(se)[1]
 
 # Retrieve Coverage as RLE
 
-cov <- GetCoverage(cov_file, seqname = "chrZ", 
+cov <- GetCoverage(cov_file, seqname = "chrZ",
   start = 10000, end = 20000,
   strand = "*"
 )
 
 # Retrieve Coverage as data.frame
 
-cov.df <- GetCoverage_DF(cov_file, seqname = "chrZ", 
+cov.df <- GetCoverage_DF(cov_file, seqname = "chrZ",
   start = 10000, end = 20000,
   strand = "*"
 )
 
-# Retrieve mean coverage of 100-nt window regions as defined 
+# Retrieve mean coverage of 100-nt window regions as defined
 # in a GRanges object:
 
-gr = GenomicRanges::GRanges(
-    seqnames = "chrZ", 
+gr <- GenomicRanges::GRanges(
+    seqnames = "chrZ",
     ranges = IRanges::IRanges(
         start = seq(1, 99901, by = 100),
         end = seq(100, 100000, by = 100)
     ), strand = "-"
 )
 
-gr.unstranded = GetCoverageRegions(cov_file,
+gr.unstranded <- GetCoverageRegions(cov_file,
     regions = gr,
     strandMode = "unstranded"
 )
 
-gr.stranded = GetCoverageRegions(cov_file,
+gr.stranded <- GetCoverageRegions(cov_file,
     regions = gr,
     strandMode = "reverse"
 )
@@ -125,17 +125,16 @@ gr.stranded = GetCoverageRegions(cov_file,
 
 require(ggplot2)
 
-ggplot(cov.df, aes(x = coordinate, y = value)) + 
+ggplot(cov.df, aes(x = coordinate, y = value)) +
     geom_line() + theme_white
 
 ggplot(as.data.frame(gr.unstranded),
-    aes(x = (start + end) / 2, y = cov_mean)) + 
+    aes(x = (start + end) / 2, y = cov_mean)) +
     geom_line() + theme_white
 
 # Export COV data as BigWig
 
-cov_whole = GetCoverage(cov_file)
-bw_file = file.path(tempdir(), "sample.bw")
+cov_whole <- GetCoverage(cov_file)
+bw_file <- file.path(tempdir(), "sample.bw")
 rtracklayer::export(cov_whole, bw_file, "bw")
-
 }

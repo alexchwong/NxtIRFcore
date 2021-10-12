@@ -104,23 +104,22 @@ Users wishing to calculate arithmetic means of PSI are advised to use
 }
 \section{Functions}{
 \itemize{
-\item \code{make_matrix}: constructs a matrix of PSI values of the given 
+\item \code{make_matrix}: constructs a matrix of PSI values of the given
 alternative splicing events (ASEs)
 
 \item \code{make_diagonal}: constructs a table of "average" PSI values
 }}
 
 \examples{
-se = NxtIRF_example_NxtSE()
+se <- NxtIRF_example_NxtSE()
 
-colData(se)$treatment = rep(c("A", "B"), each = 3)
+colData(se)$treatment <- rep(c("A", "B"), each = 3)
 
-event_list = rowData(se)$EventName
+event_list <- rowData(se)$EventName
 
-mat = make_matrix(se, event_list[1:10])
+mat <- make_matrix(se, event_list[1:10])
 
 diag_values <- make_diagonal(se, event_list,
   condition = "treatment", nom_DE = "A", denom_DE = "B"
 )
-
 }

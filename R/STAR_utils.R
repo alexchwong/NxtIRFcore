@@ -8,22 +8,22 @@
 #'
 #' @details
 #' **Pre-requisites**
-#' 
+#'
 #' `STAR_buildRef` requires [GetReferenceResource] to be run to fetch the
 #' required genome and gene annotation files.
 #'
 #' `STAR_Mappability`, `STAR_align_experiment` and `STAR_align_fastq` requires a
 #' `STAR` genome, which can be built using `STAR_buildRef`
-#' 
+#'
 #' **Function Description**
 #'
 #' For `STAR_buildRef`: this function
 #'   will create a `STAR` genome reference in the `STAR` subdirectory in the
 #'   path given by `reference_path`. Optionally, it will run [STAR_Mappability]
 #'   if `also_generate_mappability` is set to `TRUE`
-#' 
+#'
 #' For `STAR_Mappability`: this function will first
-#'   will run [Mappability_GenReads], then use the given `STAR` genome to align 
+#'   will run [Mappability_GenReads], then use the given `STAR` genome to align
 #'   the synthetic reads using `STAR`. The aligned BAM file will then be
 #'   processed using [Mappability_CalculateExclusions] to calculate the
 #'   lowly-mappable genomic regions,
@@ -38,10 +38,10 @@
 #'   A data.frame specifying sample names and corresponding FASTQ files are
 #'   required
 #'
-#' @param reference_path The path to the reference. 
+#' @param reference_path The path to the reference.
 #'    [GetReferenceResource] must first be run using this path
 #'    as its `reference_path`
-#' @param STAR_ref_path (Default - the "STAR" subdirectory under 
+#' @param STAR_ref_path (Default - the "STAR" subdirectory under
 #'    \code{reference_path}) The directory containing the STAR reference to be
 #'    used or to contain the newly-generated STAR reference
 #' @param also_generate_mappability Whether \code{STAR_buildRef()} also
@@ -50,7 +50,7 @@
 #'   threshold at or below which Mappability exclusion regions are defined. See
 #'   [Mappability-methods].
 #'   Ignored if \code{also_generate_mappability = FALSE}
-#' @param sjdbOverhang (Default = 149) A STAR setting indicating the length of 
+#' @param sjdbOverhang (Default = 149) A STAR setting indicating the length of
 #'   the donor / acceptor sequence on each side of the junctions. Ideally equal
 #'   to (mate_length - 1). As the most common read length is 150, the default
 #'   of this function is 149. See the STAR aligner manual for details.
@@ -58,7 +58,7 @@
 #' @param additional_args A character vector of additional arguments to be
 #'   parsed into STAR. See examples below.
 #' @param Experiment A two or three-column data frame with the columns denoting
-#'   sample names, forward-FASTQ and reverse-FASTQ files. This can be 
+#'   sample names, forward-FASTQ and reverse-FASTQ files. This can be
 #'   conveniently generated using [Find_FASTQ]
 #' @param BAM_output_path The path under which STAR outputs the aligned BAM
 #'   files. In `STAR_align_experiment()`, STAR will output aligned
@@ -66,26 +66,25 @@
 #'   `STAR_align_fastq()`, STAR will output directly into this path.
 #' @param trim_adaptor The sequence of the Illumina adaptor to trim via STAR's
 #'   \code{--clip3pAdapterSeq} option
-#' @param two_pass Whether to use two-pass mapping. In 
+#' @param two_pass Whether to use two-pass mapping. In
 #'   \code{STAR_align_experiment()}, STAR will first align every sample
 #'   and generate a list of splice junctions but not BAM files. The junctions
 #'   are then given to STAR to generate a temporary genome (contained within
 #'   \code{_STARgenome}) subdirectory within that of the first sample), using
-#'   these junctions to improve novel junction detection. In 
+#'   these junctions to improve novel junction detection. In
 #'   \code{STAR_align_fastq()}, STAR will run \code{--twopassMode Basic}
-#' @param fastq_1,fastq_2 In STAR_align_fastq: character vectors giving the 
-#'   path(s) of one or more FASTQ (or FASTA) files to be aligned. 
+#' @param fastq_1,fastq_2 In STAR_align_fastq: character vectors giving the
+#'   path(s) of one or more FASTQ (or FASTA) files to be aligned.
 #'   If single reads are to be aligned, omit \code{fastq_2}
 #' @param memory_mode The parameter to be parsed to \code{--genomeLoad}; either
 #'   \code{NoSharedMemory} or \code{LoadAndKeep} are used.
-#' @param ... Additional arguments to be parsed into 
+#' @param ... Additional arguments to be parsed into
 #'   \code{Mappability_GenReads()}. See \link{Mappability-methods}.
 #' @return None. STAR will output files into the given output directories.
 #' @examples
 #' # 0) Check that STAR is installed and compatible with NxtIRF
 #'
 #' STAR_version()
-#' 
 #' \dontrun{
 #'
 #' # The below workflow illustrates
@@ -96,77 +95,76 @@
 #'
 #'
 #' # 1) Reference generation from Ensembl's FTP links
-#' 
-#' FTP = "ftp://ftp.ensembl.org/pub/release-94/"
-#' 
+#'
+#' FTP <- "ftp://ftp.ensembl.org/pub/release-94/"
+#'
 #' GetReferenceResource(
 #'     reference_path = "Reference_FTP",
 #'     fasta = paste0(FTP, "fasta/homo_sapiens/dna/",
-#'         "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"), 
+#'         "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"),
 #'     gtf = paste0(FTP, "gtf/homo_sapiens/",
 #'         "Homo_sapiens.GRCh38.94.chr.gtf.gz")
 #' )
-#' 
+#'
 #' # 2) Generates STAR genome within the NxtIRF reference. Also generates
 #' # mappability exclusion gzipped BED file inside the "Mappability/" sub-folder
-#' 
+#'
 #' STAR_buildRef(
-#'     reference_path = "Reference_FTP", 
+#'     reference_path = "Reference_FTP",
 #'     n_threads = 8,
 #'     also_generate_mappability = TRUE
 #' )
-#' 
+#'
 #' # 2 alt) Generates STAR genome of the example NxtIRF genome.
 #' #     This demonstrates using custom STAR parameters, as the example NxtIRF
 #' #     genome is ~100k in length, so --genomeSAindexNbases needs to be
 #' #     adjusted to be min(14, log2(GenomeLength)/2 - 1)
-#' 
+#'
 #' GetReferenceResource(
 #'     reference_path = "Reference_chrZ",
-#'     fasta = chrZ_genome(), 
+#'     fasta = chrZ_genome(),
 #'     gtf = chrZ_gtf()
 #' )
 #'
 #' STAR_buildRef(
-#'     reference_path = "Reference_chrZ", 
+#'     reference_path = "Reference_chrZ",
 #'     n_threads = 8,
-#'     additional_args = c("--genomeSAindexNbases", "7")
+#'     additional_args = c("--genomeSAindexNbases", "7"),
 #'     also_generate_mappability = TRUE
 #' )
-#' 
+#'
 #' # 3) Build NxtIRF reference using the newly-generated Mappability exclusions
 #'
 #' #' NB: also specifies to use the hg38 nonPolyA resource
-#' 
+#'
 #' BuildReference(reference_path = "Reference_FTP", genome_type = "hg38")
-#' 
+#'
 #' # 4a) Align a single sample using the STAR reference
-#' 
+#'
 #' STAR_align_fastq(
 #'     STAR_ref_path = file.path("Reference_FTP", "STAR"),
 #'     BAM_output_path = "./bams/sample1",
 #'     fastq_1 = "sample1_1.fastq", fastq_2 = "sample1_2.fastq",
 #'     n_threads = 8
 #' )
-#' 
+#'
 #' # 4b) Align multiple samples, using two-pass alignment
-#' 
-#' Experiment = data.frame(
+#'
+#' Experiment <- data.frame(
 #'     sample = c("sample_A", "sample_B"),
 #'     forward = file.path("raw_data", c("sample_A", "sample_B"),
 #'         c("sample_A_1.fastq", "sample_B_1.fastq")),
 #'     reverse = file.path("raw_data", c("sample_A", "sample_B"),
 #'         c("sample_A_2.fastq", "sample_B_2.fastq"))
 #' )
-#' 
+#'
 #' STAR_align_experiment(
 #'     Experiment = Experiment,
 #'     STAR_ref_path = file.path("Reference_FTP", "STAR"),
 #'     BAM_output_path = "./bams",
-#'     two_pass = TRUE, 
+#'     two_pass = TRUE,
 #'     n_threads = 8
 #' )
-#' 
 #' }
 #' @name STAR-methods
 #' @aliases
@@ -183,9 +181,9 @@ STAR_version <- function() .validate_STAR_version(type = "message")
 
 #' @describeIn STAR-methods Creates a STAR genome reference.
 #' @export
-STAR_buildRef <- function(reference_path, 
+STAR_buildRef <- function(reference_path,
         STAR_ref_path = file.path(reference_path, "STAR"),
-        also_generate_mappability = TRUE, 
+        also_generate_mappability = TRUE,
         map_depth_threshold = 4,
         sjdbOverhang = 149,
         n_threads = 4,
@@ -200,27 +198,39 @@ STAR_buildRef <- function(reference_path,
     transcripts.gtf <- .STAR_get_GTF(reference_path)
     # Build STAR using defaults
     .log(paste("Building STAR genome from", reference_path), type = "message")
-    
-    args = NULL
-    if(!("--runMode" %in% additional_args)) args = c(
-        "--runMode", "genomeGenerate")
-    if(!("--genomeDir" %in% additional_args)) args = c(args,
-        "--genomeDir", STAR_ref_path)
-    if(!("--genomeFastaFiles" %in% additional_args)) args = c(args,
-        "--genomeFastaFiles", genome.fa)
-    if(!("--sjdbGTFfile" %in% additional_args)) args = c(args,
-        "--sjdbGTFfile", transcripts.gtf)
-    if(!("--sjdbOverhang" %in% additional_args)) args = c(args,
-        "--sjdbOverhang", sjdbOverhang)
-    if(!("--runThreadN" %in% additional_args)) args = c(args,
-        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
 
-    if(!is.null(additional_args) && all(is.character(additional_args))) {
-        args = c(args, additional_args)
+    args <- NULL
+    if (!("--runMode" %in% additional_args)) {
+args <- c(
+        "--runMode", "genomeGenerate")
+}
+    if (!("--genomeDir" %in% additional_args)) {
+args <- c(args,
+        "--genomeDir", STAR_ref_path)
+}
+    if (!("--genomeFastaFiles" %in% additional_args)) {
+args <- c(args,
+        "--genomeFastaFiles", genome.fa)
+}
+    if (!("--sjdbGTFfile" %in% additional_args)) {
+args <- c(args,
+        "--sjdbGTFfile", transcripts.gtf)
+}
+    if (!("--sjdbOverhang" %in% additional_args)) {
+args <- c(args,
+        "--sjdbOverhang", sjdbOverhang)
+}
+    if (!("--runThreadN" %in% additional_args)) {
+args <- c(args,
+        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
+}
+
+    if (!is.null(additional_args) && all(is.character(additional_args))) {
+        args <- c(args, additional_args)
     }
     system2(command = "STAR", args = args)
 
-    if(also_generate_mappability) {
+    if (also_generate_mappability) {
         STAR_Mappability(
             reference_path = reference_path,
             STAR_ref_path = STAR_ref_path,
@@ -229,7 +239,7 @@ STAR_buildRef <- function(reference_path,
             ...
         )
     }
-    
+
     # Clean up
     .STAR_clean_temp_FASTA_GTF(reference_path)
 }
@@ -245,31 +255,32 @@ STAR_Mappability <- function(
 ) {
     .validate_reference_resource(reference_path)
     .validate_STAR_version()
-    STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
-    mappability_reads_fasta = file.path(
+    STAR_ref_path <- .validate_STAR_reference(STAR_ref_path)
+    mappability_reads_fasta <- file.path(
         reference_path, "Mappability", "Reads.fa")
     Mappability_GenReads(reference_path, ...)
 
-    .log(paste("Aligning genome fragments back to the genome, from:", 
+    .log(paste("Aligning genome fragments back to the genome, from:",
         mappability_reads_fasta), type = "message")
-    aligned_bam = file.path(reference_path, "Mappability", 
+    aligned_bam <- file.path(reference_path, "Mappability",
         "Aligned.out.bam")
     STAR_align_fastq(
-        fastq_1 = mappability_reads_fasta, 
+        fastq_1 = mappability_reads_fasta,
         fastq_2 = NULL,
         STAR_ref_path = STAR_ref_path,
-        BAM_output_path = dirname(aligned_bam), 
+        BAM_output_path = dirname(aligned_bam),
         n_threads = n_threads,
         trim_adaptor = "",
         additional_args = c(
-            "--outSAMstrandField", "None", 
+            "--outSAMstrandField", "None",
             "--outSAMattributes", "None"
         )
     )
-    if(file.exists(aligned_bam)) {
+    if (file.exists(aligned_bam)) {
         # Cleaan up fasta
-        if(file.exists(mappability_reads_fasta)) 
-            file.remove(mappability_reads_fasta)
+        if (file.exists(mappability_reads_fasta)) {
+file.remove(mappability_reads_fasta)
+}
         .log(paste("Calculating Mappability from:", aligned_bam),
             type = "message")
         Mappability_CalculateExclusions(
@@ -281,11 +292,11 @@ STAR_Mappability <- function(
     } else {
         .log("STAR failed to align mappability reads", "warning")
     }
-    if(file.exists(file.path(reference_path, "Mappability",
+    if (file.exists(file.path(reference_path, "Mappability",
             "MappabilityExclusion.bed.gz"))) {
         message("Mappability Exclusion calculations complete")
         # Clean up BAM
-        if(file.exists(aligned_bam)) file.remove(aligned_bam)
+        if (file.exists(aligned_bam)) file.remove(aligned_bam)
     } else {
         .log("Mappability Exclusion calculations not performed", "warning")
     }
@@ -296,95 +307,95 @@ STAR_Mappability <- function(
 #' @export
 STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
         trim_adaptor = "AGATCGGAAG", two_pass = FALSE, n_threads = 4) {
-    
+
     .validate_STAR_version()
-    STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
-    BAM_output_path = .validate_path(BAM_output_path)
-    
+    STAR_ref_path <- .validate_STAR_reference(STAR_ref_path)
+    BAM_output_path <- .validate_path(BAM_output_path)
+
     # Dissect Experiment:
-    if(ncol(Experiment) < 2 || ncol(Experiment) > 3) {
+    if (ncol(Experiment) < 2 || ncol(Experiment) > 3) {
         .log(paste("Experiment must be a 2- or 3- column data frame,",
             "with the columns denoting sample name, fastq file (forward),",
             "and (optionally) fastq file (reverse)"))
-    } else if(ncol(Experiment) == 2) {
-        colnames(Experiment) = c("sample", "forward")
-        fastq_1 = Experiment[, "forward"]
-        fastq_2 = NULL
+    } else if (ncol(Experiment) == 2) {
+        colnames(Experiment) <- c("sample", "forward")
+        fastq_1 <- Experiment[, "forward"]
+        fastq_2 <- NULL
         .validate_STAR_fastq_samples(fastq_1)
-        paired = FALSE
-    } else if(ncol(Experiment) == 3) {
-        colnames(Experiment) = c("sample", "forward", "reverse")
-        fastq_1 = Experiment[, "forward"]
-        fastq_2 = Experiment[, "reverse"]
+        paired <- FALSE
+    } else if (ncol(Experiment) == 3) {
+        colnames(Experiment) <- c("sample", "forward", "reverse")
+        fastq_1 <- Experiment[, "forward"]
+        fastq_2 <- Experiment[, "reverse"]
         .validate_STAR_fastq_samples(fastq_1, fastq_2)
-        paired = TRUE
+        paired <- TRUE
     }
-    gzipped = all(grepl(paste0("\\", ".gz", "$"), fastq_1)) &&
+    gzipped <- all(grepl(paste0("\\", ".gz", "$"), fastq_1)) &&
         (!paired || all(grepl(paste0("\\", ".gz", "$"), fastq_2)))
-    if(is_valid(trim_adaptor)) .validate_STAR_trim_sequence(trim_adaptor)
-    
-    samples = unique(Experiment[, "sample"])
-    SJ.files = NULL
-    two_pass_genome = NULL
-    loaded_ref = NULL
-    for(pass in seq_len(ifelse(two_pass, 2, 1))) {
-        if(two_pass && pass == 1) message("STAR - first pass")
-        if(two_pass && pass == 2) message("STAR - second pass")
-        if(pass == 1) {
-            ref = STAR_ref_path
+    if (is_valid(trim_adaptor)) .validate_STAR_trim_sequence(trim_adaptor)
+
+    samples <- unique(Experiment[, "sample"])
+    SJ.files <- NULL
+    two_pass_genome <- NULL
+    loaded_ref <- NULL
+    for (pass in seq_len(ifelse(two_pass, 2, 1))) {
+        if (two_pass && pass == 1) message("STAR - first pass")
+        if (two_pass && pass == 2) message("STAR - second pass")
+        if (pass == 1) {
+            ref <- STAR_ref_path
             system2(command = "STAR", args = c(
                 "--genomeLoad", "LoadAndExit", "--genomeDir", ref
             ))
-            loaded_ref = ref
+            loaded_ref <- ref
         }
-        for(i in seq_len(length(samples))) {
-            if(pass == 2 && !is.null(two_pass_genome) && is.null(loaded_ref)) {
-                ref = two_pass_genome
+        for (i in seq_len(length(samples))) {
+            if (pass == 2 && !is.null(two_pass_genome) && is.null(loaded_ref)) {
+                ref <- two_pass_genome
                 system2(command = "STAR", args = c(
                     "--genomeLoad", "LoadAndExit", "--genomeDir", ref
                 ))
-                loaded_ref = ref        
+                loaded_ref <- ref
             }
 
-            sample = samples[i]
-            Expr_sample = Experiment[Experiment[, "sample"] == sample,]
-            if(!paired) {
-                fastq_1 = Expr_sample[, "forward"]
-                fastq_2 = NULL        
+            sample <- samples[i]
+            Expr_sample <- Experiment[Experiment[, "sample"] == sample, ]
+            if (!paired) {
+                fastq_1 <- Expr_sample[, "forward"]
+                fastq_2 <- NULL
             } else {
-                fastq_1 = Expr_sample[, "forward"]
-                fastq_2 = Expr_sample[, "reverse"]
+                fastq_1 <- Expr_sample[, "forward"]
+                fastq_2 <- Expr_sample[, "reverse"]
             }
-            memory_mode = "LoadAndKeep"
-            if(two_pass && pass == 1) {
-                additional_args = c("--outSAMtype", "None")
-            } else if(two_pass && pass == 2 && !is.null(SJ.files)) {
-                additional_args = c("--sjdbFileChrStartEnd",
+            memory_mode <- "LoadAndKeep"
+            if (two_pass && pass == 1) {
+                additional_args <- c("--outSAMtype", "None")
+            } else if (two_pass && pass == 2 && !is.null(SJ.files)) {
+                additional_args <- c("--sjdbFileChrStartEnd",
                     paste(SJ.files$path, collapse = " "),
                     "--sjdbInsertSave", "All"
                 )
-                two_pass_genome = file.path(BAM_output_path, sample, 
+                two_pass_genome <- file.path(BAM_output_path, sample,
                     "_STARgenome")
-                SJ.files = NULL
-                memory_mode = "NoSharedMemory"
+                SJ.files <- NULL
+                memory_mode <- "NoSharedMemory"
             } else {
-                additional_args = NULL
+                additional_args <- NULL
             }
 
             .log(paste("Aligning", sample, "using STAR"), "message")
-            STAR_align_fastq(ref, 
+            STAR_align_fastq(ref,
                 BAM_output_path = file.path(BAM_output_path, sample),
-                fastq_1 = fastq_1, fastq_2 = fastq_2, 
+                fastq_1 = fastq_1, fastq_2 = fastq_2,
                 trim_adaptor = trim_adaptor,
                 memory_mode = memory_mode,
                 additional_args = additional_args,
                 n_threads = n_threads)
-                
+
         } # end of FOR loop
-        
-        if(two_pass && pass == 1) {
-            SJ.files = Find_Samples(BAM_output_path, suffix = ".out.tab")
-            if(nrow(SJ.files) == 0) {
+
+        if (two_pass && pass == 1) {
+            SJ.files <- Find_Samples(BAM_output_path, suffix = ".out.tab")
+            if (nrow(SJ.files) == 0) {
                 .log(paste("In STAR two-pass,",
                     "no SJ.out.tab files were found"))
             }
@@ -393,7 +404,7 @@ STAR_align_experiment <- function(Experiment, STAR_ref_path, BAM_output_path,
         system2(command = "STAR", args = c(
             "--genomeLoad", "Remove", "--genomeDir", loaded_ref
         ))
-        loaded_ref = NULL
+        loaded_ref <- NULL
     }
 }
 
@@ -409,92 +420,106 @@ STAR_align_fastq <- function(
         additional_args = NULL,
         n_threads = 4
 ) {
-        
+
     .validate_STAR_version()
-    STAR_ref_path = .validate_STAR_reference(STAR_ref_path)
+    STAR_ref_path <- .validate_STAR_reference(STAR_ref_path)
     .validate_STAR_fastq_samples(fastq_1, fastq_2)
-    
-    paired = (length(fastq_1) == length(fastq_2))
-    gzipped = all(grepl(paste0("\\", ".gz", "$"), fastq_1)) &&
+
+    paired <- (length(fastq_1) == length(fastq_2))
+    gzipped <- all(grepl(paste0("\\", ".gz", "$"), fastq_1)) &&
         (!paired || all(grepl(paste0("\\", ".gz", "$"), fastq_2)))
-    if(is_valid(trim_adaptor)) .validate_STAR_trim_sequence(trim_adaptor)
+    if (is_valid(trim_adaptor)) .validate_STAR_trim_sequence(trim_adaptor)
 
-    BAM_output_path = .validate_path(BAM_output_path)
+    BAM_output_path <- .validate_path(BAM_output_path)
     # Load STAR reference
-    
-    # Remove duplication:
-    args = NULL
-    if(!("--genomeLoad" %in% additional_args)) 
-        args = c("--genomeLoad", memory_mode)
-    if(!("--runThreadN" %in% additional_args)) args = c(args,
-        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
-    if(!("--genomeDir" %in% additional_args)) 
-        args = c(args, "--genomeDir", STAR_ref_path)
-    if(!("--outFileNamePrefix" %in% additional_args)) 
-        args = c(args, "--outFileNamePrefix", 
-        paste0(BAM_output_path, "/"))
-    if(!("--outStd" %in% additional_args)) args = c(args, "--outStd", "Log")
-    if(!("--outBAMcompression" %in% additional_args)) 
-        args = c(args, "--outBAMcompression", "6")
-    if(!("--outSAMstrandField" %in% additional_args)) 
-        args = c(args, "--outSAMstrandField", "intronMotif")
-    if(!("--outSAMunmapped" %in% additional_args)) 
-        args = c(args, "--outSAMunmapped", "None")
-    if(!("--outFilterMultimapNmax" %in% additional_args)) args = 
-        c(args, "--outFilterMultimapNmax", "1")
-    if(!("--outSAMtype" %in% additional_args)) 
-        args = c(args, "--outSAMtype", "BAM", "Unsorted")
 
-    if(two_pass) args = c(args, "--twopassMode", "Basic")
-    
-    args = c(args, "--readFilesIn", paste(fastq_1, collapse = ","))
-    
-    if(paired) args = c(args, paste(fastq_2, collapse = ","))
-    if(gzipped) args = c(args, "--readFilesCommand", shQuote("gzip -dc"))
-    if(is_valid(trim_adaptor)) 
-        args = c(args, "--clip3pAdapterSeq", trim_adaptor)
-    if(!is.null(additional_args) && all(is.character(additional_args))) 
-        args = c(args, additional_args)
+    # Remove duplication:
+    args <- NULL
+    if (!("--genomeLoad" %in% additional_args)) {
+args <- c("--genomeLoad", memory_mode)
+}
+    if (!("--runThreadN" %in% additional_args)) {
+args <- c(args,
+        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
+}
+    if (!("--genomeDir" %in% additional_args)) {
+args <- c(args, "--genomeDir", STAR_ref_path)
+}
+    if (!("--outFileNamePrefix" %in% additional_args)) {
+args <- c(args, "--outFileNamePrefix",
+        paste0(BAM_output_path, "/"))
+}
+    if (!("--outStd" %in% additional_args)) args <- c(args, "--outStd", "Log")
+    if (!("--outBAMcompression" %in% additional_args)) {
+args <- c(args, "--outBAMcompression", "6")
+}
+    if (!("--outSAMstrandField" %in% additional_args)) {
+args <- c(args, "--outSAMstrandField", "intronMotif")
+}
+    if (!("--outSAMunmapped" %in% additional_args)) {
+args <- c(args, "--outSAMunmapped", "None")
+}
+    if (!("--outFilterMultimapNmax" %in% additional_args)) {
+args <-
+        c(args, "--outFilterMultimapNmax", "1")
+}
+    if (!("--outSAMtype" %in% additional_args)) {
+args <- c(args, "--outSAMtype", "BAM", "Unsorted")
+}
+
+    if (two_pass) args <- c(args, "--twopassMode", "Basic")
+
+    args <- c(args, "--readFilesIn", paste(fastq_1, collapse = ","))
+
+    if (paired) args <- c(args, paste(fastq_2, collapse = ","))
+    if (gzipped) args <- c(args, "--readFilesCommand", shQuote("gzip -dc"))
+    if (is_valid(trim_adaptor)) {
+args <- c(args, "--clip3pAdapterSeq", trim_adaptor)
+}
+    if (!is.null(additional_args) && all(is.character(additional_args))) {
+args <- c(args, additional_args)
+}
 
     system2(command = "STAR", args = args)
 }
 
 .validate_STAR_version <- function(type = "error") {
-    if(Sys.info()["sysname"] != "Linux") {
+    if (Sys.info()["sysname"] != "Linux") {
         .log("STAR wrappers are only supported on Linux", type = type)
     }
-    star_version = NULL
+    star_version <- NULL
     tryCatch({
-        star_version = system2("STAR", "--version", stdout = TRUE)
+        star_version <- system2("STAR", "--version", stdout = TRUE)
     }, error = function(e) {
-        star_version = NULL
+        star_version <- NULL
     })
-    if(is.null(star_version)) {
+    if (is.null(star_version)) {
         .log("STAR is not installed", type = type)
     }
-    if(!is.null(star_version) && star_version < "2.5.0") {
+    if (!is.null(star_version) && star_version < "2.5.0") {
         .log(paste("STAR version < 2.5.0 is not supported;",
             "current version:", star_version), type = type)
     }
-    if(!is.null(star_version) && star_version >= "2.5.0") {
+    if (!is.null(star_version) && star_version >= "2.5.0") {
         .log(paste("STAR version", star_version), type = "message")
     }
 }
 
 .validate_STAR_reference <- function(STAR_ref_path) {
-    if(!file.exists(file.path(STAR_ref_path, "genomeParameters.txt")))
-        .log(paste(
+    if (!file.exists(file.path(STAR_ref_path, "genomeParameters.txt"))) {
+.log(paste(
             STAR_ref_path, "does not appear to be a valid STAR reference"))
+}
     return(normalizePath(STAR_ref_path))
 }
 
 # Creates a temporary FASTA file from locally-stored TwoBit
 .STAR_get_FASTA <- function(reference_path) {
-    genome.fa = file.path(reference_path, "resource", "genome.fa")
-    if(!file.exists(genome.fa)) {
-        genome.fa = paste0(genome.fa, ".temp")
-        genome.2bit = file.path(reference_path, "resource", "genome.2bit")
-        if(!file.exists(genome.2bit)) {
+    genome.fa <- file.path(reference_path, "resource", "genome.fa")
+    if (!file.exists(genome.fa)) {
+        genome.fa <- paste0(genome.fa, ".temp")
+        genome.2bit <- file.path(reference_path, "resource", "genome.2bit")
+        if (!file.exists(genome.2bit)) {
             .log(paste(genome.2bit, "not found"))
         }
         .log("Extracting temp genome FASTA from TwoBit file", "message")
@@ -508,48 +533,48 @@ STAR_align_fastq <- function(
 
 # Creates a temporary unzipped GTF for STAR
 .STAR_get_GTF <- function(reference_path) {
-    transcripts.gtf = file.path(reference_path, "resource", "transcripts.gtf")
-    if(!file.exists(transcripts.gtf)) {
-        if(!file.exists(paste0(transcripts.gtf, ".gz"))) {
+    transcripts.gtf <- file.path(reference_path, "resource", "transcripts.gtf")
+    if (!file.exists(transcripts.gtf)) {
+        if (!file.exists(paste0(transcripts.gtf, ".gz"))) {
             .log(paste(paste0(transcripts.gtf, ".gz"), "not found"))
         }
         .log("Extracting temp Annotation GTF from GZ file", "message")
-        R.utils::gunzip(paste0(transcripts.gtf, ".gz"), remove = FALSE, 
+        R.utils::gunzip(paste0(transcripts.gtf, ".gz"), remove = FALSE,
             overwrite = TRUE)
         file.rename(transcripts.gtf, paste0(transcripts.gtf, ".temp"))
-        transcripts.gtf = paste0(transcripts.gtf, ".temp")
+        transcripts.gtf <- paste0(transcripts.gtf, ".temp")
     }
     return(transcripts.gtf)
 }
 
 .STAR_clean_temp_FASTA_GTF <- function(reference_path) {
     .log("Cleaning temp genome / gene annotation files", "message")
-    genome.fa = file.path(reference_path, "resource", "genome.fa.temp")
-    transcripts.gtf = file.path(reference_path, 
+    genome.fa <- file.path(reference_path, "resource", "genome.fa.temp")
+    transcripts.gtf <- file.path(reference_path,
         "resource", "transcripts.gtf.temp")
-    if(file.exists(genome.fa)) file.remove(genome.fa)
-    if(file.exists(transcripts.gtf)) file.remove(transcripts.gtf)
+    if (file.exists(genome.fa)) file.remove(genome.fa)
+    if (file.exists(transcripts.gtf)) file.remove(transcripts.gtf)
 }
 
 .validate_STAR_fastq_samples <- function(fastq_1, fastq_2) {
-    if(!is_valid(fastq_2)) {
+    if (!is_valid(fastq_2)) {
         # assume single
-        if(!all(file.exists(fastq_1))) {
+        if (!all(file.exists(fastq_1))) {
             .log("Some fastq files were not found")
         }
     } else {
-        if(length(fastq_2) != length(fastq_1)) {
+        if (length(fastq_2) != length(fastq_1)) {
             .log(paste("There must be equal numbers of",
                 "forward and reverse fastq samples"))
         }
-        if(!all(file.exists(fastq_1)) || !all(file.exists(fastq_2))) {
+        if (!all(file.exists(fastq_1)) || !all(file.exists(fastq_2))) {
             .log("Some fastq files were not found")
         }
     }
-    paired = (length(fastq_1) == length(fastq_2))
-    gzipped = all(grepl(paste0("\\", ".gz", "$"), fastq_1)) &&
+    paired <- (length(fastq_1) == length(fastq_2))
+    gzipped <- all(grepl(paste0("\\", ".gz", "$"), fastq_1)) &&
         (!paired || all(grepl(paste0("\\", ".gz", "$"), fastq_2)))
-    if(!gzipped && 
+    if (!gzipped &&
         (
             any(grepl(paste0("\\", ".gz", "$"), fastq_1)) ||
             (paired && any(grepl(paste0("\\", ".gz", "$"), fastq_2)))
@@ -562,15 +587,15 @@ STAR_align_fastq <- function(
 }
 
 .validate_STAR_trim_sequence <- function(sequence) {
-    if(length(sequence) != 1) {
+    if (length(sequence) != 1) {
         .log("Multiple adaptor sequences are not supported")
     }
     tryCatch({
-        ACGT_sum = sum(Biostrings::letterFrequency(
-            Biostrings::DNAString(sequence), 
+        ACGT_sum <- sum(Biostrings::letterFrequency(
+            Biostrings::DNAString(sequence),
             letters = "AGCT", OR = 0))
-    }, error = function(e) ACGT_sum = 0)
-    if(nchar(sequence) != ACGT_sum) {
+    }, error = function(e) ACGT_sum <- 0)
+    if (nchar(sequence) != ACGT_sum) {
         .log("Adaptor sequence can only contain A, C, G or T")
     }
 }

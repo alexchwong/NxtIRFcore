@@ -92,18 +92,18 @@ the same genomic region as the intron of interest.
 \examples{
 BuildReference(
     reference_path = file.path(tempdir(), "Reference"),
-    fasta = chrZ_genome(), 
+    fasta = chrZ_genome(),
     gtf = chrZ_gtf()
 )
 
-bams = NxtIRF_example_bams()
+bams <- NxtIRF_example_bams()
 IRFinder(bams$path, bams$sample,
   reference_path = file.path(tempdir(), "Reference"),
   output_path = file.path(tempdir(), "IRFinder_output")
 )
 
-expr = Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
-CollateData(expr, 
+expr <- Find_IRFinder_Output(file.path(tempdir(), "IRFinder_output"))
+CollateData(expr,
   reference_path = file.path(tempdir(), "Reference"),
   output_path = file.path(tempdir(), "NxtIRF_output")
 )

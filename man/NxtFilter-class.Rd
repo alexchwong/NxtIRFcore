@@ -127,17 +127,17 @@ using \link{get_default_filters}
 
 \examples{
 # Create a NxtFilter that filters for protein-coding ASE
-f1 = NxtFilter(filterClass = "Annotation", filterType = "Protein_Coding")
+f1 <- NxtFilter(filterClass = "Annotation", filterType = "Protein_Coding")
 
 # Create a NxtFilter that filters for Depth >= 20 in IR events
-f2 = NxtFilter(
+f2 <- NxtFilter(
     filterClass = "Data", filterType = "Depth",
     minimum = 20, EventTypes = c("IR", "RI")
 )
 
 # Create a NxtFilter that filters for Coverage > 60\% in splice events
 # that must be satisfied in at least 2 categories of condition "Genotype"
-f3 = NxtFilter(
+f3 <- NxtFilter(
     filterClass = "Data", filterType = "Coverage",
     minimum = 60, EventTypes = c("MXE", "SE", "AFE", "ALE", "A3SS", "A5SS"),
     condition = "Genotype", minCond = 2
@@ -145,7 +145,7 @@ f3 = NxtFilter(
 
 # Create a NxtFilter that filters for Depth > 10 in all events
 # that must be satisfied in at least 50\% of each gender
-f4 = NxtFilter(
+f4 <- NxtFilter(
     filterClass = "Data", filterType = "Depth",
     minimum = 10, condition = "gender", pcTRUE = 50
 )

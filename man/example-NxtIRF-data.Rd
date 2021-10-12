@@ -27,26 +27,25 @@ in the example code in \link{MakeSE}
 }
 \section{Functions}{
 \itemize{
-\item \code{NxtIRF_example_bams}: Returns a 2-column data frame, containing 
+\item \code{NxtIRF_example_bams}: Returns a 2-column data frame, containing
 sample names and sample paths (in tempdir()) of example BAM files
 
 \item \code{NxtIRF_example_NxtSE}: Returns a (in-memory / realized) NxtSE object
-that was pre-generated using the NxtIRF example reference and example 
+that was pre-generated using the NxtIRF example reference and example
 BAM files
 }}
 
 \examples{
 
-# returns a data frame with the first column as sample names, and the 
+# returns a data frame with the first column as sample names, and the
 # second column as BAM paths
 
-NxtIRF_example_bams() 
+NxtIRF_example_bams()
 
 # Returns a NxtSE object created by the example bams aligned to the
 # mock NxtSE reference
 
-se = NxtIRF_example_NxtSE() 
-
+se <- NxtIRF_example_NxtSE()
 }
 \references{
 Generation of the mappability files was performed using NxtIRF using

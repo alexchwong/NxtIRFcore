@@ -175,7 +175,7 @@ Introns are denoted as lines.
 }
 \section{Functions}{
 \itemize{
-\item \code{Plot_Coverage}: generates plots showing depth of alignments to 
+\item \code{Plot_Coverage}: generates plots showing depth of alignments to
 the genomic axis. Plots can be generated for individual samples or samples
 grouped by experimental conditions. In the latter, mean and 95% confidence
 intervals are shown.
@@ -188,27 +188,27 @@ stacked ggplot, using egg::ggarrange
 }}
 
 \examples{
-se = NxtIRF_example_NxtSE()
+se <- NxtIRF_example_NxtSE()
 
 # Plot the genome track only, with specified gene:
-p = Plot_Genome(se, Gene = "SRSF3")
+p <- Plot_Genome(se, Gene = "SRSF3")
 p$ggplot
 
 # View the genome track, specifying a genomic region via coordinates:
-p = Plot_Genome(se, coordinates = "chrZ:10000-20000")
+p <- Plot_Genome(se, coordinates = "chrZ:10000-20000")
 p$ggplot
 
 # Assign annotation re experimental conditions
 
-colData(se)$treatment = rep(c("A", "B"), each = 3)
+colData(se)$treatment <- rep(c("A", "B"), each = 3)
 
 # Verify that the COV files are linked to the NxtSE object:
 covfile(se)
 
 # Return a list of ggplot and plotly objects
-p = Plot_Coverage(
-    se = se, 
-    Event = rowData(se)$EventName[1], 
+p <- Plot_Coverage(
+    se = se,
+    Event = rowData(se)$EventName[1],
     tracks = colnames(se)[1:4]
 )
 
@@ -220,10 +220,9 @@ as_egg_ggplot(p)
 p$final_plot
 
 # Plot the same event but by condition "treatment"
-p = Plot_Coverage(
-    se, rowData(se)$EventName[1], 
+p <- Plot_Coverage(
+    se, rowData(se)$EventName[1],
     tracks = c("A", "B"), condition = "treatment"
 )
 as_egg_ggplot(p)
-
 }
