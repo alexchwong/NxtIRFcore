@@ -537,6 +537,7 @@ int buffer_out_chunk::Compress() {
   
   compressed_size = block_len;
 
+  free(temp_comp_buffer);
   return(ret);
 }
 
