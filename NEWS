@@ -1,4 +1,7 @@
-Changes in version 0.99.6 (2021-10-07)
+Changes in version 0.99.8 (2021-10-13)
++ Fixed memory leak when writing COV files
+
+Changes in version 0.99.6 (2021-10-12)
 + Added GetCoverageRegions() which calculates the mean coverage of each region
 in a given GRanges object
 + Added BAM2COV() which calculates and creates COV files from BAM files
