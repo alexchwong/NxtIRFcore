@@ -44,20 +44,26 @@ CoordToGR <- function(coordinates) {
     if (length(temp2) == 2) {
         seqnames <- temp2[[1]]
         temp3 <- tstrsplit(temp2[[2]], split = "-")
-        start <- temp3[[1]]
+        start <- as.numeric(temp3[[1]])
         if (length(temp3) == 2) {
-            end <- temp3[[2]]
+            end <- as.numeric(temp3[[2]])
         } else if (length(temp3) == 1) {
-            end <- temp3[[1]]
+            end <- as.numeric(temp3[[1]])
         } else {
             .log(stopmsg)
         }
     } else {
         .log(stopmsg)
     }
-    return(GRanges(seqnames = seqnames, ranges = IRanges(
-        start = as.numeric(start), end = as.numeric(end)),
-        strand = strand))
+    if(length(start) != length(end))
+        .log("In CoordToGR, start and end lengths don't match")
+    if(any(start > end))
+        .log("In CoordToGR, some starts > end")
+    return(GRanges(
+        seqnames = seqnames, 
+        ranges = IRanges(start = start, end = end),
+        strand = strand
+    ))
 }
 
 #' Validates the given file as a valid COV file
