@@ -792,6 +792,7 @@ int IRF_core(std::string const &bam_file,
   // BAM processing loop
   
 #ifdef RNXTIRF
+  size_t remaining_read_data = 0;
   Progress p(inbam.GetFileSize(), verbose);
   while(0 == inbam.fillReads() && !p.check_abort()) {
     p.increment(inbam.IncProgress());
@@ -799,6 +800,11 @@ int IRF_core(std::string const &bam_file,
 #else
   while(0 == inbam.fillReads()) {
 #endif
+    remaining_read_data = 0;
+    for(unsigned int i = 0; i < n_threads_to_use; i++) {
+      remaining_read_data += inbam.remainingThreadReadsBuffer(i);
+    }
+    cout << "Preparing to process " << remaining_read_data << " bytes worth of data\n";
     
     #ifdef _OPENMP
     #pragma omp parallel for num_threads(n_threads_to_use) schedule(static,1)
@@ -806,7 +812,7 @@ int IRF_core(std::string const &bam_file,
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
       BBchild.at(i)->processAll(i);
     }
-    
+    cout << "Processed " << inbam.GetProgress() << " bytes\n";
   }
 
   #ifdef RNXTIRF
