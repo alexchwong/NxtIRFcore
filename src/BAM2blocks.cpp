@@ -448,7 +448,7 @@ int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
   // Reads from pbam_in until finished; do not create output
   unsigned int idx = 0;
   unsigned int nucs_proc = 0;
-  int ret = 0;
+
   bool any_reads_processed = false;
   
   // Use map pointer spare_reads:
@@ -461,7 +461,7 @@ int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
   auto check = start;
   while(1) {
     check = chrono::steady_clock::now();
-    if(chrono::duration_cast<chrono::seconds>(check - start).count() > 30) {
+    if(chrono::duration_cast<chrono::seconds>(check - start).count() > 15) {
       cout << "Error: read processing appears very sluggish in thread " << thread_number
         << ". Suggest sort the BAM file by read name and try again\n"
         << "  e.g. use `samtools collate` or `sambamba sort -n`.\n"
@@ -548,10 +548,7 @@ int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
       delete new_spare_reads;
     }
   }
-  if(ret < 4) {
-    cout << "Error occurred in BAM2Blocks processAll - likely a bug\n";
-    return(-1);
-  }
+
   return(0);
 }
 
