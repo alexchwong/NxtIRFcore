@@ -171,6 +171,16 @@ unsigned int BAM2blocks::processPair(pbam1_t * read1, pbam1_t * read2) {
       oBlocks.direction = 1;
     }
   }
+  
+  std::string read_name_s;
+  if(r1->n_cigar_op() > 10) {
+    r1->read_name(read_name_s);
+    cout << read_name_s << " has " << r1->n_cigar_op() << " cigar ops\n";    
+  }
+  if(r2->n_cigar_op() > 10) {
+    r2->read_name(read_name_s);
+    cout << read_name_s << " has " << r2->n_cigar_op() << " cigar ops\n";    
+  }
 
   cigar2block(r1->cigar(), r1->n_cigar_op(), oBlocks.rStarts[0], oBlocks.rLens[0], r1_genome_len);
   cigar2block(r2->cigar(), r2->n_cigar_op(), oBlocks.rStarts[1], oBlocks.rLens[1], r2_genome_len);
