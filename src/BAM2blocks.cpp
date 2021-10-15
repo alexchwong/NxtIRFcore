@@ -25,6 +25,7 @@ SOFTWARE.  */
 // WARNING: code is little endian only!
 
 #include "BAM2blocks.h"
+#include <chrono>
 
 BAM2blocks::BAM2blocks() {
   oBlocks = FragmentBlocks(); //Right syntax to call the default constructor on an object variable, declared but not initialised?
@@ -456,7 +457,17 @@ int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
   std::string read_name_s;
   pbam1_t * store_read;
   
+  auto start = chrono::steady_clock::now();
+  auto check = start;
   while(1) {
+    check = chrono::steady_clock::now();
+    if(chrono::duration_cast<chrono::seconds>(end - start).count() > 30) {
+      cout << "Error: read processing appears very sluggish in thread " << thread_number
+        << ". Suggest sort the BAM file by read name and try again\n";
+      cout << "Alternatively, try to run NxtIRF/IRFinder using single core\n";
+      return(-1);
+    }
+    
     read = IN->supplyRead(thread_number);
     if(!read.validate()) {
       if(idx == 1 && spare_reads->size() == 0) {
