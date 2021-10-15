@@ -463,8 +463,9 @@ int BAM2blocks::processAll(unsigned int thread_number, bool mappability_mode) {
     check = chrono::steady_clock::now();
     if(chrono::duration_cast<chrono::seconds>(check - start).count() > 30) {
       cout << "Error: read processing appears very sluggish in thread " << thread_number
-        << ". Suggest sort the BAM file by read name and try again\n";
-      cout << "Alternatively, try to run NxtIRF/IRFinder using single core\n";
+        << ". Suggest sort the BAM file by read name and try again\n"
+        << "  e.g. use `samtools collate` or `sambamba sort -n`.\n"'
+      cout << "Alternatively, try to run NxtIRF/IRFinder using `n_threads = 1`\n";
       return(-1);
     }
     
