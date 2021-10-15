@@ -790,7 +790,7 @@ int IRF_core(std::string const &bam_file,
   }
   
   // BAM processing loop
-  
+  bool error_detected = false;
 #ifdef RNXTIRF
   Progress p(inbam.GetFileSize(), verbose);
   while(0 == inbam.fillReads() && !p.check_abort()) {
@@ -804,14 +804,26 @@ int IRF_core(std::string const &bam_file,
     #pragma omp parallel for num_threads(n_threads_to_use) schedule(static,1)
     #endif
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
-      BBchild.at(i)->processAll(i);
+      int pa_ret = BBchild.at(i)->processAll(i);
+      if(pa_ret == -1) {
+        
+        #ifdef _OPENMP
+        #pragma omp critical
+        #endif
+        error_detected = true;
+      }
     }
     
+    if(error_detected) break;
   }
 
-  #ifdef RNXTIRF
-  if(p.check_abort()) {
+#ifdef RNXTIRF
+  if(p.check_abort() || error_detected) {
     // interrupted:
+#else
+  if(error_detected) {
+#endif
+    
     for(unsigned int i = 0; i < n_threads_to_use; i++) {
       delete oJC.at(i);
       delete oChr.at(i);
@@ -823,7 +835,7 @@ int IRF_core(std::string const &bam_file,
     }
     return(-1);
   }
-  #endif
+
 
   if(n_threads_to_use > 1) {
     if(verbose) cout << "Compiling data from threads\n";
