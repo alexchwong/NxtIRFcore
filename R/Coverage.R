@@ -332,6 +332,10 @@ as_egg_ggplot <- function(p_obj) {
 #'   strand as the expressed transcript.
 #' @param regions A GRanges object for a set of regions to obtain mean / total
 #'   coverage from the given COV file.
+#' @param region In `GetCoverageBins`, a single query region as a GRanges object
+#' @param bins In `GetCoverageBins`, the number of bins to divide the given
+#'   `region`. If `bin_size` is given, overrides this parameter
+#' @param bin_size In `GetCoverageBins`, the number of nucleotides per bin
 #' @return
 #' For `GetCoverage`: If seqname is left as "", returns an RLEList of the
 #'   whole BAM file, with each RLE in the list containing coverage data for
@@ -344,6 +348,13 @@ as_egg_ggplot <- function(p_obj) {
 #'
 #' For `GetCoverageRegions`: Returns a GRanges object with an extra metacolumn:
 #'   `cov_mean`, which gives the mean coverage of each of the given ranges.
+#'
+#' For `GetCoverageBins`: Returns a GRanges object which spans the given
+#'   `region`, divided by the number of `bins` or by width as given by
+#'   `bin_size`. Mean coverage in each bin is calculated (returned by the
+#'   `cov_mean` metadata column). This function is useful for retrieving
+#'   coverage of a large region for visualisation, especially when the
+#'   size of the region vastly exceeds the width of the figure.
 #'
 #' @examples
 #' se <- NxtIRF_example_NxtSE()
@@ -385,6 +396,17 @@ as_egg_ggplot <- function(p_obj) {
 #'     strandMode = "reverse"
 #' )
 #'
+#' # Retrieve binned coverage of a large region
+#'
+#' gr.fetch = GetCoverageBins(
+#'     cov_file,
+#'     region = GRanges(seqnames = "chrZ",
+#'         ranges = IRanges(start = 100, end = 100000),
+#'         strand = "*"
+#'     ),
+#'     bins = 2000
+#' )
+#'
 #' # Plot coverage using ggplot:
 #'
 #' require(ggplot2)
@@ -394,6 +416,10 @@ as_egg_ggplot <- function(p_obj) {
 #'
 #' ggplot(as.data.frame(gr.unstranded),
 #'     aes(x = (start + end) / 2, y = cov_mean)) +
+#'     geom_line() + theme_white
+#'
+#' ggplot(as.data.frame(gr.fetch), 
+#'     aes(x = (start + end)/2, y = cov_mean)) +
 #'     geom_line() + theme_white
 #'
 #' # Export COV data as BigWig
@@ -542,6 +568,67 @@ GetCoverageRegions <- function(file, regions,
 
     return(regions)
 }
+
+#' @describeIn Coverage Retrieves coverage of a single region from a COV file,
+#'   binned by the given number of bins or bin_size
+#' @export
+GetCoverageBins <- function(file, region, bins = 2000, 
+        strandMode = c("unstranded", "forward", "reverse"),
+        bin_size
+) {
+    strandMode <- match.arg(strandMode)
+    if (strandMode == "") strandMode <- "unstranded"
+
+    if (!is(region, "GRanges")) .log("region must be a GRanges object")
+    region = region[1]
+    
+    if (!IsCOV(file)) .log("Given file is not of COV format")
+    seqlevels <- IRF_Cov_Seqnames(normalizePath(file))
+    if(!(as.character(seqnames(region)) %in% seqlevels))
+        .log("Given region is on a chromosome that is missing in COV file")
+
+    if(missing(bin_size) || !is.numeric(bin_size) ||
+            bin_size > width(region) || bin_size < 1) {
+        bin_size = ceiling(width(region) / bins)
+    }
+
+    gr.fetch = .bin_gr(region, bin_size) 
+
+    if (strandMode == "unstranded") {
+        strand = "*"
+    } else if (strandMode == "reverse") {
+        if(strand(region) == "+") {
+            strand = "-"
+        } else if(strand(region == "-")) {
+            strand = "+"
+        } else {
+            strand = "*"
+        }
+    } else {
+        strand = as.character(strand(region))
+    }
+
+    df <- as.data.frame(.internal_get_coverage_as_df(
+        "sample", file,
+        as.character(seqnames(region)), 
+        start(region), end(region), strand)
+    )
+    df <- bin_df(df, bin_size)
+    gr.fetch$cov_mean = df$sample
+
+    return(gr.fetch)
+}
+
+.bin_gr <- function(gr, window_size) {
+    brks <- seq(1, width(gr) + 1, length.out = (width(gr) + 1) / window_size)
+    DT = data.table(coord = seq(start(gr), end(gr)))
+    DT[, bin := findInterval(seq_len(nrow(DT)), brks)]
+    DT2 <- DT[, .(start = min(coord), end = max(coord)), by = bin]
+    DT2[, c("seqnames", "strand") := 
+        list(as.character(seqnames(gr)), as.character(strand(gr)))]
+    .grDT(DT2)
+}
+
 
 ########## Internal functions ##########
 
@@ -1179,8 +1266,8 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
                 df <- as.data.frame(.internal_get_coverage_as_df(
                     samples, avail_files[samples],
                     view_chr, view_start, view_end, view_strand))
-                # bin anything with cur_zoom > 5
-                df <- bin_df(df, max(1, 3^(cur_zoom - 5)))
+                # bin anything with cur_zoom > 4
+                df <- bin_df(df, max(1, 3^(cur_zoom - 4)))
                 # message(paste("Group GetCoverage performed for", condition))
                 for (todo in seq_len(length(samples))) {
                     df[, samples[todo]] <-
@@ -1369,7 +1456,7 @@ df$track <- factor(df$track, args$track_names)
             if (length(filename) == 1 && file.exists(filename)) {
                 df <- .internal_get_coverage_as_df("sample", filename,
                     view_chr, view_start, view_end, view_strand)
-                df <- bin_df(df, max(1, 3^(cur_zoom - 5)))
+                df <- bin_df(df, max(1, 3^(cur_zoom - 4)))
                 data.list[[i]] <- as.data.table(df)
                 if ("sample" %in% colnames(df)) {
                     gp_track[[i]] <- ggplot() +

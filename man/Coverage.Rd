@@ -5,6 +5,7 @@
 \alias{GetCoverage}
 \alias{GetCoverage_DF}
 \alias{GetCoverageRegions}
+\alias{GetCoverageBins}
 \title{Calls NxtIRF's C++ function to retrieve coverage from a COV file}
 \usage{
 GetCoverage(file, seqname = "", start = 0, end = 0, strand = c("*", "+", "-"))
@@ -21,6 +22,14 @@ GetCoverageRegions(
   file,
   regions,
   strandMode = c("unstranded", "forward", "reverse")
+)
+
+GetCoverageBins(
+  file,
+  region,
+  bins = 2000,
+  strandMode = c("unstranded", "forward", "reverse"),
+  bin_size
 )
 }
 \arguments{
@@ -43,6 +52,13 @@ means that an unstranded protocol was used. Stranded protocols can be
 either "forward", where the first read is the same strand as the
 expressed transcript, or "reverse" where the second strand is the same
 strand as the expressed transcript.}
+
+\item{region}{In \code{GetCoverageBins}, a single query region as a GRanges object}
+
+\item{bins}{In \code{GetCoverageBins}, the number of bins to divide the given
+\code{region}. If \code{bin_size} is given, overrides this parameter}
+
+\item{bin_size}{In \code{GetCoverageBins}, the number of nucleotides per bin}
 }
 \value{
 For \code{GetCoverage}: If seqname is left as "", returns an RLEList of the
@@ -56,6 +72,13 @@ containing the coverage depth for each coordinate nucleotide.
 
 For \code{GetCoverageRegions}: Returns a GRanges object with an extra metacolumn:
 \code{cov_mean}, which gives the mean coverage of each of the given ranges.
+
+For \code{GetCoverageBins}: Returns a GRanges object which spans the given
+\code{region}, divided by the number of \code{bins} or by width as given by
+\code{bin_size}. Mean coverage in each bin is calculated (returned by the
+\code{cov_mean} metadata column). This function is useful for retrieving
+coverage of a large region for visualisation, especially when the
+size of the region vastly exceeds the width of the figure.
 }
 \description{
 This function returns an RLE / RLEList or data.frame
@@ -79,6 +102,9 @@ search for the requested data from the COV file.\cr\cr
 
 \item \code{GetCoverageRegions}: Retrieves total and mean coverage of a GRanges object
 from a COV file
+
+\item \code{GetCoverageBins}: Retrieves coverage of a single region from a COV file,
+binned by the given number of bins or bin_size
 }}
 
 \examples{
@@ -121,6 +147,17 @@ gr.stranded <- GetCoverageRegions(cov_file,
     strandMode = "reverse"
 )
 
+# Retrieve binned coverage of a large region
+
+gr.fetch = GetCoverageBins(
+    cov_file,
+    region = GRanges(seqnames = "chrZ",
+        ranges = IRanges(start = 100, end = 100000),
+        strand = "*"
+    ),
+    bins = 2000
+)
+
 # Plot coverage using ggplot:
 
 require(ggplot2)
@@ -130,6 +167,10 @@ ggplot(cov.df, aes(x = coordinate, y = value)) +
 
 ggplot(as.data.frame(gr.unstranded),
     aes(x = (start + end) / 2, y = cov_mean)) +
+    geom_line() + theme_white
+
+ggplot(as.data.frame(gr.fetch), 
+    aes(x = (start + end)/2, y = cov_mean)) +
     geom_line() + theme_white
 
 # Export COV data as BigWig
