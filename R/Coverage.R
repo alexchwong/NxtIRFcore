@@ -936,9 +936,9 @@ plot_cov_fn <- function(
 
     if (is_valid(condition) & is_valid(norm_event)) {
         # Calculate normalized values given `condition` and `norm_event`
-        print(system.time(
+        #print(system.time(
         calcs <- do.call(.plot_cov_fn_normalize_condition, args)
-        ))
+        #))
         if (stack_tracks == TRUE) {
         print(system.time(
             plot_objs <- .plot_cov_fn_plot_by_condition_stacked(calcs, args)
@@ -1279,12 +1279,22 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 
             if (length(avail_files[samples]) > 0 &&
                     all(file.exists(avail_files[samples]))) {
+                message("Running .internal_get_coverage_as_df")
+                print(system.time(
+                
                 df <- as.data.frame(.internal_get_coverage_as_df(
                     samples, avail_files[samples],
                     view_chr, view_start, view_end, view_strand))
+                
                 # bin anything with cur_zoom > 4
                 df <- bin_df(df, max(1, 3^(cur_zoom - 4)))
+                
+                ))
                 # message(paste("Group GetCoverage performed for", condition))
+
+                message("Normalizing samples")
+                print(system.time(
+                
                 for (todo in seq_len(length(samples))) {
                     df[, samples[todo]] <-
                         df[, samples[todo]] / event_norms[todo]
@@ -1299,12 +1309,16 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
                         fac <- c(fac, rep(as.character(i), ncol(df) - 1))
                     }
                 }
-
+                
+                ))
+                message("Processing means")
+                print(system.time(
+                
                 df$mean <- rowMeans(as.matrix(df[, samples]))
                 df$sd <- rowSds(as.matrix(df[, samples]))
                 n <- length(samples)
                 df$ci <- qt((1 + conf.int) / 2, df = n - 1) * df$sd / sqrt(n)
-
+                
                 if (length(track_names) == length(tracks)) {
                     df$track <- track_names[i]
                 } else {
@@ -1314,6 +1328,8 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
                 DT <- DT[, c("x", "mean", "ci", "track")]
                 data.list[[i]] <- DT
                 max_tracks <- max_tracks + 1
+                
+                ))
             }
         }
     }
@@ -1330,9 +1346,9 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 
     df <- as.data.frame(rbindlist(calcs$data.list))
     if (nrow(df) > 0) {
-        if (length(args$track_names) == length(args$tracks)) {
-df$track <- factor(df$track, args$track_names)
-}
+        if (length(args$track_names) == length(args$tracks))
+        df$track <- factor(df$track, args$track_names)
+
         gp_track[[1]] <- ggplot() +
             geom_hline(yintercept = 0) +
             geom_ribbon(data = df, alpha = 0.2,
