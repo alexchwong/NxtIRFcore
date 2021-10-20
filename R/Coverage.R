@@ -923,6 +923,7 @@ plot_cov_fn <- function(
 ) {
     args <- as.list(match.call())
     if (is.null(track_names)) args$track_names <- unlist(tracks)
+    message("Generating annotation track")
     print(system.time(
         p_ref <- plot_view_ref_fn(
             view_chr, view_start, view_end,
@@ -936,30 +937,36 @@ plot_cov_fn <- function(
 
     if (is_valid(condition) & is_valid(norm_event)) {
         # Calculate normalized values given `condition` and `norm_event`
-        #print(system.time(
+        message("Calculating group coverages")
+        print(system.time(
         calcs <- do.call(.plot_cov_fn_normalize_condition, args)
-        #))
+        ))
         if (stack_tracks == TRUE) {
+        message("Generating plot objects")
         print(system.time(
             plot_objs <- .plot_cov_fn_plot_by_condition_stacked(calcs, args)
         ))
         } else {
+        message("Generating plot objects")
         print(system.time(
             plot_objs <- .plot_cov_fn_plot_by_condition_unstacked(calcs, args)
         ))
         }
         if (t_test) {
+        message("Calculating t-test")
         print(system.time(
             plot_objs <- .plot_cov_fn_ttest(plot_objs, calcs)
         ))
         }
     } else if (!is_valid(condition)) {
         # Plot individual coverages on separate tracks
+        message("Plotting individual coverages")
         print(system.time(
         plot_objs <- do.call(.plot_cov_fn_indiv, args)
         ))
     }
-
+    message("Plotly-fying")
+    print(system.time({
     # Summarize non-null tracks
     plot_tracks <- plot_objs$pl_track[
         unlist(lapply(plot_objs$pl_track, function(x) !is.null(x)))]
@@ -974,10 +981,11 @@ plot_cov_fn <- function(
         theme(legend.position = "none") +
         labs(x = paste("Chromosome", view_chr))
     # Combine multiple tracks into a plotly plot
-    print(system.time(
+
     final_plot <- plot_cov_fn_finalize(
         plot_tracks, view_start, view_end, graph_mode)
-    ))
+    
+    }))
     return(list(ggplot = plot_objs$gp_track, final_plot = final_plot))
 }
 
@@ -1279,22 +1287,16 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 
             if (length(avail_files[samples]) > 0 &&
                     all(file.exists(avail_files[samples]))) {
-                message("Running .internal_get_coverage_as_df")
-                print(system.time({
-                
+
                 df <- as.data.frame(.internal_get_coverage_as_df(
                     samples, avail_files[samples],
                     view_chr, view_start, view_end, view_strand))
                 
                 # bin anything with cur_zoom > 4
                 df <- bin_df(df, max(1, 3^(cur_zoom - 4)))
-                
-                }))
+
                 # message(paste("Group GetCoverage performed for", condition))
 
-                message("Normalizing samples")
-                print(system.time({
-                
                 for (todo in seq_len(length(samples))) {
                     df[, samples[todo]] <-
                         df[, samples[todo]] / event_norms[todo]
@@ -1309,11 +1311,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
                         fac <- c(fac, rep(as.character(i), ncol(df) - 1))
                     }
                 }
-                
-                }))
-                message("Processing means")
-                print(system.time({
-                
+
                 df$mean <- rowMeans(as.matrix(df[, samples]))
                 df$sd <- rowSds(as.matrix(df[, samples]))
                 n <- length(samples)
@@ -1328,8 +1326,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
                 DT <- DT[, c("x", "mean", "ci", "track")]
                 data.list[[i]] <- DT
                 max_tracks <- max_tracks + 1
-                
-                }))
+
             }
         }
     }
