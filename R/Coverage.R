@@ -1280,7 +1280,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
             if (length(avail_files[samples]) > 0 &&
                     all(file.exists(avail_files[samples]))) {
                 message("Running .internal_get_coverage_as_df")
-                print(system.time(
+                print(system.time({}
                 
                 df <- as.data.frame(.internal_get_coverage_as_df(
                     samples, avail_files[samples],
@@ -1289,11 +1289,11 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
                 # bin anything with cur_zoom > 4
                 df <- bin_df(df, max(1, 3^(cur_zoom - 4)))
                 
-                ))
+                }))
                 # message(paste("Group GetCoverage performed for", condition))
 
                 message("Normalizing samples")
-                print(system.time(
+                print(system.time({
                 
                 for (todo in seq_len(length(samples))) {
                     df[, samples[todo]] <-
@@ -1310,9 +1310,9 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
                     }
                 }
                 
-                ))
+                }))
                 message("Processing means")
-                print(system.time(
+                print(system.time({
                 
                 df$mean <- rowMeans(as.matrix(df[, samples]))
                 df$sd <- rowSds(as.matrix(df[, samples]))
@@ -1329,7 +1329,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
                 data.list[[i]] <- DT
                 max_tracks <- max_tracks + 1
                 
-                ))
+                }))
             }
         }
     }
