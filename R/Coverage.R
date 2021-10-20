@@ -923,28 +923,41 @@ plot_cov_fn <- function(
 ) {
     args <- as.list(match.call())
     if (is.null(track_names)) args$track_names <- unlist(tracks)
-    p_ref <- plot_view_ref_fn(
-        view_chr, view_start, view_end,
-        transcripts, elems, highlight_events,
-        condensed = condensed,
-        selected_transcripts = selected_transcripts
-    )
+    print(system.time(
+        p_ref <- plot_view_ref_fn(
+            view_chr, view_start, view_end,
+            transcripts, elems, highlight_events,
+            condensed = condensed,
+            selected_transcripts = selected_transcripts
+        )
+    ))
     data.t_test <- list()
     cur_zoom <- floor(log((view_end - view_start) / 50) / log(3))
 
     if (is_valid(condition) & is_valid(norm_event)) {
         # Calculate normalized values given `condition` and `norm_event`
+        print(system.time(
         calcs <- do.call(.plot_cov_fn_normalize_condition, args)
-
+        ))
         if (stack_tracks == TRUE) {
+        print(system.time(
             plot_objs <- .plot_cov_fn_plot_by_condition_stacked(calcs, args)
+        ))
         } else {
+        print(system.time(
             plot_objs <- .plot_cov_fn_plot_by_condition_unstacked(calcs, args)
+        ))
         }
-        if (t_test) plot_objs <- .plot_cov_fn_ttest(plot_objs, calcs)
+        if (t_test) {
+        print(system.time(
+            plot_objs <- .plot_cov_fn_ttest(plot_objs, calcs)
+        ))
+        }
     } else if (!is_valid(condition)) {
         # Plot individual coverages on separate tracks
+        print(system.time(
         plot_objs <- do.call(.plot_cov_fn_indiv, args)
+        ))
     }
 
     # Summarize non-null tracks
@@ -961,9 +974,10 @@ plot_cov_fn <- function(
         theme(legend.position = "none") +
         labs(x = paste("Chromosome", view_chr))
     # Combine multiple tracks into a plotly plot
+    print(system.time(
     final_plot <- plot_cov_fn_finalize(
         plot_tracks, view_start, view_end, graph_mode)
-
+    ))
     return(list(ggplot = plot_objs$gp_track, final_plot = final_plot))
 }
 
