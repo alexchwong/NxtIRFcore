@@ -1,3 +1,7 @@
+Changes in version 0.99.9 (2021-10-20)
++ Added GetCoverageBins()
++ Add warning in IRFinder if coordinate sorted BAM file takes too long to run.
+
 Changes in version 0.99.8 (2021-10-13)
 + Fixed memory leak when writing COV files
 

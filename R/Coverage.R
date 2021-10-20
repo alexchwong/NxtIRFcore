@@ -218,12 +218,12 @@ Plot_Coverage <- function(
         graph_mode = "Pan", conf.int = 0.95,
         t_test = t_test, condensed = condense_tracks
     )
-    if (norm_event != "") {
-args$highlight_events <- .plot_coverage_highlight_events(se, norm_event)
-}
-    if (!missing(selected_transcripts)) {
-args$selected_transcripts <- selected_transcripts
-}
+    if (norm_event != "")
+        args$highlight_events <- .plot_coverage_highlight_events(se, norm_event)
+
+    if (!missing(selected_transcripts))
+        args$selected_transcripts <- selected_transcripts
+
     return(do.call(plot_cov_fn, args))
 }
 
@@ -587,6 +587,8 @@ GetCoverageBins <- function(file, region, bins = 2000,
     if(!(as.character(seqnames(region)) %in% seqlevels))
         .log("Given region is on a chromosome that is missing in COV file")
 
+    if(!is.numeric(bins) || bins < 1) .log("`bins` must be a numeric value")
+
     if(missing(bin_size) || !is.numeric(bin_size) ||
             bin_size > width(region) || bin_size < 1) {
         bin_size = ceiling(width(region) / bins)
@@ -669,11 +671,11 @@ GetCoverageBins <- function(file, region, bins = 2000,
                 "condition must be a valid column name in colData(se)"))
 
         condition_options <- unique(colData(se)[, condition])
-        if (!all(tracks %in% condition_options)) {
+        if (!all(tracks %in% condition_options))
             .log(paste("In Plot_Coverage,",
                 "some tracks do not match valid condition names in",
                 args[["condition"]]))
-        }
+
     } else {
         if (!all(tracks %in% colnames(se)))
             .log(paste("In Plot_Coverage,",
