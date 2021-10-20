@@ -460,8 +460,8 @@ GetCoverage <- function(file, seqname = "", start = 0, end = 0,
         as.character(seqnames(gr)) %in% seq &
         as.character(strand(gr)) %in% strand_gr
     )) {
-return(gr)
-}
+        return(gr)
+    }
 
     todo <- which(
         as.character(seqnames(gr)) %in% seq &
@@ -513,13 +513,13 @@ GetCoverageRegions <- function(file, regions,
     seqlevels <- IRF_Cov_Seqnames(normalizePath(file))
 
     # trim regions by available seqlevels
-    if (!any(seqlevels %in% seqlevels(regions))) {
-.log("COV file and given regions have incompatible seqnames")
-}
+    if (!any(seqlevels %in% seqlevels(regions)))
+        .log("COV file and given regions have incompatible seqnames")
+
     seqlevels(regions, pruning.mode = "coarse") <- seqlevels
     if (length(regions) == 0) {
-return(regions)
-}
+        return(regions)
+    }
 
     if (strandMode == "unstranded") {
         for (seq in unique(seqnames(regions))) {
@@ -560,38 +560,37 @@ return(regions)
 
 # Check se, tracks, conditions
 .plot_cov_validate_args_se <- function(se, tracks, condition) {
-    if (missing(se) || !is(se, "NxtSE")) {
-.log("In Plot_Coverage, `se` must be a valid `NxtSE` object")
-}
-    if (!all(file.exists(covfile(se)))) {
-.log(paste("In Plot_Coverage,",
+    if (missing(se) || !is(se, "NxtSE"))
+        .log("In Plot_Coverage, `se` must be a valid `NxtSE` object")
+
+    if (!all(file.exists(covfile(se))))
+        .log(paste("In Plot_Coverage,",
             "COV files are not defined in se.",
             "Please supply the correct paths of the COV files",
             "using covfile(se) <- vector_of_correct_COVfile_paths"))
-}
+
     # Check condition and tracks
-    if (length(tracks) < 1 | length(tracks) > 4) {
-.log(paste("In Plot_Coverage,", "tracks must be of length 1-4"))
-}
+    if (length(tracks) < 1 | length(tracks) > 4)
+        .log(paste("In Plot_Coverage,", "tracks must be of length 1-4"))
+
     if (!missing(condition)) {
-        if (length(condition) != 1) {
-.log(paste("In Plot_Coverage,", "condition must be of length 1"))
-}
-        if (!(condition %in% names(colData(se)))) {
-.log(paste("In Plot_Coverage,",
+        if (length(condition) != 1)
+            .log(paste("In Plot_Coverage,", "condition must be of length 1"))
+
+        if (!(condition %in% names(colData(se))))
+            .log(paste("In Plot_Coverage,",
                 "condition must be a valid column name in colData(se)"))
-}
+
         condition_options <- unique(colData(se)[, condition])
         if (!all(tracks %in% condition_options)) {
-.log(paste("In Plot_Coverage,",
+            .log(paste("In Plot_Coverage,",
                 "some tracks do not match valid condition names in",
                 args[["condition"]]))
-}
+        }
     } else {
-        if (!all(tracks %in% colnames(se))) {
-.log(paste("In Plot_Coverage,",
+        if (!all(tracks %in% colnames(se)))
+            .log(paste("In Plot_Coverage,",
                 "some tracks do not match valid sample names in se"))
-}
     }
 }
 
@@ -600,11 +599,10 @@ return(regions)
     Event, Gene, seqname, start, end, bases_flanking = 0
 ) {
     if (!all(c("seqInfo", "gene_list", "elem.DT", "transcripts.DT") %in%
-            names(cov_data))) {
-.log(paste("In Plot_Coverage,",
+            names(cov_data)))
+        .log(paste("In Plot_Coverage,",
             "cov_data must be a valid object",
             "created by prepare_covplot_data()"))
-}
 
     # Check we know where to plot
     if (missing(Event) & missing(Gene) &
@@ -642,19 +640,19 @@ return(regions)
     }
     view_center <- (view_start + view_end) / 2
     view_length <- view_end - view_start
-    if (!(view_chr %in% names(cov_data$seqInfo))) {
-.log(paste("In Plot_Coverage,", view_chr,
+    if (!(view_chr %in% names(cov_data$seqInfo)))
+        .log(paste("In Plot_Coverage,", view_chr,
             "is not a valid chromosome reference name in the given genome"))
-}
+
     if (is_valid(bases_flanking) &&
-            (!is.numeric(bases_flanking) || bases_flanking < 0)) {
-.log(paste("In Plot_Coverage,",
+            (!is.numeric(bases_flanking) || bases_flanking < 0))
+        .log(paste("In Plot_Coverage,",
             "bases_flanking must be a non-negative number"))
-}
-    if (!is.numeric(view_length) || view_length < 0) {
-.log(paste("In Plot_Coverage,",
+
+    if (!is.numeric(view_length) || view_length < 0)
+        .log(paste("In Plot_Coverage,",
             "view_length must be a non-negative number"))
-}
+
     return(TRUE)
 }
 
@@ -675,19 +673,19 @@ return(regions)
 
     view_center <- (view_start + view_end) / 2
     view_length <- view_end - view_start
-    if (!(view_chr %in% names(cov_data$seqInfo))) {
-.log(paste("In Plot_Coverage,", view_chr,
+    if (!(view_chr %in% names(cov_data$seqInfo)))
+        .log(paste("In Plot_Coverage,", view_chr,
             "is not a valid chromosome reference name in the given genome"))
-}
+
     if (is_valid(bases_flanking) &&
-            (!is.numeric(bases_flanking) || bases_flanking < 0)) {
-.log(paste("In Plot_Coverage,",
+            (!is.numeric(bases_flanking) || bases_flanking < 0))
+        .log(paste("In Plot_Coverage,",
             "bases_flanking must be a non-negative number"))
-}
-    if (!is.numeric(view_length) || view_length < 0) {
-.log(paste("In Plot_Coverage,",
+
+    if (!is.numeric(view_length) || view_length < 0)
+        .log(paste("In Plot_Coverage,",
             "view_length must be a non-negative number"))
-}
+
     return(TRUE)
 }
 
@@ -952,9 +950,9 @@ plot_view_ref_fn <- function(
 
     # Highlight events here
     # highlight_events is of syntax chrX:10000-11000/-
-    if (length(highlight_events) > 1 || highlight_events != "") {
-reduced.DT <- determine_compatible_events(reduced.DT, highlight_events)
-}
+    if (length(highlight_events) > 1 || highlight_events != "")
+        reduced.DT <- determine_compatible_events(reduced.DT, highlight_events)
+
 
     return(list(
         transcripts.DT = transcripts.DT,
@@ -1030,9 +1028,9 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
             bump_up_trs <- bump_up_trs[bump_up_trs > j]
             bump_up_trs <- bump_up_trs[
                 group.DT$plot_level[bump_up_trs] == cur_level]
-            if (length(bump_up_trs) > 0) {
-group.DT[bump_up_trs, c("plot_level") := cur_level + 1]
-}
+            if (length(bump_up_trs) > 0)
+                group.DT[bump_up_trs, c("plot_level") := cur_level + 1]
+
             j <- j + match(cur_level, group.DT$plot_level[-seq_len(j)])
             if (is.na(j)) break
         }
@@ -1453,22 +1451,22 @@ plot_cov_fn_finalize <- function(
 
     final_plot <- final_plot %>% layout(yaxis = list(
         rangemode = "tozero", tick0 = 0))
-    if (n_plots > 1) {
-final_plot <- final_plot %>% layout(yaxis2 =
-        list(rangemode = "tozero", tick0 = 0))
-}
-    if (n_plots > 2) {
-final_plot <- final_plot %>% layout(yaxis3 =
-        list(rangemode = "tozero", tick0 = 0))
-}
-    if (n_plots > 3) {
-final_plot <- final_plot %>% layout(yaxis4 =
-        list(rangemode = "tozero", tick0 = 0))
-}
-    if (n_plots > 4) {
-final_plot <- final_plot %>% layout(yaxis5 =
-        list(rangemode = "tozero", tick0 = 0))
-}
+    if (n_plots > 1)
+        final_plot <- final_plot %>% layout(yaxis2 =
+            list(rangemode = "tozero", tick0 = 0))
+
+    if (n_plots > 2)
+        final_plot <- final_plot %>% layout(yaxis3 =
+            list(rangemode = "tozero", tick0 = 0))
+
+    if (n_plots > 3)
+        final_plot <- final_plot %>% layout(yaxis4 =
+            list(rangemode = "tozero", tick0 = 0))
+
+    if (n_plots > 4)
+        final_plot <- final_plot %>% layout(yaxis5 =
+            list(rangemode = "tozero", tick0 = 0))
+
     return(final_plot)
 }
 ################################# PLOT TRACKS INTERNALS ########################
@@ -1482,7 +1480,7 @@ final_plot <- final_plot %>% layout(yaxis5 =
     }
     covData <- list()
     for (i in seq_len(length(files))) {
-        cov <- GetCoverage(files[i], seqname, start, end, strand)
+        cov <- GetCoverage(files[i], seqname, start - 1, end, strand)
         view <- IRanges::Views(cov, start, end)
         view.df <- as.data.frame(view[[1]])
         covData[[i]] <- view.df
@@ -1496,7 +1494,7 @@ final_plot <- final_plot %>% layout(yaxis5 =
 
 bin_df <- function(df, binwidth = 3) {
     DT <- as.data.table(df)
-    brks <- seq(1, nrow(DT), length = round(nrow(DT) / binwidth))
+    brks <- seq(1, nrow(DT) + 1, length.out = (nrow(DT) + 1) / binwidth)
     bin <- NULL
     DT[, bin := findInterval(seq_len(nrow(DT)), brks)]
     DT2 <- DT[, lapply(.SD, mean, na.rm = TRUE), by = bin]
