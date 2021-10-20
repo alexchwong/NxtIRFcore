@@ -11,8 +11,15 @@
 #' the required on-disk assay data using DelayedArrays, thereby utilising
 #' 'on-disk' memory to conserve memory usage.
 #'
-#' To convert the on-disk memory into RAM, use [realize_NxtSE]. See example
-#' below.
+#' For extremely large datasets, loading the entire data into memory may consume
+#' too much memory. In such cases, make a subset of the \linkS4class{NxtSE}
+#' object (e.g. subset by samples) before loading the data into memory (RAM) 
+#' using [realize_NxtSE]
+#' 
+#' It should be noted that downstream applications of NxtIRF, including
+#' [ASE-methods], [Plot_Coverage], are much faster if the \linkS4class{NxtSE}
+#' is realized. It is recommended to realize the \linkS4class{NxtSE} object
+#' before extensive usage.
 #'
 #' If COV files assigned via [CollateData] have been moved relative to the
 #' `collate_path`, the created \linkS4class{NxtSE} object will not have any
@@ -39,6 +46,8 @@
 #'   The colData can be set later using `colData()`
 #' @param RemoveOverlapping (default = `TRUE`) Whether to filter out overlapping
 #'   novel IR events belonging to minor isoforms. See details.
+#' @param realize (default = `FALSE`) Whether to load all assay data into
+#'   memory. See details
 #'
 #' @return A \linkS4class{NxtSE} object containing the compiled data in
 #' DelayedArrays pointing to the assay data contained in the given
@@ -87,7 +96,10 @@
 #' identical(se, example_se) # should return TRUE
 #' @md
 #' @export
-MakeSE <- function(collate_path, colData, RemoveOverlapping = TRUE) {
+MakeSE <- function(
+        collate_path, colData, RemoveOverlapping = TRUE,
+        realize = FALSE
+) {
     # Includes iterative filtering for IR events with highest mean PSI
         # To annotate IR events of major isoforms
 
@@ -96,7 +108,7 @@ MakeSE <- function(collate_path, colData, RemoveOverlapping = TRUE) {
 
     collate_path <- normalizePath(collate_path)
 
-    N <- 8
+    N <- 3
     dash_progress("Loading NxtSE object from file...", N)
     .log("Loading NxtSE object from file...", "message", appendLF = FALSE)
 
@@ -128,7 +140,14 @@ MakeSE <- function(collate_path, colData, RemoveOverlapping = TRUE) {
 
     if (RemoveOverlapping == TRUE) {
         dash_progress("Removing overlapping introns...", N)
+        .log("Removing overlapping introns...", "message")
         se <- .makeSE_iterate_IR(se, collate_path)
+    }
+
+    if (realize == TRUE) {
+        dash_progress("Realizing NxtSE object...", N)
+        .log("Realizing NxtSE object...", "message")
+        se <- realize_NxtSE(se)
     }
 
     return(se)

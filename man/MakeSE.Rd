@@ -4,7 +4,7 @@
 \alias{MakeSE}
 \title{Constructs a NxtSE object from the collated data}
 \usage{
-MakeSE(collate_path, colData, RemoveOverlapping = TRUE)
+MakeSE(collate_path, colData, RemoveOverlapping = TRUE, realize = FALSE)
 }
 \arguments{
 \item{collate_path}{(Required) The output path of \link{CollateData} pointing
@@ -20,6 +20,9 @@ The colData can be set later using \code{colData()}}
 
 \item{RemoveOverlapping}{(default = \code{TRUE}) Whether to filter out overlapping
 novel IR events belonging to minor isoforms. See details.}
+
+\item{realize}{(default = \code{FALSE}) Whether to load all assay data into
+memory. See details}
 }
 \value{
 A \linkS4class{NxtSE} object containing the compiled data in
@@ -38,8 +41,15 @@ using \link{ASE-methods} as well as visualisation using \link{Plot_Coverage}
 the required on-disk assay data using DelayedArrays, thereby utilising
 'on-disk' memory to conserve memory usage.
 
-To convert the on-disk memory into RAM, use \link{realize_NxtSE}. See example
-below.
+For extremely large datasets, loading the entire data into memory may consume
+too much memory. In such cases, make a subset of the \linkS4class{NxtSE}
+object (e.g. subset by samples) before loading the data into memory (RAM)
+using \link{realize_NxtSE}
+
+It should be noted that downstream applications of NxtIRF, including
+\link{ASE-methods}, \link{Plot_Coverage}, are much faster if the \linkS4class{NxtSE}
+is realized. It is recommended to realize the \linkS4class{NxtSE} object
+before extensive usage.
 
 If COV files assigned via \link{CollateData} have been moved relative to the
 \code{collate_path}, the created \linkS4class{NxtSE} object will not have any
