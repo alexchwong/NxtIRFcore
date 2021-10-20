@@ -1280,7 +1280,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
             if (length(avail_files[samples]) > 0 &&
                     all(file.exists(avail_files[samples]))) {
                 message("Running .internal_get_coverage_as_df")
-                print(system.time({}
+                print(system.time({
                 
                 df <- as.data.frame(.internal_get_coverage_as_df(
                     samples, avail_files[samples],
