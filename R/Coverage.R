@@ -224,7 +224,17 @@ Plot_Coverage <- function(
     if (!missing(selected_transcripts))
         args$selected_transcripts <- selected_transcripts
 
-    return(do.call(plot_cov_fn, args))
+    p = do.call(plot_cov_fn, args)
+    for(i in seq_len(length(p$ggplot) - 1)) {
+        if(!is.null(p$ggplot[[i]])) {
+            p$ggplot[[i]] = p$ggplot[[i]] +
+                coord_cartesian(
+                    xlim = c(coords$view_start, coords$view_end),
+                    expand = FALSE)
+        }
+    }
+
+    return(p)
 }
 
 
@@ -236,13 +246,13 @@ Plot_Genome <- function(se, reference_path,
     selected_transcripts,
     condense_tracks = FALSE
 ) {
-    if (missing(se) & missing(reference_path)) {
-.log("Either one of `reference_path` or `se` is required")
-}
+    if (missing(se) & missing(reference_path))
+        .log("Either one of `reference_path` or `se` is required")
+
     if (missing(se)) {
-        if (!file.exists(file.path(reference_path, "cov_data.Rds"))) {
-.log("Given reference_path is not a valid NxtIRF reference")
-}
+        if (!file.exists(file.path(reference_path, "cov_data.Rds")))
+            .log("Given reference_path is not a valid NxtIRF reference")
+
         cov_data <- readRDS(file.path(reference_path, "cov_data.Rds"))
     } else {
         if (!is(se, "NxtSE")) .log("`se` must be a NxtSE object")
@@ -268,9 +278,8 @@ Plot_Genome <- function(se, reference_path,
         transcripts = cov_data$transcripts.DT, elems = cov_data$elem.DT,
         condensed = condense_tracks
     )
-    if (!missing(selected_transcripts)) {
-args$selected_transcripts <- selected_transcripts
-}
+    if (!missing(selected_transcripts))
+        args$selected_transcripts <- selected_transcripts
 
     p_ref <- do.call(plot_view_ref_fn, args)
     # Remove legend for p_ref; this causes trouble for plotly
@@ -280,7 +289,7 @@ args$selected_transcripts <- selected_transcripts
     p_ref$gp <- p_ref$gp +
         theme(legend.position = "none") +
         labs(x = paste("Chromosome", coords$view_chr))
-
+    
     final <- list(ggplot = p_ref$gp,
         final_plot = p_ref$pl)
     return(final)
@@ -295,9 +304,8 @@ as_egg_ggplot <- function(p_obj) {
         !("ggplot" %in% names(p_obj)) ||
         !is(p_obj$ggplot[[1]], "ggplot") ||
         !is(p_obj$ggplot[[6]], "ggplot")
-    ) {
-.log("Given object is not a recognised Plot_Coverage output object")
-}
+    ) .log("Given object is not a recognised Plot_Coverage output object")
+
     plot_tracks <- p_obj$ggplot[
         unlist(lapply(p_obj$ggplot, function(x) !is.null(x)))]
     egg::ggarrange(plots = plot_tracks, ncol = 1)
@@ -1223,8 +1231,11 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 
     gp <- p + geom_text(data = data.frame(x = anno[["x"]], y = anno[["y"]],
             text = anno[["text"]]),
-        aes(x = get("x"), y = get("y"), label = get("text"))) +
-        coord_cartesian(xlim = c(view_start, view_end))
+        aes(x = get("x"), y = get("y"), label = get("text")))
+    gp <- gp + coord_cartesian(xlim = c(view_start, view_end),
+        ylim = c(min(reduced$plot_level) - 2, max(reduced$plot_level)),
+        expand = FALSE)
+        
     pl <- ggplotly(p, tooltip = "text") %>%
     layout(
         annotations = anno, dragmode = "pan",
@@ -1316,9 +1327,9 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 
     df <- as.data.frame(rbindlist(calcs$data.list))
     if (nrow(df) > 0) {
-        if (length(args$track_names) == length(args$tracks)) {
-df$track <- factor(df$track, args$track_names)
-}
+        if (length(args$track_names) == length(args$tracks))
+            df$track <- factor(df$track, args$track_names)
+
         gp_track[[1]] <- ggplot() +
             geom_hline(yintercept = 0) +
             geom_ribbon(data = df, alpha = 0.2,
