@@ -90,10 +90,9 @@ CollateData <- function(Experiment, reference_path, output_path,
         samples_per_block = 16, n_threads = 1, overwrite = FALSE
 ) {
     IRMode <- match.arg(IRMode)
-    if (IRMode == "") {
-.log(paste("In CollateData(),",
-        "IRMode must be either 'SpliceOverMax' (default) or 'SpliceMax'"))
-}
+    if (IRMode == "")
+        .log(paste("In CollateData(),",
+            "IRMode must be either 'SpliceOverMax' (default) or 'SpliceMax'"))
 
     N_steps <- 8
     dash_progress("Validating Experiment; checking COV files...", N_steps)
@@ -367,7 +366,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     block$Fraction_Span_Reads[i] <-
         QC$Value[QC$QC == "Spans Reads"] /
             block$depth[i]
-# IRBurden calculations
+    # IRBurden calculations
     block$IRBurden_clean_unstranded[i] <-
         QC$Value[QC$QC == "Non-Directional Clean IntronDepth Sum"] /
         (QC$Value[QC$QC == "Non-Directional Clean IntronDepth Sum"] +
@@ -484,9 +483,8 @@ CollateData <- function(Experiment, reference_path, output_path,
                 if (is.null(irf.names)) {
                     irf.names <- irf$Name
                 } else {
-                    if (!identical(irf.names, irf$Name)) {
-.collateData_stop_irf_mismatch()
-}
+                    if (!identical(irf.names, irf$Name))
+                        .collateData_stop_irf_mismatch()
                 }
                 fst::write.fst(as.data.frame(irf),
                     file.path(temp_output_path,
@@ -500,9 +498,8 @@ CollateData <- function(Experiment, reference_path, output_path,
     # Checks common columns are the same
     if (length(irf.list) > 1) {
         for (i in seq_len(length(irf.list))) {
-            if (!identical(irf.list[[i]], irf.list[[1]])) {
-.collateData_stop_irf_mismatch()
-}
+            if (!identical(irf.list[[i]], irf.list[[1]]))
+                .collateData_stop_irf_mismatch()
         }
     }
     # Returns common columns

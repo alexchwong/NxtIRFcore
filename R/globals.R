@@ -49,9 +49,7 @@ is_valid <- function(x) {
 .colourise <- function(text, color) {
     if (!.check_package_installed("crayon", returntype = "silent") ||
         !crayon::has_color()
-    ) {
-return(text)
-}
+    ) return(text)
     return(crayon::style(text, color))
 }
 
@@ -84,9 +82,9 @@ return(text)
 }
 
 .split_vector <- function(vector = "", n_workers = 1) {
-    if (!is.numeric(n_workers) || n_workers < 1) {
-.log("n_workers must be at least 1")
-}
+    if (!is.numeric(n_workers) || n_workers < 1)
+        .log("n_workers must be at least 1")
+
     n_workers_use <- as.integer(n_workers)
     if (length(vector) < 1) .log("vector to split must be of length at least 1")
 
@@ -110,9 +108,7 @@ return(text)
 
 # Converts data table to GRanges object, preserving info
 .grDT <- function(DT, ...) {
-    if (nrow(DT) == 0) {
-return(GenomicRanges::GRanges(NULL))
-}
+    if (nrow(DT) == 0) return(GenomicRanges::GRanges(NULL))
     makeGRangesFromDataFrame(as.data.frame(DT), ...)
 }
 

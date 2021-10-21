@@ -224,10 +224,10 @@ Plot_Coverage <- function(
     if (!missing(selected_transcripts))
         args$selected_transcripts <- selected_transcripts
 
-    p = do.call(plot_cov_fn, args)
+    p <- do.call(plot_cov_fn, args)
     for(i in seq_len(length(p$ggplot) - 1)) {
         if(!is.null(p$ggplot[[i]])) {
-            p$ggplot[[i]] = p$ggplot[[i]] +
+            p$ggplot[[i]] <- p$ggplot[[i]] +
                 coord_cartesian(
                     xlim = c(coords$view_start, coords$view_end),
                     expand = FALSE)
@@ -588,7 +588,7 @@ GetCoverageBins <- function(file, region, bins = 2000,
     if (strandMode == "") strandMode <- "unstranded"
 
     if (!is(region, "GRanges")) .log("region must be a GRanges object")
-    region = region[1]
+    region <- region[1]
     
     if (!IsCOV(file)) .log("Given file is not of COV format")
     seqlevels <- IRF_Cov_Seqnames(normalizePath(file))
@@ -599,23 +599,23 @@ GetCoverageBins <- function(file, region, bins = 2000,
 
     if(missing(bin_size) || !is.numeric(bin_size) ||
             bin_size > width(region) || bin_size < 1) {
-        bin_size = ceiling(width(region) / bins)
+        bin_size <- ceiling(width(region) / bins)
     }
 
-    gr.fetch = .bin_gr(region, bin_size) 
+    gr.fetch <- .bin_gr(region, bin_size) 
 
     if (strandMode == "unstranded") {
         strand = "*"
     } else if (strandMode == "reverse") {
         if(strand(region) == "+") {
-            strand = "-"
+            strand <- "-"
         } else if(strand(region == "-")) {
-            strand = "+"
+            strand <- "+"
         } else {
-            strand = "*"
+            strand <- "*"
         }
     } else {
-        strand = as.character(strand(region))
+        strand <- as.character(strand(region))
     }
 
     df <- as.data.frame(.internal_get_coverage_as_df(
@@ -624,14 +624,14 @@ GetCoverageBins <- function(file, region, bins = 2000,
         start(region), end(region), strand)
     )
     df <- bin_df(df, bin_size)
-    gr.fetch$cov_mean = df$sample
+    gr.fetch$cov_mean <- df$sample
 
     return(gr.fetch)
 }
 
 .bin_gr <- function(gr, window_size) {
     brks <- seq(1, width(gr) + 1, length.out = (width(gr) + 1) / window_size)
-    DT = data.table(coord = seq(start(gr), end(gr)))
+    DT <- data.table(coord = seq(start(gr), end(gr)))
     DT[, c("bin") := findInterval(seq_len(nrow(DT)), brks)]
     DT2 <- DT[, .(start = min(get("coord")), end = max(get("coord"))), 
         by = "bin"]
@@ -1049,7 +1049,6 @@ plot_view_ref_fn <- function(
     # highlight_events is of syntax chrX:10000-11000/-
     if (length(highlight_events) > 1 || highlight_events != "")
         reduced.DT <- determine_compatible_events(reduced.DT, highlight_events)
-
 
     return(list(
         transcripts.DT = transcripts.DT,

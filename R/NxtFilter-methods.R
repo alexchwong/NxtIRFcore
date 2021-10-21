@@ -34,19 +34,15 @@ setMethod("initialize", "NxtFilter", function(.Object,
     filterClass <- match.arg(filterClass)
     filterType <- match.arg(filterType)
 
-    if (filterClass == "") {
-.log("filterClass must be one of `Data` or `Annotation`")
-}
+    if (filterClass == "") 
+        .log("filterClass must be one of `Data` or `Annotation`")
     if (filterClass == "Data") {
-        if (!(filterType %in% c("Depth", "Coverage", "Consistency"))) {
-.log("filterClass must be one of `Depth`, `Coverage` or `Consistency`")
-}
+        if (!(filterType %in% c("Depth", "Coverage", "Consistency")))
+        .log("filterClass must be one of `Depth`, `Coverage` or `Consistency`")
     } else {
-        if (!(filterType %in% c("Protein_Coding", "NMD", "TSL"))) {
-.log("filterClass must be one of `Protein_Coding`, `NMD` or `TSL`")
-}
+        if (!(filterType %in% c("Protein_Coding", "NMD", "TSL")))
+            .log("filterClass must be one of `Protein_Coding`, `NMD` or `TSL`")
     }
-
 
     pcTRUE <- as.numeric(pcTRUE)
     pcTRUE <- min(100, max(0, pcTRUE))

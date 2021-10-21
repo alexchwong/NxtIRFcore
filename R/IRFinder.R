@@ -97,22 +97,19 @@ BAM2COV <- function(
         verbose = FALSE
 ) {
     # Check args
-    if (length(bamfiles) != length(sample_names)) {
-.log(paste("In BAM2COV(),",
-        "Number of BAM files and sample names must be the same"))
-}
-    if (length(sample_names) != length(unique(sample_names))) {
-.log(paste("In BAM2COV(), some sample names are not unique"))
-}
+    if (length(bamfiles) != length(sample_names)) 
+        .log(paste("In BAM2COV(),",
+            "Number of BAM files and sample names must be the same"))
+    if (length(sample_names) != length(unique(sample_names)))
+        .log(paste("In BAM2COV(), some sample names are not unique"))
+
     if (length(bamfiles) == 0) .log("bamfiles argument must not be empty")
-    if (!all(file.exists(bamfiles))) {
-.log(paste("In BAM2COV(),",
-        "some BAMs in bamfiles do not exist"))
-}
-    if (!dir.exists(dirname(output_path))) {
-.log(paste("In BAM2COV(),",
+    if (!all(file.exists(bamfiles)))
+        .log(paste("In BAM2COV(),", "some BAMs in bamfiles do not exist"))
+
+    if (!dir.exists(dirname(output_path))) .log(paste("In BAM2COV(),",
         dirname(output_path), " - path does not exist"))
-}
+
     if (!dir.exists(output_path)) dir.create(output_path)
 
     # Check which output already exists; prevent overwrite
@@ -139,10 +136,9 @@ BAM2COV <- function(
     }
 
     s_output <- file.path(normalizePath(output_path), sample_names)
-    if (!all(file.exists(paste0(s_output, ".cov")))) {
-.log(paste("Some BAM2COV outputs could not be found.",
+    if (!all(file.exists(paste0(s_output, ".cov"))))
+        .log(paste("Some BAM2COV outputs could not be found.",
             "BAM2COV must have crashed"))
-}
 }
 
 #' @describeIn IRFinder Runs IRFinder algorithm on BAM files. Requires a
@@ -159,22 +155,18 @@ IRFinder <- function(
         verbose = FALSE
 ) {
     # Check args
-    if (length(bamfiles) != length(sample_names)) {
-.log(paste("In IRFinder(),",
+    if (length(bamfiles) != length(sample_names)) .log(paste("In IRFinder(),",
         "Number of BAM files and sample names must be the same"))
-}
-    if (length(sample_names) != length(unique(sample_names))) {
-.log(paste("In IRFinder(), some sample names are not unique"))
-}
+    if (length(sample_names) != length(unique(sample_names)))
+        .log(paste("In IRFinder(), some sample names are not unique"))
+
     if (length(bamfiles) == 0) .log("bamfiles argument must not be empty")
-    if (!all(file.exists(bamfiles))) {
-.log(paste("In IRFinder(),",
+    if (!all(file.exists(bamfiles))) .log(paste("In IRFinder(),",
         "some BAMs in bamfiles do not exist"))
-}
-    if (!dir.exists(dirname(output_path))) {
-.log(paste("In IRFinder(),",
+
+    if (!dir.exists(dirname(output_path))) .log(paste("In IRFinder(),",
         dirname(output_path), " - path does not exist"))
-}
+
     if (!dir.exists(output_path)) dir.create(output_path)
 
     # Check which output already exists; prevent overwrite
@@ -203,10 +195,10 @@ IRFinder <- function(
     }
 
     s_output <- file.path(normalizePath(output_path), sample_names)
-    if (!all(file.exists(paste0(s_output, ".txt.gz")))) {
-.log(paste("Some IRFinder outputs could not be found.",
+    if (!all(file.exists(paste0(s_output, ".txt.gz"))))
+        .log(paste("Some IRFinder outputs could not be found.",
             "IRFinder must have crashed"))
-}
+
     # Run featureCounts
     if (run_featureCounts) {
         .irfinder_run_featureCounts(

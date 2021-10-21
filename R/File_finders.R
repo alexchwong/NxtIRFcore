@@ -87,14 +87,14 @@ NULL
 #' Annotates sample names based on file or parent folder names.
 #' @export
 Find_Samples <- function(sample_path, suffix = ".txt.gz", level = 0) {
-    if (length(suffix) == 0) {
-.log(paste("In Find_Samples(),",
+    if (length(suffix) == 0)
+        .log(paste("In Find_Samples(),",
             "suffix must be of length greater than zero"))
-}
-    if (!dir.exists(sample_path)) {
-.log(paste("In Find_Samples(),",
+
+    if (!dir.exists(sample_path))
+        .log(paste("In Find_Samples(),",
             sample_path, "- given path does not exist"))
-}
+
     if (length(level) > 1) .log("level must be a numeral of length 1")
     if (!is.numeric(level)) .log("In Find_Samples(), level must be numeric")
     if (level < 0) .log("In Find_Samples(), level must be non-negative")
@@ -116,10 +116,9 @@ Find_Samples <- function(sample_path, suffix = ".txt.gz", level = 0) {
             lvl <- level
             while (lvl > 0) {
                 DT$sample <- dirname(DT$sample)
-                if (any(DT$sample %in% c(".", "/", "~"))) {
-.log(paste("Sample name points to", DT$sample,
+                if (any(DT$sample %in% c(".", "/", "~")))
+                    .log(paste("Sample name points to", DT$sample,
                         "- please check level of sample names"))
-}
                 lvl <- lvl - 1
             }
             DT$sample <- basename(DT$sample)
@@ -130,9 +129,8 @@ Find_Samples <- function(sample_path, suffix = ".txt.gz", level = 0) {
             DT.list[[i]] <- NULL
         }
     }
-    if (length(DT.list) <= 1) {
-return(as.data.frame(DT.list))
-}
+    if (length(DT.list) <= 1) return(as.data.frame(DT.list))
+
     final <- DT.list[[1]]
     if (length(suffix) > 1) {
         # Check identity of sorted sample names

@@ -200,30 +200,23 @@ STAR_buildRef <- function(reference_path,
     .log(paste("Building STAR genome from", reference_path), type = "message")
 
     args <- NULL
-    if (!("--runMode" %in% additional_args)) {
-args <- c(
+    if (!("--runMode" %in% additional_args)) args <- c(
         "--runMode", "genomeGenerate")
-}
-    if (!("--genomeDir" %in% additional_args)) {
-args <- c(args,
+
+    if (!("--genomeDir" %in% additional_args)) args <- c(args,
         "--genomeDir", STAR_ref_path)
-}
-    if (!("--genomeFastaFiles" %in% additional_args)) {
-args <- c(args,
+
+    if (!("--genomeFastaFiles" %in% additional_args)) args <- c(args,
         "--genomeFastaFiles", genome.fa)
-}
-    if (!("--sjdbGTFfile" %in% additional_args)) {
-args <- c(args,
+
+    if (!("--sjdbGTFfile" %in% additional_args)) args <- c(args,
         "--sjdbGTFfile", transcripts.gtf)
-}
-    if (!("--sjdbOverhang" %in% additional_args)) {
-args <- c(args,
+
+    if (!("--sjdbOverhang" %in% additional_args)) args <- c(args,
         "--sjdbOverhang", sjdbOverhang)
-}
-    if (!("--runThreadN" %in% additional_args)) {
-args <- c(args,
+
+    if (!("--runThreadN" %in% additional_args)) args <- c(args,
         "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
-}
 
     if (!is.null(additional_args) && all(is.character(additional_args))) {
         args <- c(args, additional_args)
@@ -278,9 +271,9 @@ STAR_Mappability <- function(
     )
     if (file.exists(aligned_bam)) {
         # Cleaan up fasta
-        if (file.exists(mappability_reads_fasta)) {
-file.remove(mappability_reads_fasta)
-}
+        if (file.exists(mappability_reads_fasta))
+            file.remove(mappability_reads_fasta)
+
         .log(paste("Calculating Mappability from:", aligned_bam),
             type = "message")
         Mappability_CalculateExclusions(
@@ -435,37 +428,32 @@ STAR_align_fastq <- function(
 
     # Remove duplication:
     args <- NULL
-    if (!("--genomeLoad" %in% additional_args)) {
-args <- c("--genomeLoad", memory_mode)
-}
-    if (!("--runThreadN" %in% additional_args)) {
-args <- c(args,
-        "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
-}
-    if (!("--genomeDir" %in% additional_args)) {
-args <- c(args, "--genomeDir", STAR_ref_path)
-}
-    if (!("--outFileNamePrefix" %in% additional_args)) {
-args <- c(args, "--outFileNamePrefix",
-        paste0(BAM_output_path, "/"))
-}
+    if (!("--genomeLoad" %in% additional_args)) 
+        args <- c("--genomeLoad", memory_mode)
+    if (!("--runThreadN" %in% additional_args)) 
+        args <- c(args,
+            "--runThreadN", .validate_threads(n_threads, as_BPPARAM = FALSE))
+    if (!("--genomeDir" %in% additional_args)) 
+        args <- c(args, "--genomeDir", STAR_ref_path)
+    if (!("--outFileNamePrefix" %in% additional_args))
+        args <- c(args, "--outFileNamePrefix",
+            paste0(BAM_output_path, "/"))
+
     if (!("--outStd" %in% additional_args)) args <- c(args, "--outStd", "Log")
-    if (!("--outBAMcompression" %in% additional_args)) {
-args <- c(args, "--outBAMcompression", "6")
-}
-    if (!("--outSAMstrandField" %in% additional_args)) {
-args <- c(args, "--outSAMstrandField", "intronMotif")
-}
-    if (!("--outSAMunmapped" %in% additional_args)) {
-args <- c(args, "--outSAMunmapped", "None")
-}
-    if (!("--outFilterMultimapNmax" %in% additional_args)) {
-args <-
-        c(args, "--outFilterMultimapNmax", "1")
-}
-    if (!("--outSAMtype" %in% additional_args)) {
-args <- c(args, "--outSAMtype", "BAM", "Unsorted")
-}
+    if (!("--outBAMcompression" %in% additional_args)) args <- c(args, 
+        "--outBAMcompression", "6")
+
+    if (!("--outSAMstrandField" %in% additional_args)) args <- c(args, 
+        "--outSAMstrandField", "intronMotif")
+
+    if (!("--outSAMunmapped" %in% additional_args)) 
+        args <- c(args, "--outSAMunmapped", "None")
+
+    if (!("--outFilterMultimapNmax" %in% additional_args))
+        args <- c(args, "--outFilterMultimapNmax", "1")
+
+    if (!("--outSAMtype" %in% additional_args))
+        args <- c(args, "--outSAMtype", "BAM", "Unsorted")
 
     if (two_pass) args <- c(args, "--twopassMode", "Basic")
 
@@ -473,12 +461,11 @@ args <- c(args, "--outSAMtype", "BAM", "Unsorted")
 
     if (paired) args <- c(args, paste(fastq_2, collapse = ","))
     if (gzipped) args <- c(args, "--readFilesCommand", shQuote("gzip -dc"))
-    if (is_valid(trim_adaptor)) {
-args <- c(args, "--clip3pAdapterSeq", trim_adaptor)
-}
-    if (!is.null(additional_args) && all(is.character(additional_args))) {
-args <- c(args, additional_args)
-}
+    if (is_valid(trim_adaptor)) 
+        args <- c(args, "--clip3pAdapterSeq", trim_adaptor)
+
+    if (!is.null(additional_args) && all(is.character(additional_args)))
+        args <- c(args, additional_args)
 
     system2(command = "STAR", args = args)
 }
@@ -506,10 +493,9 @@ args <- c(args, additional_args)
 }
 
 .validate_STAR_reference <- function(STAR_ref_path) {
-    if (!file.exists(file.path(STAR_ref_path, "genomeParameters.txt"))) {
-.log(paste(
+    if (!file.exists(file.path(STAR_ref_path, "genomeParameters.txt")))
+        .log(paste(
             STAR_ref_path, "does not appear to be a valid STAR reference"))
-}
     return(normalizePath(STAR_ref_path))
 }
 

@@ -496,9 +496,8 @@ return(TRUE)
     }
 
     base <- normalizePath(dirname(reference_path))
-    if (!dir.exists(file.path(base, basename(reference_path)))) {
-dir.create(file.path(base, basename(reference_path)))
-}
+    if (!dir.exists(file.path(base, basename(reference_path))))
+        dir.create(file.path(base, basename(reference_path)))
 
     if (!is.null(subdirs)) {
         for (subdir in subdirs) {
@@ -610,18 +609,14 @@ dir.create(file.path(base, basename(reference_path)))
     if (is_valid(filename)) {
         tryCatch(rtracklayer::import.bed(filename, "bed"),
             error = function(x) {
-.log(paste(
-            filename, "is not a BED file"
-        ))
-})
+                .log(paste(filename, "is not a BED file"))
+        })
     }
     return()
 }
 
 .convert_chromosomes <- function(chromosome_aliases) {
-    if (is.null(chromosome_aliases)) {
-return(NULL)
-}
+    if (is.null(chromosome_aliases)) return(NULL)
     df <- as.data.frame(chromosome_aliases)
     df <- df[!duplicated(df[, 1]), ]
     df <- df[!duplicated(df[, 2]), ]
@@ -690,9 +685,7 @@ return(NULL)
 }
 
 .is_AH_pattern <- function(word) {
-    if (substr(word, 1, 2) == "AH" && !file.exists(word)) {
-return(TRUE)
-}
+    if (substr(word, 1, 2) == "AH" && !file.exists(word)) return(TRUE)
     return(FALSE)
 }
 
@@ -758,10 +751,10 @@ return(TRUE)
         .log("Converting FASTA to local TwoBitFile...", "message",
             appendLF = FALSE)
         fasta_file <- .parse_valid_file(fasta, force_download = force_download)
-        if (!file.exists(fasta_file)) {
-.log(paste("In .fetch_fasta(),",
+        if (!file.exists(fasta_file))
+            .log(paste("In .fetch_fasta(),",
                 "Given genome fasta file", fasta, "not found"))
-}
+
         genome <- .fetch_fasta_file(fasta_file)
         .fetch_fasta_save_2bit(genome, reference_path, overwrite)
         message("done")
@@ -779,9 +772,9 @@ return(TRUE)
 
 # Fetch the AnnotationHub resource and return as a genome object
 .fetch_fasta_ah <- function(ah_genome, verbose = TRUE) {
-    if (substr(ah_genome, 1, 2) != "AH") {
-.log("Given genome AnnotationHub reference is incorrect")
-}
+    if (substr(ah_genome, 1, 2) != "AH")
+        .log("Given genome AnnotationHub reference is incorrect")
+
     genome <- .fetch_AH(ah_genome, verbose = verbose, rdataclass = "TwoBitFile",
         as_DNAStringSet = FALSE)
 }
@@ -810,8 +803,8 @@ return(TRUE)
     if (is(genome, "TwoBitFile") && file.exists(genome.2bit) &&
             normalizePath(rtracklayer::path(genome)) ==
             normalizePath(genome.2bit)) {
-return()
-} # prevent self-writing
+        return()
+    } # prevent self-writing
     if (overwrite || !file.exists(genome.2bit)) {
         # .log("Saving genome as TwoBitFile...", "message", appendLF = FALSE)
         if (overwrite && file.exists(genome.2bit)) {
@@ -902,33 +895,31 @@ return()
     verbose = FALSE
 ) {
     rdataclass <- match.arg(rdataclass)
-    if (!substr(ah_record_name, 1, 2) == "AH") {
-.log(paste(ah_record_name,
-        "does not appear to be a valid AnnotationHub record name"))
-}
-    if (!(ah_record_name %in% names(ah))) {
-.log(paste(ah_record_name,
-        "is not found in AnnotationHub index.",
-        "Perhaps check online connection or record name"))
-}
+    if (!substr(ah_record_name, 1, 2) == "AH")
+        .log(paste(ah_record_name,
+            "does not appear to be a valid AnnotationHub record name"))
+
+    if (!(ah_record_name %in% names(ah)))
+        .log(paste(ah_record_name,
+            "is not found in AnnotationHub index.",
+            "Perhaps check online connection or record name"))
 
     ah_record <- ah[names(ah) == ah_record_name]
-    if (ah_record$rdataclass != rdataclass) {
-.log(paste(ah_record_name,
-        "is of type", ah_record$rdataclass,
-        "and not of expected:", rdataclass))
-}
+    if (ah_record$rdataclass != rdataclass)
+        .log(paste(ah_record_name,
+            "is of type", ah_record$rdataclass,
+            "and not of expected:", rdataclass))
 
-    if (verbose) {
-.log(paste("Downloading", rdataclass,
+    if (verbose)
+        .log(paste("Downloading", rdataclass,
             "from AnnotationHub, if required..."),
             "message", appendLF = FALSE)
-}
+
     cache_loc <- AnnotationHub::cache(ah_record)
     if (verbose) message("done")
-    if (!file.exists(cache_loc)) {
-.log("AnnotationHub cache error - asset not found")
-}
+    if (!file.exists(cache_loc))
+        .log("AnnotationHub cache error - asset not found")
+
     return(cache_loc)
 }
 
@@ -942,20 +933,18 @@ return()
         localHub, ah, verbose)
     if (rdataclass == "GRanges") {
         if (!pseudo_fetch) {
-            if (verbose) {
-.log("Importing to memory as GRanges object...",
+            if (verbose) .log("Importing to memory as GRanges object...",
                 "message", appendLF = FALSE)
-}
+
             gtf <- rtracklayer::import(cache_loc, "gtf")
             if (verbose) message("done")
             return(gtf)
         }
         return(NULL)
     } else if (rdataclass == "TwoBitFile") {
-        if (verbose) {
-.log("Importing to memory as TwoBitFile object...",
-                "message", appendLF = FALSE)
-}
+        if (verbose) .log("Importing to memory as TwoBitFile object...",
+            "message", appendLF = FALSE)
+
         twobit <- rtracklayer::TwoBitFile(cache_loc)
         if (verbose) message("done")
         if (as_DNAStringSet) {
@@ -985,9 +974,8 @@ return()
         cache <- tools::R_user_dir(package = "NxtIRFcore", which = "cache")
         bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
         res <- BiocFileCache::bfcquery(bfc, url, "fpath", exact = TRUE)
-        if (nrow(res) > 0 & !force_download) {
-return(res$rpath[nrow(res)])
-}
+        if (nrow(res) > 0 & !force_download) return(res$rpath[nrow(res)])
+
         path <- tryCatch(BiocFileCache::bfcadd(bfc, url),
             error = function(err) {
                 .log(paste("Web resource not accessible -", url), "message")
@@ -995,9 +983,7 @@ return(res$rpath[nrow(res)])
             }
         )
         if (identical(path, NA)) {
-            if (nrow(res) == 0) {
-return("")
-}
+            if (nrow(res) == 0) return("")
             .log("Returning local copy from cache", "message")
             return(res$rpath[nrow(res)]) # fetch local copy if available
         }
@@ -1152,9 +1138,8 @@ return("")
         Transcripts <- unique(Transcripts, by = tx_cols)
         Transcripts$type <- "transcript"
         Transcripts <- .grDT(Transcripts, keep.extra.columns = TRUE)
-        if (length(Transcripts) == 0) {
-.log("No transcripts detected in reference!")
-}
+        if (length(Transcripts) == 0) 
+            .log("No transcripts detected in reference!")
     }
 
     Transcripts <- GenomeInfoDb::sortSeqlevels(Transcripts)
@@ -3629,24 +3614,21 @@ return("")
 # Internal trim functions
 
 # Trim 5'-nucleotides based on phase
-.trim_phase <- function(DNAstr, phase) {
-substr(DNAstr, 1 + (3 - phase) %% 3, nchar(DNAstr))
-}
+.trim_phase <- function(DNAstr, phase)
+    substr(DNAstr, 1 + (3 - phase) %% 3, nchar(DNAstr))
 
 # Trim 3'-nucleotides based on phase
-.trim_3 <- function(DNAstr) {
-substr(DNAstr, 1, nchar(DNAstr) - (nchar(DNAstr) %% 3))
-}
+.trim_3 <- function(DNAstr)
+    substr(DNAstr, 1, nchar(DNAstr) - (nchar(DNAstr) %% 3))
 
 # Returns the incomplete codon of nucleotides from the 3'-sequence
-.transfer_down <- function(DNAstr) {
-substr(DNAstr, nchar(DNAstr) - (nchar(DNAstr) %% 3) + 1, nchar(DNAstr))
-}
+.transfer_down <- function(DNAstr)
+    substr(DNAstr, nchar(DNAstr) - (nchar(DNAstr) %% 3) + 1, nchar(DNAstr))
 
 # Returns the incomplete codon of nucleotides from the 5'-sequence
-.transfer_up <- function(DNAstr, phase) {
-substr(DNAstr, 1, 3 - phase)
-}
+.transfer_up <- function(DNAstr, phase)
+    substr(DNAstr, 1, 3 - phase)
+
 
 # Trim nucleotide sequences of upstream / casette / downstream as per phase
 .gen_splice_proteins_trim <- function(AS_Table.Extended) {

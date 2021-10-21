@@ -1,10 +1,8 @@
 # Generics from SummarizedExperiment
 
-
 #' @export
 setGeneric("rowData", signature="x",
-    function(x, use.names=TRUE, ...) standardGeneric("rowData")
-)
+    function(x, use.names=TRUE, ...) standardGeneric("rowData"))
 
 #' @export
 setGeneric("rowData<-",
@@ -19,18 +17,15 @@ setGeneric("colData<-",
     
 #' @export
 setGeneric("assays", signature="x",
-    function(x, withDimnames=TRUE, ...) standardGeneric("assays")
-)
+    function(x, withDimnames=TRUE, ...) standardGeneric("assays"))
 
 #' @export
 setGeneric("assays<-", signature=c("x", "value"),
-    function(x, withDimnames=TRUE, ..., value) standardGeneric("assays<-"),
-)
+    function(x, withDimnames=TRUE, ..., value) standardGeneric("assays<-"))
 
 #' @export
 setGeneric("assay", signature=c("x", "i"),
-    function(x, i, withDimnames=TRUE, ...) standardGeneric("assay")
-)
+    function(x, i, withDimnames=TRUE, ...) standardGeneric("assay"))
 
 #' @export
 setGeneric("assay<-", signature=c("x", "i"),
