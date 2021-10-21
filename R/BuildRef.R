@@ -582,8 +582,13 @@ return(TRUE)
     } else if (file.exists(map_file)) {
         MappabilityFile <- .parse_valid_file(map_file)
     } else if (genome_type %in% c("hg38", "hg19", "mm9", "mm10")) {
-        MappabilityFile <- .parse_valid_file(get_mappability_exclusion(
-            genome_type, as_type = "bed.gz", path = map_path, overwrite = TRUE))
+        map.gz <- get_mappability_exclusion(
+            genome_type, as_type = "bed.gz", path = map_path, overwrite = TRUE)
+        if(!is.null(map.gz)) {
+            MappabilityFile <- .parse_valid_file(map.gz)
+        } else {
+            MappabilityFile <- ""
+        }
     } else {
         MappabilityFile <- .parse_valid_file(MappabilityRef,
             "Reference generated without Mappability reference")

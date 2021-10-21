@@ -47,7 +47,7 @@ NULL
 #' @export
 NxtIRF_example_bams <- function() {
     bams <- NxtIRFdata::example_bams()
-    if (length(bams) != 6) stop("Example bam fetching failed")
+    if (is.null(bams) || length(bams) != 6) stop("Example bam fetching failed")
     return(Find_Bams(tempdir()))
 }
 
