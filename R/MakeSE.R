@@ -138,16 +138,16 @@ MakeSE <- function(
 
     message("done\n")
 
-    if (RemoveOverlapping == TRUE) {
-        dash_progress("Removing overlapping introns...", N)
-        .log("Removing overlapping introns...", "message")
-        se <- .makeSE_iterate_IR(se, collate_path)
-    }
-
     if (realize == TRUE) {
         dash_progress("Realizing NxtSE object...", N)
         .log("Realizing NxtSE object...", "message")
         se <- realize_NxtSE(se)
+    }
+    
+    if (RemoveOverlapping == TRUE) {
+        dash_progress("Removing overlapping introns...", N)
+        .log("Removing overlapping introns...", "message")
+        se <- .makeSE_iterate_IR(se, collate_path)
     }
 
     return(se)
