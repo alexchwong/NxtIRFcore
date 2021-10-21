@@ -400,8 +400,8 @@ as_egg_ggplot <- function(p_obj) {
 #'
 #' gr.fetch = GetCoverageBins(
 #'     cov_file,
-#'     region = GRanges(seqnames = "chrZ",
-#'         ranges = IRanges(start = 100, end = 100000),
+#'     region = GenomicRanges::GRanges(seqnames = "chrZ",
+#'         ranges = IRanges::IRanges(start = 100, end = 100000),
 #'         strand = "*"
 #'     ),
 #'     bins = 2000
@@ -624,13 +624,13 @@ GetCoverageBins <- function(file, region, bins = 2000,
 .bin_gr <- function(gr, window_size) {
     brks <- seq(1, width(gr) + 1, length.out = (width(gr) + 1) / window_size)
     DT = data.table(coord = seq(start(gr), end(gr)))
-    DT[, bin := findInterval(seq_len(nrow(DT)), brks)]
-    DT2 <- DT[, .(start = min(coord), end = max(coord)), by = bin]
+    DT[, c("bin") := findInterval(seq_len(nrow(DT)), brks)]
+    DT2 <- DT[, .(start = min(get("coord")), end = max(get("coord"))), 
+        by = "bin"]
     DT2[, c("seqnames", "strand") := 
         list(as.character(seqnames(gr)), as.character(strand(gr)))]
     .grDT(DT2)
 }
-
 
 ########## Internal functions ##########
 
@@ -1585,8 +1585,8 @@ bin_df <- function(df, binwidth = 3) {
     DT <- as.data.table(df)
     brks <- seq(1, nrow(DT) + 1, length.out = (nrow(DT) + 1) / binwidth)
     bin <- NULL
-    DT[, bin := findInterval(seq_len(nrow(DT)), brks)]
-    DT2 <- DT[, lapply(.SD, mean, na.rm = TRUE), by = bin]
-    DT2[, bin := NULL]
+    DT[, c("bin") := findInterval(seq_len(nrow(DT)), brks)]
+    DT2 <- DT[, lapply(.SD, mean, na.rm = TRUE), by = "bin"]
+    DT2[, c("bin") := NULL]
     return(as.data.frame(DT2))
 }

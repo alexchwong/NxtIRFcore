@@ -151,8 +151,8 @@ gr.stranded <- GetCoverageRegions(cov_file,
 
 gr.fetch = GetCoverageBins(
     cov_file,
-    region = GRanges(seqnames = "chrZ",
-        ranges = IRanges(start = 100, end = 100000),
+    region = GenomicRanges::GRanges(seqnames = "chrZ",
+        ranges = IRanges::IRanges(start = 100, end = 100000),
         strand = "*"
     ),
     bins = 2000
