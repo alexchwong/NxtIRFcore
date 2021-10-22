@@ -42,6 +42,7 @@ Imports:
 	SummarizedExperiment, 
 	S4Vectors
 LinkingTo: Rcpp, zlibbioc, RcppProgress
+Remotes: alexchwong/NxtIRFdata
 Suggests: 
     knitr, rmarkdown, pheatmap, shiny, openssl, crayon, egg,
     DESeq2, limma, DoubleExpSeq, Rsubread, testthat (>= 3.0.0)
