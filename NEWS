@@ -1,4 +1,7 @@
 Changes in version 0.99.9 (2021-10-20)
++ Accounts for when NxtIRFdata cannot fetch data from ExperimentHub
+
+Changes in version 0.99.9 (2021-10-20)
 + Added GetCoverageBins()
 + Add warning in IRFinder if coordinate sorted BAM file takes too long to run.
 + Fixed missing coverage data at both ends of plot track.
