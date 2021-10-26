@@ -51,7 +51,7 @@
 #' @param samples_per_block (default `16`) How many samples to process per
 #'    thread, maximum. Setting this to a lower value may help in
 #'    memory-constrained systems.
-#' @param HDF_chunksize (default `1000`) How many assay rows per chunk in the
+#' @param H5_chunksize (default `1000`) How many assay rows per chunk in the
 #'   created H5 file. Suggest leave this to default.
 #' @param n_threads (default `1`) The number of threads to use. On low
 #'   memory systems, reduce the number of `n_threads` and `samples_per_block`
@@ -90,7 +90,7 @@
 CollateData <- function(Experiment, reference_path, output_path,
         IRMode = c("SpliceOverMax", "SpliceMax"),
         overwrite = FALSE, n_threads = 1,
-        samples_per_block = 16, HDF_chunksize = 1000
+        samples_per_block = 16, H5_chunksize = 1000
 ) {
     IRMode <- match.arg(IRMode)
     if (IRMode == "")
@@ -164,7 +164,7 @@ CollateData <- function(Experiment, reference_path, output_path,
     message("Building Final SummarizedExperiment Object")
 
     assays <- .collateData_compile_assays_from_fst(df.internal,
-        norm_output_path, samples_per_block, HDF_chunksize)
+        norm_output_path, samples_per_block, H5_chunksize)
 
     .collateData_write_stats(df.internal, norm_output_path)
     .collateData_write_colData(df.internal, coverage_files, norm_output_path)
@@ -1349,11 +1349,11 @@ CollateData <- function(Experiment, reference_path, output_path,
 
 # Reads the "on-disk memory" FST files and compile to H5
 .collateData_compile_assays_from_fst <- function(df.internal,
-        norm_output_path, samples_per_block, HDF_chunksize) {
+        norm_output_path, samples_per_block, H5_chunksize) {
 
     rowname_lists <-
         .collateData_H5_initialize(nrow(df.internal), norm_output_path,
-            HDF_chunksize)
+            H5_chunksize)
 
     .collateData_H5_write_assays(df.internal, norm_output_path,
         samples_per_block)
@@ -1391,7 +1391,9 @@ CollateData <- function(Experiment, reference_path, output_path,
 }
 
 # Initializes H5 arrays using rowData; return rownames as a list
-.collateData_H5_initialize <- function(num_samples, norm_output_path, HDF_chunksize = 1000) {
+.collateData_H5_initialize <- function(
+        num_samples, norm_output_path, H5_chunksize = 1000
+) {
     assay.todo <- c("Included", "Excluded", "Depth", "Coverage", "minDepth")
     inc.todo <- c("Up_Inc", "Down_Inc")
     exc.todo <- c("Up_Exc", "Down_Exc")
@@ -1414,33 +1416,37 @@ CollateData <- function(Experiment, reference_path, output_path,
     if (file.exists(h5filename)) file.remove(h5filename)
     h5createFile(h5filename)
     for (assay in assay.todo) {
+        chunk_row = min(H5_chunksize, nrow(rowData))
         h5createDataset(file = h5filename,
             dataset = assay,
             dims = c(nrow(rowData), num_samples),
             storage.mode = "double", 
-            chunk = c(min(HDF_chunksize, nrow(rowData)), 1), level = 6
+            chunk = c(chunk_row, 1), level = 6
         )
     }
     for (inc in inc.todo) {
+        chunk_row = min(H5_chunksize, length(Inc_Events))
         h5createDataset(file = h5filename,
             dataset = inc,
             dims = c(length(Inc_Events), num_samples),
             storage.mode = "double", 
-            chunk = c(min(HDF_chunksize, length(Inc_Events)), 1), level = 6
+            chunk = c(chunk_row, 1), level = 6
         )
     }
     for (exc in exc.todo) {
+        chunk_row = min(H5_chunksize, length(Exc_Events))
         h5createDataset(file = h5filename, dataset = exc,
             dims = c(length(Exc_Events), num_samples),
             storage.mode = "double", 
-            chunk = c(min(HDF_chunksize, length(Exc_Events)), 1), level = 6
+            chunk = c(chunk_row, 1), level = 6
         )
     }
     for (junc in junc.todo) {
+        chunk_row = min(H5_chunksize, length(junc_rownames))
         h5createDataset(file = h5filename, dataset = junc,
             dims = c(length(junc_rownames), num_samples),
             storage.mode = "double", 
-            chunk = c(min(HDF_chunksize, length(junc_rownames)), 1), level = 6
+            chunk = c(chunk_row, 1), level = 6
         )
     }
     rowname_lists <- list(
