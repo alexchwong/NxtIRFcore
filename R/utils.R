@@ -33,7 +33,7 @@ CoordToGR <- function(coordinates) {
         "chrN:X-Y/+ or chrN:X-Y/-"
     )
     coord_valid1 <- grepl(":", coordinates, fixed = TRUE)
-    if(!all(coord_valid1)) .log(stopmsg)
+    if(!all(coord_valid1)) .log(coordinates)
     
     coord_hasdash <- grepl("-", 
         tstrsplit(coordinates, split = "/")[[1]], fixed = TRUE)
