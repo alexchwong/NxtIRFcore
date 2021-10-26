@@ -285,6 +285,7 @@ MakeSE <- function(
 
 # Selects introns of major isoforms
 .makeSE_iterate_IR_select_events <- function(se.coords, junc_PSI) {
+    if(length(se.coords) == 0) stop("Coords have length zero")
     gr <- CoordToGR(se.coords)
     gr.reduced <- reduce(gr)
 
@@ -300,8 +301,10 @@ MakeSE <- function(
 # Find excluded introns that does not overlap with given selection of introns
 .makeSE_iterate_IR_retrieve_excluded_introns <- function(
         se.coords.final, se.coords.excluded) {
+        
     if (length(se.coords.excluded) > 0) {
         final.gr <- CoordToGR(se.coords.final)
+        if(length(se.coords.excluded) == 0) stop("Coords have length zero")
         excluded.gr <- CoordToGR(se.coords.excluded)
 
         OL <- findOverlaps(excluded.gr, final.gr)

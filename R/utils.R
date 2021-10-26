@@ -56,7 +56,7 @@ CoordToGR <- function(coordinates) {
     coord_hasstrand <- grepl("/+", coordinates, fixed = TRUE) | 
         grepl("/-", coordinates, fixed = TRUE)
         
-    if(any(coord_hasstrand)) {
+    if(any(!coord_hasstrand)) {
         coordinates[!coord_hasstrand] <- paste0(coordinates[!coord_hasstrand], "/*")
     }
     
