@@ -285,7 +285,7 @@ MakeSE <- function(
 
 # Selects introns of major isoforms
 .makeSE_iterate_IR_select_events <- function(se.coords, junc_PSI) {
-    if(length(se.coords) == 0) stop("Coords have length zero")
+    if(length(se.coords) == 0) return(logical(0))
     gr <- CoordToGR(se.coords)
     gr.reduced <- reduce(gr)
 
@@ -303,6 +303,9 @@ MakeSE <- function(
         se.coords.final, se.coords.excluded) {
         
     if (length(se.coords.excluded) > 0) {
+        if(length(se.coords.final) == 0) {
+            return(rep(TRUE, length(se.coords.excluded)))
+        }
         final.gr <- CoordToGR(se.coords.final)
         excluded.gr <- CoordToGR(se.coords.excluded)
 
