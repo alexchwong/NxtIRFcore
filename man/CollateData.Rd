@@ -11,8 +11,7 @@ CollateData(
   IRMode = c("SpliceOverMax", "SpliceMax"),
   overwrite = FALSE,
   n_threads = 1,
-  samples_per_block = 16,
-  H5_chunksize = 1000
+  samples_per_block = 16
 )
 }
 \arguments{
@@ -45,9 +44,6 @@ memory systems, reduce the number of \code{n_threads} and \code{samples_per_bloc
 \item{samples_per_block}{(default \code{16}) How many samples to process per
 thread, maximum. Setting this to a lower value may help in
 memory-constrained systems.}
-
-\item{H5_chunksize}{(default \code{1000}) How many assay rows per chunk in the
-created H5 file. Suggest leave this to default.}
 }
 \value{
 \code{CollateData()} writes to the directory given by \code{output_path}.
