@@ -1161,7 +1161,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
     reduced.DT[group.DT, on = "group_id",
         c("plot_level") := get("i.plot_level")]
 
-    if (highlight_events == "") {
+    if (length(highlight_events) == 1 && highlight_events == "") {
         reduced.DT[, c("highlight") := FALSE]
     } else {
         setorderv(reduced.DT, "highlight")

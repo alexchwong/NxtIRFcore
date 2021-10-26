@@ -9,9 +9,10 @@ CollateData(
   reference_path,
   output_path,
   IRMode = c("SpliceOverMax", "SpliceMax"),
-  samples_per_block = 16,
+  overwrite = FALSE,
   n_threads = 1,
-  overwrite = FALSE
+  samples_per_block = 16,
+  HDF_chunksize = 1000
 )
 }
 \arguments{
@@ -34,16 +35,19 @@ function}
 Valid options are \code{SpliceOverMax} and \code{SpliceMax}.
 See details}
 
-\item{samples_per_block}{(default \code{16}) How many samples to process per
-thread, maximum. Setting this to a lower value may help in
-memory-constrained systems.}
+\item{overwrite}{(default \code{FALSE}) If \code{CollateData()} has previously been run
+using the same set of samples, it will not be overwritten unless this is
+set to \code{TRUE}.}
 
 \item{n_threads}{(default \code{1}) The number of threads to use. On low
 memory systems, reduce the number of \code{n_threads} and \code{samples_per_block}}
 
-\item{overwrite}{(default \code{FALSE}) If \code{CollateData()} has previously been run
-using the same set of samples, it will not be overwritten unless this is
-set to \code{TRUE}.}
+\item{samples_per_block}{(default \code{16}) How many samples to process per
+thread, maximum. Setting this to a lower value may help in
+memory-constrained systems.}
+
+\item{HDF_chunksize}{(default \code{1000}) How many assay rows per chunk in the
+created H5 file. Suggest leave this to default.}
 }
 \value{
 \code{CollateData()} writes to the directory given by \code{output_path}.

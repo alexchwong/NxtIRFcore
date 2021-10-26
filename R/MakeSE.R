@@ -238,13 +238,15 @@ MakeSE <- function(
     se.IR <- se[rowData(se)$EventType == "IR", , drop = FALSE]
     se.coords <- rowData(se.IR)$EventRegion[
         rowData(se.IR)$EventRegion %in% rownames(junc_PSI)]
-
-    if (length(se.coords) > 0) {
+    se.coords.gr = CoordToGR(se.coords)
+    names(se.coords.gr) = se.coords
+    
+    if (length(se.coords.gr) > 0) {
         .log(paste("Iterating through IR events to determine introns",
             "of main isoforms"), type = "message")
-        include <- .makeSE_iterate_IR_select_events(se.coords, junc_PSI)
-        se.coords.final <- se.coords[include]
-        se.coords.excluded <- se.coords[!include]
+        include <- .makeSE_iterate_IR_select_events(se.coords.gr, junc_PSI)
+        se.coords.final <- se.coords.gr[include]
+        se.coords.excluded <- se.coords.gr[!include]
 
         # Iteration to find events not overlapping with se.IR.final
         include <- .makeSE_iterate_IR_retrieve_excluded_introns(
@@ -257,22 +259,26 @@ MakeSE <- function(
             se.coords.excluded <- se.coords.excluded[include]
 
             include <- .makeSE_iterate_IR_select_events(
-                    se.coords.excluded, junc_PSI)
+                se.coords.excluded, junc_PSI)
 
-            if (length(include) > 0) {
+            if (length(include) > 0 && !all(include)) {
                 se.coords.final <- c(se.coords.final,
                     se.coords.excluded[include])
                 se.coords.excluded <-
                     se.coords.excluded[!include]
                 include <- .makeSE_iterate_IR_retrieve_excluded_introns(
                     se.coords.final, se.coords.excluded)
+            } else if (length(include) > 0) {
+                se.coords.final <- c(se.coords.final,
+                    se.coords.excluded)
+                include <- c()
             } else {
                 include <- c()
             }
         }
 
         se <- se[c(
-            which(rowData(se.IR)$EventRegion %in% se.coords.final),
+            which(rowData(se.IR)$EventRegion %in% names(se.coords.final)),
             which(rowData(se)$EventType != "IR")
         ), ]
     }
@@ -280,12 +286,15 @@ MakeSE <- function(
 }
 
 # Selects introns of major isoforms
-.makeSE_iterate_IR_select_events <- function(se.coords, junc_PSI) {
-    gr <- CoordToGR(se.coords)
+.makeSE_iterate_IR_select_events <- function(se.coords.gr, junc_PSI) {
+    if(length(se.coords.gr) == 0) return(logical(0))
+    if(length(se.coords.gr) == 1) return(TRUE)
+    
+    gr <- se.coords.gr
     gr.reduced <- reduce(gr)
 
     OL <- findOverlaps(gr, gr.reduced)
-    junc_PSI.group <- as.data.table(junc_PSI[se.coords, , drop = FALSE])
+    junc_PSI.group <- as.data.table(junc_PSI[names(se.coords.gr), , drop = FALSE])
     junc_PSI.group$means <- rowMeans(junc_PSI.group)
     junc_PSI.group$group <- to(OL)
     junc_PSI.group[, c("max_means") := max(get("means")),
@@ -296,9 +305,13 @@ MakeSE <- function(
 # Find excluded introns that does not overlap with given selection of introns
 .makeSE_iterate_IR_retrieve_excluded_introns <- function(
         se.coords.final, se.coords.excluded) {
+        
     if (length(se.coords.excluded) > 0) {
-        final.gr <- CoordToGR(se.coords.final)
-        excluded.gr <- CoordToGR(se.coords.excluded)
+        if(length(se.coords.final) == 0) {
+            return(rep(TRUE, length(se.coords.excluded)))
+        }
+        final.gr <- se.coords.final
+        excluded.gr <- se.coords.excluded
 
         OL <- findOverlaps(excluded.gr, final.gr)
         include <- which(!(
