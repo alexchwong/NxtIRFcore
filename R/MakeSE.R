@@ -259,13 +259,17 @@ MakeSE <- function(
             include <- .makeSE_iterate_IR_select_events(
                     se.coords.excluded, junc_PSI)
 
-            if (length(include) > 0) {
+            if (length(include) > 0 && !all(include)) {
                 se.coords.final <- c(se.coords.final,
                     se.coords.excluded[include])
                 se.coords.excluded <-
                     se.coords.excluded[!include]
                 include <- .makeSE_iterate_IR_retrieve_excluded_introns(
                     se.coords.final, se.coords.excluded)
+            } else if (length(include) > 0) {
+                se.coords.final <- c(se.coords.final,
+                    se.coords.excluded)
+                include <- c()
             } else {
                 include <- c()
             }
