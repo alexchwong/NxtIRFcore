@@ -303,7 +303,6 @@ MakeSE <- function(
         se.coords.final, se.coords.excluded) {
         
     if (length(se.coords.excluded) > 0) {
-        if(length(se.coords.final) == 0) stop("Coords have length zero")
         final.gr <- CoordToGR(se.coords.final)
         excluded.gr <- CoordToGR(se.coords.excluded)
 
