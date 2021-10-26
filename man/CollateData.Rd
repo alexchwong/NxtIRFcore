@@ -12,7 +12,7 @@ CollateData(
   overwrite = FALSE,
   n_threads = 1,
   samples_per_block = 16,
-  HDF_chunksize = 1000
+  H5_chunksize = 1000
 )
 }
 \arguments{
@@ -46,7 +46,7 @@ memory systems, reduce the number of \code{n_threads} and \code{samples_per_bloc
 thread, maximum. Setting this to a lower value may help in
 memory-constrained systems.}
 
-\item{HDF_chunksize}{(default \code{1000}) How many assay rows per chunk in the
+\item{H5_chunksize}{(default \code{1000}) How many assay rows per chunk in the
 created H5 file. Suggest leave this to default.}
 }
 \value{
