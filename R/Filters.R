@@ -83,11 +83,13 @@ get_default_filters <- function(legacy = FALSE) {
         minimum = 60, minDepth = 20,
         EventTypes = c("MXE", "SE", "AFE", "ALE", "A5SS", "A3SS"))
     f4 <- NxtFilter("Data", "Consistency", pcTRUE = 80,
+        maximum = 2, minDepth = 20, EventTypes = c("MXE", "SE", "RI"))
+    f4_new <- NxtFilter("Data", "Consistency", pcTRUE = 80,
         maximum = 1, minDepth = 20, EventTypes = c("MXE", "SE", "RI"))
     f5 <- NxtFilter("Annotation", "Terminus")
     f6 <- NxtFilter("Annotation", "ExclusiveMXE")
     if(legacy) return(list(f1, f2, f3, f4))
-    return(list(f1, f2, f3, f4, f5, f6))
+    return(list(f1, f2, f3, f4_new, f5, f6))
 }
 
 #' @describeIn Run_NxtIRF_Filters Run a vector or list of NxtFilter objects
@@ -350,6 +352,14 @@ runFilter <- function(se, filterObj) {
 }
 
 .runFilter_anno_terminus <- function(se, filterObj) {
+    if(!all(c("","") %in% colnames(rowSelected))) {
+        .log(paste(
+            "This experiment was collated with an old version of NxtIRFcore.",
+            "Rerun CollateData with the current version before using the",
+            "terminus filter"
+        ), "message")
+        return(rep(TRUE, nrow(se)))
+    }
     rowSelected <- as.data.table(rowData(se))
     AFE <- rowSelected[get("EventType") == "AFE"]
     ALE <- rowSelected[get("EventType") == "ALE"]

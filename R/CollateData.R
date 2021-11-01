@@ -907,17 +907,9 @@ CollateData <- function(Experiment, reference_path, output_path,
         by = "transcript_id"]
     candidate.introns[, c("max_inv_intron_number") :=
         max(get("inverse_intron_number")), by = "Event"]
-    candidate.introns[, c("EventRegion") := get("Event")]
-    rowEvent.Extended[candidate.introns, on = "EventRegion",
-        c("is_always_first_intron") := (
-            get("i.max_intron_number") == 1
-        )]
-    rowEvent.Extended[candidate.introns, on = "EventRegion",
-        c("is_always_last_intron") := (
-            get("i.max_inv_intron_number") == 1
-        )]
-    rowEvent.Extended[get("EventType") %in% c("MXE", "SE"),
-        c("is_always_first_intron", "is_always_last_intron") := list(NA,NA)]
+    candidate.introns[, c("Event1a") := get("Event")]
+    candidate.introns[, c("Event1b") := get("Event")]
+
     # define Event1 / Event2
     rowEvent.Extended[get("EventType") == "IR",
         c("Event1a") := get("EventRegion")]
@@ -925,6 +917,25 @@ CollateData <- function(Experiment, reference_path, output_path,
         c("Event1a", "Event2a", "Event1b", "Event2b") :=
         list(get("i.Event1a"), get("i.Event2a"),
             get("i.Event1b"), get("i.Event2b"))]
+
+    rowEvent.Extended[candidate.introns, on = "Event1a",
+        c("iafi_A") := (get("i.max_intron_number") == 1)]
+    rowEvent.Extended[candidate.introns, on = "Event1b",
+        c("iafi_B") := (get("i.max_intron_number") == 1)]
+    rowEvent.Extended[, c("is_always_first_intron") :=
+        get("iafi_A") & get("iafi_B")]
+    rowEvent.Extended[, c("iafi_A", "iafi_B") := list(NULL, NULL)]
+
+    rowEvent.Extended[candidate.introns, on = "Event1a",
+        c("iali_A") := (get("i.max_inv_intron_number") == 1)]
+    rowEvent.Extended[candidate.introns, on = "Event1b",
+        c("iali_B") := (get("i.max_inv_intron_number") == 1)]
+    rowEvent.Extended[, c("is_always_last_intron") :=
+        get("iali_A") & get("iali_B")]
+    rowEvent.Extended[, c("iali_A", "iali_B") := list(NULL, NULL)]
+    
+    rowEvent.Extended[get("EventType") %in% c("MXE", "SE"),
+        c("is_always_first_intron", "is_always_last_intron") := list(NA,NA)]
     write.fst(rowEvent.Extended, file.path(norm_output_path, "rowEvent.fst"))
 }
 
