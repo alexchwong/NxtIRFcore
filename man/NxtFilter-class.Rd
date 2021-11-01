@@ -9,7 +9,8 @@ retention events}
 \usage{
 NxtFilter(
   filterClass = c("Data", "Annotation"),
-  filterType = c("Depth", "Coverage", "Consistency", "Protein_Coding", "NMD", "TSL"),
+  filterType = c("Depth", "Coverage", "Consistency", "Protein_Coding", "NMD", "TSL",
+    "Terminus", "ExclusiveMXE"),
   pcTRUE = 100,
   minimum = 20,
   maximum = 1,
@@ -72,7 +73,18 @@ No additional parameters required.
 predicted NMD substrate.
 \item \strong{TSL}: filters for events in which both
 isoforms have a TSL level below or equal to \code{minimum}
+\item \strong{Terminus} (New as of version 1.1.1):
+In alternate first exons, the splice junction must
+not be shared with another transcript for which it is not its first
+intron. For alternative last exons, the splice junction must not be
+shared with another transcript for which it is not its last intron
+\item \strong{ExclusiveMXE} (New as of version 1.1.1):
+For MXE events, the two alternate
+casette exons must not overlap in their genomic regions
+}
+
 \strong{Data Filters}
+\itemize{
 \item \strong{Depth}: Filters IR or alternative splicing events of transcripts
 that are "expressed" with adequate \code{Depth} as calculated by the
 sum of all splicing and IR reads spanning the event. Events with

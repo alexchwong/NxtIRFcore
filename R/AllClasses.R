@@ -161,6 +161,15 @@ setClass("NxtSE",
 #'       predicted NMD substrate.
 #'   * **TSL**: filters for events in which both
 #'       isoforms have a TSL level below or equal to `minimum`
+#'   * **Terminus** (New as of version 1.1.1): 
+#'       In alternate first exons, the splice junction must
+#'       not be shared with another transcript for which it is not its first
+#'       intron. For alternative last exons, the splice junction must not be
+#'       shared with another transcript for which it is not its last intron
+#'   * **ExclusiveMXE** (New as of version 1.1.1):
+#'       For MXE events, the two alternate
+#'       casette exons must not overlap in their genomic regions
+#'
 #'   **Data Filters**
 #'   * **Depth**: Filters IR or alternative splicing events of transcripts
 #'       that are "expressed" with adequate `Depth` as calculated by the

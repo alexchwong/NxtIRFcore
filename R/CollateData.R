@@ -898,6 +898,26 @@ CollateData <- function(Experiment, reference_path, output_path,
         on = "EventName", c("Inc_TSL") := get("i.tsl_min")]
     rowEvent.Extended[Splice.Options.Summary[get("isoform") == "B"],
         on = "EventName", c("Exc_TSL") := get("i.tsl_min")]
+        
+    # Designate exclusive first intron / last intron
+    candidate.introns[, c("max_intron_number") :=
+        max(get("intron_number")), by = "Event"]
+    candidate.introns[, c("inverse_intron_number") :=
+        max(get("intron_number")) - get("intron_number") + 1, 
+        by = "transcript_id"]
+    candidate.introns[, c("max_inv_intron_number") :=
+        max(get("inverse_intron_number")), by = "Event"]
+    candidate.introns[, c("EventRegion") := get("Event")]
+    rowEvent.Extended[candidate.introns, on = "EventRegion",
+        c("is_always_first_intron") := (
+            get("i.max_intron_number") == 1
+        )]
+    rowEvent.Extended[candidate.introns, on = "EventRegion",
+        c("is_always_last_intron") := (
+            get("i.max_inv_intron_number") == 1
+        )]
+    rowEvent.Extended[get("EventType") %in% c("MXE", "SE"),
+        c("is_always_first_intron", "is_always_last_intron") := list(NA,NA)]
     # define Event1 / Event2
     rowEvent.Extended[get("EventType") == "IR",
         c("Event1a") := get("EventRegion")]

@@ -7,13 +7,16 @@
 \alias{runFilter}
 \title{Filtering for IR and Alternative Splicing Events}
 \usage{
-get_default_filters()
+get_default_filters(legacy = FALSE)
 
 apply_filters(se, filters = get_default_filters())
 
 runFilter(se, filterObj)
 }
 \arguments{
+\item{legacy}{(default \code{FALSE}) Set to \code{TRUE} to get the first four
+default filters introduced in the initial NxtIRFcore release.}
+
 \item{se}{the \linkS4class{NxtSE} object to filter}
 
 \item{filters}{A vector or list of one or more NxtFilter objects. If left
@@ -46,7 +49,18 @@ mutually exclusive exon events, each junction must comprise at least 1/(2^2)
 For retained introns, the exon-intron overhangs must not differ by 1/4
 }
 
-In all filters, we require at least 80\% samples (\code{pcTRUE = 80})
+Also, in NxtIRFcore version 1.1.1 and above, we introduced two
+annotation-based filters:
+\itemize{
+\item (5) Terminus filter: In alternate first exons, the splice junction must
+not be shared with another transcript for which it is not its first
+intron. For alternative last exons, the splice junction must not be
+shared with another transcript for which it is not its last intron
+\item (6) ExclusiveMXE filter: For MXE events, the two alternate
+casette exons must not overlap in their genomic regions
+}
+
+In all data-based filters, we require at least 80\% samples (\code{pcTRUE = 80})
 to pass this filters from the entire dataset (\code{minCond = -1}).
 
 Events with event read depth (reads supporting either included or excluded

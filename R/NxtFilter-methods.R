@@ -4,7 +4,7 @@ NxtFilter <- function(
         filterClass = c("Data", "Annotation"),
         filterType = c(
             "Depth", "Coverage", "Consistency",
-            "Protein_Coding", "NMD", "TSL"
+            "Protein_Coding", "NMD", "TSL", "Terminus", "ExclusiveMXE"
         ),
         pcTRUE = 100, minimum = 20, maximum = 1, minDepth = 5,
         condition = "", minCond = -1,
@@ -23,7 +23,7 @@ setMethod("initialize", "NxtFilter", function(.Object,
         filterClass = c("Data", "Annotation"),
         filterType = c(
             "Depth", "Coverage", "Consistency",
-            "Protein_Coding", "NMD", "TSL"
+            "Protein_Coding", "NMD", "TSL", "Terminus", "ExclusiveMXE"
         ),
         pcTRUE = 100, minimum = 20, maximum = 1, minDepth = 5,
         condition = "", minCond = -1,
@@ -34,14 +34,20 @@ setMethod("initialize", "NxtFilter", function(.Object,
     filterClass <- match.arg(filterClass)
     filterType <- match.arg(filterType)
 
+    data_methods <- c("Depth", "Coverage", "Consistency")
+    annotation_methods <- c("Protein_Coding", "NMD", "TSL",
+        "Terminus", "ExclusiveMXE")
+    
     if (filterClass == "") 
         .log("filterClass must be one of `Data` or `Annotation`")
     if (filterClass == "Data") {
-        if (!(filterType %in% c("Depth", "Coverage", "Consistency")))
-        .log("filterClass must be one of `Depth`, `Coverage` or `Consistency`")
+        if (!(filterType %in% data_methods))
+        .log(paste("filterClass must be a recognised Data method",
+            paste(data_methods, collapse = ", ")))
     } else {
-        if (!(filterType %in% c("Protein_Coding", "NMD", "TSL")))
-            .log("filterClass must be one of `Protein_Coding`, `NMD` or `TSL`")
+        if (!(filterType %in% annotation_methods))
+            .log(paste("filterClass must be a recognised Annotation method",
+                paste(annotation_methods, collapse = ", ")))
     }
 
     pcTRUE <- as.numeric(pcTRUE)
@@ -138,6 +144,11 @@ setMethod("show", "NxtFilter", function(object) {
             as.integer(object@minimum))
         cat("Events with both isoforms belonging to ")
         cat("lower-ranking TSLs are removed")
+    } else if (object@filterType == "Terminus") {
+        cat("For alternative first / last exons, events overlapping with non-")
+        cat("first/last introns are removed")
+    } else if (object@filterType == "ExclusiveMXE") {
+        cat("MXE events with overlapping casette exons are removed")
     }
 }
 
