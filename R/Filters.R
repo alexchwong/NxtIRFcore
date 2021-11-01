@@ -352,7 +352,9 @@ runFilter <- function(se, filterObj) {
 }
 
 .runFilter_anno_terminus <- function(se, filterObj) {
-    if(!all(c("","") %in% colnames(rowSelected))) {
+    rowSelected <- as.data.table(rowData(se))
+    if(!all(c("is_always_first_intron","is_always_last_intron") %in% 
+            colnames(rowSelected))) {
         .log(paste(
             "This experiment was collated with an old version of NxtIRFcore.",
             "Rerun CollateData with the current version before using the",
@@ -360,7 +362,6 @@ runFilter <- function(se, filterObj) {
         ), "message")
         return(rep(TRUE, nrow(se)))
     }
-    rowSelected <- as.data.table(rowData(se))
     AFE <- rowSelected[get("EventType") == "AFE"]
     ALE <- rowSelected[get("EventType") == "ALE"]
     rowSelected <- rowSelected[!(get("EventType") %in% c("ALE", "AFE"))]
