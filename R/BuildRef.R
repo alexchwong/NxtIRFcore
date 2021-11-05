@@ -3220,10 +3220,13 @@ return(TRUE)
     )
     candidate.RI <- as.data.table(
         read.fst(file.path(reference_path, "fst", "Introns.Dir.fst")))
-    candidate.RI <- candidate.RI[get("known_exon_dir") == TRUE]
     candidate.RI[, c("start", "end") :=
         list(get("intron_start"), get("intron_end"))]
-
+    OL <- findOverlaps(
+        .grDT(candidate.RI), Exons, type = "within"
+    )
+    candidate.RI <- candidate.RI[unique(from(OL))]
+    
     found_RI <- data.table(EventType = "RI",
         EventID = paste0("RI#", seq_len(nrow(candidate.RI))),
         EventName = "", # assign later

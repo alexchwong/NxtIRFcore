@@ -154,12 +154,17 @@ estimated via the \code{SpliceMax} and \code{SpliceOverMax} methods
 \item see \link{CollateData}.
 }
 \itemize{
-\item \strong{RI} known retained introns are calculated by considering the specific
+\item \strong{RI} known retained introns are those that lie completely within a
+single exon of another transcript.
+(NB: in NxtIRFcore v1.1.1 and later, this encompasses exons from any
+transcript, including \code{retained_intron} and \code{sense_intronic} transcripts).
+RI's are calculated by considering the specific
 spliced intron as a binary event paired with its retention. The spliced
 abundance is calculated exclusively by splice reads mapped to the
 specific intron boundaries. Known retained introns are those where the
 intron retaining transcript is an \strong{annotated} transcript.
-Furthermore, the IR-transcript's \code{transcript_biotype} must not be
+In NxtIRFcore \verb{version < 1.1.1},
+the IR-transcript's \code{transcript_biotype} must not be
 an \code{retained_intron} or \code{sense_intronic}.
 }
 

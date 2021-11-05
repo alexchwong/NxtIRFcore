@@ -32,12 +32,17 @@
 #' spliced transcripts are **all** isoforms that do not retain the intron, as
 #' estimated via the `SpliceMax` and `SpliceOverMax` methods
 #' - see [CollateData].
-#' * **RI** known retained introns are calculated by considering the specific
+#' * **RI** known retained introns are those that lie completely within a
+#' single exon of another transcript.
+#' (NB: in NxtIRFcore v1.1.1 and later, this encompasses exons from any
+#' transcript, including `retained_intron` and `sense_intronic` transcripts).
+#' RI's are calculated by considering the specific
 #' spliced intron as a binary event paired with its retention. The spliced
 #' abundance is calculated exclusively by splice reads mapped to the
 #' specific intron boundaries. Known retained introns are those where the
 #' intron retaining transcript is an **annotated** transcript.
-#' Furthermore, the IR-transcript's `transcript_biotype` must not be
+#' In NxtIRFcore `version < 1.1.1`, 
+#' the IR-transcript's `transcript_biotype` must not be
 #' an `retained_intron` or `sense_intronic`.
 #'
 #' NxtIRF considers "included" counts as those that represent abundance of the

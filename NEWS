@@ -1,5 +1,9 @@
-Changes in version 1.1.1 (2021-11-1)
+Changes in version 1.1.1 (2021-11-05)
 + Added two new annotation-based filters: Terminus and ExclusiveMXE
++ Annotated retained introns `RI` are defined by any intron that is completely
+  overlapped by a single exon of any transcript.
+  They are calculated as binary events, and do not consider overlapping
+  splice events (unlike `IR` events)
 
 Version 1.1.0
 + Initial devel release for Bioconductor 3.15
