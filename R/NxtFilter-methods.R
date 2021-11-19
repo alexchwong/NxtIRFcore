@@ -31,23 +31,30 @@ setMethod("initialize", "NxtFilter", function(.Object,
 ) {
     .Object <- callNextMethod()
 
-    filterClass <- match.arg(filterClass)
-    filterType <- match.arg(filterType)
+    # filterClass <- match.arg(filterClass)
+    # filterType <- match.arg(filterType)
 
     data_methods <- c("Depth", "Coverage", "Consistency")
     annotation_methods <- c("Protein_Coding", "NMD", "TSL",
         "Terminus", "ExclusiveMXE")
     
-    if (filterClass == "") 
-        .log("filterClass must be one of `Data` or `Annotation`")
+    if(filterClass %in% c("Data", "Annotation")) {
+        filterClass <- filterClass[1]
+    } else {
+        filterClass <- "(none)"
+    }
+    filterType <- filterType[1]
+    
     if (filterClass == "Data") {
         if (!(filterType %in% data_methods))
         .log(paste("filterClass must be a recognised Data method",
             paste(data_methods, collapse = ", ")))
-    } else {
+    } else if (filterClass == "Annotation") {
         if (!(filterType %in% annotation_methods))
             .log(paste("filterClass must be a recognised Annotation method",
                 paste(annotation_methods, collapse = ", ")))
+    } else {
+        filterType <- "(none)"
     }
 
     pcTRUE <- as.numeric(pcTRUE)
