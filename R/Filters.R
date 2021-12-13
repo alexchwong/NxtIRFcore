@@ -264,27 +264,33 @@ runFilter <- function(se, filterObj) {
             Down_Exc.subset <- Down_Exc[, which(cond_vec == cond)]
             Excluded.subset <- Excluded[, which(cond_vec == cond)]
 
-            sum_inc <- rowSums(
-                abs(log2(Up_Inc.subset + 1) - log2(IntronDepth.subset + 1))
-                    < filterObj@maximum &
-                abs(log2(Down_Inc.subset + 1) - log2(IntronDepth.subset + 1))
-                    < filterObj@maximum
-            )
-            sum_exc <- rowSums(
-                abs(log2(Up_Exc.subset + 1) - log2(Excluded.subset + 1))
-                    < filterObj@maximum &
-                abs(log2(Down_Exc.subset + 1) - log2(Excluded.subset + 1))
-                    < filterObj@maximum
-            )
-            sum_inc <- c(sum_inc, rep(ncol(Up_Inc.subset),
-                sum(!(rowData$EventType %in% c("IR", "MXE", "SE", "RI")))))
-            sum_exc <- c(
-                rep(ncol(Up_Inc.subset), sum(rowData$EventType == "IR")),
-                sum_exc,
-                rep(ncol(Up_Inc.subset),
-                    sum(!(rowData$EventType %in% c("IR", "MXE"))))
-            )
-            sum <- 0.5 * (sum_inc + sum_exc)
+            # sum_inc <- rowSums(
+                # abs(log2(Up_Inc.subset + 1) - log2(IntronDepth.subset + 1))
+                    # < filterObj@maximum &
+                # abs(log2(Down_Inc.subset + 1) - log2(IntronDepth.subset + 1))
+                    # < filterObj@maximum
+            # )
+            # sum_exc <- rowSums(
+                # abs(log2(Up_Exc.subset + 1) - log2(Excluded.subset + 1))
+                    # < filterObj@maximum &
+                # abs(log2(Down_Exc.subset + 1) - log2(Excluded.subset + 1))
+                    # < filterObj@maximum
+            # )
+            # sum_inc <- c(sum_inc, rep(ncol(Up_Inc.subset),
+                # sum(!(rowData$EventType %in% c("IR", "MXE", "SE", "RI")))))
+            # sum_exc <- c(
+                # rep(ncol(Up_Inc.subset), sum(rowData$EventType == "IR")),
+                # sum_exc,
+                # rep(ncol(Up_Inc.subset),
+                    # sum(!(rowData$EventType %in% c("IR", "MXE"))))
+            # )
+            # sum <- 0.5 * (sum_inc + sum_exc)
+            sum <- .runFilter_data_consistency_truths(
+                Up_Inc.subset, Down_Inc.subset, 
+                Up_Exc.subset, Down_Exc.subset, 
+                IntronDepth.subset, Excluded.subset, 
+                filterObj@maximum, rowData(se)$EventType
+            )            
             sum_res <- sum_res +
                 ifelse(sum * 100 / ncol(Up_Inc.subset) >= usePC, 1, 0)
         }
@@ -292,27 +298,70 @@ runFilter <- function(se, filterObj) {
         if (n_TRUE == -1) n_TRUE <- length(unique(cond_vec))
         res <- (sum_res >= n_TRUE)
     } else {
-        sum_inc <- rowSums(
-            abs(log2(Up_Inc + 1) - log2(IntronDepth + 1)) < filterObj@maximum &
-            abs(log2(Down_Inc + 1) - log2(IntronDepth + 1)) < filterObj@maximum
+        # sum_inc <- rowSums(
+            # abs(log2(Up_Inc + 1) - log2(IntronDepth + 1)) < filterObj@maximum &
+            # abs(log2(Down_Inc + 1) - log2(IntronDepth + 1)) < filterObj@maximum
+        # )
+        # sum_exc <- rowSums(
+            # abs(log2(Up_Exc + 1) - log2(Excluded + 1)) < filterObj@maximum &
+            # abs(log2(Down_Exc + 1) - log2(Excluded + 1)) < filterObj@maximum
+        # )
+        # sum_inc <- c(sum_inc, rep(ncol(Up_Inc),
+            # sum(!(rowData$EventType %in% c("IR", "MXE", "SE", "RI")))))
+        # sum_exc <- c(
+            # rep(ncol(Up_Inc), sum(rowData$EventType == "IR")),
+            # sum_exc,
+            # rep(ncol(Up_Inc),
+                # sum(!(rowData$EventType %in% c("IR", "MXE"))))
+        # )
+        # sum <- 0.5 * (sum_inc + sum_exc)
+        
+        sum <- .runFilter_data_consistency_truths(
+            Up_Inc, Down_Inc, Up_Exc, Down_Exc,
+            IntronDepth, Excluded, 
+            filterObj@maximum, rowData(se)$EventType
         )
-        sum_exc <- rowSums(
-            abs(log2(Up_Exc + 1) - log2(Excluded + 1)) < filterObj@maximum &
-            abs(log2(Down_Exc + 1) - log2(Excluded + 1)) < filterObj@maximum
-        )
-        sum_inc <- c(sum_inc, rep(ncol(Up_Inc),
-            sum(!(rowData$EventType %in% c("IR", "MXE", "SE", "RI")))))
-        sum_exc <- c(
-            rep(ncol(Up_Inc), sum(rowData$EventType == "IR")),
-            sum_exc,
-            rep(ncol(Up_Inc),
-                sum(!(rowData$EventType %in% c("IR", "MXE"))))
-        )
-        sum <- 0.5 * (sum_inc + sum_exc)
         res <- ifelse(sum * 100 / ncol(Up_Inc) >= usePC, TRUE, FALSE)
     }
     res[!(rowData(se)$EventType %in% filterObj@EventTypes)] <- TRUE
     return(res)
+}
+
+.runFilter_data_consistency_truths <- function(
+    Up_Inc, Down_Inc, Up_Exc, Down_Exc,
+    IntronDepth, Excluded, maximum, EventTypeVec
+) {
+    num_IR <- sum(EventTypeVec == "IR")
+    num_MXE <- sum(EventTypeVec == "MXE")
+    num_SE <- sum(EventTypeVec == "SE")
+    num_other <- sum(!(EventTypeVec %in% c("IR", "MXE", "SE", "RI")))
+    num_RI <- sum(EventTypeVec == "RI")
+    num_samples <- ncol(Up_Inc)
+
+    truth_inc_temp <- 
+        abs(log2(Up_Inc + 1) - log2(IntronDepth + 1)) < maximum &
+        abs(log2(Down_Inc + 1) - log2(IntronDepth + 1)) < maximum
+
+    truth_inc <- rbind(
+        truth_inc_temp[seq_len(num_IR + num_MXE + num_SE),],
+        matrix(TRUE, nrow = num_other, ncol = num_samples),
+        truth_inc_temp[-seq_len(num_IR + num_MXE + num_SE),]
+    )
+        
+    truth_exc <- rbind(
+        matrix(TRUE, nrow = num_IR, ncol = num_samples),
+        (
+            abs(log2(Up_Exc + 1) - log2(Excluded + 1)) < maximum &
+            abs(log2(Down_Exc + 1) - log2(Excluded + 1)) < maximum
+        ),
+        matrix(TRUE, nrow = num_SE + num_other + num_RI, ncol = num_samples)
+    )
+    
+    truth_total <- truth_inc & truth_exc
+    
+    sum <- rowSums(truth_total)
+    
+    return(sum)
 }
 
 # returns if any of included or excluded is protein_coding
