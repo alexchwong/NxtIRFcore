@@ -1,3 +1,13 @@
+# Explicitly define constructor
+setMethod("initialize", "NxtSE", 
+    function(.Object, ...) {
+        .Object@int_elementMetadata <- S4Vectors::DataFrame()
+        .Object@int_colData <- S4Vectors::DataFrame()
+        
+        .Object <- callNextMethod()
+
+        .Object
+    })
 
 #' @describeIn NxtSE-class Constructor function for NxtSE; akin to
 #'   SummarizedExperiment(...)
