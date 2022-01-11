@@ -2,9 +2,13 @@
 
 NxtIRF quantifies Intron Retention and Alternative Splicing from BAM files using the IRFinder engine. Features interactive visualisation including RNA-seq coverage plots normalised by condition at the splice junction level.
 
+NxtIRF release version: http://www.bioconductor.org/packages/release/bioc/html/NxtIRFcore.html
+
+NxtIRF devel version: http://www.bioconductor.org/packages/devel/bioc/html/NxtIRFcore.html
+
 ## Installation
 
-### On current R (>= 4.1.0)
+### On current R (>= 4.2.0)
 
 * Requires Bioconductor devel version:
 
