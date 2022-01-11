@@ -1,9 +1,16 @@
-Changes in version 1.1.1 (2021-11-05)
-+ Added two new annotation-based filters: Terminus and ExclusiveMXE
+Changes in version 1.1.1 (2022-01-11)
++ Bugfix for NxtSE constructor.
++ Bugfix for Consistency filter: previously an "average" filter was used, such
+  that upstream / downstream filter triggers counted for 0.5, whereas it added
+  1.0 if both up/downstream filters were triggered. From 1.1.1 onwards, 1.0 is
+  added when either upstream or downstream consistency filter is triggered.
++ Added two new annotation-based filters: Terminus and ExclusiveMXE. See
+  ?NxtFilter for details
 + Annotated retained introns `RI` are defined by any intron that is completely
   overlapped by a single exon of any transcript.
-  They are calculated as binary events, and do not consider overlapping
-  splice events (unlike `IR` events)
+  They are calculated as binary events, i.e. as PSI between RI and specific
+  spliced intron, and do not consider overlapping splice events 
+  (unlike `IR` events, which are calculated for all other constitutive introns)
 
 Version 1.1.0
 + Initial devel release for Bioconductor 3.15
