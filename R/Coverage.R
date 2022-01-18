@@ -219,10 +219,11 @@ Plot_Coverage <- function(
         t_test = t_test, condensed = condense_tracks
     )
     if (norm_event != "")
-        args$highlight_events <- .plot_coverage_highlight_events(se, norm_event)
+        args[["highlight_events"]] <- 
+            .plot_coverage_highlight_events(se, norm_event)
 
     if (!missing(selected_transcripts))
-        args$selected_transcripts <- selected_transcripts
+        args[["selected_transcripts"]] <- selected_transcripts
 
     p <- do.call(plot_cov_fn, args)
     for(i in seq_len(length(p$ggplot) - 1)) {
@@ -1252,9 +1253,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 .plot_cov_fn_normalize_condition <- function(
     view_chr, view_start, view_end, view_strand,
     norm_event, condition, tracks = list(), track_names = "", se, avail_files,
-    transcripts, elems, highlight_events, selected_transcripts = "",
-    stack_tracks, graph_mode, conf.int = 0.95,
-    t_test = FALSE, condensed = FALSE
+    conf.int = 0.95, t_test = FALSE, ...
 ) {
     cur_zoom <- floor(log((view_end - view_start) / 50) / log(3))
     depth_min <- 10 # depth required for sample to be included in averages
@@ -1452,10 +1451,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
 # Plot individual samples one in each track
 .plot_cov_fn_indiv <- function(
     view_chr, view_start, view_end, view_strand,
-    norm_event, condition, tracks = list(), track_names = "", se, avail_files,
-    transcripts, elems, highlight_events, selected_transcripts = "",
-    stack_tracks, graph_mode, conf.int = 0.95,
-    t_test = FALSE, condensed = FALSE
+    tracks = list(), track_names = NULL, avail_files, ...
 ) {
     cur_zoom <- floor(log((view_end - view_start) / 50) / log(3))
     gp_track <- pl_track <- list()
