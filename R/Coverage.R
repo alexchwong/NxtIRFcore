@@ -1232,7 +1232,7 @@ determine_compatible_events <- function(reduced.DT, highlight_events) {
             text = anno[["text"]]),
         aes(x = get("x"), y = get("y"), label = get("text")))
     gp <- gp + coord_cartesian(xlim = c(view_start, view_end),
-        ylim = c(min(reduced$plot_level) - 2, max(reduced$plot_level)),
+        ylim = c(min(reduced$plot_level) - 2, max(reduced$plot_level)) + 0.5,
         expand = FALSE)
         
     pl <- ggplotly(p, tooltip = "text") %>%
