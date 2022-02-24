@@ -766,7 +766,7 @@ int IRF_core(std::string const &bam_file,
     oChr.push_back(new FragmentsInChr);
     oJC.push_back(new JunctionCount(JC_template));
     oFM.push_back(new FragmentsMap);
-    BBchild.push_back(new BAM2blocks(ref_names, ref_lengths));
+    BBchild.push_back(new BAM2blocks(bam_chr_name, bam_chr_len));
 
     BBchild.at(i)->registerCallbackChrMappingChange( std::bind(&JunctionCount::ChrMapUpdate, &(*oJC.at(i)), std::placeholders::_1) );
     BBchild.at(i)->registerCallbackProcessBlocks( std::bind(&JunctionCount::ProcessBlocks, &(*oJC.at(i)), std::placeholders::_1) );
