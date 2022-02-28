@@ -8,7 +8,7 @@ NxtIRF devel version: http://www.bioconductor.org/packages/devel/bioc/html/NxtIR
 
 ## Installation
 
-### On current R (>= 4.2.0)
+### On devel R (>= 4.2.0)
 
 * Requires Bioconductor devel version:
 
@@ -28,9 +28,9 @@ install_github("alexchwong/NxtIRFdata")
 install_github("alexchwong/NxtIRFcore", dependencies=TRUE, build_vignettes=TRUE)
 ```
 
-### On R == 4.1
+### On current version of R == 4.1.x
 
-* Requires Bioconductor release version version:
+* Requires Bioconductor release version:
 
 ```
 if (!requireNamespace("BiocManager", quietly=TRUE))
@@ -41,7 +41,7 @@ BiocManager::valid()              # checks for out of date packages
 BiocManager::install("NxtIRFcore")
 ```
 
-### On R == 4.0
+### On R == 4.0.x
 
 * As NxtIRFcore's vignette relies on a demo dataset that is deposited in AnnotationHub for Bioconductor 3.14, the vignette cannot be installed in R 4.0. The following should still work for Bioconductor 3.12 or 3.13. A warning that NxtIRF on old versions of Bioconductor have not been extensively tested, and unknown bugs may exist.
 
