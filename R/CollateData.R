@@ -124,11 +124,13 @@ CollateData <- function(Experiment, reference_path, output_path,
     dash_progress("Compiling Junction List", N_steps)
     junc.common <- .collateData_junc_merge(df.internal, jobs, BPPARAM_mod,
         output_path)
+    saveRDS(junc.common, file.path(output_path,"junc.common.Rds"))
     gc()
 
     dash_progress("Compiling Intron Retention List", N_steps)
     irf.common <- .collateData_irf_merge(df.internal, jobs, BPPARAM_mod,
         output_path, stranded)
+    saveRDS(irf.common, file.path(output_path,"irf.common.Rds"))
     gc()
 
 # Reassign +/- based on junctions.fst annotation
