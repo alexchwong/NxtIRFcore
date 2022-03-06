@@ -117,6 +117,7 @@ is_valid <- function(x) {
 }
 
 .make_path_relative <- function(files, relative_to) {
+    if (is.null(files)) return(files)
     if (!all(file.exists(files))) .log("Some files do not exist")
     if (!all(file.exists(relative_to))) .log("Some directories do not exist")
     if (length(relative_to) == 1) relative_to <- rep(relative_to, length(files))

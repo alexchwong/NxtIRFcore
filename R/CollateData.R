@@ -224,6 +224,8 @@ CollateData <- function(Experiment, reference_path, output_path,
 .collateData_COV <- function(Experiment) {
     coverage_files <- ""
     Experiment <- as.data.frame(Experiment)
+    if (ncol(Experiment) == 2) return NULL
+    
     if (ncol(Experiment) > 2 && all(file.exists(Experiment[, 3]))) {
         coverage_files <- Experiment[, 3]
     }
@@ -1560,24 +1562,33 @@ CollateData <- function(Experiment, reference_path, output_path,
 # Writes default colData to RDS
 .collateData_write_colData <- function(df.internal, coverage_files,
         norm_output_path) {
-
-    covfiles_full <- normalizePath(file.path(norm_output_path, coverage_files))
-    # Create barebones colData.Rds - save coverage files as well
-    if (length(coverage_files) == nrow(df.internal) & IsCOV(covfiles_full)) {
-        df.files <- data.table(
-            sample = df.internal$sample,
-            bam_file = "",
-            irf_file = df.internal$path,
-            cov_file = coverage_files
-        )
+    if(!is.null(coverage_files)) {
+        covfiles_full <- normalizePath(file.path(norm_output_path, coverage_files))
+        # Create barebones colData.Rds - save coverage files as well
+        if (length(coverage_files) == nrow(df.internal) & IsCOV(covfiles_full)) {
+            df.files <- data.table(
+                sample = df.internal$sample,
+                bam_file = "",
+                irf_file = df.internal$path,
+                cov_file = coverage_files
+            )
+        } else {
+            df.files <- data.table(
+                sample = df.internal$sample,
+                bam_file = "",
+                irf_file = df.internal$path,
+                cov_file = ""
+            )
+        }
     } else {
         df.files <- data.table(
             sample = df.internal$sample,
             bam_file = "",
             irf_file = df.internal$path,
             cov_file = ""
-        )
+        )    
     }
+
     #
     colData <- list(
         df.files = df.files,
