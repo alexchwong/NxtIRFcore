@@ -224,7 +224,7 @@ CollateData <- function(Experiment, reference_path, output_path,
 .collateData_COV <- function(Experiment) {
     coverage_files <- ""
     Experiment <- as.data.frame(Experiment)
-    if (ncol(Experiment) == 2) return NULL
+    if (ncol(Experiment) == 2) return(NULL)
     
     if (ncol(Experiment) > 2 && all(file.exists(Experiment[, 3]))) {
         coverage_files <- Experiment[, 3]
