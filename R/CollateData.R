@@ -596,16 +596,21 @@ CollateData <- function(Experiment, reference_path, output_path,
     # Determine strandedness based on splice junction motif
     if (nrow(junc.common.unanno) != 0) {
 
+        genome <- Get_Genome(reference_path, as_DNAStringSet = TRUE)
+
+        # Filter unanno by available sequences
+        junc.common.unanno <- junc.common.unanno[seqnames %in% names(genome)]
+
+        # Create left and right motif GRanges
         left.gr <- with(junc.common.unanno,
-            GRanges(seqnames = seqnames,
+            GRanges(seqnames = as.character(seqnames),
             ranges = IRanges(start = start, end = start + 1),
             strand = "+"))
         right.gr <- with(junc.common.unanno,
-            GRanges(seqnames = seqnames,
+            GRanges(seqnames = as.character(seqnames),
             ranges = IRanges(start = end - 1, end = end),
             strand = "+"))
-
-        genome <- Get_Genome(reference_path, as_DNAStringSet = TRUE)
+        
         junc.common.unanno[, c("splice_motif") := paste0(
             as.character(getSeq(genome, left.gr)),
             as.character(getSeq(genome, right.gr))
