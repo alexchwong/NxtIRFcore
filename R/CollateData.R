@@ -600,6 +600,13 @@ CollateData <- function(Experiment, reference_path, output_path,
 
         # Filter unanno by available sequences
         junc.common.unanno <- junc.common.unanno[seqnames %in% names(genome)]
+        
+        # sanity check: remove unannotated junctions that lie outside genome
+        junc.common.unanno.gr <- makeGRangesFromDataFrame(junc.common.unanno)
+        seqinfo <- as.data.frame(seqinfo(genome))
+        seqinfo.gr <- GRanges(rownames(seqinfo), IRanges(1, seqinfo$seqlengths), "*")
+        OL <- findOverlaps(junc.common.unanno.gr, seqinfo.gr, type = "within")
+        junc.common.unanno <- junc.common.unanno[unique(from(OL)), which = FALSE]
 
         # Create left and right motif GRanges
         left.gr <- with(junc.common.unanno,
@@ -615,6 +622,7 @@ CollateData <- function(Experiment, reference_path, output_path,
             as.character(getSeq(genome, left.gr)),
             as.character(getSeq(genome, right.gr))
         )]
+        
         splice_motifs <- data.frame(
             seqs = c("GTAG", "GCAG", "ATAC", "ATAG"),
             seqs_r = c("CTAC", "CTGC", "GTAT", "CTAT")
