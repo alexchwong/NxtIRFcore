@@ -116,11 +116,10 @@ MakeSE <- function(
 
     # Locate relative paths of COV files, or have all-empty if not all are found
     covfiles <- file.path(collate_path, se@metadata[["cov_file"]])
+    display_cov_missing_message <- FALSE
     if (all(se@metadata[["cov_file"]] == "") || any(!file.exists(covfiles))) {
         se@metadata[["cov_file"]] <- rep("", ncol(se))
-        .log(paste("Coverage files were not set or not found.",
-            "To set coverage files, use `covfile(se) <- filenames`")
-        , "message")
+        display_cov_missing_message <- TRUE
     } else {
         se@metadata[["cov_file"]] <- normalizePath(covfiles)
     }
@@ -137,6 +136,10 @@ MakeSE <- function(
     }
 
     message("done\n")
+    if(display_cov_missing_message)
+        .log(paste("Coverage files were not set or not found.",
+            "To set coverage files, use `covfile(se) <- filenames`")
+        , "message")
 
     if (realize == TRUE) {
         dash_progress("Realizing NxtSE object...", N)
@@ -150,6 +153,21 @@ MakeSE <- function(
         se <- .makeSE_iterate_IR(se, collate_path)
     }
 
+    # Remove events with NA's (not sure why this occurs)
+    Inc_NA <- is.na(rowSums(assay(se, "Included")))
+    Exc_NA <- is.na(rowSums(assay(se, "Excluded")))
+    
+    se <- se[!Inc_NA & !Exc_NA,]
+
+    Up_Inc_NA <- rownames(up_inc(se))[is.na(rowSums(up_inc(se)))]
+    Down_Inc_NA <- rownames(down_inc(se))[is.na(rowSums(down_inc(se)))]
+    Up_Exc_NA <- rownames(up_exc(se))[is.na(rowSums(up_exc(se)))]
+    Down_Exc_NA <- rownames(down_exc(se))[is.na(rowSums(down_exc(se)))]
+    
+    names_NA <- unique(c(Up_Inc_NA, Down_Inc_NA, Up_Exc_NA, Down_Exc_NA))
+
+    se <- se[!(rownames(se) %in% names_NA),]
+    
     return(se)
 }
 

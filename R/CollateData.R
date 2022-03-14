@@ -124,11 +124,13 @@ CollateData <- function(Experiment, reference_path, output_path,
     dash_progress("Compiling Junction List", N_steps)
     junc.common <- .collateData_junc_merge(df.internal, jobs, BPPARAM_mod,
         output_path)
+    # saveRDS(junc.common, file.path(output_path,"junc.common.Rds"))
     gc()
 
     dash_progress("Compiling Intron Retention List", N_steps)
     irf.common <- .collateData_irf_merge(df.internal, jobs, BPPARAM_mod,
         output_path, stranded)
+    # saveRDS(irf.common, file.path(output_path,"irf.common.Rds"))
     gc()
 
 # Reassign +/- based on junctions.fst annotation
@@ -594,20 +596,33 @@ CollateData <- function(Experiment, reference_path, output_path,
     # Determine strandedness based on splice junction motif
     if (nrow(junc.common.unanno) != 0) {
 
+        genome <- Get_Genome(reference_path, as_DNAStringSet = TRUE)
+
+        # Filter unanno by available sequences
+        junc.common.unanno <- junc.common.unanno[seqnames %in% names(genome)]
+        
+        # sanity check: remove unannotated junctions that lie outside genome
+        junc.common.unanno.gr <- makeGRangesFromDataFrame(junc.common.unanno)
+        seqinfo <- as.data.frame(seqinfo(genome))
+        seqinfo.gr <- GRanges(rownames(seqinfo), IRanges(1, seqinfo$seqlengths), "*")
+        OL <- findOverlaps(junc.common.unanno.gr, seqinfo.gr, type = "within")
+        junc.common.unanno <- junc.common.unanno[unique(from(OL)), which = FALSE]
+
+        # Create left and right motif GRanges
         left.gr <- with(junc.common.unanno,
-            GRanges(seqnames = seqnames,
+            GRanges(seqnames = as.character(seqnames),
             ranges = IRanges(start = start, end = start + 1),
             strand = "+"))
         right.gr <- with(junc.common.unanno,
-            GRanges(seqnames = seqnames,
+            GRanges(seqnames = as.character(seqnames),
             ranges = IRanges(start = end - 1, end = end),
             strand = "+"))
-
-        genome <- Get_Genome(reference_path, as_DNAStringSet = TRUE)
+        
         junc.common.unanno[, c("splice_motif") := paste0(
             as.character(getSeq(genome, left.gr)),
             as.character(getSeq(genome, right.gr))
         )]
+        
         splice_motifs <- data.frame(
             seqs = c("GTAG", "GCAG", "ATAC", "ATAG"),
             seqs_r = c("CTAC", "CTGC", "GTAT", "CTAT")
