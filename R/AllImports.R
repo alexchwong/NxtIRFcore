@@ -20,7 +20,7 @@
 #' @importFrom BiocParallel bpparam bplapply
 #' @importFrom Biostrings readDNAStringSet DNAStringSet translate
 #' @importFrom BSgenome getSeq
-#' @importFrom DelayedArray qlogis plogis rowMeans DelayedArray
+#' @importFrom DelayedArray qlogis plogis rowMeans DelayedArray rowSums
 #' @importFrom DelayedMatrixStats rowSds
 #' @importFrom genefilter rowttests
 #' @importFrom GenomeInfoDb sortSeqlevels seqinfo seqlengths seqlevels<- 
