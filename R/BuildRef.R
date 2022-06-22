@@ -969,6 +969,14 @@ return(TRUE)
     bfc
 }
 
+.get_cache_file_path <- function(cache, rpath) {
+    if(grepl(cache, rpath, fixed = TRUE)) {
+        return(rpath)
+    } else {
+        return(paste(cache, rpath, sep = "/"))
+    }
+}
+
 .parse_valid_file <- function(file, msg = "", force_download = FALSE) {
     if (!is_valid(file)) {
         .log(msg, type = "message")
@@ -979,7 +987,8 @@ return(TRUE)
         cache <- tools::R_user_dir(package = "NxtIRFcore", which = "cache")
         bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
         res <- BiocFileCache::bfcquery(bfc, url, "fpath", exact = TRUE)
-        if (nrow(res) > 0 & !force_download) return(res$rpath[nrow(res)])
+        if (nrow(res) > 0 & !force_download) 
+            return(.get_cache_file_path(cache, res$rpath[nrow(res)]))
 
         path <- tryCatch(BiocFileCache::bfcadd(bfc, url),
             error = function(err) {
@@ -988,14 +997,15 @@ return(TRUE)
             }
         )
         if (identical(path, NA)) {
+            # fetch local copy if available
             if (nrow(res) == 0) return("")
             .log("Returning local copy from cache", "message")
-            return(res$rpath[nrow(res)]) # fetch local copy if available
+            return(return(.get_cache_file_path(cache, res$rpath[nrow(res)]))) 
         }
         # remove prior versions from cache to remove glut
         res <- BiocFileCache::bfcquery(bfc, url, "fpath", exact = TRUE)
         BiocFileCache::bfcremove(bfc, res$rid[-nrow(res)])
-        return(res$rpath[nrow(res)])
+        return(.get_cache_file_path(cache, res$rpath[nrow(res)]))
     } else if (!file.exists(file)) {
         .log(paste(file, "not found.", msg), type = "message")
         return("")
@@ -2426,7 +2436,8 @@ return(TRUE)
         by = "transcript_id"]
     splice[as.numeric(regexpr("N", get("seq"))) < 0,
         c("AA") := as.character(
-            Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"))
+            Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"),
+                if.fuzzy.codon = "solve")
         )
     ]
     # Find nucleotide position of first stop codon
@@ -2572,7 +2583,8 @@ return(TRUE)
     IRT[
         as.numeric(regexpr("N", get("seq"))) < 0,
         c("AA") := as.character(
-            Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"))
+            Biostrings::translate(as(.trim_3(get("seq")), "DNAStringSet"),
+                if.fuzzy.codon = "solve")
         )
     ]
 
@@ -3758,32 +3770,38 @@ return(TRUE)
 # Translate upstream, casette and downstream sequences
 .gen_splice_proteins_translate <- function(AS_Table.Extended) {
     DNAseq <- AS_Table.Extended[nchar(get("DNA_upstr_A")) > 0]$DNA_upstr_A
-    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
+    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"),
+        if.fuzzy.codon = "solve"))
     AS_Table.Extended[nchar(get("DNA_upstr_A")) > 0,
         c("AA_upstr_A") := AAseq]
 
     DNAseq <- AS_Table.Extended[nchar(get("DNA_casette_A")) > 0]$DNA_casette_A
-    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
+    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"),
+        if.fuzzy.codon = "solve"))
     AS_Table.Extended[nchar(get("DNA_casette_A")) > 0,
         c("AA_casette_A") := AAseq]
 
     DNAseq <- AS_Table.Extended[nchar(get("DNA_downstr_A")) > 0]$DNA_downstr_A
-    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
+    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"),
+        if.fuzzy.codon = "solve"))
     AS_Table.Extended[nchar(get("DNA_downstr_A")) > 0,
         c("AA_downstr_A") := AAseq]
 
     DNAseq <- AS_Table.Extended[nchar(get("DNA_upstr_B")) > 0]$DNA_upstr_B
-    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
+    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"),
+        if.fuzzy.codon = "solve"))
     AS_Table.Extended[nchar(get("DNA_upstr_B")) > 0,
         c("AA_upstr_B") := AAseq]
 
     DNAseq <- AS_Table.Extended[nchar(get("DNA_casette_B")) > 0]$DNA_casette_B
-    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
+    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"),
+        if.fuzzy.codon = "solve"))
     AS_Table.Extended[nchar(get("DNA_casette_B")) > 0,
         c("AA_casette_B") := AAseq]
 
     DNAseq <- AS_Table.Extended[nchar(get("DNA_downstr_B")) > 0]$DNA_downstr_B
-    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet")))
+    AAseq <- as.character(Biostrings::translate(as(DNAseq, "DNAStringSet"),
+        if.fuzzy.codon = "solve"))
     AS_Table.Extended[nchar(get("DNA_downstr_B")) > 0,
         c("AA_downstr_B") := AAseq]
 
