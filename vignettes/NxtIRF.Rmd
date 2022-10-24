@@ -8,6 +8,9 @@ output:
         toc: true
         toc_float: true
 abstract:
+    Important - NxtIRFcore will be replaced by SpliceWiz, available on
+    Bioconductor version 3.16 onwards.
+    
     Intron Retention (IR) is a form of alternative splicing whereby the intron 
     is retained (i.e. not spliced) in final messenger RNA. Although many 
     bioinformatics tools are available to quantitate other forms of alternative
@@ -43,6 +46,11 @@ knitr::opts_chunk$set(
     comment = "#>"
 )
 ```
+# (0) Important announcement
+
+NxtIRFcore will no longer be supported after Bioconductor version 3.16. Its
+full functionality (plus heaps more) is replaced by SpliceWiz which will
+be available on Bioconductor version 3.16 onwards.
 
 # (1) Installation and Quick-Start
 

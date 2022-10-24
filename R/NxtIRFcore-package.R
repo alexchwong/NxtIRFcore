@@ -1,6 +1,9 @@
 #' NxtIRFcore: a command line interface for NxtIRF - IRFinder-based
 #' differential Alternative Splicing and Intron Retention analysis
 #'
+#' (Important!) NxtIRFcore will be replaced by SpliceWiz from Bioconductor
+#' version 3.16 onwards. SpliceWiz replaces the full functionality of 
+#' NxtIRFcore, plus heaps more! 
 #' NxtIRF is a computationally efficient and user friendly workflow that
 #' analyses aligned short-read RNA sequencing for differential
 #' intron retention and alternative splicing. It utilises an improved
